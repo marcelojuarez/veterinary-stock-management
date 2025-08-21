@@ -35,7 +35,7 @@ class App():
 
         customers_view = CustomersView(self.notebook)
         customers_view.frame.pack(fill='both', expand=True)
-        self.notebook.add(customers_view.frame, text='Venta')
+        self.notebook.add(customers_view.frame, text='Clientes')
 
     def run(self):
         self.root.mainloop()
