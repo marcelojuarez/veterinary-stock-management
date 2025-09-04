@@ -3,8 +3,9 @@ from tkinter import ttk
 from config.settings import settings
 from views.stock_view import StockView
 from views.sales_view import SalesView
-from views.suppliers_view import SuppliersView
+from views.supplier_view import SupplierView
 from views.customers_view import CustomersView
+from controllers.supplier_controller import SupplierController
 
 class App():
     def __init__(self):
@@ -29,9 +30,12 @@ class App():
         sales_view.frame.pack(fill='both', expand=True)
         self.notebook.add(sales_view.frame, text='Venta')
 
-        suppliers_view = SuppliersView(self.notebook)
-        suppliers_view.frame.pack(fill='both', expand=True)
-        self.notebook.add(suppliers_view.frame, text='Proveedores')
+
+        supplier_controller = SupplierController(self.notebook)
+        supplier_view = SupplierView(self.notebook, supplier_controller)
+
+        supplier_view.frame.pack(fill='both', expand=True)
+        self.notebook.add(supplier_view.frame, text='Proveedores')
 
         customers_view = CustomersView(self.notebook)
         customers_view.frame.pack(fill='both', expand=True)

@@ -20,34 +20,13 @@ class Database:
 
             # supplier table
             cursor.execute('''
-                CREATE TABLE supplier()
-                    id_proveedor INT AUTO_INCREMENT PRIMARY KEY,
+                CREATE TABLE IF NOT EXISTS supplier(
+                    id INT AUTO_INCREMENT PRIMARY KEY,
                     razon_social VARCHAR(150) NOT NULL,
-                    cuit VARCHAR(20) UNIQUE NOT NULL,
-                    direccion VARCHAR(200),
-                    ciudad VARCHAR(100),
-                    provincia VARCHAR(100),
-                    telefono VARCHAR(50),
-                    email VARCHAR(100),
-                    condiciones_pago VARCHAR(100),
-                    banco VARCHAR(100),
-                    cbu VARCHAR(50),
-                    fecha_alta DATE DEFAULT CURRENT_DATE,
+                    nombre VARCHAR(150) NOT NULL,
                     activo BOOLEAN DEFAULT TRUE
                 )
             ''')
-
-            cursor.execute('''
-                CREATE TABLE movimientos_proveedor (
-                    id_movimiento INT AUTO_INCREMENT PRIMARY KEY,
-                    id_proveedor INT NOT NULL,
-                    fecha DATE NOT NULL,
-                    concepto VARCHAR(200),
-                    monto DECIMAL(12,2) NOT NULL,
-                    tipo ENUM('COMPRA','PAGO','NOTA_CREDITO') NOT NULL,
-                    FOREIGN KEY (id_proveedor) REFERENCES proveedores(id_proveedor)
-                    )       
-                ''')
 
             conn.commit()
 
@@ -61,7 +40,7 @@ class Database:
             conn.commit()
             return cursor.lastrowid
         
-    def fetch_all(self, query, params):
+    def fetch_all(self, query, params=None):
         with self.get_connection() as conn:
             cursor = conn.cursor()
             if params:

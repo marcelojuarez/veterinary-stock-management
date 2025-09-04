@@ -9,11 +9,6 @@ def main():
         db.create_tables()
         print("database initialized")
 
-        query = "INSERT INTO stock (id, name) VALUES (?, ?)"
-        new_id = db.execute_query(query, (1, "Marcelo"))
-        print(new_id)  # Por ejemplo: 7
-
-
         print("initializing app")
         app = App()
         print("app initialized")
