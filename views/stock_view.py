@@ -19,10 +19,22 @@ class StockView():
         
     def setup_variables(self):
         """Configurar variables del formulario"""
+        self.id_var = tk.StringVar()
+        self.name_var = tk.StringVar()
+        self.desc_var = tk.StringVar()
+        self.brand_var = tk.StringVar()
+        self.price_var = tk.StringVar()
+        self.stock_var = tk.StringVar()
+        self.qnt_var = tk.StringVar()
         self.find_var = tk.StringVar()
         
-        # Lista de variables para fácil acceso
         self.form_vars = [
+            self.id_var,
+            self.name_var,
+            self.desc_var,
+            self.brand_var,
+            self.price_var,
+            self.qnt_var,
             self.find_var
         ]
 
@@ -105,17 +117,33 @@ class StockView():
 
     def open_add_window(self):
         add_win = tk.Toplevel(self.frame)
-        add_win.title("Nuevo producto")
+        add_win.title("Agregar nuevo producto")
 
-        tk.Label(add_win, text="Nombre:").grid(row=0, column=0, padx=5, pady=5)
-        name_entry = tk.Entry(add_win)
-        name_entry.grid(row=0, column=1, padx=5, pady=5)
+        tk.Label(add_win, text="Código:").grid(row=0, column=0, padx=5, pady=5)
+        id_entry = tk.Entry(add_win, textvariable=self.id_var)
+        id_entry.grid(row=0, column=1, padx=5, pady=5)
 
-        tk.Label(add_win, text="Precio:").grid(row=1, column=0, padx=5, pady=5)
-        price_entry = tk.Entry(add_win)
-        price_entry.grid(row=1, column=1, padx=5, pady=5)
+        tk.Label(add_win, text="Nombre:").grid(row=1, column=0, padx=5, pady=5)
+        name_entry = tk.Entry(add_win, textvariable=self.name_var)
+        name_entry.grid(row=1, column=1, padx=5, pady=5)
 
-        tk.Button(add_win, text="Agregar", command=lambda: print("Guardar producto...")).grid(row=2, column=0, columnspan=2, pady=10)
+        tk.Label(add_win, text="Descripción:").grid(row=2, column=0, padx=5, pady=5)
+        desc_entry = tk.Entry(add_win, textvariable=self.desc_var)
+        desc_entry.grid(row=2, column=1, padx=5, pady=5)
+
+        tk.Label(add_win, text="Marca:").grid(row=3, column=0, padx=5, pady=5)
+        brand_entry = tk.Entry(add_win, textvariable=self.brand_var)
+        brand_entry.grid(row=3, column=1, padx=5, pady=5)
+
+        tk.Label(add_win, text="Precio:").grid(row=4, column=0, padx=5, pady=5)
+        price_entry = tk.Entry(add_win, textvariable=self.price_var)
+        price_entry.grid(row=4, column=1, padx=5, pady=5)
+
+        tk.Label(add_win, text="Cantidad:").grid(row=5, column=0, padx=5, pady=5)
+        qnt_entry = tk.Entry(add_win, textvariable=self.qnt_var)
+        qnt_entry.grid(row=5, column=1, padx=5, pady=5)
+
+        tk.Button(add_win, text="Agregar", command=lambda: self.controller.add_new_product()).grid(row=6, column=0, columnspan=2, pady=10)
 
 
     def generate_random_id(self):
@@ -125,19 +153,19 @@ class StockView():
         for i in range(4):
             randno = random.randrange(0, len(numeric))
             item_id += numeric[randno]
-        self.item_id_var.set(item_id)
+        self.id_entry.set(item_id)
 
     def get_form_data(self):
         """Obtener datos del formulario"""
         return {
-            'id': self.item_id_var.get().strip(),
+            'id': self.id_var.get().strip(),
             'name': self.name_var.get().strip(),
+            'desc': self.desc_var.get().strip(),
             'brand': self.brand_var.get().strip(),
             'price': self.price_var.get().strip(),
-            'price2': self.price2_var.get().strip(),
-            'quantity': self.quantity_var.get().strip(),
-            'iva': self.iva_var.get().strip()
+            'qnt': self.qnt_var.get().strip(),
         }
+        
 
     def refresh_stock_table(self, products):
         """Refrescar tabla de stock con nuevos datos"""

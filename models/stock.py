@@ -5,39 +5,31 @@ class StockModel:
         self.db = db_conection or db
     
     def get_all_products(self):
-        # Obtener todos los productos en stock
-        try:
-            with self.db.cursor() as cursor:
-                cursor.execute("SELECT * FROM stock ORDER BY name") 
-                return cursor.fetchall() # Obtener todos los productos
-        except Exception as e:
-            print(f"Error getting products: {e}")
-            return []
+        """Obtener todos los productos del stock"""
+        query = "SELECT id, name, description, brand, price, quantity FROM stock ORDER BY name"
+        return db.fetch_all(query)
     
     def get_product_by_id(self, product_id):
-        # Obtener un producto por su ID
-        try:
-            with self.db.cursor() as cursor:
-                cursor.execute("SELECT * FROM stock WHERE id = ?", (product_id,))
-                return cursor.fetchone() # Obtener un solo producto
-        except Exception as e:
-            print(f"Error getting product by ID: {e}")
-            return None
+        """Obtener un producto por su ID"""
+        query = "SELECT id, name, description, brand, price, quantity FROM stock WHERE id = ?"
+        return db.fetch_one(query, (product_id,))
         
     
     def add_product(self, product_data):
-        # Agregar un nuevo producto al stock
-        try: 
-            with self.db.cursor() as cursor:
-                cursor.execute("""
-                    INSERT INTO stock (id,name, description, quantity, price, supplier_id)
-                    VALUES (?,?, ?, ?, ?, ?)
-                """, product_data)
-                self.db.commit()
-                return cursor.lastrowid # Devuelve el ID del producto agregado 
-        except Exception as e:
-            print(f"Error adding product: {e}")
-            return None
+        """Agregar un nuevo producto"""
+        query = """
+            INSERT INTO stock (id, name, description, brand, price, quantity)
+            VALUES (?, ?, ?, ?, ?, ?)
+        """
+        params = (
+            product_data['id'],
+            product_data['name'],
+            product_data['desc'],
+            product_data['brand'],
+            product_data['price'],
+            product_data['qnt'],
+        )
+        return db.execute_query(query, params)
         
     def update_product(self, product_id, product_data):
         # Actualizar un producto existente en el stock
