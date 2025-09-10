@@ -70,7 +70,31 @@ class StockController:
         except Exception as e:
             self.view.show_error(f"Error al eliminar producto: {str(e)}")
 
-
+    def find_product(self):
+        """Buscar producto por ID o nombre"""
+        try:
+            form_data = self.view.get_find_data()
+            name = form_data['name']
+            
+            if not (name):
+                self.view.show_warning("Ingrese ID o nombre para buscar")
+                return
+            
+            search_term = name
+            results = self.stock_model.search_products(search_term)
+            
+            if results:
+                self.view.refresh_stock_table(results)
+            
+                if len(results) == 1:
+                    self.view.show_success("Se encontró 1 producto")
+                else:
+                    self.view.show_success(f"Se encontraron {len(results)} productos. El más relevante se cargó en el formulario.")
+            else:
+                self.view.show_warning("No se encontraron productos")
+                
+        except Exception as e:
+            self.view.show_error(f"Error al buscar producto: {str(e)}")
 
     def refresh_stock_table(self):
         """Refrescar tabla de stock"""

@@ -69,7 +69,7 @@ class StockView():
         find_frame = tk.LabelFrame(self.frame, borderwidth=2)
         find_frame.grid(row=0, column=0, sticky='w', padx=[10,200], pady=[0,20], ipadx=[6])
 
-        find_btn = tk.Button(find_frame, text="Buscar", borderwidth=3, bg="#FFFFFF", fg='black')
+        find_btn = tk.Button(find_frame, text="Buscar", borderwidth=3, bg="#FFFFFF", fg='black', command=lambda: self.controller.find_product())
         find_btn.grid(row=0, column=2, padx=5, pady=5)
 
         tk.Label(find_frame, text='Buscar:', anchor='e', width=5).grid(row=0, column=0, padx=5)
@@ -164,6 +164,12 @@ class StockView():
             'brand': self.brand_var.get().strip(),
             'price': self.price_var.get().strip(),
             'qnt': self.qnt_var.get().strip(),
+        }
+
+    def get_find_data(self):
+        """Obtener datos del formulario"""
+        return {
+            'name': self.find_var.get().strip(),
         }
         
     def get_selected_product(self):

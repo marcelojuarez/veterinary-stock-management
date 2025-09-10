@@ -80,7 +80,7 @@ class StockModel:
     def search_products(self, search_term):
         """Buscar productos por nombre o ID"""
         query = """
-            SELECT id, name, brand, price, price2, quantity 
+            SELECT id, name, description, brand, price, quantity 
             FROM stock 
             WHERE name LIKE ? OR id LIKE ?
             ORDER BY name
