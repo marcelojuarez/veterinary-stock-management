@@ -48,75 +48,45 @@ class StockModel:
             return None
         
     def delete_product(self, product_id):
-        # Eliminar un producto del stock
-        try:
-            with self.db.cursor() as cursor:
-                cursor.execute("DELETE FROM stock WHERE id = ?", (product_id,))
-                self.db.commit()
-                return cursor.rowcount # Devuelve el número de filas afectadas
-        except Exception as e:
-            self.db.rollback()
-            print(f"Error deleting product: {e}")
-            return None
+        """Eliminar un producto"""
+        query = "DELETE FROM stock WHERE id = ?"
+        return db.execute_query(query, (product_id,))
 
-    def update_quantity(self, product_id,new_quantity):
-        # Actualizar la cantidad de un producto en stock
-        try:
-            with self.db.cursor() as cursor:
-                cursor.execute("UPDATE stock SET quantity = ? WHERE id = ?", (new_quantity,product_id))
-                self.db.commit()
-                return cursor.rowcount
-        except Exception as e:
-            self.db.rollback()
-            print(f"Error updating quantity: {e}")
-            return 0
+    def update_quantity(self, product_id, new_quantity):
+        """Actualizar solo la cantidad de un producto"""
+        query = "UPDATE stock SET quantity = ? WHERE id = ?"
+        return db.execute_query(query, (new_quantity, product_id))
         
-    def reduce_quantity(self,product_id,quantity_to_reduce):
-        # Reducir la cantidad de un producto en stock
-        try: 
-            with self.db.cursor() as cursor:
-                 # Verificar stock suficiente primero
-                cursor.execute("SELECT quantity FROM stock WHERE id = ?", (product_id,))
-                current_stock = cursor.fetchone()[0]
-                
-                if current_stock < quantity_to_reduce:
-                    raise ValueError("Stock insuficiente")
-                
-                cursor.execute("UPDATE stock SET quantity = quantity - ? WHERE id = ?", (quantity_to_reduce,product_id))
-                self.db.commit()
-                return cursor.rowcount
-        except Exception as e:
-            self.db.rollback()
-            print(f"Error reducing quantity: {e}")
-            return 0
+    def reduce_quantity(self, product_id, quantity_to_reduce):
+        """Reducir la cantidad de un producto (para ventas)"""
+        # Primero obtener la cantidad actual
+        current_product = self.get_product_by_id(product_id)
+        if not current_product:
+            raise ValueError(f"Producto {product_id} no encontrado")
+        
+        current_quantity = current_product[4]  # quantity está en el índice 4
+        
+        if current_quantity < quantity_to_reduce:
+            raise ValueError(f"Stock insuficiente. Disponible: {current_quantity}, Solicitado: {quantity_to_reduce}")
+        
+        new_quantity = current_quantity - quantity_to_reduce
+        return self.update_quantity(product_id, new_quantity)
 
-    def increase_quantity(self,product_id,quantity_to_increase):
-        # Aumentar la cantidad de un producto en stock
-        try:
-            with self.db.cursor() as cursor:
-                # Verificar que la cantidad a aumentar sea positiva
-                if quantity_to_increase < 0:
-                    raise ValueError("La cantidad a aumentar debe ser positiva")
-                cursor.execute("UPDATE stock SET quantity = quantity + ? WHERE id = ?", (quantity_to_increase,product_id))
-                self.db.commit()
-                return cursor.rowcount
-        except Exception as e:
-            self.db.rollback()
-            print(f"Error increasing quantity: {e}")
-            return 0
+    def update_quantity(self, product_id, new_quantity):
+        """Actualizar solo la cantidad de un producto"""
+        query = "UPDATE stock SET quantity = ? WHERE id = ?"
+        return db.execute_query(query, (new_quantity, product_id))
     
     def search_products(self, search_term):
-        # Buscar productos por nombre o ID
-        try: 
-            with self.db.cursor() as cursor:
-                cursor.execute(
-                            "SELECT * FROM stock WHERE name LIKE ? OR CAST(id AS TEXT) LIKE ? ORDER BY name",
-                            ('%'+search_term+'%', '%'+search_term+'%')
-                        )
-                return cursor.fetchall()
-        except Exception as e:
-            print(f"Error searching products: {e}")
-            return [] 
+        """Buscar productos por nombre o ID"""
+        query = """
+            SELECT id, name, brand, price, price2, quantity 
+            FROM stock 
+            WHERE name LIKE ? OR id LIKE ?
+            ORDER BY name
+        """
+        search_pattern = f"%{search_term}%"
+        return db.fetch_all(query, (search_pattern, search_pattern))
     
     def get_products_by_category(self, category):
         #  Obtener productos por categoría (asumiendo que hay una columna 'category' en la tabla stock)

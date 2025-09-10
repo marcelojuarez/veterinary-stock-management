@@ -54,7 +54,7 @@ class StockView():
 
         new_btn = tk.Button(manage_frame, text="Nuevo", width=15, borderwidth=3, bg="#17BCE5", fg='black', command=lambda: self.open_add_window())
         update_btn = tk.Button(manage_frame, text="Actualizar", width=15, borderwidth=3, bg="#17E574", fg='black')
-        delete_btn = tk.Button(manage_frame, text="Borrar", width=15, borderwidth=3, bg="#D6C52F", fg='black')
+        delete_btn = tk.Button(manage_frame, text="Borrar", width=15, borderwidth=3, bg="#D6C52F", fg='black', command=lambda: self.controller.delete_product())
         clear_btn = tk.Button(manage_frame, text="Limpiar", width=15, borderwidth=3, bg="#B817E5", fg='black')
         add_btn = tk.Button(manage_frame, text="Agregar", width=15, borderwidth=3, bg="#E51717", fg='black')
 
@@ -166,6 +166,23 @@ class StockView():
             'qnt': self.qnt_var.get().strip(),
         }
         
+    def get_selected_product(self):
+        """Obtener producto seleccionado del tree"""
+        try:
+            selected_item = self.stock_tree.selection()[0]
+            values = self.stock_tree.item(selected_item)['values']
+            product_id = str(values[0]).zfill(4)
+            
+            return {
+                'id': product_id,
+                'name': values[1],
+                'desc': values[2],
+                'brand': values[3],
+                'price': float(values[4]),
+                'qnt': int(values[5]),
+            }
+        except (IndexError, ValueError):
+            return None
 
     def refresh_stock_table(self, products):
         """Refrescar tabla de stock con nuevos datos"""

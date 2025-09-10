@@ -47,6 +47,30 @@ class StockController:
         except Exception as e:
             self.view.show_error(f"Error al registar producto: código en uso")
 
+    def delete_product(self):
+        """Eliminar producto seleccionado"""
+        try:
+            selected_product = self.view.get_selected_product()
+            
+            if not selected_product:
+                self.view.show_warning("Por favor seleccione un producto")
+                return
+            
+            if not self.view.ask_confirmation("¿Eliminar el producto seleccionado?"):
+                return
+            
+            # Eliminar de base de datos
+            self.stock_model.delete_product(selected_product['id'])
+            
+            # Refrescar tabla
+            self.refresh_stock_table()
+            
+            self.view.show_success("Producto eliminado correctamente")
+            
+        except Exception as e:
+            self.view.show_error(f"Error al eliminar producto: {str(e)}")
+
+
 
     def refresh_stock_table(self):
         """Refrescar tabla de stock"""
