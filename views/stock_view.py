@@ -52,13 +52,13 @@ class StockView():
         manage_frame = tk.LabelFrame(self.frame, borderwidth=2)
         manage_frame.grid(row=2, column=0, sticky='w', padx=[10,20], pady=20, ipadx=[6])
 
-        save_btn = tk.Button(manage_frame, text="Guardar", width=15, borderwidth=3, bg="#17BCE5", fg='black', command=lambda: self.open_add_window())
+        new_btn = tk.Button(manage_frame, text="Nuevo", width=15, borderwidth=3, bg="#17BCE5", fg='black', command=lambda: self.open_add_window())
         update_btn = tk.Button(manage_frame, text="Actualizar", width=15, borderwidth=3, bg="#17E574", fg='black')
         delete_btn = tk.Button(manage_frame, text="Borrar", width=15, borderwidth=3, bg="#D6C52F", fg='black')
         clear_btn = tk.Button(manage_frame, text="Limpiar", width=15, borderwidth=3, bg="#B817E5", fg='black')
         add_btn = tk.Button(manage_frame, text="Agregar", width=15, borderwidth=3, bg="#E51717", fg='black')
 
-        save_btn.grid(row=0, column=0, padx=5, pady=5)
+        new_btn.grid(row=0, column=0, padx=5, pady=5)
         update_btn.grid(row=0, column=1, padx=5, pady=5)
         delete_btn.grid(row=0, column=2, padx=5, pady=5)
         clear_btn.grid(row=0, column=3, padx=5, pady=5)
