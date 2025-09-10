@@ -7,7 +7,7 @@ class StockController:
         self.stock_model = StockModel()
         self.stock_view = stock_view   
 
-    def add_new_product(self):
+    def add_new_product(self, window=None):
         """Guardar nuevo producto"""
         try:
             # Obtener datos del formulario
@@ -32,12 +32,12 @@ class StockController:
             }
 
             self.stock_model.add_product(product_data)
+
+            if window:
+                window.destroy()
             
             # Refrescar tabla
             self.refresh_stock_table()
-            
-            # Limpiar formulario
-            #self.view.clear_form()
             
             self.view.show_success("Producto registrado correctamente")
             

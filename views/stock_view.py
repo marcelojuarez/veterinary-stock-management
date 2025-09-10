@@ -143,7 +143,7 @@ class StockView():
         qnt_entry = tk.Entry(add_win, textvariable=self.qnt_var)
         qnt_entry.grid(row=5, column=1, padx=5, pady=5)
 
-        tk.Button(add_win, text="Agregar", command=lambda: self.controller.add_new_product()).grid(row=6, column=0, columnspan=2, pady=10)
+        tk.Button(add_win, text="Agregar", command=lambda: self.controller.add_new_product(add_win)).grid(row=6, column=0, columnspan=2, pady=10)
 
 
     def generate_random_id(self):
