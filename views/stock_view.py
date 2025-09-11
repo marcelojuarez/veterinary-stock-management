@@ -55,7 +55,7 @@ class StockView():
         new_btn = tk.Button(manage_frame, text="Nuevo", width=15, borderwidth=3, bg="#17BCE5", fg='black', command=lambda: self.open_add_window())
         update_btn = tk.Button(manage_frame, text="Actualizar", width=15, borderwidth=3, bg="#17E574", fg='black')
         delete_btn = tk.Button(manage_frame, text="Borrar", width=15, borderwidth=3, bg="#D6C52F", fg='black', command=lambda: self.controller.delete_product())
-        clear_btn = tk.Button(manage_frame, text="Limpiar", width=15, borderwidth=3, bg="#B817E5", fg='black')
+        clear_btn = tk.Button(manage_frame, text="Limpiar", width=15, borderwidth=3, bg="#B817E5", fg='black', command=lambda: self.controller.refresh_stock_table())
         add_btn = tk.Button(manage_frame, text="Agregar", width=15, borderwidth=3, bg="#E51717", fg='black')
 
         new_btn.grid(row=0, column=0, padx=5, pady=5)

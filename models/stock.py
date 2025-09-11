@@ -32,20 +32,21 @@ class StockModel:
         return db.execute_query(query, params)
         
     def update_product(self, product_id, product_data):
-        # Actualizar un producto existente en el stock
-        try: 
-            with self.db.cursor() as cursor:
-                cursor.execute("""
-                    UPDATE stock
-                    SET name = ?, description = ?, quantity = ?, price = ?, supplier_id = ?
-                    WHERE id = ?
-                """, product_data + (product_id,))
-                self.db.commit()
-                return cursor.rowcount # Devuelve el número de filas afectadas
-        except Exception as e:
-            self.db.rollback()
-            print(f"Error updating product: {e}")
-            return None
+        """Actualizar un producto existente"""
+        query = """
+            UPDATE stock 
+            SET name = ?, brand = ?, description = ?, price = ?, quantity = ?
+            WHERE id = ?
+        """
+        params = (
+            product_data['name'],
+            product_data['desc'],
+            product_data['brand'],
+            product_data['price'],
+            product_data['qnt'],
+            product_id
+        )
+        return db.execute_query(query, params)
         
     def delete_product(self, product_id):
         """Eliminar un producto"""
@@ -82,11 +83,11 @@ class StockModel:
         query = """
             SELECT id, name, description, brand, price, quantity 
             FROM stock 
-            WHERE name LIKE ? OR id LIKE ?
+            WHERE name LIKE ? OR id LIKE ? OR description LIKE ? OR brand LIKE ?
             ORDER BY name
         """
         search_pattern = f"%{search_term}%"
-        return db.fetch_all(query, (search_pattern, search_pattern))
+        return db.fetch_all(query, (search_pattern, search_pattern, search_pattern, search_pattern))
     
     def get_products_by_category(self, category):
         #  Obtener productos por categoría (asumiendo que hay una columna 'category' en la tabla stock)

@@ -86,10 +86,8 @@ class StockController:
             if results:
                 self.view.refresh_stock_table(results)
             
-                if len(results) == 1:
-                    self.view.show_success("Se encontró 1 producto")
-                else:
-                    self.view.show_success(f"Se encontraron {len(results)} productos. El más relevante se cargó en el formulario.")
+                if len(results) >= 1:
+                    self.view.show_success(f"Se encontraron {len(results)} productos")
             else:
                 self.view.show_warning("No se encontraron productos")
                 
