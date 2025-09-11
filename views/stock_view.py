@@ -10,6 +10,10 @@ class StockView():
         self.stock_model = StockModel()
         self.setup_variables()
         self.create_widgets()
+        self.edit_item = None
+        self.edit_entry = None
+        self.edit_column = None
+        self.original_value = None
         
     def set_controller(self, controller):
         """Asignar controller después de la inicialización"""
@@ -111,6 +115,12 @@ class StockView():
         self.stock_tree.heading('Qnt', text='Stock ↕', anchor=tk.W,
                             command=lambda: self.sort_tree('Quantity'))
         
+        # Bind para doble click
+        self.stock_tree.bind('<Double-Button-1>', self.on_double_click)
+        # Bind para Enter y Escape
+        self.stock_tree.bind('<Return>', self.save_edit)
+        self.stock_tree.bind('<Escape>', self.cancel_edit)
+        
 
         self.stock_tree.tag_configure('orow', background="#FFFFFF")
         self.stock_tree.grid(row=0, column=0, padx=10, pady=(0, 20), sticky="nsew")
@@ -189,6 +199,128 @@ class StockView():
             }
         except (IndexError, ValueError):
             return None
+    
+    def on_double_click(self, event):
+        """Manejar doble click para editar"""
+        # Obtener item y columna clickeada
+        item = self.stock_tree.selection()[0] if self.stock_tree.selection() else None
+        if not item:
+            return
+        
+        region = self.stock_tree.identify("region", event.x, event.y)
+        if region != "cell":
+            return
+            
+        column = self.stock_tree.identify("column", event.x, event.y)
+        if not column:
+            return
+            
+        # Convertir columna a índice (column viene como '#1', '#2', etc.)
+        column_index = int(column.replace('#', '')) - 1
+        if column_index < 0 or column_index >= len(self.stock_tree['columns']):
+            return
+            
+        column_name = self.stock_tree['columns'][column_index]
+        
+        # No permitir editar el ID
+        if column_name == 'Id':
+            return
+            
+        self.start_edit(item, column_name, column)
+    
+    def start_edit(self, item, column_name, column):
+        """Iniciar edición de una celda"""
+        # Cancelar edición anterior si existe
+        if self.edit_entry:
+            self.cancel_edit()
+        
+        # Obtener posición y tamaño de la celda
+        x, y, width, height = self.stock_tree.bbox(item, column)
+        
+        # Obtener valor actual
+        current_value = self.stock_tree.set(item, column_name)
+        
+        # Crear Entry para edición
+        self.edit_entry = tk.Entry(self.stock_tree)
+        self.edit_entry.place(x=x, y=y, width=width, height=height)
+        self.edit_entry.insert(0, current_value)
+        self.edit_entry.select_range(0, tk.END)
+        self.edit_entry.focus()
+        
+        # Guardar información de la edición
+        self.edit_item = item
+        self.edit_column = column_name
+        self.original_value = current_value
+        
+        # Binds para el Entry
+        self.edit_entry.bind('<Return>', self.save_edit)
+        self.edit_entry.bind('<Escape>', self.cancel_edit)
+        self.edit_entry.bind('<FocusOut>', self.cancel_edit)
+    
+    def save_edit(self, event=None):
+        """Guardar la edición"""
+        if not self.edit_entry:
+            return
+            
+        try:
+            new_value = self.edit_entry.get()
+            
+            # Validar según el tipo de columna
+            if not self.validate_value(self.edit_column, new_value):
+                self.cancel_edit()
+                return
+            
+            product_id = self.stock_tree.set(self.edit_item, 'Id')
+
+            # Actualizar en la base de datos
+            success = self.controller.update_product_field(product_id, self.edit_column, new_value)
+            
+            if success:
+                self.stock_tree.set(self.edit_item, self.edit_column, new_value)
+                self.show_success(f"Producto actualizado correctamente")
+            else:
+                self.show_error("Error al actualizar el producto")
+                
+        except Exception as e:
+            self.show_error(f"Error: {str(e)}")
+            
+        finally:
+            self.cleanup_edit()
+    
+    def cancel_edit(self, event=None):
+        """Cancelar la edición"""
+        self.cleanup_edit()
+    
+    def cleanup_edit(self):
+        """Limpiar elementos de edición"""
+        if self.edit_entry:
+            self.edit_entry.destroy()
+            self.edit_entry = None
+        self.edit_item = None
+        self.edit_column = None
+        self.original_value = None
+    
+    def validate_value(self, column, value):
+        """Validar valor según el tipo de columna"""
+        try:
+            if column == 'Price':
+                float_val = float(value)
+                if float_val < 0:
+                    self.show_error("El precio no puede ser negativo")
+                    return False
+            elif column == 'Quantity':
+                int_val = int(value)
+                if int_val < 0:
+                    self.show_error("La cantidad no puede ser negativa")
+                    return False
+            elif column in ['Name', 'Description', 'Brand']:
+                if not value.strip():
+                    self.show_error("Este campo no puede estar vacío")
+                    return False
+            return True
+        except ValueError:
+            self.show_error(f"Valor inválido para {column}")
+            return False
 
     def refresh_stock_table(self, products):
         """Refrescar tabla de stock con nuevos datos"""

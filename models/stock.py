@@ -47,6 +47,10 @@ class StockModel:
             product_id
         )
         return db.execute_query(query, params)
+    
+    def update_field(self, db_field, new_value, product_id):
+        query = f"UPDATE stock SET {db_field} = ? WHERE id = ?"
+        db.execute_query(query, (new_value, product_id))
         
     def delete_product(self, product_id):
         """Eliminar un producto"""

@@ -94,6 +94,37 @@ class StockController:
         except Exception as e:
             self.view.show_error(f"Error al buscar producto: {str(e)}")
 
+    def update_product_field(self, product_id, field, new_value):
+        """Actualizar un campo específico de un producto"""
+        try:
+            # Mapeo de nombres de columnas a nombres de BD
+            field_mapping = {
+                'Name': 'name',
+                'Description': 'description', 
+                'Brand': 'brand',
+                'Price': 'price',
+                'Quantity': 'quantity'
+            }
+            
+            db_field = field_mapping.get(field)
+            if not db_field:
+                return False
+            
+            # Convertir tipos si es necesario
+            if field == 'price':
+                new_value = float(new_value)
+            elif field == 'quantity':
+                new_value = int(new_value)
+            
+            # Actualizar en base de datos
+            self.stock_model.update_field(db_field, new_value, product_id)
+            
+            return True
+            
+        except Exception as e:
+            print(f"Error updating product field: {e}")
+            return False
+
     def refresh_stock_table(self):
         """Refrescar tabla de stock"""
         try:
