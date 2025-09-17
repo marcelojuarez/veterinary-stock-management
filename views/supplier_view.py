@@ -2,6 +2,7 @@ import tkinter as tk
 from tkinter import ttk
 from tkinter import messagebox
 import random as rd
+from tkinter import PhotoImage
 from models.supplier import SupplierModel
 
 class SupplierView():
@@ -24,6 +25,7 @@ class SupplierView():
         self.home_var = tk.StringVar()
         self.phone_var = tk.StringVar()
         self.email_var = tk.StringVar()
+        self.find_var = tk.StringVar()
 
         self.form_vars = [
             self.name_var,
@@ -40,12 +42,16 @@ class SupplierView():
         self.create_buttons_frame()
 
     def create_find_frame(self):
-        """ Crea el frame para buscar proveedores"""
-        find_frame = ttk.Frame(self.frame)
-        find_frame.grid(row=0, column=0, padx=10, pady=10, sticky='w')
+        """Crear frame para formulario de producto"""
+        find_frame = tk.LabelFrame(self.frame, borderwidth=2)
+        find_frame.grid(row=0, column=0, sticky='w', padx=[10,200], pady=[0,20], ipadx=[6])
 
         find_btn = tk.Button(find_frame, text="Buscar", borderwidth=3, bg="#FFFFFF", fg='black')
         find_btn.grid(row=0, column=2, padx=5, pady=5)
+
+        tk.Label(find_frame, text='Buscar:', anchor='e', width=5).grid(row=0, column=0, padx=5)
+        self.find_entry = tk.Entry(find_frame, width=30, textvariable=self.find_var)
+        self.find_entry.grid(row=0, column=1, padx=5, pady=5)
 
 
     def create_tree_frame(self):
@@ -135,14 +141,14 @@ class SupplierView():
         }
 
     def refresh_supplier_table(self, suppliers):
-        for item in self.supplier_tree:
+        for item in self.supplier_tree.get_children():
             self.supplier_tree.delete(item)
 
         for supplier in suppliers:
             print(supplier)
             self.supplier_tree.insert(parent='', index='end', iid=supplier[0], values=supplier, tag="orow")
 
-        self.stock_tree.tag_configure('orow', background="white", foreground='black')
+        self.supplier_tree.tag_configure('orow', background="white", foreground='black')
 
     def show_error(self, message):
         messagebox.showerror("Error", message)

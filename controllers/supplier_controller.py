@@ -34,7 +34,7 @@ class SupplierController():
 
             self.refresh_supplier_table()
             
-            self.view.show_success("Producto registrado correctamente")
+            self.view.show_success("Proveedor registrado correctamente.")
 
         except ValueError as e:
             self.view.show_error(f"Error en los datos {str(e)}")
@@ -52,7 +52,7 @@ class SupplierController():
 
         for field in required_files:
             if not form_data[field]:
-                self.view.show_warning("Por favor complete todos los campos")
+                self.view.show_warning("Por favor complete todos los campos.")
                 return False
         
         return True
@@ -61,7 +61,7 @@ class SupplierController():
         pattern = r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b'
         
         if not re.fullmatch(pattern, email_field):
-            self.view.show_warning("Por favor coloquen correctamente")
+            self.view.show_warning("Por favor coloquen el e-mail correctamente.")
             return False
         
         return True
