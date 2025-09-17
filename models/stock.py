@@ -6,20 +6,20 @@ class StockModel:
     
     def get_all_products(self):
         """Obtener todos los productos del stock"""
-        query = "SELECT id, name, description, brand, price, quantity FROM stock ORDER BY name"
+        query = "SELECT id, name, description, brand, price, cost_price, iva, quantity FROM stock ORDER BY name"
         return db.fetch_all(query)
     
     def get_product_by_id(self, product_id):
         """Obtener un producto por su ID"""
-        query = "SELECT id, name, description, brand, price, quantity FROM stock WHERE id = ?"
+        query = "SELECT id, name, description, brand, price, cost_price, iva, quantity FROM stock WHERE id = ?"
         return db.fetch_one(query, (product_id,))
         
     
     def add_product(self, product_data):
         """Agregar un nuevo producto"""
         query = """
-            INSERT INTO stock (id, name, description, brand, price, quantity)
-            VALUES (?, ?, ?, ?, ?, ?)
+            INSERT INTO stock (id, name, description, brand, price, cost_price, iva, quantity)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         """
         params = (
             product_data['id'],
@@ -27,6 +27,8 @@ class StockModel:
             product_data['desc'],
             product_data['brand'],
             product_data['price'],
+            product_data['cost_price'],
+            product_data['iva'],
             product_data['qnt'],
         )
         return db.execute_query(query, params)

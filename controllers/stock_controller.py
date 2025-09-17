@@ -28,6 +28,8 @@ class StockController:
                 'desc': form_data['desc'],
                 'brand': form_data['brand'],
                 'price': float(form_data['price']),
+                'cost_price': float(form_data['cost_price']),
+                'iva': float(form_data['iva']),
                 'qnt': int(form_data['qnt']),
             }
 
@@ -45,7 +47,7 @@ class StockController:
             self.view.show_error(f"Error en los datos: {str(e)}")
 
         except Exception as e:
-            self.view.show_error(f"Error al registar producto: código en uso")
+            self.view.show_error(f"Error al registar producto: {str(e)}")
 
     def delete_product(self):
         """Eliminar producto seleccionado"""

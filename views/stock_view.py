@@ -28,6 +28,8 @@ class StockView():
         self.desc_var = tk.StringVar()
         self.brand_var = tk.StringVar()
         self.price_var = tk.StringVar()
+        self.cost_price_var = tk.StringVar()
+        self.iva_var = tk.StringVar()
         self.stock_var = tk.StringVar()
         self.qnt_var = tk.StringVar()
         self.find_var = tk.StringVar()
@@ -38,6 +40,8 @@ class StockView():
             self.desc_var,
             self.brand_var,
             self.price_var,
+            self.cost_price_var,
+            self.iva_var,
             self.qnt_var,
             self.find_var
         ]
@@ -53,32 +57,57 @@ class StockView():
     
     def create_buttons_frame(self):
         """Crear frame para botones de stock"""
-        manage_frame = tk.LabelFrame(self.frame, borderwidth=2)
-        manage_frame.grid(row=2, column=0, sticky='w', padx=[10,20], pady=20, ipadx=[6])
+        manage_frame = tk.LabelFrame(self.frame, borderwidth=2, text="Acciones")
+        manage_frame.grid(row=2, column=0, sticky='w', padx=[10,20], pady=20, ipadx=6)
 
-        new_btn = tk.Button(manage_frame, text="Nuevo", width=15, borderwidth=3, bg="#17BCE5", fg='black', command=lambda: self.open_add_window())
-        update_btn = tk.Button(manage_frame, text="Actualizar", width=15, borderwidth=3, bg="#17E574", fg='black')
-        delete_btn = tk.Button(manage_frame, text="Borrar", width=15, borderwidth=3, bg="#D6C52F", fg='black', command=lambda: self.controller.delete_product())
-        clear_btn = tk.Button(manage_frame, text="Limpiar", width=15, borderwidth=3, bg="#B817E5", fg='black', command=lambda: self.controller.refresh_stock_table())
-        add_btn = tk.Button(manage_frame, text="Agregar", width=15, borderwidth=3, bg="#E51717", fg='black')
+        btn_style = {
+            "width": 25,
+            "height": 2,
+            "borderwidth": 2,
+            "fg": "black",
+            "font": ("Arial", 12, "bold")
+        }
+
+        new_btn = tk.Button(manage_frame, text="📦 Nuevo producto", bg="#B3E5FC", command=lambda: self.open_add_window(), **btn_style)
+        update_btn = tk.Button(manage_frame, text="✏️ Editar", bg="#C8E6C9", **btn_style)
+        delete_btn = tk.Button(manage_frame, text="🗑️ Eliminar", bg="#FFCDD2", command=lambda: self.controller.delete_product(), **btn_style)
+        clear_btn = tk.Button(manage_frame, text="🔄 Refrescar", bg="#E1BEE7", command=lambda: self.controller.refresh_stock_table(), **btn_style)
+        add_btn = tk.Button(manage_frame, text="➕ Agregar a ventas", bg="#FFF9C4", **btn_style)
 
         new_btn.grid(row=0, column=0, padx=5, pady=5)
         update_btn.grid(row=0, column=1, padx=5, pady=5)
         delete_btn.grid(row=0, column=2, padx=5, pady=5)
         clear_btn.grid(row=0, column=3, padx=5, pady=5)
         add_btn.grid(row=0, column=4, padx=5, pady=5)
+
+
     
     def create_find_frame(self):
         """Crear frame para formulario de producto"""
         find_frame = tk.LabelFrame(self.frame, borderwidth=2)
-        find_frame.grid(row=0, column=0, sticky='w', padx=[10,200], pady=[0,20], ipadx=[6])
+        find_frame.grid(row=0, column=0, sticky='w', padx=[10,200], pady=[0,20], ipadx=6)
 
-        find_btn = tk.Button(find_frame, text="Buscar", borderwidth=3, bg="#FFFFFF", fg='black', command=lambda: self.controller.find_product())
+        # Label
+        tk.Label(find_frame, text='🔍 Buscar producto:', anchor='e', width=20, font=("Arial", 13, "bold")).grid(row=0, column=0, padx=5)
+
+        # Campo de texto
+        self.find_entry = tk.Entry(find_frame, width=35, textvariable=self.find_var, font=("Arial", 10))
+        self.find_entry.grid(row=0, column=1, padx=5, pady=5)
+
+        # Botón de búsqueda
+        find_btn = tk.Button(
+            find_frame,
+            text="Buscar",
+            width=18,
+            height=2,
+            borderwidth=2,
+            bg="#BBDEFB",  # azul pastel
+            fg="black",
+            font=("Arial", 12, "bold"),
+            command=lambda: self.controller.find_product()
+        )
         find_btn.grid(row=0, column=2, padx=5, pady=5)
 
-        tk.Label(find_frame, text='Buscar:', anchor='e', width=5).grid(row=0, column=0, padx=5)
-        self.find_entry = tk.Entry(find_frame, width=30, textvariable=self.find_var)
-        self.find_entry.grid(row=0, column=1, padx=5, pady=5)
 
     def create_tree_frame(self):
         """Crear frame para tabla de stock"""
@@ -93,13 +122,15 @@ class StockView():
         scrollbar.grid(row=0, column=1, sticky='ns')
         self.stock_tree.configure(yscrollcommand=scrollbar.set)
 
-        self.stock_tree['columns'] = ('Id', "Name", "Description", "Brand", "Price", "Qnt")
+        self.stock_tree['columns'] = ('Id', "Name", "Description", "Brand", "Price", "Cost Price", "Iva", "Qnt")
         self.stock_tree['displaycolumns'] = self.stock_tree['columns']
         self.stock_tree.column("Id", anchor=tk.W, width=80, stretch=False)
         self.stock_tree.column("Name", anchor=tk.W, width=180, stretch=False)
         self.stock_tree.column("Description", anchor=tk.W, width=350, stretch=False)
         self.stock_tree.column("Brand", anchor=tk.W, width=180, stretch=False)
         self.stock_tree.column("Price", anchor=tk.W, width=100, stretch=False)
+        self.stock_tree.column("Cost Price", anchor=tk.W, width=100, stretch=False)
+        self.stock_tree.column("Iva", anchor=tk.W, width=100, stretch=False)
         self.stock_tree.column("Qnt", anchor=tk.W, width=60, stretch=False)
 
         self.stock_tree.heading('Id', text='Código ↕', anchor=tk.W, 
@@ -112,6 +143,10 @@ class StockView():
                             command=lambda: self.sort_tree('Brand'))
         self.stock_tree.heading('Price', text='Precio ↕', anchor=tk.W,
                             command=lambda: self.sort_tree('Price'))
+        self.stock_tree.heading('Cost Price', text='Precio Costo ↕', anchor=tk.W,
+                            command=lambda: self.sort_tree('Cost Price'))
+        self.stock_tree.heading('Iva', text='Iva ↕', anchor=tk.W,
+                            command=lambda: self.sort_tree('Iva'))
         self.stock_tree.heading('Qnt', text='Stock ↕', anchor=tk.W,
                             command=lambda: self.sort_tree('Quantity'))
         
@@ -149,11 +184,19 @@ class StockView():
         price_entry = tk.Entry(add_win, textvariable=self.price_var)
         price_entry.grid(row=4, column=1, padx=5, pady=5)
 
-        tk.Label(add_win, text="Cantidad:").grid(row=5, column=0, padx=5, pady=5)
-        qnt_entry = tk.Entry(add_win, textvariable=self.qnt_var)
-        qnt_entry.grid(row=5, column=1, padx=5, pady=5)
+        tk.Label(add_win, text="Precio Costo:").grid(row=5, column=0, padx=5, pady=5)
+        cost_price_entry = tk.Entry(add_win, textvariable=self.cost_price_var)
+        cost_price_entry.grid(row=5, column=1, padx=5, pady=5)
 
-        tk.Button(add_win, text="Agregar", command=lambda: self.controller.add_new_product(add_win)).grid(row=6, column=0, columnspan=2, pady=10)
+        tk.Label(add_win, text="Iva:").grid(row=6, column=0, padx=5, pady=5)
+        iva_price_entry = tk.Entry(add_win, textvariable=self.iva_var)
+        iva_price_entry.grid(row=6, column=1, padx=5, pady=5)
+
+        tk.Label(add_win, text="Cantidad:").grid(row=7, column=0, padx=5, pady=5)
+        qnt_entry = tk.Entry(add_win, textvariable=self.qnt_var)
+        qnt_entry.grid(row=7, column=1, padx=5, pady=5)
+
+        tk.Button(add_win, text="Agregar", command=lambda: self.controller.add_new_product(add_win)).grid(row=8, column=0, columnspan=2, pady=10)
 
 
     def generate_random_id(self):
@@ -173,6 +216,8 @@ class StockView():
             'desc': self.desc_var.get().strip(),
             'brand': self.brand_var.get().strip(),
             'price': self.price_var.get().strip(),
+            'cost_price': self.cost_price_var.get().strip(),
+            'iva': self.iva_var.get().strip(),
             'qnt': self.qnt_var.get().strip(),
         }
 
@@ -195,7 +240,9 @@ class StockView():
                 'desc': values[2],
                 'brand': values[3],
                 'price': float(values[4]),
-                'qnt': int(values[5]),
+                'cost_price': float(values[5]),
+                'iva': float(values[6]),
+                'qnt': int(values[7]),
             }
         except (IndexError, ValueError):
             return None
@@ -303,7 +350,7 @@ class StockView():
     def validate_value(self, column, value):
         """Validar valor según el tipo de columna"""
         try:
-            if column == 'Price':
+            if column == 'Price' or column == 'Price Cost':
                 float_val = float(value)
                 if float_val < 0:
                     self.show_error("El precio no puede ser negativo")
@@ -407,6 +454,8 @@ class StockView():
             'Description': 'Descripción', 
             'Brand': 'Marca',
             'Price': 'Precio',
+            'Cost Price': 'Precio Costo',
+            'Iva': 'Iva',
             'Quantity': 'Stock'
         }
         

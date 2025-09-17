@@ -41,8 +41,10 @@ class Database:
                     id TEXT PRIMARY KEY,
                     name TEXT NOT NULL,
                     description TEXT,
-                    brand REAL NOT NULL,
+                    brand TEST NOT NULL,
                     price REAL NOT NULL,
+                    cost_price REAL NOT NULL,
+                    iva REAL NOT NULL,
                     quantity INTEGER NOT NULL,
                     created_at TEXT DEFAULT CURRENT_DATE
                 )
