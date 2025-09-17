@@ -6,6 +6,7 @@ from views.sales_view import SalesView
 from views.supplier_view import SupplierView
 from views.customers_view import CustomersView
 from controllers.stock_controller import StockController
+from controllers.supplier_controller import SupplierController
 
 class App():
     def __init__(self):
@@ -31,12 +32,9 @@ class App():
         sales_view.frame.pack(fill='both', expand=True)
         self.notebook.add(sales_view.frame, text='Venta')
 
-
-        supplier_controller = SupplierController(self.notebook)
-        supplier_view = SupplierView(self.notebook, supplier_controller)
-
-        supplier_view.frame.pack(fill='both', expand=True)
-        self.notebook.add(supplier_view.frame, text='Proveedores')
+        self.supplier_view = SupplierView(self.notebook)
+        self.supplier_view.frame.pack(fill='both', expand=True)
+        self.notebook.add(self.supplier_view.frame, text='Proveedores')
 
         customers_view = CustomersView(self.notebook)
         customers_view.frame.pack(fill='both', expand=True)
@@ -45,10 +43,14 @@ class App():
         self.stock_controller = StockController(self.stock_view)
         self.stock_view.controller = self.stock_controller
 
+        self.supplier_controller = SupplierController(self.supplier_view)
+        self.supplier_view.controller = self.supplier_controller
+
     def load_initial_data(self):
         """Cargar datos iniciales"""
         try:
             self.stock_controller.refresh_stock_table()
+            self.supplier_controller.refresh_supplier_table()
         except Exception as e:
             print(f"Error cargando datos iniciales: {e}")
 

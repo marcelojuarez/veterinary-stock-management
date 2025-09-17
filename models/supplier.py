@@ -7,7 +7,7 @@ class SupplierModel:
     def get_all_suppliers(self):
         # Obtener todos los proveedores
         try:
-            query = "SELECT * FROM supplier ORDER BY id"
+            query = "SELECT * FROM proveedores ORDER BY id"
             return  db.fetch_all(query)
         except ValueError as e:
             print(f'Error getting suppliers: {e}')
@@ -16,7 +16,7 @@ class SupplierModel:
     def find_supplier_by_id(self, supplier_id):
         # Obtener proveedor a traves de id
         try:
-            query = "SELECT * FROM supplier where id_proveedor = ?"
+            query = "SELECT * FROM proveedores where id_proveedor = ?"
             return db.execute_query(query, (supplier_id, ))
         except ValueError as e:
             print(f'Error getting supplier by ID: {e}')
@@ -25,13 +25,18 @@ class SupplierModel:
     def add_supplier(self, supplier_data):
         # Agregar nuevo proveedor a la base de datos
         query = """
-            INSERT INTO supplier (nombre, razon_social)
-            VALUES (?, ?)
+            INSERT INTO proveedores (nombre, cuit, domicilio, telefono, email )
+            VALUES (?, ?, ?, ?, ?)
         """
         params = [
-            supplier_data['name'],
-            supplier_data['company_name']
+            supplier_data['nombre'],
+            supplier_data['cuit'],
+            supplier_data['domicilio'],
+            supplier_data['telefono'],
+            supplier_data['email']
         ]
+
+        print(params)
 
         return self.db.execute_query(query, params)
 
