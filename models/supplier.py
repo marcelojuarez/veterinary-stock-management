@@ -43,9 +43,13 @@ class SupplierModel:
     def update_supplier_info(self, supplier_id):
         pass
 
-
     def delete_supplier(self, supplier_id):
-        pass
+        try:
+            query = "DELETE FROM proveedores where id = ?"
+            return db.execute_query(query, (supplier_id, ))
+        except Exception as e:
+            print(f'Error : {e}')
+            return None
 
     def update_balance():
         pass

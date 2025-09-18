@@ -6,7 +6,7 @@ class SupplierController():
         self.model = SupplierModel()
         self.view = view
 
-    def add_new_supplier(self):
+    def add_new_supplier(self, window=None):
         """Guardar nuevo proveedor"""
         try:
             data = self.view.get_supplier_data()
@@ -46,11 +46,12 @@ class SupplierController():
 
             self.model.add_supplier(supplier_data)
 
-            print('despues de agregar a la tabla')
-
             self.refresh_supplier_table()
 
             self.clear_form()
+
+            if window:
+                window.destroy()
             
             self.view.show_success("Proveedor registrado correctamente.")
 
@@ -131,3 +132,21 @@ class SupplierController():
         self.view.cuit_var.set('')
         self.view.home_var.set('')
         self.view.phone_var.set('')
+
+
+    def delete_supplier(self):
+        # Obtengo las filas selecionadas
+        selected = self.view.supplier_tree.selection()
+
+        try:
+            # Selecciona la primer fila
+            iid = selected[0]
+            values = self.view.supplier_tree.item(iid, "values")
+            print(values)
+            self.model.delete_supplier(iid)
+            self.refresh_supplier_table()
+            self.view.show_success('El proveedor fue eliminado correctamente')
+            
+
+        except Exception:
+            self.view.show_warning('Por favor seleccione un proveedor para eliminar')

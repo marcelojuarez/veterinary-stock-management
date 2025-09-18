@@ -94,7 +94,7 @@ class SupplierView():
         
         save_btn = tk.Button(manage_frame, text='Guardar', width=15, borderwidth=3, bg="blue", fg='black')
         update_btn = tk.Button(manage_frame, text='Actualizar', width=15, borderwidth=3, bg="#17E574", fg='black')
-        delete_btn = tk.Button(manage_frame, text='Borrar', width=15, borderwidth=3, bg="#D6C52F", fg='black')
+        delete_btn = tk.Button(manage_frame, text='Borrar', width=15, borderwidth=3, bg="#D6C52F", fg='black', command=lambda:self.controller.delete_supplier())
         add_btn = tk.Button(manage_frame, text='Agregar', width=15, borderwidth=3, bg="#B817E5", fg='black', command=lambda: self.open_add_window())
         clear_btn = tk.Button(manage_frame, text='Limpiar', width=15, borderwidth=3, bg="#E51717", fg='black')
 
@@ -128,7 +128,7 @@ class SupplierView():
         cuit_entry = ttk.Entry(add_win, textvariable=self.email_var)
         cuit_entry.grid(row=5, column=1, padx=5, pady=5, sticky='nw')
 
-        finish_btn = ttk.Button(add_win, text="Agregar", command=lambda: self.controller.add_new_supplier())
+        finish_btn = ttk.Button(add_win, text="Agregar", command=lambda: self.controller.add_new_supplier(add_win))
         finish_btn.grid(row=6, column=1)
 
     def get_supplier_data(self):
