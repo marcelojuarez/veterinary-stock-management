@@ -18,6 +18,22 @@ class SupplierController():
             if not self.__validate_supplier_email(data['email']):
                 print('Entro al chequeo de email del proveedor')
                 return
+            
+            if not self.__validate_supplier_cuit(data['cuit']):
+                print('Entro al chequeo de cuit del proveedor')
+                return
+            
+            if not self.__validate_supplier_phone(data['telefono']):
+                print('Entro al chequeo de telefono del proveedor')
+                return
+            
+            if not self.__validate_supplier_name(data['nombre']):
+                print('Entro al chequeo de nombre del proveedor')
+                return
+            
+            if not self.__validate_supplier_address(data['domicilio']):
+                print('Entro al chequeo de domicilio del proveedor')
+                return
 
             # convertir tipos
             supplier_data = {
@@ -33,6 +49,8 @@ class SupplierController():
             print('despues de agregar a la tabla')
 
             self.refresh_supplier_table()
+
+            self.clear_form()
             
             self.view.show_success("Proveedor registrado correctamente.")
 
@@ -66,6 +84,37 @@ class SupplierController():
         
         return True
     
+    def __validate_supplier_cuit(self, cuit_field):
+        pattern = r'^\d{2}-\d{8}-\d$'
+        
+        if not re.fullmatch(pattern, cuit_field):
+            self.view.show_warning("Por favor coloque el CUIT correctamente. Formato: XX-XXXXXXXX-X")
+            return False
+        
+        return True
+    
+    def __validate_supplier_phone(self, phone_field):
+        pattern = r'^\+?\d{7,15}$'
+        
+        if not re.fullmatch(pattern, phone_field):
+            self.view.show_warning("Por favor coloque el teléfono correctamente. Debe contener entre 7 y 15 dígitos, puede incluir un '+' al inicio.")
+            return False
+        
+        return True
+    
+    def __validate_supplier_name(self, name_field):
+        if len(name_field) < 2 or len(name_field) > 100:
+            self.view.show_warning("El nombre del proveedor debe tener entre 2 y 100 caracteres.")
+            return False
+        
+        return True
+    
+    def __validate_supplier_address(self, address_field):
+        if len(address_field) < 5 or len(address_field) > 150:
+            self.view.show_warning("La dirección del proveedor debe tener entre 5 y 150 caracteres.")
+            return False
+        
+        return True
 
     def refresh_supplier_table(self):
         """Refrescar la tabla de proveedores"""
@@ -75,3 +124,10 @@ class SupplierController():
         except Exception as e:
             self.view.show_error(f"Error al refrescar la tabla {str(e)}")
 
+    def clear_form(self):
+        """Limpiar formulario"""
+        self.view.email_var.set('')
+        self.view.name_var.set('')
+        self.view.cuit_var.set('')
+        self.view.home_var.set('')
+        self.view.phone_var.set('')
