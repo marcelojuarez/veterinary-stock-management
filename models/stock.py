@@ -37,7 +37,7 @@ class StockModel:
         """Actualizar un producto existente"""
         query = """
             UPDATE stock 
-            SET name = ?, brand = ?, description = ?, price = ?, quantity = ?
+            SET name = ?, brand = ?, description = ?, price = ?, cost_price = ?, iva = ?, quantity = ?
             WHERE id = ?
         """
         params = (
@@ -46,6 +46,8 @@ class StockModel:
             product_data['brand'],
             product_data['price'],
             product_data['qnt'],
+            product_data['cost_price'],
+            product_data['iva'],
             product_id
         )
         return db.execute_query(query, params)
