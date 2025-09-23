@@ -35,6 +35,14 @@ class Database:
         with self.get_connection() as conn:
             cursor = conn.cursor()
 
+            # Tabla de usuarios
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS usuario (
+                    username TEXT UNIQUE NOT NULL,
+                    password_hash TEXT NOT NULL
+                )
+            ''')
+
             # Tabla de stock
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS stock (
@@ -50,7 +58,7 @@ class Database:
 
             # Tabla de clientes
             cursor.execute('''
-                CREATE TABLE IF NOT EXISTS clientes (
+                CREATE TABLE IF NOT EXISTS cliente (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     nombre TEXT NOT NULL,
                     cuit TEXT,
@@ -61,7 +69,7 @@ class Database:
 
             # Tabla de proveedores
             cursor.execute('''
-                CREATE TABLE IF NOT EXISTS proveedores (
+                CREATE TABLE IF NOT EXISTS proveedor (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     nombre TEXT NOT NULL,
                     cuit TEXT,
@@ -73,7 +81,7 @@ class Database:
 
             # Tabla de facturas
             cursor.execute('''
-                CREATE TABLE IF NOT EXISTS facturas (
+                CREATE TABLE IF NOT EXISTS factura (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     numero_factura TEXT NOT NULL,
                     fecha_emision TEXT NOT NULL,
