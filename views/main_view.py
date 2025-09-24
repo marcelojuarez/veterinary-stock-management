@@ -8,7 +8,7 @@ from views.supplier_view import SupplierView
 from views.customers_view import CustomersView
 from controllers.stock_controller import StockController
 from controllers.supplier_controller import SupplierController
-
+from controllers.customer_controller import CustomerController
 class App():
     def __init__(self):
         self.root = tk.Tk()
@@ -99,15 +99,18 @@ class App():
         self.supplier_view.frame.pack(fill='both', expand=True)
         self.notebook.add(self.supplier_view.frame, text='Proveedores')
 
-        customers_view = CustomersView(self.notebook)
-        customers_view.frame.pack(fill='both', expand=True)
-        self.notebook.add(customers_view.frame, text='Clientes')
+        self.customers_view = CustomersView(self.notebook)
+        self.customers_view.frame.pack(fill='both', expand=True)
+        self.notebook.add(self.customers_view.frame, text='Clientes')
 
         self.stock_controller = StockController(self.stock_view)
         self.stock_view.controller = self.stock_controller
 
         self.supplier_controller = SupplierController(self.supplier_view)
         self.supplier_view.controller = self.supplier_controller
+
+        self.customer_controller = CustomerController(self.customers_view)
+        self.customers_view.controller = self.customer_controller
 
     def load_initial_data(self):
         """Cargar datos iniciales"""
