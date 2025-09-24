@@ -106,8 +106,8 @@ class App():
         self.stock_controller = StockController(self.stock_view)
         self.stock_view.controller = self.stock_controller
 
-        #self.supplier_controller = SupplierController(self.supplier_view)
-        #self.supplier_view.controller = self.supplier_controller
+        self.supplier_controller = SupplierController(self.supplier_view)
+        self.supplier_view.controller = self.supplier_controller
 
     def load_initial_data(self):
         """Cargar datos iniciales"""
