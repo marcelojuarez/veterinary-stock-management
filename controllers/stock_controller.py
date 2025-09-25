@@ -17,21 +17,29 @@ class StockController:
             if not self._validate_form_data(form_data):
                 return
             
-            if not self._validate_product_id(form_data['id']):
+            if not self._validate_product_id(form_data['Id']):
                 self.view.show_warning("Código del producto inválido. Debe tener 4 dígitos.")
                 return
             
             # Convertir tipos
             product_data = {
-                'id': form_data['id'],
-                'name': form_data['name'],
-                'desc': form_data['desc'],
-                'brand': form_data['brand'],
-                'price': float(form_data['price']),
-                'cost_price': float(form_data['cost_price']),
-                'iva': float(form_data['iva']),
-                'qnt': int(form_data['qnt']),
+                'Id': form_data['Id'],
+                'Name': form_data['Name'],
+                'Package': form_data['Package'],
+                'Profit': form_data['Profit'],
+                'CostPrice': float(form_data['CostPrice']),
+                'SalePrice': float(form_data['CostPrice']),
+                'Iva': form_data['Iva'],
+                'Stock': int(form_data['Stock']),
             }
+            if form_data['Iva'] == "21%":
+                product_data['PriceWIva'] = round(product_data['SalePrice'] * 1.21, 2)
+            elif form_data['Iva'] == "10.5%":
+                product_data['PriceWIva'] = round(product_data['SalePrice'] * 1.105, 2)
+            else:
+                product_data['PriceWIva'] = round(product_data['SalePrice'], 2)
+            
+            product_data['SalePrice'] = round(product_data['SalePrice'], 2)
 
             self.stock_model.add_product(product_data)
 
@@ -62,7 +70,7 @@ class StockController:
                 return
             
             # Eliminar de base de datos
-            self.stock_model.delete_product(selected_product['id'])
+            self.stock_model.delete_product(selected_product['Id'])
             
             # Refrescar tabla
             self.refresh_stock_table()
@@ -76,7 +84,7 @@ class StockController:
         """Buscar producto por ID o nombre"""
         try:
             form_data = self.view.get_find_data()
-            name = form_data['name']
+            name = form_data['Name']
             
             if not (name):
                 self.view.show_warning("Ingrese ID o nombre para buscar")
@@ -102,10 +110,10 @@ class StockController:
             # Mapeo de nombres de columnas a nombres de BD
             field_mapping = {
                 'Name': 'name',
-                'Description': 'description', 
-                'Brand': 'brand',
+                'Package': 'pack',
+                'Profit': 'profit', 
                 'Price': 'price',
-                'Quantity': 'quantity'
+                'Stock': 'quantity'
             }
             
             db_field = field_mapping.get(field)
@@ -113,9 +121,9 @@ class StockController:
                 return False
             
             # Convertir tipos si es necesario
-            if field == 'price':
+            if field == 'CostPrice':
                 new_value = float(new_value)
-            elif field == 'quantity':
+            elif field == 'Stock':
                 new_value = int(new_value)
             
             # Actualizar en base de datos
@@ -137,7 +145,7 @@ class StockController:
     
     def _validate_form_data(self, form_data):
         """Validar datos del formulario"""
-        required_fields = ['id', 'name', 'desc', 'brand', 'price', 'qnt']
+        required_fields = ['Id', 'Name', 'Package', 'Profit', 'CostPrice', 'Stock']
         
         for field in required_fields:
             if not form_data[field]:
@@ -146,8 +154,8 @@ class StockController:
         
         # Validar tipos numéricos
         try:
-            float(form_data['price'])
-            int(form_data['qnt'])
+            float(form_data['CostPrice'])
+            int(form_data['Stock'])
         except ValueError:
             self.view.show_warning("Los precios y cantidad deben ser números válidos")
             return False

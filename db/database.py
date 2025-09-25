@@ -38,16 +38,18 @@ class Database:
             # Tabla de stock
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS stock (
-                    id TEXT PRIMARY KEY,
-                    name TEXT NOT NULL,
-                    description TEXT,
-                    brand TEST NOT NULL,
-                    price REAL NOT NULL,
-                    cost_price REAL NOT NULL,
-                    iva REAL NOT NULL,
-                    quantity INTEGER NOT NULL,
-                    created_at TEXT DEFAULT CURRENT_DATE
-                )
+                id TEXT PRIMARY KEY,
+                name TEXT NOT NULL,
+                pack TEXT NOT NULL,
+                profit REAL NOT NULL,
+                cost_price REAL NOT NULL,
+                price REAL NOT NULL,
+                iva REAL NOT NULL,
+                price_with_iva REAL NOT NULL,
+                quantity INTEGER NOT NULL,
+                created_at TEXT DEFAULT CURRENT_DATE,
+                last_price_update TEXT DEFAULT CURRENT_DATE
+                );
             ''')
 
             # Tabla de clientes

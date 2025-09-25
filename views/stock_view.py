@@ -26,7 +26,7 @@ class StockView():
         self.id_var = tk.StringVar()
         self.name_var = tk.StringVar()
         self.pack_var = tk.StringVar()
-        self.rent_var = tk.StringVar()
+        self.profit_var = tk.StringVar()
         self.price_var = tk.StringVar()
         self.iva_var = tk.StringVar()
         self.stock_var = tk.StringVar()
@@ -37,7 +37,7 @@ class StockView():
             self.id_var,
             self.name_var,
             self.pack_var,
-            self.rent_var,
+            self.profit_var,
             self.price_var,
             self.iva_var,
             self.qnt_var,
@@ -121,16 +121,17 @@ class StockView():
         self.stock_tree.configure(yscrollcommand=scrollbar.set)
 
         self.stock_tree['columns'] = (
-            "Name", "Package", "Profit", "CostPrice", "SalePrice",
+            "Id", "Name", "Package", "Profit", "CostPrice", "SalePrice",
             "Iva", "SalePriceWithIva", "ValidityDate", "LastPriceUpdate", "Stock"
         )
 
         self.stock_tree['displaycolumns'] = self.stock_tree['columns']
 
         # Definición de columnas
+        self.stock_tree.column("Id", anchor=tk.W, width=80, stretch=False)
         self.stock_tree.column("Name", anchor=tk.W, width=180, stretch=False)
         self.stock_tree.column("Package", anchor=tk.W, width=120, stretch=False)
-        self.stock_tree.column("Profit", anchor=tk.CENTER, width=100, stretch=False)
+        self.stock_tree.column("Profit", anchor=tk.CENTER, width=80, stretch=False)
         self.stock_tree.column("CostPrice", anchor=tk.E, width=100, stretch=False)
         self.stock_tree.column("SalePrice", anchor=tk.E, width=100, stretch=False)
         self.stock_tree.column("Iva", anchor=tk.CENTER, width=60, stretch=False)
@@ -140,11 +141,13 @@ class StockView():
         self.stock_tree.column("Stock", anchor=tk.CENTER, width=80, stretch=False)
 
         # Encabezados
+        self.stock_tree.heading("Id", text="Código ↕", anchor=tk.W,
+                                command=lambda: self.sort_tree("Id"))
         self.stock_tree.heading("Name", text="Nombre Artículo ↕", anchor=tk.W,
                                 command=lambda: self.sort_tree("Name"))
         self.stock_tree.heading("Package", text="Envase ↕", anchor=tk.W,
                                 command=lambda: self.sort_tree("Package"))
-        self.stock_tree.heading("Profit", text="% Rentabilidad ↕", anchor=tk.CENTER,
+        self.stock_tree.heading("Profit", text="% Rent. ↕", anchor=tk.CENTER,
                                 command=lambda: self.sort_tree("Profit"))
         self.stock_tree.heading("CostPrice", text="P. Costo ↕", anchor=tk.E,
                                 command=lambda: self.sort_tree("CostPrice"))
@@ -194,7 +197,7 @@ class StockView():
         pack_combo.grid(row=2, column=1, padx=5, pady=5)
 
         tk.Label(add_win, text="% Rentabilidad:").grid(row=3, column=0, padx=5, pady=5)
-        rent_entry = tk.Entry(add_win, textvariable=self.rent_var)
+        rent_entry = tk.Entry(add_win, textvariable=self.profit_var)
         rent_entry.grid(row=3, column=1, padx=5, pady=5)
 
         tk.Label(add_win, text="P. Costo:").grid(row=4, column=0, padx=5, pady=5)
@@ -231,14 +234,13 @@ class StockView():
     def get_form_data(self):
         """Obtener datos del formulario"""
         return {
-            'id': self.id_var.get().strip(),
-            'name': self.name_var.get().strip(),
-            'desc': self.desc_var.get().strip(),
-            'brand': self.brand_var.get().strip(),
-            'price': self.price_var.get().strip(),
-            'cost_price': self.cost_price_var.get().strip(),
-            'iva': self.iva_var.get().strip(),
-            'qnt': self.qnt_var.get().strip(),
+            'Id': self.id_var.get().strip(),
+            'Name': self.name_var.get().strip(),
+            'Package': self.pack_var.get().strip(),
+            'Profit': self.profit_var.get().strip(),
+            'CostPrice': self.price_var.get().strip(),
+            'Iva': self.iva_var.get().strip(),
+            'Stock': self.qnt_var.get().strip(),
         }
 
     def get_find_data(self):
@@ -255,14 +257,13 @@ class StockView():
             product_id = str(values[0]).zfill(4)
             
             return {
-                'id': product_id,
-                'name': values[1],
-                'desc': values[2],
-                'brand': values[3],
-                'price': float(values[4]),
-                'cost_price': float(values[5]),
-                'iva': float(values[6]),
-                'qnt': int(values[7]),
+                'Id': product_id,
+                'Name': values[1],
+                'Package': values[2],
+                'Profit': values[3],
+                'CostPrice': float(values[5]),
+                'Iva': float(values[6]),
+                'Stock': int(values[7]),
             }
         except (IndexError, ValueError):
             return None
@@ -370,17 +371,17 @@ class StockView():
     def validate_value(self, column, value):
         """Validar valor según el tipo de columna"""
         try:
-            if column == 'Price' or column == 'Price Cost':
+            if column == 'CostPrice':
                 float_val = float(value)
                 if float_val < 0:
                     self.show_error("El precio no puede ser negativo")
                     return False
-            elif column == 'Quantity':
+            elif column == 'Stock':
                 int_val = int(value)
                 if int_val < 0:
                     self.show_error("La cantidad no puede ser negativa")
                     return False
-            elif column in ['Name', 'Description', 'Brand']:
+            elif column in ['Name', 'Package']:
                 if not value.strip():
                     self.show_error("Este campo no puede estar vacío")
                     return False
@@ -393,24 +394,32 @@ class StockView():
         """Refrescar tabla de stock con nuevos datos"""
         for item in self.stock_tree.get_children():
             self.stock_tree.delete(item)
-        
+
         for product in products:  
-            id, name, desc, brand, price, cost_price, iva, quantity = product
+            (id, name, pack, profit, cost_price, price, 
+            iva, price_with_iva, created_at, last_price_update, quantity) = product
             
-            # Decidir el tag
-            if quantity < 5:
+
+            # Decidir el tag según stock
+            if quantity < 3:
                 tag = "low_stock"
-            elif quantity < 10:
+            elif quantity <= 5:
                 tag = "medium_stock"
             else:
                 tag = ""
 
-            # Insertar con tag
-            self.stock_tree.insert("", "end", values=(id, name, desc, brand, price, cost_price, iva, quantity), tags=(tag,))
-
+            # Insertar en la Treeview
+            self.stock_tree.insert(
+                "", "end", 
+                values=(id, name, pack, profit, cost_price, price, iva, price_with_iva, 
+                        created_at, last_price_update, quantity), 
+                tags=(tag,)
+            )
 
         if self.sort_column:
             self.sort_tree(self.sort_column)
+
+
 
     def show_success(self, message):
         """Mostrar mensaje de éxito"""
@@ -448,7 +457,7 @@ class StockView():
             def sort_key(item):
                 value = item[1][column_index]
                 
-                if column in ['Price', 'Quantity']:
+                if column in ['Price', 'Stock']:
                     try:
                         return float(value)
                     except (ValueError, TypeError):
