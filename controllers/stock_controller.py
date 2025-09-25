@@ -21,26 +21,30 @@ class StockController:
                 self.view.show_warning("Código del producto inválido. Debe tener 4 dígitos.")
                 return
             
-            # Convertir tipos
+            cost_price = float(form_data['CostPrice'])
+            profit = float(form_data['Profit'])
+            
+            sale_price = cost_price * (1 + profit / 100)
+
             product_data = {
                 'Id': form_data['Id'],
                 'Name': form_data['Name'],
                 'Package': form_data['Package'],
-                'Profit': form_data['Profit'],
-                'CostPrice': float(form_data['CostPrice']),
-                'SalePrice': float(form_data['CostPrice']),
+                'Profit': profit,
+                'CostPrice': cost_price,
+                'SalePrice': round(sale_price, 2),
                 'Iva': form_data['Iva'],
                 'Stock': int(form_data['Stock']),
             }
+
             if form_data['Iva'] == "21%":
                 product_data['PriceWIva'] = round(product_data['SalePrice'] * 1.21, 2)
             elif form_data['Iva'] == "10.5%":
                 product_data['PriceWIva'] = round(product_data['SalePrice'] * 1.105, 2)
             else:
-                product_data['PriceWIva'] = round(product_data['SalePrice'], 2)
-            
-            product_data['SalePrice'] = round(product_data['SalePrice'], 2)
+                product_data['PriceWIva'] = product_data['SalePrice']
 
+            # Guardar en DB
             self.stock_model.add_product(product_data)
 
             if window:
@@ -55,7 +59,8 @@ class StockController:
             self.view.show_error(f"Error en los datos: {str(e)}")
 
         except Exception as e:
-            self.view.show_error(f"Error al registar producto: {str(e)}")
+            self.view.show_error(f"Error al registrar producto: {str(e)}")
+
 
     def delete_product(self):
         """Eliminar producto seleccionado"""
