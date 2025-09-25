@@ -25,10 +25,9 @@ class StockView():
         """Configurar variables del formulario"""
         self.id_var = tk.StringVar()
         self.name_var = tk.StringVar()
-        self.desc_var = tk.StringVar()
-        self.brand_var = tk.StringVar()
+        self.pack_var = tk.StringVar()
+        self.rent_var = tk.StringVar()
         self.price_var = tk.StringVar()
-        self.cost_price_var = tk.StringVar()
         self.iva_var = tk.StringVar()
         self.stock_var = tk.StringVar()
         self.qnt_var = tk.StringVar()
@@ -37,10 +36,9 @@ class StockView():
         self.form_vars = [
             self.id_var,
             self.name_var,
-            self.desc_var,
-            self.brand_var,
+            self.pack_var,
+            self.rent_var,
             self.price_var,
-            self.cost_price_var,
             self.iva_var,
             self.qnt_var,
             self.find_var
@@ -122,33 +120,47 @@ class StockView():
         scrollbar.grid(row=0, column=1, sticky='ns')
         self.stock_tree.configure(yscrollcommand=scrollbar.set)
 
-        self.stock_tree['columns'] = ('Id', "Name", "Description", "Brand", "Price", "Cost Price", "Iva", "Qnt")
-        self.stock_tree['displaycolumns'] = self.stock_tree['columns']
-        self.stock_tree.column("Id", anchor=tk.W, width=80, stretch=False)
-        self.stock_tree.column("Name", anchor=tk.W, width=180, stretch=False)
-        self.stock_tree.column("Description", anchor=tk.W, width=350, stretch=False)
-        self.stock_tree.column("Brand", anchor=tk.W, width=180, stretch=False)
-        self.stock_tree.column("Price", anchor=tk.W, width=100, stretch=False)
-        self.stock_tree.column("Cost Price", anchor=tk.W, width=100, stretch=False)
-        self.stock_tree.column("Iva", anchor=tk.W, width=100, stretch=False)
-        self.stock_tree.column("Qnt", anchor=tk.W, width=60, stretch=False)
+        self.stock_tree['columns'] = (
+            "Name", "Package", "Profit", "CostPrice", "SalePrice",
+            "Iva", "SalePriceWithIva", "ValidityDate", "LastPriceUpdate", "Stock"
+        )
 
-        self.stock_tree.heading('Id', text='Código ↕', anchor=tk.W, 
-                           command=lambda: self.sort_tree('Id'))
-        self.stock_tree.heading('Name', text='Nombre ↕', anchor=tk.W,
-                            command=lambda: self.sort_tree('Name'))
-        self.stock_tree.heading('Description', text='Descripción ↕', anchor=tk.W,
-                            command=lambda: self.sort_tree('Name'))
-        self.stock_tree.heading('Brand', text='Marca ↕', anchor=tk.W,
-                            command=lambda: self.sort_tree('Brand'))
-        self.stock_tree.heading('Price', text='Precio ↕', anchor=tk.W,
-                            command=lambda: self.sort_tree('Price'))
-        self.stock_tree.heading('Cost Price', text='Precio Costo ↕', anchor=tk.W,
-                            command=lambda: self.sort_tree('Cost Price'))
-        self.stock_tree.heading('Iva', text='Iva ↕', anchor=tk.W,
-                            command=lambda: self.sort_tree('Iva'))
-        self.stock_tree.heading('Qnt', text='Stock ↕', anchor=tk.W,
-                            command=lambda: self.sort_tree('Quantity'))
+        self.stock_tree['displaycolumns'] = self.stock_tree['columns']
+
+        # Definición de columnas
+        self.stock_tree.column("Name", anchor=tk.W, width=180, stretch=False)
+        self.stock_tree.column("Package", anchor=tk.W, width=120, stretch=False)
+        self.stock_tree.column("Profit", anchor=tk.CENTER, width=100, stretch=False)
+        self.stock_tree.column("CostPrice", anchor=tk.E, width=100, stretch=False)
+        self.stock_tree.column("SalePrice", anchor=tk.E, width=100, stretch=False)
+        self.stock_tree.column("Iva", anchor=tk.CENTER, width=60, stretch=False)
+        self.stock_tree.column("SalePriceWithIva", anchor=tk.E, width=120, stretch=False)
+        self.stock_tree.column("ValidityDate", anchor=tk.CENTER, width=120, stretch=False)
+        self.stock_tree.column("LastPriceUpdate", anchor=tk.CENTER, width=150, stretch=False)
+        self.stock_tree.column("Stock", anchor=tk.CENTER, width=80, stretch=False)
+
+        # Encabezados
+        self.stock_tree.heading("Name", text="Nombre Artículo ↕", anchor=tk.W,
+                                command=lambda: self.sort_tree("Name"))
+        self.stock_tree.heading("Package", text="Envase ↕", anchor=tk.W,
+                                command=lambda: self.sort_tree("Package"))
+        self.stock_tree.heading("Profit", text="% Rentabilidad ↕", anchor=tk.CENTER,
+                                command=lambda: self.sort_tree("Profit"))
+        self.stock_tree.heading("CostPrice", text="P. Costo ↕", anchor=tk.E,
+                                command=lambda: self.sort_tree("CostPrice"))
+        self.stock_tree.heading("SalePrice", text="P. Venta ↕", anchor=tk.E,
+                                command=lambda: self.sort_tree("SalePrice"))
+        self.stock_tree.heading("Iva", text="% Iva ↕", anchor=tk.CENTER,
+                                command=lambda: self.sort_tree("Iva"))
+        self.stock_tree.heading("SalePriceWithIva", text="P. Venta C/Iva ↕", anchor=tk.E,
+                                command=lambda: self.sort_tree("SalePriceWithIva"))
+        self.stock_tree.heading("ValidityDate", text="Fecha Vigencia ↕", anchor=tk.CENTER,
+                                command=lambda: self.sort_tree("ValidityDate"))
+        self.stock_tree.heading("LastPriceUpdate", text="Fecha Ult. Modif. Precio ↕", anchor=tk.CENTER,
+                                command=lambda: self.sort_tree("LastPriceUpdate"))
+        self.stock_tree.heading("Stock", text="Stock ↕", anchor=tk.CENTER,
+                                command=lambda: self.sort_tree("Stock"))
+
         
         # Bind para doble click
         self.stock_tree.bind('<Double-Button-1>', self.on_double_click)
@@ -158,45 +170,53 @@ class StockView():
         
 
         self.stock_tree.tag_configure('orow', background="#FFFFFF")
+        self.stock_tree.tag_configure("low_stock", background="#FFB3B3")   # rojo suave
+        self.stock_tree.tag_configure("medium_stock", background="#FFF2B3") # amarillo suave
+
         self.stock_tree.grid(row=0, column=0, padx=10, pady=(0, 20), sticky="nsew")
 
     def open_add_window(self):
         add_win = tk.Toplevel(self.frame)
-        add_win.title("Agregar nuevo producto")
+        add_win.title("Agregar nuevo artículo")
 
         tk.Label(add_win, text="Código:").grid(row=0, column=0, padx=5, pady=5)
         id_entry = tk.Entry(add_win, textvariable=self.id_var)
         id_entry.grid(row=0, column=1, padx=5, pady=5)
 
-        tk.Label(add_win, text="Nombre:").grid(row=1, column=0, padx=5, pady=5)
+        tk.Label(add_win, text="Nombre Artículo:").grid(row=1, column=0, padx=5, pady=5)
         name_entry = tk.Entry(add_win, textvariable=self.name_var)
         name_entry.grid(row=1, column=1, padx=5, pady=5)
 
-        tk.Label(add_win, text="Descripción:").grid(row=2, column=0, padx=5, pady=5)
-        desc_entry = tk.Entry(add_win, textvariable=self.desc_var)
-        desc_entry.grid(row=2, column=1, padx=5, pady=5)
+        tk.Label(add_win, text="Envase:").grid(row=2, column=0, padx=5, pady=5)
+        pack_combo = ttk.Combobox(add_win, textvariable=self.pack_var, state="readonly")
+        pack_combo['values'] = ("UNIDAD", "CAJA", "FRASCO", "AMPOLLA", "SOBRE", "OTRO")
+        pack_combo.current(0)  
+        pack_combo.grid(row=2, column=1, padx=5, pady=5)
 
-        tk.Label(add_win, text="Marca:").grid(row=3, column=0, padx=5, pady=5)
-        brand_entry = tk.Entry(add_win, textvariable=self.brand_var)
-        brand_entry.grid(row=3, column=1, padx=5, pady=5)
+        tk.Label(add_win, text="% Rentabilidad:").grid(row=3, column=0, padx=5, pady=5)
+        rent_entry = tk.Entry(add_win, textvariable=self.rent_var)
+        rent_entry.grid(row=3, column=1, padx=5, pady=5)
 
-        tk.Label(add_win, text="Precio:").grid(row=4, column=0, padx=5, pady=5)
+        tk.Label(add_win, text="P. Costo:").grid(row=4, column=0, padx=5, pady=5)
         price_entry = tk.Entry(add_win, textvariable=self.price_var)
         price_entry.grid(row=4, column=1, padx=5, pady=5)
 
-        tk.Label(add_win, text="Precio Costo:").grid(row=5, column=0, padx=5, pady=5)
-        cost_price_entry = tk.Entry(add_win, textvariable=self.cost_price_var)
-        cost_price_entry.grid(row=5, column=1, padx=5, pady=5)
+        tk.Label(add_win, text="% Iva:").grid(row=5, column=0, padx=5, pady=5)
+        iva_combo = ttk.Combobox(add_win, textvariable=self.iva_var, state="readonly")
+        iva_combo['values'] = ("21%", "10.5%", "0%")
+        iva_combo.current(0)  
+        iva_combo.grid(row=5, column=1, padx=4, pady=5)
 
-        tk.Label(add_win, text="Iva:").grid(row=6, column=0, padx=5, pady=5)
-        iva_price_entry = tk.Entry(add_win, textvariable=self.iva_var)
-        iva_price_entry.grid(row=6, column=1, padx=5, pady=5)
-
-        tk.Label(add_win, text="Cantidad:").grid(row=7, column=0, padx=5, pady=5)
+        tk.Label(add_win, text="Cantidad de Artículos:").grid(row=6, column=0, padx=5, pady=5)
         qnt_entry = tk.Entry(add_win, textvariable=self.qnt_var)
-        qnt_entry.grid(row=7, column=1, padx=5, pady=5)
+        qnt_entry.grid(row=6, column=1, padx=5, pady=5)
 
-        tk.Button(add_win, text="Agregar", command=lambda: self.controller.add_new_product(add_win)).grid(row=8, column=0, columnspan=2, pady=10)
+        tk.Button(add_win, text="Agregar", 
+                command=lambda: self.controller.add_new_product(add_win)).grid(row=7, column=0, pady=10, padx=5, sticky="e")
+
+        tk.Button(add_win, text="Cancelar", 
+                command=add_win.destroy).grid(row=7, column=1, pady=10, padx=5, sticky="w")
+
 
 
     def generate_random_id(self):
@@ -374,11 +394,20 @@ class StockView():
         for item in self.stock_tree.get_children():
             self.stock_tree.delete(item)
         
-        for product in products:
-            self.stock_tree.insert(parent='', index='end', iid=product[0], text="", 
-                                  values=product, tag="orow")
-        
-        self.stock_tree.tag_configure('orow', background="white", foreground='black')
+        for product in products:  
+            id, name, desc, brand, price, cost_price, iva, quantity = product
+            
+            # Decidir el tag
+            if quantity < 5:
+                tag = "low_stock"
+            elif quantity < 10:
+                tag = "medium_stock"
+            else:
+                tag = ""
+
+            # Insertar con tag
+            self.stock_tree.insert("", "end", values=(id, name, desc, brand, price, cost_price, iva, quantity), tags=(tag,))
+
 
         if self.sort_column:
             self.sort_tree(self.sort_column)
