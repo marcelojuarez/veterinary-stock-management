@@ -28,7 +28,7 @@ class StockController:
 
             product_data = {
                 'Id': form_data['Id'],
-                'Name': form_data['Name'],
+                'Name': (form_data['Name']).upper(),
                 'Package': form_data['Package'],
                 'Profit': profit,
                 'CostPrice': cost_price,
@@ -138,6 +138,58 @@ class StockController:
         except Exception as e:
             print(f"Error updating product field: {e}")
             return False
+    
+    def update_product_price(self, product_id, product_data):
+        """Actualizar un producto existente (manejo híbrido de rentabilidad/precio)"""
+
+        # 1. Traer el producto actual de la BD
+        current_product = self.get_product_by_id(product_id)
+        if not current_product:
+            raise ValueError(f"Producto {product_id} no encontrado")
+
+        # current_product es una tupla, tenés que mapear según el orden de tu SELECT
+        # Ejemplo: (id, name, pack, profit, cost_price, price, iva, price_with_iva, quantity, created_at, last_price_update)
+        _, _, _, old_profit, old_cost, old_sale_price, iva, _, _, _, _ = current_product
+
+        # 2. Variables nuevas del formulario
+        new_cost = float(product_data['CostPrice'])
+        new_sale_price = float(product_data['SalePrice'])
+        new_profit = float(product_data['Profit']) if product_data.get('Profit') else old_profit
+
+        # 3. Lógica híbrida
+        if new_cost != old_cost and new_sale_price == old_sale_price:
+            # Caso A: usuario cambió el costo pero no tocó PV → recalculo PV manteniendo % Rentabilidad
+            new_sale_price = round(new_cost * (1 + old_profit / 100), 2)
+
+        elif new_sale_price != old_sale_price:
+            # Caso B: usuario cambió el Precio de Venta → recalculo Rentabilidad
+            new_profit = round(((new_sale_price - new_cost) / new_cost) * 100, 2)
+
+        # 4. Recalcular Precio con IVA
+        if iva == "21%":
+            price_with_iva = round(new_sale_price * 1.21, 2)
+        elif iva == "10.5%":
+            price_with_iva = round(new_sale_price * 1.105, 2)
+        else:
+            price_with_iva = new_sale_price
+
+        product_data = (
+            product_data['Name'],
+            product_data['Package'],
+            new_profit,
+            new_cost,
+            new_sale_price,
+            iva,
+            price_with_iva,
+            int(product_data['Stock']),
+            product_id
+        )
+
+        self.stock_model.update_product(product_id, product_data)
+        
+    def show_all_products(self):
+        self.refresh_stock_table()
+        self.view.show_success("Mostrando todos los artículos del inventario")
 
     def refresh_stock_table(self):
         """Refrescar tabla de stock"""

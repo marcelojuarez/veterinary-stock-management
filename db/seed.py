@@ -1,54 +1,51 @@
 import sqlite3
-import uuid
-import random
+from datetime import datetime
 
-DB_PATH = "db/stock.db"
+DB_PATH = "stock.db"  # ruta a tu base de datos
 
 def seed_stock():
+    productos = [
+        {"id":"1001","name":"Alimento Canino Adulto","pack":"Bolsas 15kg","profit":30,"cost_price":5000,"iva":21,"quantity":10},
+        {"id":"1002","name":"Alimento Felino Adulto","pack":"Bolsas 10kg","profit":25,"cost_price":3500,"iva":21,"quantity":8},
+        {"id":"1003","name":"Arena Sanitaria","pack":"Caja 10L","profit":20,"cost_price":800,"iva":21,"quantity":15},
+        {"id":"1004","name":"Shampoo Canino","pack":"Botella 500ml","profit":40,"cost_price":500,"iva":21,"quantity":12},
+        {"id":"1005","name":"Juguete Pelota","pack":"Unidad","profit":50,"cost_price":150,"iva":21,"quantity":20},
+        {"id":"1006","name":"Collar Perro Mediano","pack":"Unidad","profit":35,"cost_price":400,"iva":21,"quantity":18},
+        {"id":"1007","name":"Cama Felina","pack":"Unidad","profit":30,"cost_price":1200,"iva":21,"quantity":5},
+        {"id":"1008","name":"Vitaminas Caninas","pack":"Caja 30 pastillas","profit":25,"cost_price":600,"iva":21,"quantity":10},
+        {"id":"1009","name":"Antipulgas Perro","pack":"Caja 3 unidades","profit":20,"cost_price":900,"iva":21,"quantity":7},
+        {"id":"1010","name":"Antipulgas Gato","pack":"Caja 3 unidades","profit":20,"cost_price":800,"iva":21,"quantity":6},
+        {"id":"1011","name":"Correa Perro","pack":"Unidad","profit":40,"cost_price":350,"iva":21,"quantity":14},
+        {"id":"1012","name":"Comedero Acero Inox","pack":"Unidad","profit":25,"cost_price":700,"iva":21,"quantity":9},
+        {"id":"1013","name":"Placa Identificación","pack":"Unidad","profit":50,"cost_price":200,"iva":21,"quantity":25},
+        {"id":"1014","name":"Cama Canina Pequeña","pack":"Unidad","profit":30,"cost_price":1000,"iva":21,"quantity":5},
+        {"id":"1015","name":"Arena Biodegradable","pack":"Caja 10L","profit":25,"cost_price":850,"iva":21,"quantity":10},
+        {"id":"1016","name":"Snack Gato","pack":"Bolsa 500g","profit":35,"cost_price":450,"iva":21,"quantity":20},
+        {"id":"1017","name":"Snack Perro","pack":"Bolsa 500g","profit":35,"cost_price":500,"iva":21,"quantity":15},
+        {"id":"1018","name":"Cepillo Canino","pack":"Unidad","profit":40,"cost_price":300,"iva":21,"quantity":12},
+        {"id":"1019","name":"Cinturón de Seguridad Perro","pack":"Unidad","profit":30,"cost_price":600,"iva":21,"quantity":8},
+        {"id":"1020","name":"Transportadora Gato","pack":"Unidad","profit":25,"cost_price":1500,"iva":21,"quantity":4},
+    ]
+
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
 
-    productos = [
-        (1002, "Alimento balanceado perro adulto", "Bolsa 20kg", "Royal Canin", 32000, 25000, 21, 15),
-        (1003, "Alimento cachorro", "Bolsa 15kg", "Pedigree", 25000, 19000, 21, 12),
-        (1004, "Alimento gato adulto", "Bolsa 10kg", "Whiskas", 18000, 13500, 21, 20),
-        (1005, "Alimento gato kitten", "Bolsa 7kg", "Royal Canin", 22000, 17000, 21, 10),
-        (1006, "Pipeta antipulgas", "Para perro mediano", "Frontline", 3500, 2600, 21, 25),
-        (1007, "Collar antipulgas", "Tamaño perro grande", "Bayer", 4200, 3100, 21, 8),
-        (1008, "Vacuna antirrábica", "Dosis individual", "Zoetis", 1500, 900, 10.5, 50),
-        (1009, "Vacuna séxtuple", "Dosis individual", "Zoetis", 2700, 1800, 10.5, 40),
-        (1010, "Jeringa 3ml", "Con aguja", "Descartable", 200, 100, 21, 100),
-        (1011, "Jeringa 5ml", "Con aguja", "Descartable", 250, 120, 21, 90),
-        (1012, "Shampoo medicado", "Perros y gatos 250ml", "Dermovet", 1800, 1200, 21, 30),
-        (1013, "Shampoo antipulgas", "Perros 300ml", "PetClean", 1300, 800, 21, 25),
-        (1014, "Corte uñas", "Acero inoxidable", "Tramontina", 2200, 1500, 21, 15),
-        (1015, "Cepillo doble", "Mango ergonómico", "PetBrush", 1700, 1100, 21, 18),
-        (1016, "Collar nylon", "Tamaño chico", "DogStyle", 900, 500, 21, 22),
-        (1017, "Correa retráctil", "5 metros", "DogStyle", 3200, 2200, 21, 12),
-        (1018, "Comedero plástico", "Grande", "PetHouse", 1200, 700, 21, 30),
-        (1019, "Bebedero automático", "Capacidad 3L", "PetHouse", 4800, 3500, 21, 7),
-        (1020,"Caja transporte", "Mediana", "PetTravel", 8500, 6000, 21, 5),
-        (1021, "Cama acolchada", "Tamaño grande", "PetDreams", 9500, 7000, 21, 6)
-    ]
-
-    for id, name, description, brand, price, cost_price, iva, quantity in productos:
-        cursor.execute('''
-            INSERT INTO stock (id, name, description, brand, price, cost_price, iva, quantity)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        ''', (
-            id,
-            name,
-            description,
-            brand,
-            price,
-            cost_price,
-            iva,
-            quantity
+    for p in productos:
+        sale_price = round(p['cost_price'] * (1 + p['profit']/100), 2)
+        price_with_iva = round(sale_price * (1 + p['iva']/100), 2)
+        cursor.execute("""
+            INSERT OR REPLACE INTO stock 
+            (id, name, pack, profit, cost_price, price, iva, price_with_iva, quantity, created_at, last_price_update)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (
+            p['id'], p['name'], p['pack'], p['profit'], p['cost_price'], 
+            sale_price, p['iva'], price_with_iva, p['quantity'], 
+            datetime.now().strftime("%Y-%m-%d"), datetime.now().strftime("%Y-%m-%d")
         ))
 
     conn.commit()
     conn.close()
-    print("✅ 20 productos insertados en la base de datos")
+    print("Seed completado: 20 productos insertados")
 
 if __name__ == "__main__":
     seed_stock()

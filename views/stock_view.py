@@ -69,7 +69,7 @@ class StockView():
         new_btn = tk.Button(manage_frame, text="📦 Nuevo producto", bg="#B3E5FC", command=lambda: self.open_add_window(), **btn_style)
         update_btn = tk.Button(manage_frame, text="✏️ Editar", bg="#C8E6C9", **btn_style)
         delete_btn = tk.Button(manage_frame, text="🗑️ Eliminar", bg="#FFCDD2", command=lambda: self.controller.delete_product(), **btn_style)
-        clear_btn = tk.Button(manage_frame, text="🔄 Mostrar todo", bg="#E1BEE7", command=lambda: self.controller.refresh_stock_table(), **btn_style)
+        clear_btn = tk.Button(manage_frame, text="🔄 Mostrar todo", bg="#E1BEE7", command=lambda: self.controller.show_all_products(), **btn_style)
 
         new_btn.grid(row=0, column=0, padx=5, pady=5)
         update_btn.grid(row=0, column=1, padx=5, pady=5)
