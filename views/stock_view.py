@@ -251,16 +251,7 @@ class StockView():
             selected_item = self.stock_tree.selection()[0]
             values = self.stock_tree.item(selected_item)['values']
             product_id = str(values[0]).zfill(4)
-            
-            return {
-                'Id': product_id,
-                'Name': values[1],
-                'Package': values[2],
-                'Profit': values[3],
-                'CostPrice': float(values[5]),
-                'Iva': float(values[6]),
-                'Stock': int(values[7]),
-            }
+            return product_id
         except (IndexError, ValueError):
             return None
     

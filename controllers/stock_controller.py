@@ -75,7 +75,7 @@ class StockController:
                 return
             
             # Eliminar de base de datos
-            self.stock_model.delete_product(selected_product['Id'])
+            self.stock_model.delete_product(selected_product)
             
             # Refrescar tabla
             self.refresh_stock_table()
