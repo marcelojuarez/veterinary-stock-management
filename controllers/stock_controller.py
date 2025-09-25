@@ -84,7 +84,7 @@ class StockController:
         """Buscar producto por ID o nombre"""
         try:
             form_data = self.view.get_find_data()
-            name = form_data['Name']
+            name = form_data['name']
             
             if not (name):
                 self.view.show_warning("Ingrese ID o nombre para buscar")
@@ -92,7 +92,6 @@ class StockController:
             
             search_term = name
             results = self.stock_model.search_products(search_term)
-            
             if results:
                 self.view.refresh_stock_table(results)
             
