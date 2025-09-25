@@ -59,7 +59,7 @@ class StockView():
         manage_frame.grid(row=2, column=0, sticky='w', padx=[10,20], pady=20, ipadx=6)
 
         btn_style = {
-            "width": 25,
+            "width": 35,
             "height": 2,
             "borderwidth": 2,
             "fg": "black",
@@ -70,15 +70,11 @@ class StockView():
         update_btn = tk.Button(manage_frame, text="✏️ Editar", bg="#C8E6C9", **btn_style)
         delete_btn = tk.Button(manage_frame, text="🗑️ Eliminar", bg="#FFCDD2", command=lambda: self.controller.delete_product(), **btn_style)
         clear_btn = tk.Button(manage_frame, text="🔄 Mostrar todo", bg="#E1BEE7", command=lambda: self.controller.refresh_stock_table(), **btn_style)
-        add_btn = tk.Button(manage_frame, text="➕ Agregar a ventas", bg="#FFF9C4", **btn_style)
 
         new_btn.grid(row=0, column=0, padx=5, pady=5)
         update_btn.grid(row=0, column=1, padx=5, pady=5)
         delete_btn.grid(row=0, column=2, padx=5, pady=5)
         clear_btn.grid(row=0, column=3, padx=5, pady=5)
-        add_btn.grid(row=0, column=4, padx=5, pady=5)
-
-
     
     def create_find_frame(self):
         """Crear frame para formulario de producto"""
