@@ -521,6 +521,152 @@ class StockView():
         except Exception as e:
             self.show_error(f"Error al abrir ventana de actualización: {str(e)}")
 
+    def open_bulk_update_window(self):
+        """Ventana para actualización masiva de precios por fecha"""
+        try:
+            window = ctk.CTkToplevel(self.frame)
+            window.title("Actualización Masiva de Precios")
+            window.grab_set()
+            window.geometry("500x450+{}+{}".format(
+                window.winfo_screenwidth()//2 - 250,
+                window.winfo_screenheight()//2 - 200
+            ))
+
+            # Título
+            title_label = ctk.CTkLabel(
+                window, 
+                text="Actualización Masiva de Precios",
+                font=ctk.CTkFont(size=18, weight="bold")
+            )
+            title_label.pack(pady=20)
+
+            # Frame principal
+            main_frame = ctk.CTkFrame(window)
+            main_frame.pack(padx=20, pady=10, fill="both", expand=True)
+
+            # Selección de fecha
+            date_label = ctk.CTkLabel(
+                main_frame, 
+                text="Actualizar productos con fecha de precio:",
+                font=ctk.CTkFont(size=14, weight="bold")
+            )
+            date_label.pack(pady=(20, 10))
+
+            # Obtener fechas disponibles
+            available_dates = self.stock_model.get_available_price_dates()
+            
+            date_var = tk.StringVar()
+            if available_dates:
+                date_combo = ctk.CTkComboBox(
+                    main_frame,
+                    values=available_dates,
+                    variable=date_var,
+                    width=200,
+                    height=35
+                )
+                date_combo.pack(pady=5)
+                date_combo.set(available_dates[0])  # Seleccionar la primera fecha
+            else:
+                no_dates_label = ctk.CTkLabel(main_frame, text="No hay fechas disponibles")
+                no_dates_label.pack(pady=10)
+                return
+
+            # Porcentaje de aumento
+            percent_label = ctk.CTkLabel(
+                main_frame, 
+                text="Porcentaje de aumento (%):",
+                font=ctk.CTkFont(size=14, weight="bold")
+            )
+            percent_label.pack(pady=(20, 5))
+
+            percent_var = tk.StringVar(value="10")
+            percent_entry = ctk.CTkEntry(
+                main_frame,
+                textvariable=percent_var,
+                width=100,
+                height=35,
+                font=ctk.CTkFont(size=14)
+            )
+            percent_entry.pack(pady=5)
+
+            # Preview de productos afectados
+            preview_label = ctk.CTkLabel(
+                main_frame,
+                text="",
+                font=ctk.CTkFont(size=12)
+            )
+            preview_label.pack(pady=20)
+
+            def update_preview():
+                try:
+                    selected_date = date_var.get()
+                    if selected_date:
+                        count = self.stock_model.count_products_by_date(selected_date)
+                        preview_label.configure(text=f"Se actualizarán {count} productos con fecha {selected_date}")
+                except:
+                    preview_label.configure(text="Error al obtener preview")
+
+            # Actualizar preview cuando cambie la fecha
+            date_var.trace('w', lambda *args: update_preview())
+            update_preview()  # Preview inicial
+
+            # Botones
+            button_frame = ctk.CTkFrame(window, fg_color="transparent")
+            button_frame.pack(pady=20)
+
+            def apply_bulk_update():
+                try:
+                    selected_date = date_var.get()
+                    percent_increase = float(percent_var.get())
+                    
+                    if not selected_date:
+                        self.show_error("Seleccione una fecha")
+                        return
+                        
+                    if percent_increase <= 0:
+                        self.show_error("El porcentaje debe ser mayor a 0")
+                        return
+
+                    # Confirmar la operación
+                    count = self.stock_model.count_products_by_date(selected_date)
+                    if self.ask_confirmation(
+                        f"¿Está seguro de aumentar {percent_increase}% el precio de {count} productos con fecha {selected_date}?"
+                    ):
+                        updated_count = self.stock_model.bulk_update_prices_by_date(selected_date, percent_increase)
+                        self.controller.refresh_stock_table()
+                        window.destroy()
+                        self.show_success(f"Se actualizaron {updated_count} productos correctamente")
+
+                except ValueError:
+                    self.show_error("Ingrese un porcentaje válido")
+                except Exception as e:
+                    self.show_error(f"Error en actualización masiva: {str(e)}")
+
+            apply_button = ctk.CTkButton(
+                button_frame,
+                text="Aplicar Actualización",
+                width=150,
+                height=40,
+                fg_color="#4CAF50",
+                hover_color="#45a049",
+                command=apply_bulk_update
+            )
+            apply_button.pack(side="left", padx=10)
+
+            cancel_button = ctk.CTkButton(
+                button_frame,
+                text="Cancelar",
+                width=100,
+                height=40,
+                fg_color="#757575",
+                hover_color="#616161",
+                command=window.destroy
+            )
+            cancel_button.pack(side="left", padx=10)
+
+        except Exception as e:
+            self.show_error(f"Error al abrir ventana de actualización masiva: {str(e)}")
+
     def generate_random_id(self):
         """Generar ID aleatorio para producto"""
         numeric = '1234567890'

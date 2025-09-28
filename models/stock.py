@@ -119,3 +119,36 @@ class StockModel:
         except Exception as e:
             print(f"Error getting low stock products: {e}")
             return []
+    
+    def get_available_price_dates(self):
+        """Obtener fechas disponibles de última modificación de precios"""
+        query = "SELECT DISTINCT last_price_update FROM stock WHERE last_price_update IS NOT NULL ORDER BY last_price_update DESC"
+        results = db.fetch_all(query)
+        return [str(row[0]) for row in results] if results else []
+
+    def count_products_by_date(self, date):
+        """Contar productos por fecha de última modificación"""
+        query = "SELECT COUNT(*) FROM stock WHERE last_price_update = ?"
+        result = db.fetch_one(query, (date,))
+        return result[0] if result else 0
+
+    def bulk_update_prices_by_date(self, date, percent_increase):
+        """Actualización masiva de precios por fecha"""
+        multiplier = 1 + (percent_increase / 100)
+        
+        query = """
+            UPDATE stock 
+            SET price = ROUND(price * ?, 2),
+                price_with_iva = CASE 
+                    WHEN iva = '21%' THEN ROUND(price * ? * 1.21, 2)
+                    WHEN iva = '10.5%' THEN ROUND(price * ? * 1.105, 2)
+                    ELSE ROUND(price * ?, 2)
+                END,
+                profit = ROUND(((price * ? - cost_price) / cost_price) * 100, 2),
+                last_price_update = CURRENT_DATE
+            WHERE last_price_update = ?
+        """
+        
+        params = (multiplier, multiplier, multiplier, multiplier, multiplier, date)
+        
+        return db.execute_query(query, params)
