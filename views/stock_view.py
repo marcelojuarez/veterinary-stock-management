@@ -1,12 +1,18 @@
-import tkinter as tk
+import customtkinter as ctk
 from tkinter import ttk, messagebox
+import tkinter as tk
 from models.stock import StockModel
 import random
+
+# Configurar tema y colores
+ctk.set_appearance_mode("light")  # "light" o "dark"
+ctk.set_default_color_theme("blue")  # "blue", "green", "dark-blue"
 
 class StockView():
     def __init__(self, parent, controller=None):
         self.controller = controller
-        self.frame = tk.Frame(parent, bg="#79858C")
+        # Usar CTkFrame en lugar de tk.Frame
+        self.frame = ctk.CTkFrame(parent, fg_color="#f0f0f0")
         self.stock_model = StockModel()
         self.setup_variables()
         self.create_widgets()
@@ -55,64 +61,151 @@ class StockView():
     
     def create_buttons_frame(self):
         """Crear frame para botones de stock"""
-        manage_frame = tk.LabelFrame(self.frame, borderwidth=2, text="Acciones")
-        manage_frame.grid(row=2, column=0, sticky='w', padx=[10,20], pady=20, ipadx=6)
+        manage_frame = ctk.CTkFrame(self.frame)
+        manage_frame.grid(row=2, column=0, sticky='w', padx=10, pady=20)
 
-        btn_style = {
-            "width": 35,
-            "height": 2,
-            "borderwidth": 2,
-            "fg": "black",
-            "font": ("Arial", 12, "bold")
-        }
+        W = 220
+        H = 30
+        new_btn = ctk.CTkButton(
+            manage_frame,
+            text="📦 Nuevo producto",
+            width=W,
+            height=H,
+            font=ctk.CTkFont(size=12, weight="bold"),
+            fg_color="#4CAF50",
+            hover_color="#45a049",
+            command=lambda: self.open_add_window()
+        )
+        
+        update_btn = ctk.CTkButton(
+            manage_frame,
+            text="✏️ Actualizar Precio",
+            width=W,
+            height=H,
+            font=ctk.CTkFont(size=12, weight="bold"),
+            fg_color="#2196F3",
+            hover_color="#1976D2",
+            command=lambda: self.open_update_price_window()
+        )
+        
+        delete_btn = ctk.CTkButton(
+            manage_frame,
+            text="🗑️ Eliminar",
+            width=W,
+            height=H,
+            font=ctk.CTkFont(size=12, weight="bold"),
+            fg_color="#f44336",
+            hover_color="#d32f2f",
+            command=lambda: self.controller.delete_product()
+        )
+        
+        clear_btn = ctk.CTkButton(
+            manage_frame,
+            text="🔄 Mostrar todo",
+            width=W,
+            height=H,
+            font=ctk.CTkFont(size=12, weight="bold"),
+            fg_color="#9C27B0",
+            hover_color="#7B1FA2",
+            command=lambda: self.controller.show_all_products()
+        )
 
-        new_btn = tk.Button(manage_frame, text="📦 Nuevo producto", bg="#B3E5FC", command=lambda: self.open_add_window(), **btn_style)
-        update_btn = tk.Button(manage_frame, text="✏️ Editar", bg="#C8E6C9", **btn_style)
-        delete_btn = tk.Button(manage_frame, text="🗑️ Eliminar", bg="#FFCDD2", command=lambda: self.controller.delete_product(), **btn_style)
-        clear_btn = tk.Button(manage_frame, text="🔄 Mostrar todo", bg="#E1BEE7", command=lambda: self.controller.show_all_products(), **btn_style)
+        bulk_update_btn = ctk.CTkButton(
+            manage_frame,
+            text="📈 Actualización Masiva",
+            width=W,
+            height=H,
+            font=ctk.CTkFont(size=12, weight="bold"),
+            fg_color="#FF5722",
+            hover_color="#E64A19",
+            command=lambda: self.open_bulk_update_window()
+        )
 
-        new_btn.grid(row=0, column=0, padx=5, pady=5)
-        update_btn.grid(row=0, column=1, padx=5, pady=5)
-        delete_btn.grid(row=0, column=2, padx=5, pady=5)
-        clear_btn.grid(row=0, column=3, padx=5, pady=5)
+        new_btn.grid(row=1, column=0, padx=10, pady=10)
+        update_btn.grid(row=1, column=1, padx=10, pady=10)
+        delete_btn.grid(row=1, column=2, padx=10, pady=10)
+        clear_btn.grid(row=1, column=3, padx=10, pady=10)
+        bulk_update_btn.grid(row=1, column=4, padx=10, pady=10)
     
     def create_find_frame(self):
         """Crear frame para formulario de producto"""
-        find_frame = tk.LabelFrame(self.frame, borderwidth=2)
-        find_frame.grid(row=0, column=0, sticky='w', padx=[10,200], pady=[0,20], ipadx=6)
+        find_frame = ctk.CTkFrame(self.frame)
+        find_frame.grid(row=0, column=0, sticky='w', padx=10, pady=10)
 
-        # Label
-        tk.Label(find_frame, text='🔍 Buscar producto:', anchor='e', width=20, font=("Arial", 13, "bold")).grid(row=0, column=0, padx=5)
+        # Label con estilo moderno
+        search_label = ctk.CTkLabel(
+            find_frame,
+            text='🔍 Buscar producto:',
+            font=ctk.CTkFont(size=14, weight="bold")
+        )
+        search_label.grid(row=0, column=0, padx=15, pady=15)
 
-        # Campo de texto
-        self.find_entry = tk.Entry(find_frame, width=35, textvariable=self.find_var, font=("Arial", 10))
-        self.find_entry.grid(row=0, column=1, padx=5, pady=5)
+        # Campo de texto moderno
+        self.find_entry = ctk.CTkEntry(
+            find_frame,
+            width=300,
+            height=35,
+            textvariable=self.find_var,
+            font=ctk.CTkFont(size=12),
+            placeholder_text="Ingrese nombre del producto..."
+        )
+        self.find_entry.grid(row=0, column=1, padx=10, pady=15)
 
-        # Botón de búsqueda
-        find_btn = tk.Button(
+        # Botón de búsqueda moderno
+        find_btn = ctk.CTkButton(
             find_frame,
             text="Buscar",
-            width=18,
-            height=2,
-            borderwidth=2,
-            bg="#BBDEFB",  # azul pastel
-            fg="black",
-            font=("Arial", 12, "bold"),
+            width=120,
+            height=35,
+            font=ctk.CTkFont(size=12, weight="bold"),
+            fg_color="#FF9800",
+            hover_color="#F57C00",
             command=lambda: self.controller.find_product()
         )
-        find_btn.grid(row=0, column=2, padx=5, pady=5)
-
+        find_btn.grid(row=0, column=2, padx=15, pady=15)
 
     def create_tree_frame(self):
         """Crear frame para tabla de stock"""
-        tree_frame = tk.Frame(self.frame)
-        tree_frame.grid(row=1, column=0, padx=10, pady=10, sticky='w')
+        tree_frame = ctk.CTkFrame(self.frame)
+        tree_frame.grid(row=1, column=0, padx=10, pady=10, sticky='nsew')
+
+        # Título de la tabla
+        table_title = ctk.CTkLabel(
+            tree_frame,
+            text="Inventario de Productos",
+            font=ctk.CTkFont(size=16, weight="bold")
+        )
+        table_title.grid(row=0, column=0, pady=(15, 10))
+
+        # Frame interno para la tabla y scrollbar
+        table_container = tk.Frame(tree_frame, bg="white")
+        table_container.grid(row=1, column=0, padx=15, pady=(0, 15), sticky='nsew')
+
+        # Configurar el estilo del Treeview para que se vea más moderno
+        style = ttk.Style()
+        style.theme_use('clam')
+        
+        # Configurar colores del Treeview
+        style.configure('Treeview',
+                       background='#ffffff',
+                       foreground='#333333',
+                       rowheight=30,
+                       fieldbackground='#ffffff',
+                       font=('Arial', 12))
+        
+        style.configure('Treeview.Heading',
+                       background='#e0e0e0',
+                       foreground='#333333',
+                       font=('Arial', 12, 'bold'))
+        
+        style.map('Treeview',
+                 background=[('selected', '#0078d4')])
 
         # Treeview
-        self.stock_tree = ttk.Treeview(tree_frame, show="headings", height=25)
+        self.stock_tree = ttk.Treeview(table_container, show="headings", height=15)
 
-        # Scrollbar vertical
-        scrollbar = ttk.Scrollbar(tree_frame, orient='vertical', command=self.stock_tree.yview)
+        # Scrollbar vertical con estilo
+        scrollbar = ttk.Scrollbar(table_container, orient='vertical', command=self.stock_tree.yview)
         scrollbar.grid(row=0, column=1, sticky='ns')
         self.stock_tree.configure(yscrollcommand=scrollbar.set)
 
@@ -159,64 +252,274 @@ class StockView():
                                 command=lambda: self.sort_tree("LastPriceUpdate"))
         self.stock_tree.heading("Stock", text="Stock ↕", anchor=tk.CENTER,
                                 command=lambda: self.sort_tree("Stock"))
-
         
         # Bind para doble click
         self.stock_tree.bind('<Double-Button-1>', self.on_double_click)
         # Bind para Enter y Escape
         self.stock_tree.bind('<Return>', self.save_edit)
         self.stock_tree.bind('<Escape>', self.cancel_edit)
-        
 
+        # Tags para colores de filas
         self.stock_tree.tag_configure('orow', background="#FFFFFF")
-        self.stock_tree.tag_configure("low_stock", background="#FFB3B3")   # rojo suave
-        self.stock_tree.tag_configure("medium_stock", background="#FFF2B3") # amarillo suave
+        self.stock_tree.tag_configure("low_stock", background="#ffebee")   # rojo muy suave
+        self.stock_tree.tag_configure("medium_stock", background="#fff3e0") # naranja muy suave
 
-        self.stock_tree.grid(row=0, column=0, padx=10, pady=(0, 20), sticky="nsew")
+        self.stock_tree.grid(row=0, column=0, sticky="nsew")
 
     def open_add_window(self):
-        add_win = tk.Toplevel(self.frame)
+        """Ventana para agregar nuevo producto con CustomTkinter"""
+        add_win = ctk.CTkToplevel(self.frame)
         add_win.title("Agregar nuevo artículo")
+        
+        # Hacer que la ventana sea modal
+        add_win.transient(self.frame)
+        add_win.grab_set()
+        
+        # Centrar la ventana
+        add_win.geometry("400x550+{}+{}".format(
+            add_win.winfo_screenwidth()//2 - 200,
+            add_win.winfo_screenheight()//2 - 250
+        ))
 
-        tk.Label(add_win, text="Código:").grid(row=0, column=0, padx=5, pady=5)
-        id_entry = tk.Entry(add_win, textvariable=self.id_var)
-        id_entry.grid(row=0, column=1, padx=5, pady=5)
+        # Título
+        title_label = ctk.CTkLabel(
+            add_win,
+            text="Nuevo Artículo",
+            font=ctk.CTkFont(size=18, weight="bold")
+        )
+        title_label.grid(row=0, column=0, columnspan=2, pady=(20, 30))
 
-        tk.Label(add_win, text="Nombre Artículo:").grid(row=1, column=0, padx=5, pady=5)
-        name_entry = tk.Entry(add_win, textvariable=self.name_var)
-        name_entry.grid(row=1, column=1, padx=5, pady=5)
+        # Campos del formulario
+        fields = [
+            ("Código:", self.id_var),
+            ("Nombre Artículo:", self.name_var),
+            ("% Rentabilidad:", self.profit_var),
+            ("P. Costo:", self.price_var),
+            ("Cantidad de Artículos:", self.qnt_var)
+        ]
 
-        tk.Label(add_win, text="Envase:").grid(row=2, column=0, padx=5, pady=5)
-        pack_combo = ttk.Combobox(add_win, textvariable=self.pack_var, state="readonly")
-        pack_combo['values'] = ("UNIDAD", "CAJA", "FRASCO", "AMPOLLA", "SOBRE", "OTRO")
-        pack_combo.current(0)  
-        pack_combo.grid(row=2, column=1, padx=5, pady=5)
+        for i, (label_text, var) in enumerate(fields, start=1):
+            label = ctk.CTkLabel(add_win, text=label_text, font=ctk.CTkFont(size=12))
+            label.grid(row=i, column=0, padx=20, pady=10, sticky="w")
+            
+            entry = ctk.CTkEntry(
+                add_win,
+                textvariable=var,
+                width=200,
+                height=35,
+                font=ctk.CTkFont(size=12)
+            )
+            entry.grid(row=i, column=1, padx=20, pady=10)
 
-        tk.Label(add_win, text="% Rentabilidad:").grid(row=3, column=0, padx=5, pady=5)
-        rent_entry = tk.Entry(add_win, textvariable=self.profit_var)
-        rent_entry.grid(row=3, column=1, padx=5, pady=5)
+        # Combobox para Envase
+        pack_label = ctk.CTkLabel(add_win, text="Envase:", font=ctk.CTkFont(size=12))
+        pack_label.grid(row=6, column=0, padx=20, pady=10, sticky="w")
+        
+        pack_combo = ctk.CTkComboBox(
+            add_win,
+            values=["UNIDAD", "CAJA", "FRASCO", "AMPOLLA", "SOBRE", "OTRO"],
+            variable=self.pack_var,
+            width=200,
+            height=35,
+            font=ctk.CTkFont(size=12),
+            state="readonly"
+        )
+        pack_combo.set("UNIDAD")
+        pack_combo.grid(row=6, column=1, padx=20, pady=10)
 
-        tk.Label(add_win, text="P. Costo:").grid(row=4, column=0, padx=5, pady=5)
-        price_entry = tk.Entry(add_win, textvariable=self.price_var)
-        price_entry.grid(row=4, column=1, padx=5, pady=5)
+        # Combobox para IVA
+        iva_label = ctk.CTkLabel(add_win, text="% Iva:", font=ctk.CTkFont(size=12))
+        iva_label.grid(row=7, column=0, padx=20, pady=10, sticky="w")
+        
+        iva_combo = ctk.CTkComboBox(
+            add_win,
+            values=["21%", "10.5%", "0%"],
+            variable=self.iva_var,
+            width=200,
+            height=35,
+            font=ctk.CTkFont(size=12),
+            state="readonly"
+        )
+        iva_combo.set("21%")
+        iva_combo.grid(row=7, column=1, padx=20, pady=10)
 
-        tk.Label(add_win, text="% Iva:").grid(row=5, column=0, padx=5, pady=5)
-        iva_combo = ttk.Combobox(add_win, textvariable=self.iva_var, state="readonly")
-        iva_combo['values'] = ("21%", "10.5%", "0%")
-        iva_combo.current(0)  
-        iva_combo.grid(row=5, column=1, padx=4, pady=5)
+        # Botones
+        button_frame = ctk.CTkFrame(add_win, fg_color="transparent")
+        button_frame.grid(row=8, column=0, columnspan=2, pady=30)
 
-        tk.Label(add_win, text="Cantidad de Artículos:").grid(row=6, column=0, padx=5, pady=5)
-        qnt_entry = tk.Entry(add_win, textvariable=self.qnt_var)
-        qnt_entry.grid(row=6, column=1, padx=5, pady=5)
+        add_button = ctk.CTkButton(button_frame, text="Agregar", width=120, height=35, font=ctk.CTkFont(size=12, weight="bold"),
+            fg_color="#4CAF50", hover_color="#45a049", command=lambda: self.controller.add_new_product(add_win))
+        add_button.grid(row=0, column=0, padx=10)
 
-        tk.Button(add_win, text="Agregar", 
-                command=lambda: self.controller.add_new_product(add_win)).grid(row=7, column=0, pady=10, padx=5, sticky="e")
+        cancel_button = ctk.CTkButton(button_frame, text="Cancelar", width=120, height=35, font=ctk.CTkFont(size=12, weight="bold"),
+            fg_color="#757575", hover_color="#616161", command=add_win.destroy)
+        cancel_button.grid(row=0, column=1, padx=10)
+        self.clear_form_fields()
 
-        tk.Button(add_win, text="Cancelar", 
-                command=add_win.destroy).grid(row=7, column=1, pady=10, padx=5, sticky="w")
+    def open_update_price_window(self):
+        """Abrir ventana para actualizar precio de producto seleccionado con CustomTkinter"""
+        try:
+            product_id = self.get_selected_product()
+            if not product_id:
+                self.show_warning("Seleccione un producto para actualizar el precio")
+                return
+                    
+            product = self.stock_model.get_product_by_id(product_id)
+            if not product:
+                self.show_error(f"Producto {product_id} no encontrado")
+                return
 
+            _, name, pack, profit, cost_price, sale_price, iva, _, _, _, stock = product
 
+            window = ctk.CTkToplevel(self.frame)
+            window.title(f"Actualizar Precio - {name}")
+            window.grab_set()
+            window.geometry("450x450+{}+{}".format(window.winfo_screenwidth()//2 - 225, window.winfo_screenheight()//2 - 225))
+
+            # Información básica
+            info_label = ctk.CTkLabel(
+                window, 
+                text=f"Producto: {name} | Código: {product_id} | Costo: ${cost_price}",
+                font=ctk.CTkFont(size=14, weight="bold")
+            )
+            info_label.pack(pady=20)
+
+            main_frame = ctk.CTkFrame(window)
+            main_frame.pack(padx=20, pady=10, fill="both", expand=True)
+
+            method_label = ctk.CTkLabel(main_frame, text="Método:", font=ctk.CTkFont(size=16, weight="bold"))
+            method_label.pack(pady=(15, 5))
+
+            method_var = tk.StringVar(value="sale_price")
+            
+            sale_radio = ctk.CTkRadioButton(main_frame, text="Por Precio de Venta", variable=method_var, value="sale_price")
+            sale_radio.pack(pady=2)
+            
+            profit_radio = ctk.CTkRadioButton(main_frame, text="Por Rentabilidad (%)", variable=method_var, value="profit")
+            profit_radio.pack(pady=2)
+
+            # Campos de entrada
+            input_frame = ctk.CTkFrame(main_frame)
+            input_frame.pack(pady=15, padx=20, fill="x")
+
+            sale_var = tk.StringVar(value=str(sale_price))
+            profit_var = tk.StringVar(value=str(profit))
+
+            sale_label = ctk.CTkLabel(input_frame, text="Precio de Venta:")
+            sale_label.grid(row=0, column=0, padx=10, pady=10, sticky="w")
+            
+            sale_entry = ctk.CTkEntry(input_frame, textvariable=sale_var, width=150)
+            sale_entry.grid(row=0, column=1, padx=10, pady=10)
+
+            profit_label = ctk.CTkLabel(input_frame, text="Rentabilidad (%):")
+            profit_label.grid(row=1, column=0, padx=10, pady=10, sticky="w")
+            
+            profit_entry = ctk.CTkEntry(input_frame, textvariable=profit_var, width=150)
+            profit_entry.grid(row=1, column=1, padx=10, pady=10)
+
+            result_var = tk.StringVar()
+            result_label = ctk.CTkLabel(main_frame, text="Resultado:", font=ctk.CTkFont(size=12, weight="bold"))
+            result_label.pack(pady=(10, 5))
+            
+            result_display = ctk.CTkLabel(main_frame, textvariable=result_var, font=ctk.CTkFont(size=12))
+            result_display.pack()
+
+            def update_interface():
+                method = method_var.get()
+                if method == "sale_price":
+                    sale_entry.configure(state="normal")
+                    profit_entry.configure(state="disabled")
+                    try:
+                        new_sale = float(sale_var.get())
+                        new_profit = round(((new_sale - cost_price) / cost_price) * 100, 2)
+                        
+                        if iva == "21%":
+                            price_with_iva = round(new_sale * 1.21, 2)
+                        elif iva == "10.5%":
+                            price_with_iva = round(new_sale * 1.105, 2)
+                        else:
+                            price_with_iva = new_sale
+                            
+                        result_var.set(f"Precio: ${new_sale} | Rentabilidad: {new_profit}% | Con IVA: ${price_with_iva}")
+                    except:
+                        result_var.set("Valor inválido")
+                else:
+                    sale_entry.configure(state="disabled")
+                    profit_entry.configure(state="normal")
+                    try:
+                        new_profit = float(profit_var.get())
+                        new_sale = round(cost_price * (1 + new_profit / 100), 2)
+                        
+                        if iva == "21%":
+                            price_with_iva = round(new_sale * 1.21, 2)
+                        elif iva == "10.5%":
+                            price_with_iva = round(new_sale * 1.105, 2)
+                        else:
+                            price_with_iva = new_sale
+                            
+                        result_var.set(f"Precio: ${new_sale} | Rentabilidad: {new_profit}% | Con IVA: ${price_with_iva}")
+                    except:
+                        result_var.set("Valor inválido")
+
+            method_var.trace('w', lambda *args: update_interface())
+            sale_var.trace('w', lambda *args: update_interface() if method_var.get() == "sale_price" else None)
+            profit_var.trace('w', lambda *args: update_interface() if method_var.get() == "profit" else None)
+
+            update_interface()
+
+            # Botones
+            button_frame = ctk.CTkFrame(window, fg_color="transparent")
+            button_frame.pack(pady=20)
+
+            def save_update():
+                try:
+                    method = method_var.get()
+                    
+                    if method == "sale_price":
+                        new_sale_price = float(sale_var.get())
+                        new_profit = round(((new_sale_price - cost_price) / cost_price) * 100, 2)
+                    else:
+                        new_profit = float(profit_var.get())
+                        new_sale_price = round(cost_price * (1 + new_profit / 100), 2)
+
+                    if iva == "21%":
+                        price_with_iva = round(new_sale_price * 1.21, 2)
+                    elif iva == "10.5%":
+                        price_with_iva = round(new_sale_price * 1.105, 2)
+                    else:
+                        price_with_iva = new_sale_price
+
+                    product_data = {
+                        "Name": name,
+                        "Package": pack,
+                        "Profit": new_profit,
+                        "CostPrice": cost_price,
+                        "SalePrice": new_sale_price,
+                        "Iva": iva,
+                        "PriceWIva": price_with_iva,
+                        "Stock": stock,
+                    }
+
+                    self.stock_model.update_product(product_id, product_data)
+                    self.controller.refresh_stock_table()
+                    window.destroy()
+                    self.show_success("Precio actualizado correctamente")
+
+                except ValueError:
+                    self.show_error("Por favor ingrese valores numéricos válidos")
+                except Exception as e:
+                    self.show_error(f"Error al actualizar precio: {str(e)}")
+
+            save_button = ctk.CTkButton(button_frame, text="Guardar", width=100, height=35, 
+                fg_color="#4CAF50", hover_color="#45a049", command=save_update)
+            save_button.pack(side="left", padx=10)
+
+            cancel_button = ctk.CTkButton(button_frame, text="Cancelar", width=100, height=35, 
+                fg_color="#757575", hover_color="#616161", command=window.destroy)
+            cancel_button.pack(side="left", padx=10)
+
+        except Exception as e:
+            self.show_error(f"Error al abrir ventana de actualización: {str(e)}")
 
     def generate_random_id(self):
         """Generar ID aleatorio para producto"""
@@ -225,7 +528,14 @@ class StockView():
         for i in range(4):
             randno = random.randrange(0, len(numeric))
             item_id += numeric[randno]
-        self.id_entry.set(item_id)
+        self.id_var.set(item_id)
+    
+    def clear_form_fields(self):
+        """Limpiar todos los campos del formulario"""
+        for var in self.form_vars:
+            var.set("")
+        self.pack_var.set("UNIDAD")
+        self.iva_var.set("21%")
 
     def get_form_data(self):
         """Obtener datos del formulario"""
