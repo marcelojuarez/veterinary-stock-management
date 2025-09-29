@@ -26,15 +26,14 @@ class CustomerModel:
     def add_customer(self, customer_data):
         # Agregar nuevo cliente a la base de datos
         query = """
-            INSERT INTO clientes (nombre, cuit, domicilio, telefono, monto_deuda)
-            VALUES(?, ?, ?, ?, ?)
+            INSERT INTO clientes (nombre, cuit, domicilio, telefono)
+            VALUES(?, ?, ?, ?)
         """
         params = [
             customer_data['nombre'].upper(),
             customer_data['cuit'],
             customer_data['domicilio'].upper(),
-            customer_data['telefono'],
-            customer_data['monto_deuda']
+            customer_data['telefono']
         ]
         try:
             return db.execute_query(query, params)
