@@ -64,16 +64,16 @@ class StockView():
         manage_frame = ctk.CTkFrame(self.frame)
         manage_frame.grid(row=2, column=0, sticky='w', padx=10, pady=20)
 
-        W = 220
-        H = 30
+        W = 280
+        H = 35
         new_btn = ctk.CTkButton(
             manage_frame,
             text="📦 Nuevo producto",
             width=W,
             height=H,
             font=ctk.CTkFont(size=12, weight="bold"),
-            fg_color="#4CAF50",
-            hover_color="#45a049",
+            fg_color="#FF9800",
+            hover_color="#F57C00",
             command=lambda: self.open_add_window()
         )
         
@@ -83,8 +83,8 @@ class StockView():
             width=W,
             height=H,
             font=ctk.CTkFont(size=12, weight="bold"),
-            fg_color="#2196F3",
-            hover_color="#1976D2",
+            fg_color="#FF9800",
+            hover_color="#F57C00",
             command=lambda: self.open_update_price_window()
         )
         
@@ -94,20 +94,9 @@ class StockView():
             width=W,
             height=H,
             font=ctk.CTkFont(size=12, weight="bold"),
-            fg_color="#f44336",
-            hover_color="#d32f2f",
+            fg_color="#FF9800",
+            hover_color="#F57C00",
             command=lambda: self.controller.delete_product()
-        )
-        
-        clear_btn = ctk.CTkButton(
-            manage_frame,
-            text="🔄 Mostrar todo",
-            width=W,
-            height=H,
-            font=ctk.CTkFont(size=12, weight="bold"),
-            fg_color="#9C27B0",
-            hover_color="#7B1FA2",
-            command=lambda: self.controller.show_all_products()
         )
 
         bulk_update_btn = ctk.CTkButton(
@@ -116,15 +105,14 @@ class StockView():
             width=W,
             height=H,
             font=ctk.CTkFont(size=12, weight="bold"),
-            fg_color="#FF5722",
-            hover_color="#E64A19",
+            fg_color="#FF9800",
+            hover_color="#F57C00",
             command=lambda: self.open_bulk_update_window()
         )
 
         new_btn.grid(row=1, column=0, padx=10, pady=10)
         update_btn.grid(row=1, column=1, padx=10, pady=10)
         delete_btn.grid(row=1, column=2, padx=10, pady=10)
-        clear_btn.grid(row=1, column=3, padx=10, pady=10)
         bulk_update_btn.grid(row=1, column=4, padx=10, pady=10)
     
     def create_find_frame(self):
@@ -132,7 +120,6 @@ class StockView():
         find_frame = ctk.CTkFrame(self.frame)
         find_frame.grid(row=0, column=0, sticky='w', padx=10, pady=10)
 
-        # Label con estilo moderno
         search_label = ctk.CTkLabel(
             find_frame,
             text='🔍 Buscar producto:',
@@ -140,29 +127,41 @@ class StockView():
         )
         search_label.grid(row=0, column=0, padx=15, pady=15)
 
-        # Campo de texto moderno
         self.find_entry = ctk.CTkEntry(
             find_frame,
-            width=300,
+            width=600,
             height=35,
             textvariable=self.find_var,
             font=ctk.CTkFont(size=12),
             placeholder_text="Ingrese nombre del producto..."
         )
+
         self.find_entry.grid(row=0, column=1, padx=10, pady=15)
 
-        # Botón de búsqueda moderno
         find_btn = ctk.CTkButton(
             find_frame,
             text="Buscar",
-            width=120,
+            width=160,
             height=35,
             font=ctk.CTkFont(size=12, weight="bold"),
             fg_color="#FF9800",
             hover_color="#F57C00",
             command=lambda: self.controller.find_product()
         )
+
+        clear_btn = ctk.CTkButton(
+            find_frame,
+            text="Mostrar todo los articulos",
+            width=160,
+            height=35,
+            font=ctk.CTkFont(size=12, weight="bold"),
+            fg_color="#FF9800",
+            hover_color="#F57C00",
+            command=lambda: self.controller.show_all_products()
+        )
+
         find_btn.grid(row=0, column=2, padx=15, pady=15)
+        clear_btn.grid(row=0, column=3, padx=15, pady=15)
 
     def create_tree_frame(self):
         """Crear frame para tabla de stock"""
@@ -635,7 +634,7 @@ class StockView():
                         updated_count = self.stock_model.bulk_update_prices_by_date(selected_date, percent_increase)
                         self.controller.refresh_stock_table()
                         window.destroy()
-                        self.show_success(f"Se actualizaron {updated_count} productos correctamente")
+                        self.show_success(f"Se actualizaron {count} productos correctamente")
 
                 except ValueError:
                     self.show_error("Ingrese un porcentaje válido")
