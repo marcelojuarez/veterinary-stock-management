@@ -63,8 +63,20 @@ class Database:
                     nombre TEXT NOT NULL UNIQUE,
                     cuit TEXT UNIQUE,
                     domicilio TEXT,
-                    telefono TEXT,
-                    monto_deuda REAL DEFAULT 0.0
+                    telefono TEXT
+                )
+            ''')
+
+            # Tabla pago de clients
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS pagos_clientes (
+                    id INTEGER PRIMARY KEY,
+                    cliente_id INTEGER NOT NULL,
+                    fecha TEXT DEFAULT CURRENT_DATE,
+                    concepto TEXT NOT NULL,
+                    monto REAL NOT NULL,
+                    pagado INTEGER NOT NULL DEFAULT 0,
+                    FOREIGN KEY(cliente_id) REFERENCES clientes(id)
                 )
             ''')
 
