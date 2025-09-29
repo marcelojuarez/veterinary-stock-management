@@ -1,4 +1,5 @@
 import tkinter as tk
+import customtkinter as ctk
 from tkinter import ttk, messagebox
 from controllers.auth_controller import validate_data
 from config.settings import settings
@@ -11,7 +12,7 @@ from controllers.supplier_controller import SupplierController
 from controllers.customer_controller import CustomerController
 class App():
     def __init__(self):
-        self.root = tk.Tk()
+        self.root = ctk.CTk()
         self.setup_window()
         self.setup_variables()
         self.login_window()

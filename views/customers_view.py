@@ -1,156 +1,204 @@
-import tkinter as tk
-from tkinter import ttk, messagebox
+import customtkinter as ctk
+from tkinter import messagebox
 from models.customer import CustomerModel
+from .components.customer.search_frame import SearchFrame
+from .components.customer.customer_table import CustomerTable
+from .components.customer.buttons_frame import ButtonsFrame
+from .components.customer.add_customer_window import AddCustomerWindow
+from .components.customer.update_debt_window import UpdateDebtWindow
+# CONFIGURACIÓN GLOBAL MEJORADA
+ctk.set_appearance_mode("light")
+ctk.set_default_color_theme("blue")
 
 class CustomersView:
     def __init__(self, parent, controller=None):
         self.controller = controller
         self.model = CustomerModel()
-        self.frame = tk.Frame(parent, bg="#79858C")
+
+        self.frame = ctk.CTkFrame(parent, corner_radius=16, fg_color="#ffffff", border_width=1, border_color="#e0e0e0")
+        self.frame.pack(fill="both", expand=True, padx=20, pady=20)
+
         self.setup_variables()
         self.create_widgets()
 
-    def set_controller(self, controller):
-        """Asignar controller después de la inicialización"""
-        self.controller = controller
-
     def setup_variables(self):
-        self.name_var = tk.StringVar()
-        self.cuit_var = tk.StringVar()
-        self.home_var = tk.StringVar()
-        self.phone_var = tk.StringVar()
-        self.debt_amount_var = tk.DoubleVar()
-        self.find_var = tk.StringVar()
+        self.name_var = ctk.StringVar()
+        self.cuit_var = ctk.StringVar()
+        self.home_var = ctk.StringVar()
+        self.phone_var = ctk.StringVar()
+        self.find_var = ctk.StringVar()
 
     def create_widgets(self):
-        self.create_find_frame()
-        self.create_tree_frame()
-        self.create_buttons_frame()
+        # Header moderno con icono y estadísticas
+        self.create_header()
+        
+        # Componente de búsqueda 
+        self.search_component = SearchFrame(
+            self.frame,
+            on_search_callback=self.search_customer,
+            on_show_all_callback=self.show_all_customers
+        )
 
-    def create_find_frame(self):
-        find_frame = tk.LabelFrame(self.frame, borderwidth=2)
-        find_frame.grid(row=0, column=0, sticky='w', padx=10, pady=10, ipadx=6)
+        # Componente de tabla 
+        self.table_component = CustomerTable(
+            self.frame,
+            on_double_click_callback=self.on_double_click
+        )
 
-        tk.Label(find_frame, text='Buscar:').grid(row=0, column=0, padx=5)
-        self.find_entry = tk.Entry(find_frame, textvariable=self.find_var, width=30)
-        self.find_entry.grid(row=0, column=1, padx=5)
-        find_btn = tk.Button(find_frame, text="Buscar", command=self.search_customer)
-        find_btn.grid(row=0, column=2, padx=5)
+        # Botones 
+        self.buttons_component = ButtonsFrame(
+            self.frame,
+            on_add_callback=self.open_add_window,
+            on_update_debt_callback=self.update_debt,
+            on_delete_callback=self.delete_customer,
+            on_clear_callback=self.clear_form
+        )
 
-    def create_tree_frame(self):
-        tree_frame = ttk.Frame(self.frame)
-        tree_frame.grid(row=1, column=0, padx=10, pady=10, sticky='w')
+    def create_header(self):
+        """Header moderno con icono y estadísticas"""
+        header_frame = ctk.CTkFrame(self.frame, fg_color="transparent")
+        header_frame.grid(row=0, column=0, sticky="ew", pady=(0, 15))
+        
+        # Título con icono
+        title_container = ctk.CTkFrame(header_frame, fg_color="transparent")
+        title_container.pack(fill="x", expand=True)
+        
+        title_label = ctk.CTkLabel(
+            title_container,
+            text="👥 Gestión de Clientes",
+            font=ctk.CTkFont("Segoe UI", 22, "bold"),
+            text_color="#2c3e50"
+        )
+        title_label.pack(anchor="center")
+    
+    def search_customer(self, search_term=None):
+        if self.controller:
+            if search_term is None:
+                search_term = self.search_component.get_search_term()
+            self.controller.search_customer(search_term)
 
-        self.customer_tree = ttk.Treeview(tree_frame, show='headings', height=20)
-        scrl_bar = ttk.Scrollbar(tree_frame, orient='vertical', command=self.customer_tree.yview)
-        scrl_bar.grid(row=0, column=1, sticky='ns')
-        self.customer_tree.configure(yscrollcommand=scrl_bar.set)
+    def show_all_customers(self):
+        if self.controller:
+            self.search_component.find_var.set("")
+            self.controller.search_customer("")
 
-        self.customer_tree['columns'] = ("Id","Nombre","Cuit","Domicilio","Telefono","Monto Deuda")
-        for col in self.customer_tree['columns']:
-            self.customer_tree.column(col, anchor=tk.W, width=100, stretch=False)
-            self.customer_tree.heading(col, text=col + " ↕")
+    def refresh_customer_table(self, customers):
+        self.table_component.refresh_data(customers)
 
-        self.customer_tree.tag_configure('orow', background="#FFFFFF")
-        self.customer_tree.grid(row=0, column=0, padx=10, pady=10)
+    def on_double_click(self, event):
+        tree = self.table_component.get_tree()
+        row_id = tree.identify_row(event.y)
+        col = tree.identify_column(event.x)
 
-        self.customer_tree.bind("<Double-1>", self.on_double_click)
+        if col != "#6":
+            return
 
-    def create_buttons_frame(self):
-        manage_frame = tk.LabelFrame(self.frame, borderwidth=2)
-        manage_frame.grid(row=2, column=0, padx=10, pady=10, ipadx=6)
+        x, y, width, height = tree.bbox(row_id, col)
+        value = tree.set(row_id, column=col)
 
-        add_btn = tk.Button(manage_frame, text='Agregar', width=15, command=self.open_add_window)
-        update_btn = tk.Button(manage_frame, text='Actualizar deuda', width=15, command=self.update_debt)
-        delete_btn = tk.Button(manage_frame, text='Borrar', width=15, command=self.delete_customer)
-        clear_btn = tk.Button(manage_frame, text='Limpiar', width=15, command=self.clear_form)
+        # Entry temporal para edición 
+        self.edit_box = ctk.CTkEntry(
+            tree, 
+            font=("Segoe UI", 12),
+            width=width,
+            height=height,
+            fg_color="#ffffff",
+            text_color="#2c3e50",
+            border_width=1,
+            border_color="#3498db",
+            corner_radius=4
+        )
+        self.edit_box.place(x=x, y=y)
+        self.edit_box.insert(0, value)
+        self.edit_box.focus()
+        self.edit_box.select_range(0, "end")
 
-        add_btn.grid(row=0, column=0, padx=5, pady=5)
-        update_btn.grid(row=0, column=1, padx=5, pady=5)
-        delete_btn.grid(row=0, column=2, padx=5, pady=5)
-        clear_btn.grid(row=0, column=3, padx=5, pady=5)
+        self.edit_box.bind("<Return>", lambda e: self.save_edit(row_id, col))
+        self.edit_box.bind("<Escape>", lambda e: self.edit_box.destroy())
 
     def open_add_window(self):
-        add_win = tk.Toplevel(self.frame)
-        add_win.title("Agregar nuevo cliente")
-
-        ttk.Label(add_win, text='Nombre:').grid(row=0, column=0, padx=5, pady=5, sticky='nw')
-        ttk.Entry(add_win, textvariable=self.name_var).grid(row=0, column=1, padx=5, pady=5)
-
-        ttk.Label(add_win, text='Cuit:').grid(row=1, column=0, padx=5, pady=5, sticky='nw')
-        ttk.Entry(add_win, textvariable=self.cuit_var).grid(row=1, column=1, padx=5, pady=5)
-
-        ttk.Label(add_win, text='Domicilio:').grid(row=2, column=0, padx=5, pady=5, sticky='nw')
-        ttk.Entry(add_win, textvariable=self.home_var).grid(row=2, column=1, padx=5, pady=5)
-
-        ttk.Label(add_win, text='Telefono:').grid(row=3, column=0, padx=5, pady=5, sticky='nw')
-        ttk.Entry(add_win, textvariable=self.phone_var).grid(row=3, column=1, padx=5, pady=5)
-
-        ttk.Label(add_win, text='Monto Deuda:').grid(row=5, column=0, padx=5, pady=5, sticky='nw')
-        ttk.Entry(add_win, textvariable=self.debt_amount_var).grid(row=5, column=1, padx=5, pady=5)
-
-        ttk.Button(add_win, text="Agregar", command=lambda: self.controller.add_new_customer(add_win)).grid(row=6, column=1, pady=10)
+        AddCustomerWindow(
+            self.frame.winfo_toplevel(),
+            vars_dict={
+                "nombre": self.name_var,
+                "cuit": self.cuit_var,
+                "domicilio": self.home_var,
+                "telefono": self.phone_var,
+            },
+            on_add_callback=self.handle_add_customer,
+        )
 
     def get_customer_data(self):
         return {
-            'nombre': self.name_var.get().strip(),
-            'cuit': self.cuit_var.get().strip(),
-            'domicilio': self.home_var.get().strip(),
-            'telefono': self.phone_var.get().strip(),
-            'monto_deuda': self.debt_amount_var.get()
+            "nombre": self.name_var.get().strip(),
+            "cuit": self.cuit_var.get().strip(),
+            "domicilio": self.home_var.get().strip(),
+            "telefono": self.phone_var.get().strip(),
         }
 
-    def refresh_customer_table(self, customers):
-        for item in self.customer_tree.get_children():
-            self.customer_tree.delete(item)
-        for customer in customers:
-            self.customer_tree.insert(parent='', index='end', iid=customer[0], values=customer, tag='orow')
-        self.customer_tree.tag_configure('orow', background='white')
-
-    def search_customer(self):
-        if self.controller:
-            self.controller.search_customer(self.find_var.get())
-
     def update_debt(self):
-        selected = self.customer_tree.selection()
+        selected = self.table_component.get_selection()
         if not selected:
             self.show_error("Seleccioná un cliente")
             return
 
         row_id = selected[0]
-        col = "#6"  # Columna Monto Deuda
+        col = "#6"
+        tree = self.table_component.get_tree()
+        x, y, width, height = tree.bbox(row_id, col)
+        value = tree.set(row_id, column=col)
 
-        # Obtener posición y tamaño de la celda
-        x, y, width, height = self.customer_tree.bbox(row_id, col)
-        value = self.customer_tree.set(row_id, column=col)
-
-        # Crear Entry sobre la celda
-        self.edit_box = tk.Entry(self.customer_tree)
-        self.edit_box.place(x=x, y=y, width=width, height=height)
+        self.edit_box = ctk.CTkEntry(
+            tree, 
+            font=("Segoe UI", 12),
+            width=width,
+            height=height,
+            fg_color="#ffffff",
+            text_color="#2c3e50",
+            border_width=1,
+            border_color="#3498db",
+            corner_radius=4
+        )
+        self.edit_box.place(x=x, y=y)
         self.edit_box.insert(0, value)
         self.edit_box.focus()
-
-        # Guardar con Enter
+        self.edit_box.select_range(0, "end")
         self.edit_box.bind("<Return>", lambda e: self.save_edit(row_id, col))
-        # Cancelar con Escape
         self.edit_box.bind("<Escape>", lambda e: self.edit_box.destroy())
-
 
     def delete_customer(self):
         if self.controller:
-            selected = self.customer_tree.selection()
+            selected = self.table_component.get_selection()
             if not selected:
                 self.show_error("Seleccioná un cliente")
                 return
-            customer_id = self.customer_tree.item(selected[0])['values'][0]
-            self.controller.delete_customer(customer_id)
+
+            customer_data = self.table_component.get_item_values(selected[0])
+            customer_id = customer_data[0]
+            customer_name = customer_data[1]
+
+            confirm = messagebox.askyesno(
+                "Confirmar Eliminación",
+                f"¿Estás seguro de eliminar al cliente: {customer_name}?",
+                icon="warning",
+            )
+
+            if confirm:
+                self.controller.delete_customer(customer_id)
+
+    def handle_add_customer(self, window):
+        try:
+            success = self.controller.add_new_customer(window)
+            return success
+        except Exception as e:
+            self.show_error(f"Error al agregar cliente: {str(e)}")
+            return False
 
     def clear_form(self):
         self.name_var.set("")
         self.cuit_var.set("")
         self.home_var.set("")
         self.phone_var.set("")
-        self.debt_amount_var.set(0.0)
 
     def show_error(self, message):
         messagebox.showerror("Error", message)
@@ -163,29 +211,24 @@ class CustomersView:
 
     def save_edit(self, row_id, col):
         new_value = self.edit_box.get()
-        self.customer_tree.set(row_id, column=col, value=new_value)
+        self.table_component.set_item_value(row_id, col, new_value)
         self.edit_box.destroy()
-
-        # Llamar al controlador para actualizar la deuda en la base
-        customer_id = self.customer_tree.item(row_id)['values'][0]
+        customer_id = self.table_component.get_item_values(row_id)[0]
         self.controller.update_customer_debt(customer_id, float(new_value))
 
-    def on_double_click(self, event):
-        row_id = self.customer_tree.identify_row(event.y)
-        col = self.customer_tree.identify_column(event.x)
+    def set_controller(self, controller):
+        self.controller = controller
 
-        # Solo permitir edición en la columna Monto Deuda
-        if col != "#6":  # Ajusta si tu columna es diferente
+    def update_debt(self):
+        selected = self.table_component.get_selection()
+        if not selected:
+            self.show_error("Seleccioná un cliente")
             return
 
-        x, y, width, height = self.customer_tree.bbox(row_id, col)
-        value = self.customer_tree.set(row_id, column=col)
+        row_id = selected[0]
+        customer_data = self.table_component.get_item_values(row_id)
+        cliente_id = customer_data[0]
+        cliente_nombre = customer_data[1]
 
-        self.edit_box = tk.Entry(self.customer_tree)
-        self.edit_box.place(x=x, y=y, width=width, height=height)
-        self.edit_box.insert(0, value)
-        self.edit_box.focus()
-
-        self.edit_box.bind("<Return>", lambda e: self.save_edit(row_id, col))
-        self.edit_box.bind("<Escape>", lambda e: self.edit_box.destroy())
-
+        # Abrir la ventana de pagos
+        UpdateDebtWindow(self.frame.winfo_toplevel(), cliente_id, cliente_nombre)
