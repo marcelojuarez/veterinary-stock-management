@@ -15,37 +15,30 @@ class CustomerController:
             data = self.view.get_customer_data()
             
             if not self.__validate_customer_data(data):
-                return 
+                return False
             
             if not self.__validate_supplier_cuit(data['cuit']):
                 print('Entro al chequeo de cuit del proveedor')
-                return
+                return False
             
             if not self.__validate_supplier_phone(data['telefono']):
-                return
-            
+                return False
+
             self.model.add_customer(data)
             self.refresh_customer_table()
             self.clear_form()
 
             if window: 
-                window.destroy()
-
                 self.view.show_success("Cliente registrado correctamente.")
+            return True
         except ValueError as e:
             self.view.show_error(f"Error en los datos: {str(e)}")
         except Exception as e:
             self.view.show_error(f"Error al registrar el cliente: {str(e)}")
 
     def update_customer_debt(self, customer_id, monto_deuda):
-        # Actualizamos solamente monto_deuda
-        try: 
-            self.model.update_customer_info(customer_id, monto_deuda)
-            self.refresh_customer_table()
-            self.view.show_success("Deuda actualizada correctamente")
-        except Exception as e: 
-            self.view.show_error(f"Error al actualizar la deuda: {str(e)}")
-    
+      pass
+
     def delete_customer(self, customer_id):
         # Eliminar cliente seleccionado 
         confirm = messagebox.askyesno("Confirmar", "¿Desea eliminar este cliente?")
@@ -72,7 +65,6 @@ class CustomerController:
         self.view.cuit_var.set("")
         self.view.home_var.set("")
         self.view.phone_var.set("")
-        self.view.debt_amount_var.set(0.0)
 
     def __validate_customer_data(self, data):
         # Validar campos obligatorios 
