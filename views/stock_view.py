@@ -79,7 +79,7 @@ class StockView():
         
         update_btn = ctk.CTkButton(
             manage_frame,
-            text="✏️ Actualizar Precio",
+            text="✏️ Actualizar precio",
             width=W,
             height=H,
             font=ctk.CTkFont(size=12, weight="bold"),
@@ -90,7 +90,7 @@ class StockView():
         
         delete_btn = ctk.CTkButton(
             manage_frame,
-            text="🗑️ Eliminar",
+            text="🗑️ Eliminar producto",
             width=W,
             height=H,
             font=ctk.CTkFont(size=12, weight="bold"),
@@ -101,7 +101,7 @@ class StockView():
 
         bulk_update_btn = ctk.CTkButton(
             manage_frame,
-            text="📈 Actualización Masiva",
+            text="📈 Actualización masiva",
             width=W,
             height=H,
             font=ctk.CTkFont(size=12, weight="bold"),
@@ -111,8 +111,8 @@ class StockView():
         )
 
         new_btn.grid(row=1, column=0, padx=10, pady=10)
-        update_btn.grid(row=1, column=1, padx=10, pady=10)
-        delete_btn.grid(row=1, column=2, padx=10, pady=10)
+        delete_btn.grid(row=1, column=1, padx=10, pady=10)
+        update_btn.grid(row=1, column=2, padx=10, pady=10)
         bulk_update_btn.grid(row=1, column=4, padx=10, pady=10)
     
     def create_find_frame(self):
@@ -151,7 +151,7 @@ class StockView():
 
         clear_btn = ctk.CTkButton(
             find_frame,
-            text="Mostrar todo los articulos",
+            text="Mostrar todos los articulos",
             width=160,
             height=35,
             font=ctk.CTkFont(size=12, weight="bold"),
@@ -216,8 +216,8 @@ class StockView():
         self.stock_tree['displaycolumns'] = self.stock_tree['columns']
 
         # Definición de columnas
-        self.stock_tree.column("Id", anchor=tk.W, width=80, stretch=False)
-        self.stock_tree.column("Name", anchor=tk.W, width=180, stretch=False)
+        self.stock_tree.column("Id", anchor=tk.W, width=60, stretch=False)
+        self.stock_tree.column("Name", anchor=tk.W, width=250, stretch=False)
         self.stock_tree.column("Package", anchor=tk.W, width=120, stretch=False)
         self.stock_tree.column("Profit", anchor=tk.CENTER, width=80, stretch=False)
         self.stock_tree.column("CostPrice", anchor=tk.E, width=100, stretch=False)
@@ -225,11 +225,11 @@ class StockView():
         self.stock_tree.column("Iva", anchor=tk.CENTER, width=60, stretch=False)
         self.stock_tree.column("SalePriceWithIva", anchor=tk.E, width=120, stretch=False)
         self.stock_tree.column("ValidityDate", anchor=tk.CENTER, width=120, stretch=False)
-        self.stock_tree.column("LastPriceUpdate", anchor=tk.CENTER, width=150, stretch=False)
+        self.stock_tree.column("LastPriceUpdate", anchor=tk.CENTER, width=120, stretch=False)
         self.stock_tree.column("Stock", anchor=tk.CENTER, width=80, stretch=False)
 
         # Encabezados
-        self.stock_tree.heading("Id", text="Código ↕", anchor=tk.W,
+        self.stock_tree.heading("Id", text="Cód. ↕", anchor=tk.W,
                                 command=lambda: self.sort_tree("Id"))
         self.stock_tree.heading("Name", text="Nombre Artículo ↕", anchor=tk.W,
                                 command=lambda: self.sort_tree("Name"))
@@ -241,13 +241,13 @@ class StockView():
                                 command=lambda: self.sort_tree("CostPrice"))
         self.stock_tree.heading("SalePrice", text="P. Venta ↕", anchor=tk.E,
                                 command=lambda: self.sort_tree("SalePrice"))
-        self.stock_tree.heading("Iva", text="% Iva ↕", anchor=tk.CENTER,
+        self.stock_tree.heading("Iva", text="% Iva", anchor=tk.CENTER,
                                 command=lambda: self.sort_tree("Iva"))
         self.stock_tree.heading("SalePriceWithIva", text="P. Venta C/Iva ↕", anchor=tk.E,
                                 command=lambda: self.sort_tree("SalePriceWithIva"))
-        self.stock_tree.heading("ValidityDate", text="Fecha Vigencia ↕", anchor=tk.CENTER,
+        self.stock_tree.heading("ValidityDate", text="Fecha Vig. ↕", anchor=tk.CENTER,
                                 command=lambda: self.sort_tree("ValidityDate"))
-        self.stock_tree.heading("LastPriceUpdate", text="Fecha Ult. Modif. Precio ↕", anchor=tk.CENTER,
+        self.stock_tree.heading("LastPriceUpdate", text="F. Ult. Modif. ↕", anchor=tk.CENTER,
                                 command=lambda: self.sort_tree("LastPriceUpdate"))
         self.stock_tree.heading("Stock", text="Stock ↕", anchor=tk.CENTER,
                                 command=lambda: self.sort_tree("Stock"))
@@ -888,34 +888,44 @@ class StockView():
                 values = self.stock_tree.item(child)['values']
                 data.append((child, values))
             
+            # Alternar orden
             if self.sort_column == column:
                 self.sort_reverse = not self.sort_reverse
             else:
                 self.sort_reverse = False
                 self.sort_column = column
             
+            # Posición de la columna en los values
             column_index = self.stock_tree['columns'].index(column)
             
             def sort_key(item):
                 value = item[1][column_index]
-                
-                if column in ['Price', 'Stock']:
+
+                # Numéricos
+                if column in ["Profit", "CostPrice", "SalePrice", "SalePriceWithIva", "Stock"]:
                     try:
                         return float(value)
                     except (ValueError, TypeError):
                         return 0
-                
-                elif column == 'Id':
+
+                # Id como número si se puede
+                elif column == "Id":
                     try:
                         return int(value)
                     except (ValueError, TypeError):
                         return str(value).lower()
-                
+
+                # Fechas (siempre YYYY-MM-DD en DB)
+                elif column in ["ValidityDate", "LastPriceUpdate"]:
+                    return str(value)
+
+                # Strings normales
                 else:
                     return str(value).lower()
             
             data.sort(key=sort_key, reverse=self.sort_reverse)
             
+            # Reordenar en el treeview
             for index, (child, values) in enumerate(data):
                 self.stock_tree.move(child, '', index)
             
@@ -929,18 +939,21 @@ class StockView():
         """Actualizar indicadores de ordenamiento en headers"""
         
         column_texts = {
-            'Id': 'Código',
-            'Name': 'Nombre', 
-            'Description': 'Descripción', 
-            'Brand': 'Marca',
-            'Price': 'Precio',
-            'Cost Price': 'Precio Costo',
-            'Iva': 'Iva',
-            'Quantity': 'Stock'
+            "Id": "Cód.",
+            "Name": "Nombre Artículo",
+            "Package": "Envase",
+            "Profit": "% Rent.",
+            "CostPrice": "P. Costo",
+            "SalePrice": "P. Venta",
+            "Iva": "% Iva",
+            "SalePriceWithIva": "P. Venta C/Iva",
+            "ValidityDate": "Fecha Vig.",
+            "LastPriceUpdate": "F. Ult. Modif.",
+            "Stock": "Stock"
         }
         
         for col in self.stock_tree['columns']:
-            base_text = column_texts[col]
+            base_text = column_texts.get(col, col)
             
             if col == sorted_column:
                 indicator = ' ↑' if not self.sort_reverse else ' ↓'
@@ -949,3 +962,4 @@ class StockView():
                 text = base_text + ' ↕'
             
             self.stock_tree.heading(col, text=text)
+

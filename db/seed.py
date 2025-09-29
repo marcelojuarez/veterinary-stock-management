@@ -5,27 +5,28 @@ DB_PATH = "stock.db"  # ruta a tu base de datos
 
 def seed_stock():
     productos = [
-        {"id":"1001","name":"Alimento Canino Adulto","pack":"Bolsas 15kg","profit":30,"cost_price":5000,"iva":21,"quantity":10},
-        {"id":"1002","name":"Alimento Felino Adulto","pack":"Bolsas 10kg","profit":25,"cost_price":3500,"iva":21,"quantity":8},
-        {"id":"1003","name":"Arena Sanitaria","pack":"Caja 10L","profit":20,"cost_price":800,"iva":21,"quantity":15},
-        {"id":"1004","name":"Shampoo Canino","pack":"Botella 500ml","profit":40,"cost_price":500,"iva":21,"quantity":12},
-        {"id":"1005","name":"Juguete Pelota","pack":"Unidad","profit":50,"cost_price":150,"iva":21,"quantity":20},
-        {"id":"1006","name":"Collar Perro Mediano","pack":"Unidad","profit":35,"cost_price":400,"iva":21,"quantity":18},
-        {"id":"1007","name":"Cama Felina","pack":"Unidad","profit":30,"cost_price":1200,"iva":21,"quantity":5},
-        {"id":"1008","name":"Vitaminas Caninas","pack":"Caja 30 pastillas","profit":25,"cost_price":600,"iva":21,"quantity":10},
-        {"id":"1009","name":"Antipulgas Perro","pack":"Caja 3 unidades","profit":20,"cost_price":900,"iva":21,"quantity":7},
-        {"id":"1010","name":"Antipulgas Gato","pack":"Caja 3 unidades","profit":20,"cost_price":800,"iva":21,"quantity":6},
-        {"id":"1011","name":"Correa Perro","pack":"Unidad","profit":40,"cost_price":350,"iva":21,"quantity":14},
-        {"id":"1012","name":"Comedero Acero Inox","pack":"Unidad","profit":25,"cost_price":700,"iva":21,"quantity":9},
-        {"id":"1013","name":"Placa Identificación","pack":"Unidad","profit":50,"cost_price":200,"iva":21,"quantity":25},
-        {"id":"1014","name":"Cama Canina Pequeña","pack":"Unidad","profit":30,"cost_price":1000,"iva":21,"quantity":5},
-        {"id":"1015","name":"Arena Biodegradable","pack":"Caja 10L","profit":25,"cost_price":850,"iva":21,"quantity":10},
-        {"id":"1016","name":"Snack Gato","pack":"Bolsa 500g","profit":35,"cost_price":450,"iva":21,"quantity":20},
-        {"id":"1017","name":"Snack Perro","pack":"Bolsa 500g","profit":35,"cost_price":500,"iva":21,"quantity":15},
-        {"id":"1018","name":"Cepillo Canino","pack":"Unidad","profit":40,"cost_price":300,"iva":21,"quantity":12},
-        {"id":"1019","name":"Cinturón de Seguridad Perro","pack":"Unidad","profit":30,"cost_price":600,"iva":21,"quantity":8},
-        {"id":"1020","name":"Transportadora Gato","pack":"Unidad","profit":25,"cost_price":1500,"iva":21,"quantity":4},
+        {"id": "1001", "name": "ALIMENTO CANINO ADULTO", "pack": "BOLSAS 15KG", "profit": 30, "cost_price": 5000, "iva": 21, "quantity": 10},
+        {"id": "1002", "name": "ALIMENTO FELINO ADULTO", "pack": "BOLSAS 10KG", "profit": 25, "cost_price": 3500, "iva": 21, "quantity": 8},
+        {"id": "1003", "name": "ARENA SANITARIA", "pack": "CAJA 10L", "profit": 20, "cost_price": 800, "iva": 21, "quantity": 15},
+        {"id": "1004", "name": "SHAMPOO CANINO", "pack": "BOTELLA 500ML", "profit": 40, "cost_price": 500, "iva": 21, "quantity": 12},
+        {"id": "1005", "name": "JUGUETE PELOTA", "pack": "UNIDAD", "profit": 50, "cost_price": 150, "iva": 21, "quantity": 20},
+        {"id": "1006", "name": "COLLAR PERRO MEDIANO", "pack": "UNIDAD", "profit": 35, "cost_price": 400, "iva": 21, "quantity": 18},
+        {"id": "1007", "name": "CAMA FELINA", "pack": "UNIDAD", "profit": 30, "cost_price": 1200, "iva": 21, "quantity": 5},
+        {"id": "1008", "name": "VITAMINAS CANINAS", "pack": "CAJA 30 PASTILLAS", "profit": 25, "cost_price": 600, "iva": 21, "quantity": 10},
+        {"id": "1009", "name": "ANTIPULGAS PERRO", "pack": "CAJA 3 UNIDADES", "profit": 20, "cost_price": 900, "iva": 21, "quantity": 7},
+        {"id": "1010", "name": "ANTIPULGAS GATO", "pack": "CAJA 3 UNIDADES", "profit": 20, "cost_price": 800, "iva": 21, "quantity": 6},
+        {"id": "1011", "name": "CORREA PERRO", "pack": "UNIDAD", "profit": 40, "cost_price": 350, "iva": 21, "quantity": 14},
+        {"id": "1012", "name": "COMEDERO ACERO INOX", "pack": "UNIDAD", "profit": 25, "cost_price": 700, "iva": 21, "quantity": 9},
+        {"id": "1013", "name": "PLACA IDENTIFICACIÓN", "pack": "UNIDAD", "profit": 50, "cost_price": 200, "iva": 21, "quantity": 25},
+        {"id": "1014", "name": "CAMA CANINA PEQUEÑA", "pack": "UNIDAD", "profit": 30, "cost_price": 1000, "iva": 21, "quantity": 5},
+        {"id": "1015", "name": "ARENA BIODEGRADABLE", "pack": "CAJA 10L", "profit": 25, "cost_price": 850, "iva": 21, "quantity": 10},
+        {"id": "1016", "name": "SNACK GATO", "pack": "BOLSA 500G", "profit": 35, "cost_price": 450, "iva": 21, "quantity": 20},
+        {"id": "1017", "name": "SNACK PERRO", "pack": "BOLSA 500G", "profit": 35, "cost_price": 500, "iva": 21, "quantity": 15},
+        {"id": "1018", "name": "CEPILLO CANINO", "pack": "UNIDAD", "profit": 40, "cost_price": 300, "iva": 21, "quantity": 12},
+        {"id": "1019", "name": "CINTURÓN DE SEGURIDAD PERRO", "pack": "UNIDAD", "profit": 30, "cost_price": 600, "iva": 21, "quantity": 8},
+        {"id": "1020", "name": "TRANSPORTADORA GATO", "pack": "UNIDAD", "profit": 25, "cost_price": 1500, "iva": 21, "quantity": 4},
     ]
+
 
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
