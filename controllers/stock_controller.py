@@ -85,7 +85,7 @@ class StockController:
         except Exception as e:
             self.view.show_error(f"Error al eliminar producto: {str(e)}")
 
-    def find_product(self):
+    def find_product(self, find_entry=None):
         """Buscar producto por ID o nombre"""
         try:
             form_data = self.view.get_find_data()
@@ -98,6 +98,7 @@ class StockController:
             search_term = name
             results = self.stock_model.search_products(search_term)
             if results:
+                find_entry.set("")
                 self.view.refresh_stock_table(results)
             
                 if len(results) >= 1:

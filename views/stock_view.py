@@ -127,7 +127,7 @@ class StockView():
         )
         search_label.grid(row=0, column=0, padx=15, pady=15)
 
-        self.find_entry = ctk.CTkEntry(
+        find_entry = ctk.CTkEntry(
             find_frame,
             width=600,
             height=35,
@@ -136,8 +136,8 @@ class StockView():
             placeholder_text="Ingrese nombre del producto..."
         )
 
-        self.find_entry.grid(row=0, column=1, padx=10, pady=15)
-
+        find_entry.grid(row=0, column=1, padx=10, pady=15)
+        
         find_btn = ctk.CTkButton(
             find_frame,
             text="Buscar",
@@ -146,7 +146,7 @@ class StockView():
             font=ctk.CTkFont(size=12, weight="bold"),
             fg_color="#FF9800",
             hover_color="#F57C00",
-            command=lambda: self.controller.find_product()
+            command=lambda: self.controller.find_product(self.find_var)
         )
 
         clear_btn = ctk.CTkButton(
@@ -292,8 +292,8 @@ class StockView():
         fields = [
             ("Código:", self.id_var),
             ("Nombre Artículo:", self.name_var),
+            ("Precio Costo:", self.price_var),
             ("% Rentabilidad:", self.profit_var),
-            ("P. Costo:", self.price_var),
             ("Cantidad de Artículos:", self.qnt_var)
         ]
 
