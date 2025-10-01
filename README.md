@@ -4,7 +4,6 @@
 
 El objetivo principal es ofrecer una herramienta **ágil, simple y moderna** para la administración diaria.
 
----
 
 ## 🚀 Funcionalidades principales
 
@@ -19,14 +18,51 @@ El objetivo principal es ofrecer una herramienta **ágil, simple y moderna** par
     - Recibos  
     - Control de deudas a proveedores  
 
----
 
 ## 🛠️ Tecnologías utilizadas
 ```
 Python CustomTkinter SQLite tksheet
 Tkinter python-escpos MVC venv
 ```
----
+
+## ⚙️ Instalacion
+
+Clona el repositorio e instala las dependencias:
+
+```bash
+  git clone https://github.com/marcelojuarez/veterinary-stock-management.git
+  cd veterinary-stock-management
+  python -m venv venv
+```
+
+Activa el entorno virtual (recomendado)
+
+Windows: 
+
+```bash
+venv\Scripts\activate
+```
+
+Linux / macOS:
+
+```bash
+source venv/bin/activate
+```
+
+Instala los paquetes necesarios:
+
+```bash
+pip install -r requirements.txt
+```
+
+Ejecuta la aplicacion: 
+
+
+```bash
+python main.py 
+```
+
+¡Listo! 🐾 La aplicación debería abrirse y estar lista para usar.
 
 ## Integrantes
 - [Marcelo Juarez](https://www.github.com/marcelojuarez)
