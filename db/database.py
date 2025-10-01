@@ -37,7 +37,7 @@ class Database:
 
             # Tabla de usuarios
             cursor.execute('''
-                CREATE TABLE IF NOT EXISTS usuario (
+                CREATE TABLE IF NOT EXISTS usuarios (
                     username TEXT UNIQUE NOT NULL,
                     password_hash TEXT NOT NULL
                 )
@@ -58,7 +58,7 @@ class Database:
 
             # Tabla de clientes
             cursor.execute('''
-                CREATE TABLE IF NOT EXISTS cliente (
+                CREATE TABLE IF NOT EXISTS clientes (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     nombre TEXT NOT NULL,
                     cuit TEXT,
@@ -69,7 +69,7 @@ class Database:
 
             # Tabla de proveedores
             cursor.execute('''
-                CREATE TABLE IF NOT EXISTS proveedor (
+                CREATE TABLE IF NOT EXISTS proveedores (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     nombre TEXT NOT NULL,
                     cuit TEXT,
@@ -81,7 +81,7 @@ class Database:
 
             # Tabla de facturas
             cursor.execute('''
-                CREATE TABLE IF NOT EXISTS factura (
+                CREATE TABLE IF NOT EXISTS facturas (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     numero_factura TEXT NOT NULL,
                     fecha_emision TEXT NOT NULL,

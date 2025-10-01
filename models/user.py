@@ -5,7 +5,7 @@ class User():
         self.db = db_connection or db
 
     def add_new_user(self, user_data):
-        query = "INSERT INTO usuario values (?,?)"
+        query = "INSERT INTO usuarios values (?,?)"
 
         params = [
             user_data['username'],
@@ -16,7 +16,7 @@ class User():
 
     def get_user_by_username(self, username):
         try:
-            query = "SELECT * FROM usuario where username = ?"
+            query = "SELECT * FROM usuarios where username = ?"
             return self.db.fetch_one(query, (username,))
         except ValueError as e:
             print(f"Error getting user by username {e}")

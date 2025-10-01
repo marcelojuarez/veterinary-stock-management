@@ -45,7 +45,7 @@ class SupplierModel:
 
     def delete_supplier(self, supplier_id):
         try:
-            query = "DELETE FROM proveedores where id = ?"
+            query = "DELETE FROM proveedor where id = ?"
             return db.execute_query(query, (supplier_id, ))
         except Exception as e:
             print(f'Error : {e}')

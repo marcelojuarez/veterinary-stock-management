@@ -8,6 +8,10 @@ def gen_password(password):
 
 def validate_password(hash_pwd, pwd):
     # verifica la contraseña ingresada con el hash
-    return ph.verify(hash_pwd, pwd)
+    try:
+        ph.verify(hash_pwd, pwd)
+        return True
+    except:
+        return False
 
 
