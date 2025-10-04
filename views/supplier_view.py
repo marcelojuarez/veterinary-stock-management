@@ -20,6 +20,7 @@ class SupplierView():
         print(f"DEBUG: Controller asignado correctamente: {self.controller}")
 
     def setup_variables(self):
+        # variables proveedor
         self.name_var = tk.StringVar()
         self.cuit_var = tk.StringVar()
         self.home_var = tk.StringVar()
@@ -27,13 +28,12 @@ class SupplierView():
         self.email_var = tk.StringVar()
         self.find_var = tk.StringVar()
 
-        self.form_vars = [
-            self.name_var,
-            self.cuit_var,
-            self.home_var,
-            self.phone_var,
-            self.email_var
-        ]
+        # variables producto
+        self.name_product_var = tk.StringVar()
+        self.description_var = tk.StringVar()
+        self.brand_var = tk.StringVar()
+        self.price_var = tk.StringVar()
+        self.quantity_var = tk.StringVar()
 
     """ Crear todos los widgets del formulario """
     def create_widgets(self):
@@ -57,24 +57,24 @@ class SupplierView():
     def create_tree_frame(self):
         """ Crea el frame para la tabla de Proveedores"""
         tree_frame = ttk.Frame(self.frame)
-        tree_frame.grid(row=1, column=0, padx=10, pady=10, sticky='w')
+        tree_frame.grid(row=1, column=0, padx=10, pady=10, sticky='nsew')
 
         # Treeview
         self.supplier_tree = ttk.Treeview(tree_frame, show='headings', height=25)
 
         # Scrollbar vertical para los proveedores
         scrl_bar = ttk.Scrollbar(tree_frame, orient='vertical', command=self.supplier_tree.yview)
-        scrl_bar.grid(row=0, column=1, sticky='ns')
+        scrl_bar.grid(row=0, column=2, sticky='ns')
         self.supplier_tree.configure(yscrollcommand=scrl_bar.set)
                            
         self.supplier_tree['columns'] = ("Id","Nombre", "Cuit", "Domicilio", "Telefono", "Email")
         self.supplier_tree['displaycolumns'] = self.supplier_tree['columns']
         self.supplier_tree.column("Id", anchor=tk.W, width=80,stretch=False)
         self.supplier_tree.column("Nombre", anchor=tk.W, width=180,stretch=False)
-        self.supplier_tree.column("Cuit", anchor=tk.W, width=80,stretch=False)
-        self.supplier_tree.column("Domicilio", anchor=tk.W, width=100,stretch=False)
-        self.supplier_tree.column("Telefono", anchor=tk.W, width=100,stretch=False)
-        self.supplier_tree.column("Email", anchor=tk.W, width=100,stretch=False)
+        self.supplier_tree.column("Cuit", anchor=tk.W, width=140,stretch=False)
+        self.supplier_tree.column("Domicilio", anchor=tk.W, width=140,stretch=False)
+        self.supplier_tree.column("Telefono", anchor=tk.W, width=140,stretch=False)
+        self.supplier_tree.column("Email", anchor=tk.W, width=140,stretch=False)
 
         self.supplier_tree.heading('Id', text='ID ↕')
         self.supplier_tree.heading('Nombre', text='Nombre↕')
@@ -84,7 +84,7 @@ class SupplierView():
         self.supplier_tree.heading('Email', text='Email ↕')
 
         self.supplier_tree.tag_configure('orow', background="#FFFFFF")
-        self.supplier_tree.grid(row=0, column= 0,padx=[10, 10], pady=20, ipadx=[6])
+        self.supplier_tree.grid(row=0, column= 1,padx=[20, 20], pady=20, ipadx=[6], sticky='nsew')
 
     def create_buttons_frame(self):
         """ Crear frame para botones de supplier"""
@@ -93,7 +93,7 @@ class SupplierView():
         manage_frame.grid(row=2, column= 0,padx=[10, 20], pady=20, ipadx=[6])
         
         save_btn = tk.Button(manage_frame, text='Guardar', width=15, borderwidth=3, bg="blue", fg='black')
-        update_btn = tk.Button(manage_frame, text='Actualizar', width=15, borderwidth=3, bg="#17E574", fg='black')
+        update_btn = tk.Button(manage_frame, text='Info', width=15, borderwidth=3, bg="#17E574", fg='black', command=lambda: self.controller.supplier_info())
         delete_btn = tk.Button(manage_frame, text='Borrar', width=15, borderwidth=3, bg="#D6C52F", fg='black', command=lambda:self.controller.delete_supplier())
         add_btn = tk.Button(manage_frame, text='Agregar', width=15, borderwidth=3, bg="#B817E5", fg='black', command=lambda: self.open_add_window())
         clear_btn = tk.Button(manage_frame, text='Limpiar', width=15, borderwidth=3, bg="#E51717", fg='black')
@@ -107,6 +107,21 @@ class SupplierView():
     def open_add_window(self):
         add_win = tk.Toplevel(self.frame)
         add_win.title("Agregar nuevo proveedor")
+
+        # posicion y tamaño del frame
+        x_root = self.frame.winfo_x() 
+        y_root = self.frame.winfo_y()
+        width_root = self.frame.winfo_width()
+        height_root = self.frame.winfo_height()
+
+        width_win = 300
+        height_win = 240
+
+        # centro
+        x = x_root + (width_root // 2) - (width_win // 2)
+        y = y_root + (height_root // 2) - (height_win // 2)
+
+        add_win.geometry(f"{width_win}x{height_win}+{x}+{y}")
 
         ttk.Label(add_win, text='Nombre:').grid(row=1, column=0, padx=5, pady=5, sticky='nw')
         name_entry = ttk.Entry(add_win, textvariable=self.name_var)
@@ -131,6 +146,51 @@ class SupplierView():
         finish_btn = ttk.Button(add_win, text="Agregar", command=lambda: self.controller.add_new_supplier(add_win))
         finish_btn.grid(row=6, column=1)
 
+    def open_add_product_window(self, id):
+        add_product_win = tk.Toplevel(self.frame)
+        add_product_win.title("Agregar Productos")
+
+        # posicion y tamaño del frame
+        x_root = self.frame.winfo_x() 
+        y_root = self.frame.winfo_y()
+        width_root = self.frame.winfo_width()
+        height_root = self.frame.winfo_height()
+
+        width_win = 400
+        height_win = 300
+
+        # centro
+        x = x_root + (width_root // 2) - (width_win // 2)
+        y = y_root + (height_root // 2) - (height_win // 2)
+
+        add_product_win.geometry(f"{width_win}x{height_win}+{x}+{y}")
+
+        fields = [
+            ("Nombre: ", self.name_product_var),
+            ("Descripcion: ", self.description_var),
+            ("Marca: ", self.brand_var),
+            ("Precio:", self.price_var),
+            ("Cantidad: ", self.quantity_var)
+        ]
+
+        for i, (label_text, var) in enumerate(fields, start=1):
+            label = ttk.Label(add_product_win, text=label_text)
+            label.grid(row=i, column=0, padx=20, pady=10, sticky="w")
+
+            entry = ttk.Entry(
+                add_product_win,
+                textvariable=var
+            )
+
+            entry.grid(row=i, column=1, padx=20, pady=10)
+
+        add_btn = ttk.Button(add_product_win, text="Agregar", command=lambda:self.controller.add_supplier_product(id))
+        add_btn.grid(row=6, column=0)
+
+        finish_btn = ttk.Button(add_product_win, text="Listo", command=add_product_win.destroy)
+        finish_btn.grid(row=6, column=1)
+
+
     def get_supplier_data(self):
         return {
             'nombre': self.name_var.get().strip(),
@@ -139,6 +199,16 @@ class SupplierView():
             'telefono': self.phone_var.get().strip(),
             'email': self.email_var.get().strip(),
         }
+    
+    def get_product_data(self):
+        return {
+            'name': self.name_product_var.get().strip(),
+            'description': self.description_var.get().strip(),
+            'brand': self.brand_var.get().strip(),
+            'price': self.price_var.get().strip(),
+            'quantity': self.quantity_var.get().strip(),
+        }
+        
 
     def refresh_supplier_table(self, suppliers):
         for item in self.supplier_tree.get_children():
@@ -149,6 +219,27 @@ class SupplierView():
             self.supplier_tree.insert(parent='', index='end', iid=supplier[0], values=supplier, tag="orow")
 
         self.supplier_tree.tag_configure('orow', background="white", foreground='black')
+
+
+    def open_info_window(self, supplier):
+        info_win = tk.Toplevel(self.frame)
+        info_win.title(f'Proveedor: {supplier}')
+
+        # posicion y tamaño del frame
+        x_root = self.frame.winfo_x() 
+        y_root = self.frame.winfo_y()
+        width_root = self.frame.winfo_width()
+        height_root = self.frame.winfo_height()
+
+        width_win = 300
+        height_win = 240
+
+        # centro
+        x = x_root + (width_root // 2) - (width_win // 2)
+        y = y_root + (height_root // 2) - (height_win // 2)
+
+        info_win.geometry(f"{width_win}x{height_win}+{x}+{y}")
+
 
     def show_error(self, message):
         messagebox.showerror("Error", message)

@@ -71,6 +71,19 @@ class Database:
                 )
             ''')
 
+            # Tabla de productos asociados a un provedor
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS stock_proveedor (
+                    id TEXT,
+                    name TEXT NOT NULL,
+                    description TEXT,
+                    brand REAL NOT NULL,
+                    price REAL NOT NULL,
+                    quantity INTEGER NOT NULL,
+                    created_at TEXT DEFAULT CURRENT_DATE
+                )
+            ''')
+
             # Tabla de facturas
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS facturas (

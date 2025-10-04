@@ -44,7 +44,7 @@ class SupplierController():
                 'email': data['email']
             }
 
-            self.model.add_supplier(supplier_data)
+            iid = self.model.add_supplier(supplier_data)
 
             self.refresh_supplier_table()
 
@@ -54,6 +54,8 @@ class SupplierController():
                 window.destroy()
             
             self.view.show_success("Proveedor registrado correctamente.")
+
+            self.view.open_add_product_window(iid)
 
         except ValueError as e:
             self.view.show_error(f"Error en los datos {str(e)}")
@@ -135,7 +137,7 @@ class SupplierController():
 
 
     def delete_supplier(self):
-        # Obtengo las filas selecionadas
+        # Obtengo las filas seleccionadas
         selected = self.view.supplier_tree.selection()
 
         try:
@@ -150,3 +152,34 @@ class SupplierController():
 
         except Exception:
             self.view.show_warning('Por favor seleccione un proveedor para eliminar')
+
+
+    def add_supplier_product(self, id):
+
+        data = self.view.get_product_data()
+
+        self.model.add_supplier_product(id, data)
+
+        # falta hacer chequeos !!!!
+
+        self.clear_product_form()
+
+
+    def clear_product_form(self):
+        self.view.name_product_var.set('')
+        self.view.description_var.set('')
+        self.view.brand_var.set('')
+        self.view.price_var.set('')
+        self.view.quantity_var.set('')
+
+    def supplier_info(self):
+        # Obtengo las filas seleccionadas
+        selected = self.view.supplier_tree.selection()
+
+        try:
+            iid = selected[0]
+            values = self.view.supplier_tree.item(iid, "values")
+            print(values)
+            self.view.open_info_window(values[1])
+        except Exception:
+            self.view.show_warning('Por favor seleccione un proveedor')

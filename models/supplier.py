@@ -39,8 +39,27 @@ class SupplierModel:
         print(params)
 
         return self.db.execute_query(query, params)
+    
+    def add_supplier_product(self, supplier_id, product_data):
+        query = """
+            INSERT INTO stock_proveedor (id, name, description, brand, price, quantity)
+            VALUES (?, ?, ?, ?, ?, ?)
+        """
 
-    def update_supplier_info(self, supplier_id):
+        params = [
+            supplier_id,
+            product_data['name'],
+            product_data['description'],
+            product_data['brand'],
+            product_data['price'],
+            product_data['quantity']
+        ]
+
+        print(params)
+
+        return self.db.execute_query(query, params)
+
+    def show_supplier_info(self, supplier_id):
         pass
 
     def delete_supplier(self, supplier_id):
