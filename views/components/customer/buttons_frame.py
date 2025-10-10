@@ -28,8 +28,8 @@ class ButtonsFrame:
         # Botones con colores suaves
         button_configs = [
             ("➕ Agregar", self.on_add_callback, "#0d6efd", "#0b5ed7"),         # Azul
-            ("💰 Actualizar Deuda", self.on_update_debt_callback, "#198754", "#157347"),  # Verde
-            ("🗑️ Borrar", self.on_delete_callback, "#dc3545", "#b02a37"),       # Rojo
+            ("💰 Actualizar Deuda", self.on_update_debt_callback, "#0d6efd", "#0d6efd"),  # Verde
+            ("🗑️ Borrar", self.on_delete_callback, "#0d6efd", "#0d6efd"),       # Rojo
         ]
 
         for idx, (text, cmd, fg, hover) in enumerate(button_configs):
