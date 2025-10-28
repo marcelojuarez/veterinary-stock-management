@@ -66,14 +66,17 @@ class StockView():
 
         W = 280
         H = 35
+        btn_color = "#FF6F00"
+        btn_hover = "#CB6702"
+
         new_btn = ctk.CTkButton(
             manage_frame,
             text="📦 Nuevo producto",
             width=W,
             height=H,
             font=ctk.CTkFont(size=12, weight="bold"),
-            fg_color="#FF9800",
-            hover_color="#F57C00",
+            fg_color=btn_color,
+            hover_color=btn_hover,
             command=lambda: self.open_add_window()
         )
         
@@ -83,8 +86,8 @@ class StockView():
             width=W,
             height=H,
             font=ctk.CTkFont(size=12, weight="bold"),
-            fg_color="#FF9800",
-            hover_color="#F57C00",
+            fg_color=btn_color,
+            hover_color=btn_hover,
             command=lambda: self.open_update_price_window()
         )
         
@@ -94,8 +97,8 @@ class StockView():
             width=W,
             height=H,
             font=ctk.CTkFont(size=12, weight="bold"),
-            fg_color="#FF9800",
-            hover_color="#F57C00",
+            fg_color=btn_color,
+            hover_color=btn_hover,
             command=lambda: self.controller.delete_product()
         )
 
@@ -105,8 +108,8 @@ class StockView():
             width=W,
             height=H,
             font=ctk.CTkFont(size=12, weight="bold"),
-            fg_color="#FF9800",
-            hover_color="#F57C00",
+            fg_color=btn_color,
+            hover_color=btn_hover,
             command=lambda: self.open_bulk_update_window()
         )
 
@@ -144,8 +147,8 @@ class StockView():
             width=160,
             height=35,
             font=ctk.CTkFont(size=12, weight="bold"),
-            fg_color="#FF9800",
-            hover_color="#F57C00",
+            fg_color="#FF6F00",
+            hover_color="#CB6702",
             command=lambda: self.controller.find_product(self.find_var)
         )
 
@@ -155,8 +158,8 @@ class StockView():
             width=160,
             height=35,
             font=ctk.CTkFont(size=12, weight="bold"),
-            fg_color="#FF9800",
-            hover_color="#F57C00",
+            fg_color="#FF6F00",
+            hover_color="#CB6702",
             command=lambda: self.controller.show_all_products()
         )
 
