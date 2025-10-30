@@ -6,6 +6,7 @@ from views.sales_view import SalesView
 from views.suppliers_view import SuppliersView
 from views.customers_view import CustomersView
 from controllers.stock_controller import StockController
+from controllers.sales_controller import SalesController
 
 class App():
     def __init__(self):
@@ -27,9 +28,9 @@ class App():
         self.stock_view.frame.pack(fill='both', expand=True)
         self.notebook.add(self.stock_view.frame, text='Inventario')
 
-        sales_view = SalesView(self.notebook)
-        sales_view.frame.pack(fill='both', expand=True)
-        self.notebook.add(sales_view.frame, text='Venta')
+        self.sales_view = SalesView(self.notebook)
+        self.sales_view.frame.pack(fill='both', expand=True)
+        self.notebook.add(self.sales_view.frame, text='Venta')
 
         suppliers_view = SuppliersView(self.notebook)
         suppliers_view.frame.pack(fill='both', expand=True)
@@ -41,6 +42,9 @@ class App():
 
         self.stock_controller = StockController(self.stock_view)
         self.stock_view.controller = self.stock_controller
+
+        self.sales_controller = SalesController(self.sales_view)
+        self.sales_view.controller = self.sales_controller
 
     def load_initial_data(self):
         """Cargar datos iniciales"""
