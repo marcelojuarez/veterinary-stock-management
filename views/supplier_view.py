@@ -1,15 +1,19 @@
+import customtkinter as ctk
 import tkinter as tk
-from tkinter import ttk
-from tkinter import messagebox
+from tkinter import ttk, messagebox
 import random as rd
 from tkinter import PhotoImage
 from models.supplier import SupplierModel
+
+# Configurar tema y colores
+ctk.set_appearance_mode("light")  # "light" o "dark"
+ctk.set_default_color_theme("blue")  # "blue", "green", "dark-blue"
 
 class SupplierView():
     def __init__(self, parent, controller=None):
         self.controller = controller
         self.model = SupplierModel()
-        self.frame = tk.Frame(parent, bg="#79858C")
+        self.frame = ctk.CTkFrame(parent, fg_color="#f0f0f0")
         self.setup_variables()
         self.create_widgets()
 
@@ -42,29 +46,84 @@ class SupplierView():
         self.create_buttons_frame()
 
     def create_find_frame(self):
-        """Crear frame para formulario de producto"""
-        find_frame = tk.LabelFrame(self.frame, borderwidth=2)
-        find_frame.grid(row=0, column=0, sticky='w', padx=[10,200], pady=[0,20], ipadx=[6])
+        """Crear frame para formulario de proveedor"""
+        find_frame = ctk.CTkFrame(self.frame)
+        find_frame.grid(row=0, column=0, sticky='w', padx=10, pady=10)
 
-        find_btn = tk.Button(find_frame, text="Buscar", borderwidth=3, bg="#FFFFFF", fg='black')
+        search_label = ctk.CTkLabel(
+            find_frame, 
+            text="Buscar Proveedor", 
+            font=ctk.CTkFont(size=14, weight='bold')
+        )
+        search_label.grid(row=0, column=0, padx=15, pady=15)
+        
+        self.find_entry = ctk.CTkEntry(
+            find_frame,
+            width=600,
+            height=35,
+            textvariable=self.find_var,
+            font=ctk.CTkFont(size=12),
+            placeholder_text="Ingrese nombre del proveedor..."
+        )
+
+        self.find_entry.grid(row=0, column=1, padx=10, pady=15)
+        
+        find_btn = ctk.CTkButton(
+            find_frame,
+            text="Buscar",
+            width=160,
+            height=35,
+            font=ctk.CTkFont(size=12, weight="bold"),
+            fg_color="#FF9800",
+            hover_color="#F57C00",
+            #command=lambda: self.controller.find_product(self.find_var)
+        )
+
         find_btn.grid(row=0, column=2, padx=5, pady=5)
-
-        tk.Label(find_frame, text='Buscar:', anchor='e', width=5).grid(row=0, column=0, padx=5)
-        self.find_entry = tk.Entry(find_frame, width=30, textvariable=self.find_var)
-        self.find_entry.grid(row=0, column=1, padx=5, pady=5)
-
 
     def create_tree_frame(self):
         """ Crea el frame para la tabla de Proveedores"""
-        tree_frame = ttk.Frame(self.frame)
-        tree_frame.grid(row=1, column=0, padx=10, pady=10, sticky='nsew')
+        tree_frame = ctk.CTkFrame(self.frame)
+        tree_frame.grid(row=1, column=0, padx=5, pady=5, sticky='nsew')
+
+        # Titulo de la tabla
+        table_title = ctk.CTkLabel(
+            tree_frame,
+            text="Proveedores",
+            font=ctk.CTkFont(size=16, weight="bold")
+        )
+        table_title.grid(row=0, column=0, pady=(15, 10))
+
+        # Frame interno para la tabla y scrollbar
+        table_container = tk.Frame(tree_frame, bg="white")
+        table_container.grid(row=1, column=0, padx=15, pady=(0, 15), sticky='nsew')
+
+        # Configurar el estilo del Treeview para que se vea más moderno
+        style = ttk.Style()
+        style.theme_use('clam')
+        
+        # Configurar colores del Treeview
+        style.configure('Treeview',
+                       background='#ffffff',
+                       foreground='#333333',
+                       rowheight=30,
+                       fieldbackground='#ffffff',
+                       font=('Arial', 12))
+        
+        style.configure('Treeview.Heading',
+                       background='#e0e0e0',
+                       foreground='#333333',
+                       font=('Arial', 12, 'bold'))
+        
+        style.map('Treeview',
+                 background=[('selected', '#0078d4')])
 
         # Treeview
-        self.supplier_tree = ttk.Treeview(tree_frame, show='headings', height=25)
+        self.supplier_tree = ttk.Treeview(table_container, show='headings', height=10)
 
         # Scrollbar vertical para los proveedores
-        scrl_bar = ttk.Scrollbar(tree_frame, orient='vertical', command=self.supplier_tree.yview)
-        scrl_bar.grid(row=0, column=2, sticky='ns')
+        scrl_bar = ttk.Scrollbar(table_container, orient='vertical', command=self.supplier_tree.yview)
+        scrl_bar.grid(row=0, column=3, sticky='ns')
         self.supplier_tree.configure(yscrollcommand=scrl_bar.set)
                            
         self.supplier_tree['columns'] = ("Id","Nombre", "Cuit", "Domicilio", "Telefono", "Email")
@@ -84,28 +143,72 @@ class SupplierView():
         self.supplier_tree.heading('Email', text='Email ↕')
 
         self.supplier_tree.tag_configure('orow', background="#FFFFFF")
-        self.supplier_tree.grid(row=0, column= 1,padx=[20, 20], pady=20, ipadx=[6], sticky='nsew')
+        self.supplier_tree.grid(row=1, column=2, padx=[20, 20], pady=20, ipadx=[6], sticky='nsew')
 
     def create_buttons_frame(self):
         """ Crear frame para botones de supplier"""
 
-        manage_frame = tk.LabelFrame(self.frame, borderwidth=2)
+        manage_frame = ctk.CTkFrame(self.frame)
         manage_frame.grid(row=2, column= 0,padx=[10, 20], pady=20, ipadx=[6])
         
-        save_btn = tk.Button(manage_frame, text='Guardar', width=15, borderwidth=3, bg="blue", fg='black')
-        update_btn = tk.Button(manage_frame, text='Info', width=15, borderwidth=3, bg="#17E574", fg='black', command=lambda: self.controller.supplier_info())
-        delete_btn = tk.Button(manage_frame, text='Borrar', width=15, borderwidth=3, bg="#D6C52F", fg='black', command=lambda:self.controller.delete_supplier())
-        add_btn = tk.Button(manage_frame, text='Agregar', width=15, borderwidth=3, bg="#B817E5", fg='black', command=lambda: self.open_add_window())
-        clear_btn = tk.Button(manage_frame, text='Limpiar', width=15, borderwidth=3, bg="#E51717", fg='black')
+        W = 240
+        H = 35
+
+        save_btn = ctk.CTkButton(
+            manage_frame, 
+            text='Guardar', 
+            width=W, 
+            height=H,
+            fg_color="#FF9800",
+            hover_color="#F57C00",
+        )
+
+        info_btn = ctk.CTkButton(
+            manage_frame, 
+            text='Info', 
+            width=W, 
+            height=H,
+            fg_color="#FF9800",
+            hover_color="#F57C00",
+            command=lambda: self.controller.supplier_info()
+        )
+
+        delete_btn = ctk.CTkButton(
+            manage_frame, 
+            text='Borrar', 
+            width=W, 
+            height=H,
+            fg_color="#FF9800",
+            hover_color="#F57C00",
+            command=lambda:self.controller.delete_supplier()
+        )
+        add_btn = ctk.CTkButton(
+            manage_frame, 
+            text='Agregar', 
+            width=W, 
+            height=H, 
+            fg_color="#FF9800",
+            hover_color="#F57C00",
+            command=lambda: self.open_add_window()
+        )
+
+        clear_btn = ctk.CTkButton(
+            manage_frame, 
+            text='Limpiar', 
+            width=W, 
+            height=H, 
+            fg_color="#FF9800",
+            hover_color="#F57C00"
+        )
 
         save_btn.grid(row= 0, column=0, padx=5, pady=5)
-        update_btn.grid(row= 0, column=1, padx=5, pady=5)
+        info_btn.grid(row= 0, column=1, padx=5, pady=5)
         delete_btn.grid(row= 0, column=2, padx=5, pady=5)
         add_btn.grid(row= 0, column=3, padx=5, pady=5)
         clear_btn.grid(row= 0, column=4, padx=5, pady=5)
 
     def open_add_window(self):
-        add_win = tk.Toplevel(self.frame)
+        add_win = ctk.CTkToplevel(self.frame)
         add_win.title("Agregar nuevo proveedor")
 
         # posicion y tamaño del frame
@@ -123,31 +226,73 @@ class SupplierView():
 
         add_win.geometry(f"{width_win}x{height_win}+{x}+{y}")
 
-        ttk.Label(add_win, text='Nombre:').grid(row=1, column=0, padx=5, pady=5, sticky='nw')
-        name_entry = ttk.Entry(add_win, textvariable=self.name_var)
+        # nombre
+        name_lbl = ctk.CTkLabel(
+            add_win, 
+            text='Nombre:',
+            font=ctk.CTkFont(size=16, weight="bold")
+        )
+        name_lbl.grid(row=1, column=0, padx=5, pady=5, sticky='nw')
+        
+        name_entry = ctk.CTkEntry(add_win, textvariable=self.name_var)
         name_entry.grid(row=1, column=1, padx=5, pady=5, sticky='nw')
 
-        ttk.Label(add_win, text='Cuit:').grid(row=2, column=0, padx=5, pady=5, sticky='nw')
-        cuit_entry = ttk.Entry(add_win, textvariable=self.cuit_var)
+        # cuit
+        cuit_lbl = ctk.CTkLabel(
+            add_win, 
+            text='Cuit:',
+            font=ctk.CTkFont(size=16, weight="bold")
+            )
+        cuit_lbl.grid(row=2, column=0, padx=5, pady=5, sticky='nw')
+
+        cuit_entry = ctk.CTkEntry(add_win, textvariable=self.cuit_var)
         cuit_entry.grid(row=2, column=1, padx=5, pady=5, sticky='nw')
 
-        ttk.Label(add_win, text='Domicilio:').grid(row=3, column=0, padx=5, pady=5, sticky='nw')
-        cuit_entry = ttk.Entry(add_win, textvariable=self.home_var)
-        cuit_entry.grid(row=3, column=1, padx=5, pady=5, sticky='nw')
+        # domicilio
+        dom_lbl =  ctk.CTkLabel(
+            add_win, 
+            text='Domicilio:',
+            font=ctk.CTkFont(size=16, weight="bold")
+        )
+        dom_lbl.grid(row=3, column=0, padx=5, pady=5, sticky='nw')
+        
+        dom_entry = ctk.CTkEntry(add_win, textvariable=self.home_var)
+        dom_entry.grid(row=3, column=1, padx=5, pady=5, sticky='nw')
 
-        ttk.Label(add_win, text='Telefono:').grid(row=4, column=0, padx=5, pady=5, sticky='nw')
-        cuit_entry = ttk.Entry(add_win, textvariable=self.phone_var)
-        cuit_entry.grid(row=4, column=1, padx=5, pady=5, sticky='nw')
+        # phone
+        phone_lbl = ctk.CTkLabel(
+            add_win, 
+            text='Telefono:',
+            font=ctk.CTkFont(size=16, weight="bold")
+        )
+        phone_lbl.grid(row=4, column=0, padx=5, pady=5, sticky='nw')
 
-        ttk.Label(add_win, text='Email:').grid(row=5, column=0, padx=5, pady=5, sticky='nw')
-        cuit_entry = ttk.Entry(add_win, textvariable=self.email_var)
-        cuit_entry.grid(row=5, column=1, padx=5, pady=5, sticky='nw')
+        phone_entry = ctk.CTkEntry(add_win, textvariable=self.phone_var)
+        phone_entry.grid(row=4, column=1, padx=5, pady=5, sticky='nw')
 
-        finish_btn = ttk.Button(add_win, text="Agregar", command=lambda: self.controller.add_new_supplier(add_win))
-        finish_btn.grid(row=6, column=1)
 
-    def open_add_product_window(self, id):
-        add_product_win = tk.Toplevel(self.frame)
+        email_lbl = ctk.CTkLabel(
+            add_win, 
+            text='Email:',
+            font=ctk.CTkFont(size=16, weight="bold")
+        )
+        email_lbl.grid(row=5, column=0, padx=5, pady=5, sticky='nw')
+
+        email_entry = ctk.CTkEntry(add_win, textvariable=self.email_var)
+        email_entry.grid(row=5, column=1, padx=5, pady=5, sticky='nw')
+
+        finish_btn = ctk.CTkButton(
+            add_win, 
+            text="Agregar", 
+            font=ctk.CTkFont(size=16, weight="bold"),
+            fg_color="#4CAF50", 
+            hover_color="#45a049",
+            command=lambda: self.controller.add_new_supplier(add_win)
+        )
+        finish_btn.grid(row=6, column=1, pady=5)
+
+    def open_add_product_window(self):
+        add_product_win = ctk.CTkToplevel(self.frame)
         add_product_win.title("Agregar Productos")
 
         # posicion y tamaño del frame
@@ -156,8 +301,8 @@ class SupplierView():
         width_root = self.frame.winfo_width()
         height_root = self.frame.winfo_height()
 
-        width_win = 400
-        height_win = 300
+        width_win = 500
+        height_win = 400
 
         # centro
         x = x_root + (width_root // 2) - (width_win // 2)
@@ -183,8 +328,8 @@ class SupplierView():
             )
 
             entry.grid(row=i, column=1, padx=20, pady=10)
-
-        add_btn = ttk.Button(add_product_win, text="Agregar", command=lambda:self.controller.add_supplier_product(id))
+            
+        add_btn = ttk.Button(add_product_win, text="Agregar", command=lambda:self.controller.add_supplier_product(self.get_product_data()))
         add_btn.grid(row=6, column=0)
 
         finish_btn = ttk.Button(add_product_win, text="Listo", command=add_product_win.destroy)
@@ -209,7 +354,6 @@ class SupplierView():
             'quantity': self.quantity_var.get().strip(),
         }
         
-
     def refresh_supplier_table(self, suppliers):
         for item in self.supplier_tree.get_children():
             self.supplier_tree.delete(item)
@@ -220,9 +364,8 @@ class SupplierView():
 
         self.supplier_tree.tag_configure('orow', background="white", foreground='black')
 
-
     def open_info_window(self, supplier):
-        info_win = tk.Toplevel(self.frame)
+        info_win = ctk.CTkToplevel(self.frame)
         info_win.title(f'Proveedor: {supplier}')
 
         # posicion y tamaño del frame
@@ -231,14 +374,16 @@ class SupplierView():
         width_root = self.frame.winfo_width()
         height_root = self.frame.winfo_height()
 
-        width_win = 300
-        height_win = 240
+        width_win = 400
+        height_win = 340
 
         # centro
         x = x_root + (width_root // 2) - (width_win // 2)
         y = y_root + (height_root // 2) - (height_win // 2)
 
         info_win.geometry(f"{width_win}x{height_win}+{x}+{y}")
+
+        #tk sheet que me muestre lo de un proveedor
 
 
     def show_error(self, message):
@@ -250,3 +395,6 @@ class SupplierView():
     def show_warning(self, message):
         messagebox.showwarning('Advertencia', message) 
     
+    def ask_confirmation(self, message):
+        """Preguntar confirmacion al usuario"""
+        return messagebox.askquestion("Confirmacion", message) == 'yes'
