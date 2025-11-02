@@ -11,12 +11,12 @@ class SalesModel:
             with self.db.get_connection() as conn:
                 cursor = conn.cursor()
 
-                # 1. Insertar venta general
+                # Insertar venta general
                 date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                 cursor.execute("INSERT INTO sales (date, total) VALUES (?, ?)", (date, total))
                 sale_id = cursor.lastrowid
 
-                # 2. Insertar ítems
+                # Insertar ítems
                 for product_id, quantity, price in items:
                     subtotal = round(price * quantity, 2)
                     cursor.execute("""
@@ -24,7 +24,7 @@ class SalesModel:
                         VALUES (?, ?, ?, ?, ?)
                     """, (sale_id, product_id, quantity, price, subtotal))
 
-                    # 3. Reducir stock
+                    # Reducir stock
                     cursor.execute(
                         "UPDATE stock SET quantity = quantity - ? WHERE id = ?",
                         (quantity, product_id)

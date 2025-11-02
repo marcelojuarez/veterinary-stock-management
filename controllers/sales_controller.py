@@ -100,14 +100,18 @@ class SalesController:
 
             total = sum(q * p for _, q, p in items)
 
-            # 1. Registrar la venta
+            # Registrar la venta
             sale_id = self.sales_model.register_sale(total, items)
 
-            # 2. Descontar stock
+            # Descontar stock
+            '''
+            print(items)
             for product_id, quantity, _ in items:
+                print(product_id)
                 self.stock_model.reduce_quantity(product_id, quantity)
+            '''
 
-            # 3. Actualizar vista
+            # Actualizar vista
             self.sales_view.show_success(f"Venta registrada correctamente (ID: {sale_id})")
             self.sales_view.clear_sale()
             self.sales_view.load_available_products()
