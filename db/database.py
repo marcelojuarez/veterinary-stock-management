@@ -28,12 +28,22 @@ class Database:
     
     def get_connection(self):
         """Obtener conexión a la base de datos"""
-        return sqlite3.connect(self.db_path)
+        conn = sqlite3.connect(self.db_path)
+        conn.execute("PRAGMA foreign_keys = ON;") 
+        return conn
     
     def create_tables(self):
         """Crear todas las tablas necesarias"""
         with self.get_connection() as conn:
             cursor = conn.cursor()
+
+            # Tabla de usuarios
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS usuarios (
+                    username TEXT UNIQUE NOT NULL,
+                    password_hash TEXT NOT NULL
+                )
+            ''')
 
             # Tabla de stock
             cursor.execute('''
@@ -61,39 +71,26 @@ class Database:
                     nombre TEXT NOT NULL,
                     cuit TEXT,
                     domicilio TEXT,
+                    telefono TEXT,
                     condicion_iva TEXT DEFAULT 'Consumidor Final'
                 )
             ''')
 
             # Tabla de proveedores
             cursor.execute('''
-                CREATE TABLE IF NOT EXISTS proveedores (
+                CREATE TABLE IF NOT EXISTS proveedor (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     cuit TEXT,
                     nombre TEXT NOT NULL,
                     domicilio TEXT,
                     telefono TEXT,
-                    email TEXT,
-                    deuda REAL                           
-                )
-            ''')
-
-            # Tabla de productos asociados a un provedor
-            cursor.execute('''
-                CREATE TABLE IF NOT EXISTS stock_proveedor (
-                    id TEXT,
-                    name TEXT NOT NULL,
-                    description TEXT,
-                    brand REAL NOT NULL,
-                    price REAL NOT NULL,
-                    quantity INTEGER NOT NULL,
-                    created_at TEXT DEFAULT CURRENT_DATE
-                )
+                    email TEXT
+                );
             ''')
 
             # Tabla de facturas
             cursor.execute('''
-                CREATE TABLE IF NOT EXISTS facturas (
+                CREATE TABLE IF NOT EXISTS factura (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     numero_factura TEXT NOT NULL,
                     fecha_emision TEXT NOT NULL,
@@ -104,8 +101,8 @@ class Database:
                     iva REAL NOT NULL,
                     total REAL NOT NULL,
                     estado TEXT DEFAULT 'autorizada',
-                    FOREIGN KEY(cliente_id) REFERENCES clientes(id)
-                )
+                    FOREIGN KEY(cliente_id) REFERENCES clientes(id) ON DELETE CASCADE
+                );
             ''')
 
             # Tabla de items de factura
@@ -117,9 +114,35 @@ class Database:
                     cantidad INTEGER NOT NULL,
                     precio_unitario REAL NOT NULL,
                     subtotal REAL NOT NULL,
-                    FOREIGN KEY(factura_id) REFERENCES facturas(id),
+                    FOREIGN KEY(factura_id) REFERENCES factura(id) ON DELETE CASCADE,
                     FOREIGN KEY(producto_id) REFERENCES stock(id)
-                )
+                );
+            ''')
+
+            # Tabla de ventas
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS sales (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    date TEXT DEFAULT CURRENT_TIMESTAMP,
+                    total REAL NOT NULL,
+                    cliente_id INTEGER,
+                    estado TEXT DEFAULT 'pagada',
+                    FOREIGN KEY(cliente_id) REFERENCES clientes(id) ON DELETE CASCADE
+                );
+            ''')
+
+            # Detalle de cada producto vendido
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS sale_items (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    sale_id INTEGER NOT NULL,
+                    product_id TEXT NOT NULL,
+                    quantity INTEGER NOT NULL,
+                    price REAL NOT NULL,
+                    subtotal REAL NOT NULL,
+                    FOREIGN KEY(sale_id) REFERENCES sales(id) ON DELETE CASCADE,
+                    FOREIGN KEY(product_id) REFERENCES stock(id)
+                );
             ''')
 
             conn.commit()

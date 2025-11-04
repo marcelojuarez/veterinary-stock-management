@@ -1,6 +1,5 @@
 charset-normalizer==3.4.2
-customtkinter==5.2.2
-tksheet==7.5.16
+argon2-cffi==25.1.0
 pillow==11.3.0
 PyMySQL==1.1.1
 qrcode==8.2

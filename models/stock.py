@@ -96,8 +96,8 @@ class StockModel:
         current_product = self.get_product_by_id(product_id)
         if not current_product:
             raise ValueError(f"Producto {product_id} no encontrado")
-        
         current_quantity = current_product[-1]  # quantity está en la última posición
+        print("Current cantidad: ", current_quantity)
         
         if current_quantity < quantity_to_reduce:
             raise ValueError(
