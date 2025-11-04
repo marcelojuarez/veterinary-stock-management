@@ -1,5 +1,6 @@
 from models.stock import StockModel
 from models.sale import SalesModel
+from models.customer import CustomerModel
 from tkinter import messagebox
 
 class SalesController:
@@ -7,6 +8,7 @@ class SalesController:
         self.sales_view = sales_view
         self.stock_model = StockModel()
         self.sales_model = SalesModel()
+        self.customer_model = CustomerModel()
 
 
     def search_product_for_sale(self, search_term: str):
@@ -139,3 +141,28 @@ class SalesController:
 
         except Exception as e:
             self.sales_view.show_error(f"Error al listar ventas: {e}")
+
+    def get_client_names(self):
+        """Obtener nombres de clientes para el combo de ventas"""
+        try:
+            clients = self.customer_model.get_all_clients()
+            return [c[1] for c in clients] if clients else ["Consumidor Final"]
+        except Exception:
+            return ["Consumidor Final"]
+        
+    def get_client_data(self, client_name):
+        """Obtener datos completos del cliente por nombre"""
+        try:
+            client = self.customer_model.get_client_by_name(client_name)
+            if client:
+                return {
+                    "id": client[0],
+                    "nombre": client[1],
+                    "cuit": client[2],
+                    "domicilio": client[3]
+                }
+            return None
+        except Exception as e:
+            print(f"Error obteniendo cliente: {e}")
+            return None
+

@@ -7,7 +7,6 @@ class CustomerController:
         self.view = view
         self.model = CustomerModel()
         
-        self.refresh_customer_table()
 
     def add_new_customer(self, window=None):
         # Guardar nuevo cliente 
