@@ -178,7 +178,7 @@ class SalesView:
         W, H = 250, 40
 
         buttons = [
-            ("💰 Procesar venta", "#009688", "#00796B", lambda: self.controller.confirm_sale("factura")),
+            ("💰 Procesar venta", "#009688", "#00796B", lambda: self.controller.confirm_sale("factura", self.client_var.get())),
             ("🧾 Generar presupuesto", "#009688", "#00796B", lambda: self.controller.confirm_sale("presupuesto")),
             ("🗑️ Eliminar producto", "#009688", "#00796B", self.delete_selected_product),
             ("🧹 Limpiar", "#009688", "#00796B", self.clear_sale)

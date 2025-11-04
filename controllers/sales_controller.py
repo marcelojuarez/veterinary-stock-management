@@ -92,7 +92,7 @@ class SalesController:
             self.sales_view.show_warning("Seleccione el artículo que desea eliminar.")
 
 
-    def confirm_sale(self, p):
+    def confirm_sale(self, p, customer):
         """Procesar venta y actualizar stock"""
         try:
             items = self.sales_view.items_in_sale
@@ -103,7 +103,7 @@ class SalesController:
             total = sum(q * p for _, q, p in items)
 
             # Registrar la venta
-            sale_id = self.sales_model.register_sale(total, items)
+            sale_id = self.sales_model.register_sale(total, items, self.get_client_data(customer)['id'])
 
             # Descontar stock
             '''

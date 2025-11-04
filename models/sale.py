@@ -5,7 +5,7 @@ class SalesModel:
     def __init__(self):
         self.db = db
 
-    def register_sale(self, total, items):
+    def register_sale(self, total, items, customer_id):
         """Registrar una nueva venta y actualizar stock"""
         try:
             with self.db.get_connection() as conn:
@@ -13,7 +13,7 @@ class SalesModel:
 
                 # Insertar venta general
                 date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                cursor.execute("INSERT INTO sales (date, total) VALUES (?, ?)", (date, total))
+                cursor.execute("INSERT INTO sales (date, total, cliente_id) VALUES (?, ?, ?)", (date, total, customer_id))
                 sale_id = cursor.lastrowid
 
                 # Insertar ítems
