@@ -13,6 +13,20 @@ class CustomerModel:
         except ValueError as e: 
             print(f'Error getting customers: {e}')
             return []
+        
+    def get_all_clients(self):
+        query = "SELECT id, nombre FROM clientes ORDER BY nombre"
+        return db.fetch_all(query)
+    
+    def get_client_by_name(self, name):
+        """Buscar cliente por nombre exacto"""
+        query = """
+            SELECT id, nombre, cuit, domicilio
+            FROM clientes
+            WHERE nombre = ?
+        """
+        return db.fetch_one(query, (name,))
+
 
     def find_customer_by_id(self, customer_id):
         # Obtener cliente a traves de id
