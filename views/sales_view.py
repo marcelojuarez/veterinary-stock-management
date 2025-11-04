@@ -71,7 +71,7 @@ class SalesView:
         today_btn = ctk.CTkButton(
             header, text="📅 Ventas del día",
             width=150, height=35,
-            fg_color="#FF9800", hover_color="#F57C00",
+            fg_color="#009688", hover_color="#00796B",
             command=lambda: self.controller.show_today_sales()
         )
         today_btn.grid(row=0, column=3, padx=10)
@@ -112,8 +112,9 @@ class SalesView:
         client_frame = ctk.CTkFrame(self.frame, fg_color="#fafafa")
         client_frame.grid(row=1, column=1, sticky="ew", padx=10, pady=5)
 
+        # --- Combo de cliente ---
         ctk.CTkLabel(client_frame, text="Cliente:",
-                     font=ctk.CTkFont(size=14, weight="bold")).grid(
+                    font=ctk.CTkFont(size=14, weight="bold")).grid(
             row=0, column=0, padx=10, pady=10, sticky="w"
         )
 
@@ -123,10 +124,25 @@ class SalesView:
             values=self.controller.get_client_names(),
             width=250,
             height=35,
-            state="readonly"
+            state="readonly",
+            command=self.on_client_selected  # 👈 Llamado cuando cambia selección
         )
         self.client_combo.set("Consumidor Final")
         self.client_combo.grid(row=0, column=1, padx=10, pady=10, sticky="w")
+
+        # --- Campos de datos ---
+        ctk.CTkLabel(client_frame, text="CUIT / DNI:",
+                    font=ctk.CTkFont(size=13)).grid(row=1, column=0, padx=10, pady=5, sticky="w")
+        self.client_cuit_var = tk.StringVar()
+        ctk.CTkEntry(client_frame, textvariable=self.client_cuit_var,
+                    width=250, height=35, state="disabled").grid(row=1, column=1, padx=10, pady=5, sticky="w")
+
+        ctk.CTkLabel(client_frame, text="Dirección:",
+                    font=ctk.CTkFont(size=13)).grid(row=2, column=0, padx=10, pady=5, sticky="w")
+        self.client_address_var = tk.StringVar()
+        ctk.CTkEntry(client_frame, textvariable=self.client_address_var,
+                    width=250, height=35, state="disabled").grid(row=2, column=1, padx=10, pady=5, sticky="w")
+
 
     def create_sales_table(self):
         table_frame = ctk.CTkFrame(self.frame)
@@ -163,9 +179,9 @@ class SalesView:
 
         buttons = [
             ("💰 Procesar venta", "#009688", "#00796B", lambda: self.controller.confirm_sale("factura")),
-            ("🧾 Generar presupuesto", "#2196F3", "#1976D2", lambda: self.controller.confirm_sale("presupuesto")),
-            ("🗑️ Eliminar producto", "#E53935", "#C62828", self.delete_selected_product),
-            ("🧹 Limpiar", "#757575", "#616161", self.clear_sale)
+            ("🧾 Generar presupuesto", "#009688", "#00796B", lambda: self.controller.confirm_sale("presupuesto")),
+            ("🗑️ Eliminar producto", "#009688", "#00796B", self.delete_selected_product),
+            ("🧹 Limpiar", "#009688", "#00796B", self.clear_sale)
         ]
 
         for i, (text, color, hover, cmd) in enumerate(buttons):
@@ -259,6 +275,20 @@ class SalesView:
                     self.product_tree.insert("", "end", values=(pid, name, price_with_iva, qty))
         except Exception as e:
             messagebox.showerror("Error", f"No se pudieron cargar los productos: {e}")
+
+    def on_client_selected(self, selected_name):
+        """Actualizar datos del cliente al cambiar selección"""
+        try:
+            data = self.controller.get_client_data(selected_name)
+            if data:
+                self.client_cuit_var.set(data.get("cuit", ""))
+                self.client_address_var.set(data.get("domicilio", ""))
+            else:
+                self.client_cuit_var.set("")
+                self.client_address_var.set("")
+        except Exception as e:
+            self.show_error(f"No se pudieron cargar los datos del cliente: {e}")
+
 
     # Utilidades
     def show_success(self, msg): messagebox.showinfo("Éxito", msg)
