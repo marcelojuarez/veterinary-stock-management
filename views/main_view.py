@@ -31,7 +31,7 @@ class App():
         self.pwd_var = tk.StringVar()
 
     def login_window(self):
-        self.login_win = tk.Toplevel(self.root)
+        self.login_win = ctk.CTkToplevel(self.root)
         self.login_win.title("Inicio de sesion")
         
         # Asociar la cruz al cierre de la app
@@ -43,7 +43,7 @@ class App():
         width_root = self.root.winfo_width()
         height_root = self.root.winfo_height()
 
-        width_win = 320
+        width_win = 300
         height_win = 160
 
         # calculo del centro
@@ -62,21 +62,25 @@ class App():
         self.login_win.rowconfigure(2, weight=1)
 
         # usuario
-        user_lbl = ttk.Label(self.login_win, text="USUARIO: ")
+        user_lbl = ctk.CTkLabel(self.login_win, text="USUARIO: ", font=ctk.CTkFont(size=15, weight="bold"))
         user_lbl.grid(row=0, column=0)
 
-        user_entry = ttk.Entry(self.login_win, textvariable=self.user_var)
+        user_entry = ctk.CTkEntry(self.login_win, textvariable=self.user_var)
         user_entry.grid(row=0, column=1)
 
         # password
-        pwd_lbl = ttk.Label(self.login_win, text='CONTRASEÑA')
-        pwd_lbl.grid(row=1, column=0, padx=2)
+        pwd_lbl = ctk.CTkLabel(self.login_win, text='CONTRASEÑA:', font=ctk.CTkFont(size=15, weight="bold"))
+        pwd_lbl.grid(row=1, column=0)
 
-        pwd_entry = ttk.Entry(self.login_win, show='*', textvariable=self.pwd_var)
+        pwd_entry = ctk.CTkEntry(self.login_win, show='*', textvariable=self.pwd_var)
         pwd_entry.grid(row=1, column=1)
 
-        entry_btn = ttk.Button(self.login_win, text='Entrar', command=lambda: self.load_system())
-        entry_btn.grid(row=2, column=1, padx=1, pady=5)
+        entry_btn = ctk.CTkButton(self.login_win, text='Entrar', command=lambda: self.load_system(), font=ctk.CTkFont(size=15, weight="bold"))
+        entry_btn.grid(row=2, column=0)
+
+        cancel_btn = ctk.CTkButton(self.login_win, text="Cancelar", command=self.root.destroy, font=ctk.CTkFont(size=15, weight="bold"),
+            fg_color="#4CAF50", hover_color="#45a049")
+        cancel_btn.grid(row=2, column=1)
 
 
     def load_system(self):
