@@ -39,6 +39,7 @@ class Database:
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS stock (
                 id TEXT PRIMARY KEY,
+                cuit_supplier TEXT,
                 name TEXT NOT NULL,
                 pack TEXT NOT NULL,
                 profit REAL NOT NULL,
@@ -48,7 +49,8 @@ class Database:
                 price_with_iva REAL NOT NULL,
                 quantity INTEGER NOT NULL,
                 created_at TEXT DEFAULT CURRENT_DATE,
-                last_price_update TEXT DEFAULT CURRENT_DATE
+                last_price_update TEXT DEFAULT CURRENT_DATE,
+                FOREIGN KEY (cuit_supplier) REFERENCES Proveedores(cuit_supplier)
                 );
             ''')
 
@@ -67,11 +69,12 @@ class Database:
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS proveedores (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    nombre TEXT NOT NULL,
                     cuit TEXT,
+                    nombre TEXT NOT NULL,
                     domicilio TEXT,
                     telefono TEXT,
-                    email TEXT
+                    email TEXT,
+                    deuda REAL                           
                 )
             ''')
 

@@ -1,10 +1,14 @@
 from models.supplier import SupplierModel
+from models.stock import StockModel
+from controllers.stock_controller import StockController
 import re
 
 class SupplierController():
     def __init__(self, view):
         self.model = SupplierModel()
         self.view = view
+        self.stock_model = StockModel()
+        self.stock_controller = StockController(self.view.stock_view)
 
     def add_new_supplier(self, window=None):
         """Guardar nuevo proveedor"""
@@ -41,10 +45,11 @@ class SupplierController():
                 'cuit': data['cuit'],
                 'domicilio': data['domicilio'],
                 'telefono': data['telefono'],
-                'email': data['email']
+                'email': data['email'],
+                'deuda': data['deuda']
             }
 
-            iid = self.model.add_supplier(supplier_data)
+            self.model.add_supplier(supplier_data)
 
             self.refresh_supplier_table()
 
@@ -55,7 +60,7 @@ class SupplierController():
             
             self.view.show_success("Proveedor registrado correctamente.")
 
-            self.view.open_add_product_window(iid)
+            self.view.open_add_product_window()
 
         except ValueError as e:
             self.view.show_error(f"Error en los datos {str(e)}")
@@ -67,7 +72,7 @@ class SupplierController():
         return suppliers_data 
     
     def __validates_supplier_data(self, form_data):
-        required_files =  ['nombre', 'cuit', 'domicilio', 'telefono', 'email']
+        required_files =  ['nombre', 'cuit', 'domicilio', 'telefono', 'email', 'deuda']
 
         print(f'Formulario de datos {form_data}')
 
@@ -92,6 +97,10 @@ class SupplierController():
         
         if not re.fullmatch(pattern, cuit_field):
             self.view.show_warning("Por favor coloque el CUIT correctamente. Formato: XX-XXXXXXXX-X")
+            return False
+        
+        if self.model.find_suppplier_by_cuit(cuit_field) is not None:
+            self.view.show_error(f"Error: Ya existe un proveedor con el CUIT: {cuit_field}")
             return False
         
         return True
@@ -134,7 +143,7 @@ class SupplierController():
         self.view.cuit_var.set('')
         self.view.home_var.set('')
         self.view.phone_var.set('')
-
+        self.view.debt_var.set('')
 
     def delete_supplier(self):
         # Obtengo las filas seleccionadas
@@ -148,29 +157,14 @@ class SupplierController():
             self.model.delete_supplier(iid)
             self.refresh_supplier_table()
             self.view.show_success('El proveedor fue eliminado correctamente')
-            
 
         except Exception:
             self.view.show_warning('Por favor seleccione un proveedor para eliminar')
 
-
-    def add_supplier_product(self, id):
-
-        data = self.view.get_product_data()
-
-        self.model.add_supplier_product(id, data)
-
-        # falta hacer chequeos !!!!
-
-        self.clear_product_form()
-
-
-    def clear_product_form(self):
-        self.view.name_product_var.set('')
-        self.view.description_var.set('')
-        self.view.brand_var.set('')
-        self.view.price_var.set('')
-        self.view.quantity_var.set('')
+    def add_supplier_product(self, win):
+        self.stock_controller.add_new_product(win)
+        self.view.stock_view.clear_form_fields()
+        self.view.open_add_product_window()
 
     def supplier_info(self):
         # Obtengo las filas seleccionadas
@@ -180,6 +174,6 @@ class SupplierController():
             iid = selected[0]
             values = self.view.supplier_tree.item(iid, "values")
             print(values)
-            self.view.open_info_window(values[1])
+            self.view.open_info_window(values)
         except Exception:
             self.view.show_warning('Por favor seleccione un proveedor')
