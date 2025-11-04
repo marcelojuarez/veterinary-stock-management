@@ -67,21 +67,8 @@ class Database:
                     nombre TEXT NOT NULL,
                     cuit TEXT,
                     domicilio TEXT,
+                    telefono TEXT,
                     condicion_iva TEXT DEFAULT 'Consumidor Final'
-                )
-            ''')
-
-
-            # Tabla pago de clients
-            cursor.execute('''
-                CREATE TABLE IF NOT EXISTS pagos_clientes (
-                    id INTEGER PRIMARY KEY,
-                    cliente_id INTEGER NOT NULL,
-                    fecha TEXT DEFAULT CURRENT_DATE,
-                    concepto TEXT NOT NULL,
-                    monto REAL NOT NULL,
-                    pagado INTEGER NOT NULL DEFAULT 0,
-                    FOREIGN KEY(cliente_id) REFERENCES clientes(id)
                 )
             ''')
 
@@ -133,7 +120,10 @@ class Database:
                 CREATE TABLE IF NOT EXISTS sales (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     date TEXT DEFAULT CURRENT_TIMESTAMP,
-                    total REAL NOT NULL
+                    total REAL NOT NULL,
+                    cliente_id INTEGER,
+                    estado TEXT DEFAULT 'pagada',
+                    FOREIGN KEY(cliente_id) REFERENCES clientes(id)
                 );
             ''')
 
