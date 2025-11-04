@@ -285,7 +285,20 @@ class CustomersView:
         if not selected:
             self.show_warning("Seleccione un cliente para eliminar.")
             return
+        
         customer_id = self.table.item(selected[0])["values"][0]
+        
+        has_debt = self.controller.customer_has_debts(customer_id)
+        if has_debt:
+            resp = messagebox.askyesno(
+            "⚠️ Cliente con deudas",
+            "Este cliente tiene deudas pendientes.\n"
+            "Si continúa, se eliminarán también las ventas asociadas.\n\n"
+            "¿Desea eliminarlo de todos modos?"
+            )
+            if not resp: 
+                return 
+        
         self.controller.delete_customer(customer_id)
 
     def show_error(self, msg): messagebox.showerror("Error", msg)

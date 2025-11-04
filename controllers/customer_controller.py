@@ -130,3 +130,12 @@ class CustomerController:
         except Exception as e:
             self.view.show_error(f"Error al obtener los productos de la venta: {e}")
 
+    def customer_has_debts(self, customer_id):
+            """Obtengo la cantidad de deudas de un cliente"""
+            try: 
+                query = "SELECT COUNT(*) FROM sales WHERE cliente_id = ? AND estado = 'fiada';"
+                result = self.model.db.fetch_one(query,(customer_id,))
+                return result and result[0] > 0
+            except Exception as e:
+                self.view.show_error(f"Error al obtener las deudas del cliente: {e}")
+
