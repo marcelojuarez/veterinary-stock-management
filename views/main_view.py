@@ -8,6 +8,8 @@ from views.sales_view import SalesView
 from views.supplier_view import SupplierView
 from views.customers_view import CustomersView
 from controllers.stock_controller import StockController
+from controllers.sales_controller import SalesController
+
 from controllers.supplier_controller import SupplierController
 from controllers.customer_controller import CustomerController
 class App():
@@ -88,36 +90,40 @@ class App():
         self.notebook = ttk.Notebook(self.root)
         self.notebook.pack(fill='both', expand=True)
 
-        self.stock_view = StockView(self.notebook)
+        # --- STOCK ---
+        self.stock_controller = StockController(None)
+        self.stock_view = StockView(self.notebook, controller=self.stock_controller)
+        self.stock_controller.view = self.stock_view
         self.stock_view.frame.pack(fill='both', expand=True)
         self.notebook.add(self.stock_view.frame, text='Inventario')
 
-        sales_view = SalesView(self.notebook)
-        sales_view.frame.pack(fill='both', expand=True)
-        self.notebook.add(sales_view.frame, text='Venta')
+        # --- SALES ---
+        self.sales_controller = SalesController(None)
+        self.sales_view = SalesView(self.notebook, controller=self.sales_controller)
+        self.sales_controller.sales_view = self.sales_view
+        self.sales_view.frame.pack(fill='both', expand=True)
+        self.notebook.add(self.sales_view.frame, text='Venta')
 
-        self.supplier_view = SupplierView(self.notebook)
+        # --- SUPPLIERS ---
+        self.supplier_controller = SupplierController(None)
+        self.supplier_view = SupplierView(self.notebook, controller=self.supplier_controller)
+        self.supplier_controller.view = self.supplier_view
         self.supplier_view.frame.pack(fill='both', expand=True)
         self.notebook.add(self.supplier_view.frame, text='Proveedores')
 
-        self.customers_view = CustomersView(self.notebook)
+        # --- CUSTOMERS ---
+        self.customer_controller = CustomerController(None)
+        self.customers_view = CustomersView(self.notebook, controller=self.customer_controller)
+        self.customer_controller.view = self.customers_view
         self.customers_view.frame.pack(fill='both', expand=True)
         self.notebook.add(self.customers_view.frame, text='Clientes')
 
-        self.stock_controller = StockController(self.stock_view)
-        self.stock_view.controller = self.stock_controller
-
-        self.supplier_controller = SupplierController(self.supplier_view)
-        self.supplier_view.controller = self.supplier_controller
-
-        self.customer_controller = CustomerController(self.customers_view)
-        self.customers_view.controller = self.customer_controller
 
     def load_initial_data(self):
-        """Cargar datos iniciales"""
         try:
             self.stock_controller.refresh_stock_table()
             self.supplier_controller.refresh_supplier_table()
+            self.customer_controller.refresh_customer_table()
         except Exception as e:
             print(f"Error cargando datos iniciales: {e}")
 
