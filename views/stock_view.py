@@ -66,8 +66,8 @@ class StockView():
 
         W = 280
         H = 35
-        btn_color = "#FF6F00"
-        btn_hover = "#CB6702"
+        btn_color = "#009688"
+        btn_hover = "#00796B"
 
         new_btn = ctk.CTkButton(
             manage_frame,
@@ -147,8 +147,8 @@ class StockView():
             width=160,
             height=35,
             font=ctk.CTkFont(size=12, weight="bold"),
-            fg_color="#FF6F00",
-            hover_color="#CB6702",
+            fg_color="#009688",
+            hover_color="#00796B",
             command=lambda: self.controller.find_product(self.find_var)
         )
 
@@ -158,8 +158,8 @@ class StockView():
             width=160,
             height=35,
             font=ctk.CTkFont(size=12, weight="bold"),
-            fg_color="#FF6F00",
-            hover_color="#CB6702",
+            fg_color="#009688",
+            hover_color="#00796B",
             command=lambda: self.controller.show_all_products()
         )
 
