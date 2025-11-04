@@ -64,12 +64,13 @@ class Database:
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS clientes (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    nombre TEXT NOT NULL UNIQUE,
-                    cuit TEXT UNIQUE,
+                    nombre TEXT NOT NULL,
+                    cuit TEXT,
                     domicilio TEXT,
-                    telefono TEXT
+                    condicion_iva TEXT DEFAULT 'Consumidor Final'
                 )
             ''')
+
 
             # Tabla pago de clients
             cursor.execute('''

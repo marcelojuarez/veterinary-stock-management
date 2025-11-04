@@ -1,7 +1,12 @@
+import sys, os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 import sqlite3
 from datetime import datetime
+from models.user import User
+from models.security import gen_password, validate_password
 
-DB_PATH = "stock.db"  # ruta a tu base de datos
+DB_PATH = "db/stock.db"  # ruta a tu base de datos
 
 def seed_stock():
     productos = [
@@ -48,5 +53,43 @@ def seed_stock():
     conn.close()
     print("Seed completado: 20 productos insertados")
 
+def seed_client():
+    users = [
+        {"username": "admin", "password": "admin"},
+        {"username": "juan", "password": "juan"}
+    ]
+
+    user_model = User()
+    for user in users:
+        encryp_pwd = gen_password(user['password'])
+        user["password"] = encryp_pwd
+        user_model.add_new_user(user)
+
+    print("Usuarios cargados.")
+
+def seed_clients():
+    clientes = [
+        {"nombre": "Veterinaria San Roque", "cuit": "30-71583927-5", "domicilio": "Av. España 945", "condicion_iva": "Responsable Inscripto"},
+        {"nombre": "AgroVet Río Cuarto", "cuit": "33-50217341-2", "domicilio": "Ruta A005 Km 2", "condicion_iva": "Monotributo"},
+        {"nombre": "Clínica Mascotera", "cuit": "20-30482956-7", "domicilio": "Buenos Aires 1200", "condicion_iva": "Responsable Inscripto"},
+        {"nombre": "Pet Shop Luna", "cuit": "27-40918234-3", "domicilio": "Av. Italia 1025", "condicion_iva": "Monotributo"},
+        {"nombre": "Consumidor Final", "cuit": "", "domicilio": "", "condicion_iva": "Consumidor Final"},
+    ]
+
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+
+    for c in clientes:
+        cursor.execute("""
+            INSERT OR REPLACE INTO clientes (nombre, cuit, domicilio, condicion_iva)
+            VALUES (?, ?, ?, ?)
+        """, (c['nombre'], c['cuit'], c['domicilio'], c['condicion_iva']))
+
+    conn.commit()
+    conn.close()
+    print("Seed completado: clientes insertados correctamente ✅")
+
 if __name__ == "__main__":
     seed_stock()
+    seed_client()
+    seed_clients()
