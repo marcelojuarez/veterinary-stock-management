@@ -112,11 +112,12 @@ class App():
         self.notebook.add(self.supplier_view.frame, text='Proveedores')
 
         # --- CUSTOMERS ---
-        self.customer_controller = CustomerController(None)
-        self.customers_view = CustomersView(self.notebook, controller=self.customer_controller)
-        self.customer_controller.view = self.customers_view
+        self.customers_view = CustomersView(self.notebook)  
+        self.customer_controller = CustomerController(self.customers_view)
+        self.customers_view.attach_controller(self.customer_controller)
         self.customers_view.frame.pack(fill='both', expand=True)
         self.notebook.add(self.customers_view.frame, text='Clientes')
+
 
 
     def load_initial_data(self):
