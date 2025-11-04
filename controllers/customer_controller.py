@@ -7,47 +7,48 @@ class CustomerController:
         self.view = view
         self.model = CustomerModel()
         
+        self.refresh_customer_table()
 
-    def add_new_customer(self, window=None):
-        # Guardar nuevo cliente 
-        try: 
-            data = self.view.get_customer_data()
-            
+    def add_new_customer_window(self, data, window):
+        """Guarda un nuevo cliente desde la ventana modal"""
+        try:
+            # Validaciones básicas
             if not self.__validate_customer_data(data):
                 return False
-            
-            if not self.__validate_supplier_cuit(data['cuit']):
-                print('Entro al chequeo de cuit del proveedor')
+            if not self.__validate_supplier_cuit(data["cuit"]):
                 return False
-            
-            if not self.__validate_supplier_phone(data['telefono']):
+            if not self.__validate_supplier_phone(data["telefono"]):
                 return False
 
+            # Guardar cliente
             self.model.add_customer(data)
             self.refresh_customer_table()
-            self.clear_form()
-
-            if window: 
-                self.view.show_success("Cliente registrado correctamente.")
+            self.view.show_success("Cliente agregado correctamente.")
+            window.destroy()
             return True
+
         except ValueError as e:
             self.view.show_error(f"Error en los datos: {str(e)}")
+            return False
         except Exception as e:
             self.view.show_error(f"Error al registrar el cliente: {str(e)}")
-
-    def update_customer_debt(self, customer_id, monto_deuda):
-      pass
+            return False
 
     def delete_customer(self, customer_id):
-        # Eliminar cliente seleccionado 
+        """Elimina un cliente por su ID"""
         confirm = messagebox.askyesno("Confirmar", "¿Desea eliminar este cliente?")
-        if confirm: 
-            try: 
-                self.model.delete_customer(customer_id)
-                self.refresh_customer_table()
-                self.view.show_success("Cliente eliminado correctamente")
-            except Exception as e:
-                self.view.show_error(f'Error al eliminar cliente: {str(e)}')
+        if not confirm:
+            return False
+
+        try:
+            self.model.delete_customer(customer_id)
+            self.refresh_customer_table()
+            self.view.show_success("Cliente eliminado correctamente.")
+            return True
+        except Exception as e:
+            self.view.show_error(f"Error al eliminar el cliente: {str(e)}")
+            return False
+
 
     def search_customer(self, term):
         # Buscar cliente por nombre o id
@@ -98,3 +99,34 @@ class CustomerController:
             return False
         
         return True
+    # --------------------------------------------------------------------
+    # 💳 DEUDAS DE CLIENTES
+    # --------------------------------------------------------------------
+    def show_customer_debts(self, cliente_id, cliente_nombre):
+        """Abre ventana con las deudas del cliente"""
+        try:
+            debts = self.model.get_customer_debts(cliente_id)
+            total = self.model.get_total_debt(cliente_id)
+            self.view.open_debt_window(cliente_id, cliente_nombre, debts, total)
+        except Exception as e:
+            self.view.show_error(f"Error al obtener las deudas: {e}")
+
+    def mark_debt_as_paid(self, sale_id, cliente_id, cliente_nombre):
+        """Marca una deuda como pagada y actualiza ventana"""
+        try:
+            self.model.mark_debt_as_paid(sale_id)
+            debts = self.model.get_customer_debts(cliente_id)
+            total = self.model.get_total_debt(cliente_id)
+            self.view.update_debt_window(debts, total)
+            self.view.show_success("✅ Deuda marcada como pagada.")
+        except Exception as e:
+            self.view.show_error(f"Error al actualizar la deuda: {e}")
+
+    def load_sale_items_for_debt(self, sale_id):
+        """Carga el detalle de productos de una venta fiada en la vista"""
+        try:
+            items = self.model.get_sale_items(sale_id)
+            self.view.update_debt_items_table(items)
+        except Exception as e:
+            self.view.show_error(f"Error al obtener los productos de la venta: {e}")
+
