@@ -48,12 +48,16 @@ class Database:
                 CREATE TABLE IF NOT EXISTS stock (
                     id TEXT PRIMARY KEY,
                     name TEXT NOT NULL,
-                    description TEXT,
-                    brand REAL NOT NULL,
+                    pack TEXT NOT NULL,
+                    profit REAL NOT NULL,
+                    cost_price REAL NOT NULL,
                     price REAL NOT NULL,
+                    iva REAL NOT NULL,
+                    price_with_iva REAL NOT NULL,
                     quantity INTEGER NOT NULL,
-                    created_at TEXT DEFAULT CURRENT_DATE
-                )
+                    created_at TEXT DEFAULT CURRENT_DATE,
+                    last_price_update TEXT DEFAULT CURRENT_DATE
+                );
             ''')
 
             # Tabla de clientes
@@ -63,6 +67,7 @@ class Database:
                     nombre TEXT NOT NULL,
                     cuit TEXT,
                     domicilio TEXT,
+                    telefono TEXT,
                     condicion_iva TEXT DEFAULT 'Consumidor Final'
                 )
             ''')
@@ -76,7 +81,7 @@ class Database:
                     domicilio TEXT,
                     telefono TEXT,
                     email TEXT
-                )
+                );
             ''')
 
             # Tabla de facturas
@@ -93,7 +98,7 @@ class Database:
                     total REAL NOT NULL,
                     estado TEXT DEFAULT 'autorizada',
                     FOREIGN KEY(cliente_id) REFERENCES clientes(id)
-                )
+                );
             ''')
 
             # Tabla de items de factura
@@ -107,7 +112,33 @@ class Database:
                     subtotal REAL NOT NULL,
                     FOREIGN KEY(factura_id) REFERENCES facturas(id),
                     FOREIGN KEY(producto_id) REFERENCES stock(id)
-                )
+                );
+            ''')
+
+            # Tabla de ventas
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS sales (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    date TEXT DEFAULT CURRENT_TIMESTAMP,
+                    total REAL NOT NULL,
+                    cliente_id INTEGER,
+                    estado TEXT DEFAULT 'pagada',
+                    FOREIGN KEY(cliente_id) REFERENCES clientes(id)
+                );
+            ''')
+
+            # Detalle de cada producto vendido
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS sale_items (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    sale_id INTEGER NOT NULL,
+                    product_id TEXT NOT NULL,
+                    quantity INTEGER NOT NULL,
+                    price REAL NOT NULL,
+                    subtotal REAL NOT NULL,
+                    FOREIGN KEY(sale_id) REFERENCES sales(id),
+                    FOREIGN KEY(product_id) REFERENCES stock(id)
+                );
             ''')
 
             conn.commit()
