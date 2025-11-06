@@ -27,6 +27,11 @@ class CustomerModel:
         """
         return db.fetch_one(query, (name,))
 
+    def get_client_id_by_name(self, name):
+        query = "SELECT id FROM clientes WHERE nombre = ?"
+        row = db.fetch_one(query, (name,))
+        return row[0] if row else None
+
 
     def find_customer_by_id(self, customer_id):
         # Obtener cliente a traves de id

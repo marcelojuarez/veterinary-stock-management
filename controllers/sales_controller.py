@@ -92,7 +92,7 @@ class SalesController:
             self.sales_view.show_warning("Seleccione el artículo que desea eliminar.")
 
 
-    def confirm_sale(self, p, customer):
+    def confirm_sale(self):
         """Procesar venta y actualizar stock"""
         try:
             items = self.sales_view.items_in_sale
@@ -102,24 +102,23 @@ class SalesController:
 
             total = sum(q * p for _, q, p in items)
 
-            # Registrar la venta
-            sale_id = self.sales_model.register_sale(total, items, self.get_client_data(customer)['id'])
+            cliente_nombre = self.sales_view.client_var.get()
+            cliente_id = self.customer_model.get_client_id_by_name(cliente_nombre)
 
-            # Descontar stock
-            '''
-            print(items)
-            for product_id, quantity, _ in items:
-                print(product_id)
-                self.stock_model.reduce_quantity(product_id, quantity)
-            '''
+            if cliente_id is None:
+                cliente_id = None
 
-            # Actualizar vista
+            estado = "pagada" if self.sales_view.sale_paid_var.get() else "fiada"
+
+            sale_id = self.sales_model.register_sale(total, items, cliente_id, estado)
+
             self.sales_view.show_success(f"Venta registrada correctamente (ID: {sale_id})")
             self.sales_view.clear_sale()
             self.sales_view.load_available_products()
 
         except Exception as e:
             self.sales_view.show_error(f"Error al procesar venta: {e}")
+
 
 
     def show_today_sales(self):

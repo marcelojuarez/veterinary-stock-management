@@ -23,6 +23,7 @@ class SalesView:
         self.total_var = tk.StringVar(value="TOTAL: $0.00")
         self.client_var = tk.StringVar()
         self.items_in_sale = []  # lista de productos (id, qty, price)
+        self.sale_paid_var = tk.BooleanVar(value=True)
 
     # --------------------------------------------------------------------
     # LAYOUT PRINCIPAL
@@ -142,6 +143,19 @@ class SalesView:
         self.client_address_var = tk.StringVar()
         ctk.CTkEntry(client_frame, textvariable=self.client_address_var,
                     width=250, height=35, state="disabled").grid(row=2, column=1, padx=10, pady=5, sticky="w")
+        
+        ctk.CTkLabel(client_frame, text="Forma de pago:",
+                font=ctk.CTkFont(size=13)).grid(row=3, column=0, padx=10, pady=10, sticky="w")
+
+        self.sale_paid_switch = ctk.CTkSwitch(
+            client_frame,
+            text="Pagada / Fiada",
+            variable=self.sale_paid_var,
+            onvalue=True,
+            offvalue=False,
+            width=80
+        )
+        self.sale_paid_switch.grid(row=3, column=1, padx=10, pady=10, sticky="w")
 
 
     def create_sales_table(self):
@@ -178,7 +192,7 @@ class SalesView:
         W, H = 250, 40
 
         buttons = [
-            ("💰 Procesar venta", "#009688", "#00796B", lambda: self.controller.confirm_sale("factura", self.client_var.get())),
+            ("💰 Procesar venta", "#009688", "#00796B", lambda: self.controller.confirm_sale()),
             ("🧾 Generar presupuesto", "#009688", "#00796B", lambda: self.controller.confirm_sale("presupuesto")),
             ("🗑️ Eliminar producto", "#009688", "#00796B", self.delete_selected_product),
             ("🧹 Limpiar", "#009688", "#00796B", self.clear_sale)
