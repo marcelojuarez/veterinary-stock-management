@@ -59,8 +59,7 @@ class Database:
                 price_with_iva REAL NOT NULL,
                 quantity INTEGER NOT NULL,
                 created_at TEXT DEFAULT CURRENT_DATE,
-                last_price_update TEXT DEFAULT CURRENT_DATE,
-                FOREIGN KEY (cuit_supplier) REFERENCES Proveedores(cuit_supplier)
+                last_price_update TEXT DEFAULT CURRENT_DATE
                 );
             ''')
 
@@ -78,13 +77,14 @@ class Database:
 
             # Tabla de proveedores
             cursor.execute('''
-                CREATE TABLE IF NOT EXISTS proveedor (
+                CREATE TABLE IF NOT EXISTS proveedores (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     cuit TEXT,
                     nombre TEXT NOT NULL,
                     domicilio TEXT,
                     telefono TEXT,
-                    email TEXT
+                    email TEXT,
+                    deuda REAL
                 );
             ''')
 

@@ -13,11 +13,11 @@ ctk.set_appearance_mode("light")  # "light" o "dark"
 ctk.set_default_color_theme("blue")  # "blue", "green", "dark-blue"
 
 class SupplierView():
-    def __init__(self, parent, controller=None):
+    def __init__(self, parent,  stock_view, controller=None):
         self.controller = controller
         self.model = SupplierModel()
         self.stock_model = StockModel()
-        self.stock_view = StockView(parent)
+        self.stock_view = stock_view
         self.frame = ctk.CTkFrame(parent, fg_color="#f0f0f0")
         self.setup_variables()
         self.create_widgets()
@@ -56,6 +56,9 @@ class SupplierView():
         find_frame = ctk.CTkFrame(self.frame)
         find_frame.grid(row=0, column=0, sticky='w', padx=10, pady=10)
 
+        btn_color = "#009688"
+        btn_hover = "#00796B"
+
         search_label = ctk.CTkLabel(
             find_frame, 
             text="Buscar Proveedor", 
@@ -80,8 +83,8 @@ class SupplierView():
             width=160,
             height=35,
             font=ctk.CTkFont(size=12, weight="bold"),
-            fg_color="#FF9800",
-            hover_color="#F57C00",
+            fg_color=btn_color,
+            hover_color=btn_hover,
             #command=lambda: self.controller.find_product(self.find_var)
         )
 
@@ -161,14 +164,18 @@ class SupplierView():
         
         W = 240
         H = 35
+        btn_color = "#009688"
+        btn_hover = "#00796B"
+
 
         save_btn = ctk.CTkButton(
             manage_frame, 
             text='Guardar', 
             width=W, 
             height=H,
-            fg_color="#FF9800",
-            hover_color="#F57C00",
+            font=ctk.CTkFont(size=12, weight="bold"),
+            fg_color=btn_color,
+            hover_color=btn_hover,
         )
 
         info_btn = ctk.CTkButton(
@@ -176,8 +183,9 @@ class SupplierView():
             text='Info', 
             width=W, 
             height=H,
-            fg_color="#FF9800",
-            hover_color="#F57C00",
+            font=ctk.CTkFont(size=12, weight="bold"),
+            fg_color=btn_color,
+            hover_color=btn_hover,
             command=lambda: self.controller.supplier_info()
         )
 
@@ -186,8 +194,9 @@ class SupplierView():
             text='Borrar', 
             width=W, 
             height=H,
-            fg_color="#FF9800",
-            hover_color="#F57C00",
+            font=ctk.CTkFont(size=12, weight="bold"),
+            fg_color=btn_color,
+            hover_color=btn_hover,
             command=lambda:self.controller.delete_supplier()
         )
         add_btn = ctk.CTkButton(
@@ -195,8 +204,9 @@ class SupplierView():
             text='Agregar', 
             width=W, 
             height=H, 
-            fg_color="#FF9800",
-            hover_color="#F57C00",
+            font=ctk.CTkFont(size=12, weight="bold"),
+            fg_color=btn_color,
+            hover_color=btn_hover,
             command=lambda: self.open_add_window()
         )
 
@@ -205,8 +215,10 @@ class SupplierView():
             text='Limpiar', 
             width=W, 
             height=H, 
-            fg_color="#FF9800",
-            hover_color="#F57C00"
+            font=ctk.CTkFont(size=12, weight="bold"),
+            fg_color=btn_color,
+            hover_color=btn_hover,
+            command= lambda: self.open_add_product_window()
         )
 
         save_btn.grid(row= 0, column=0, padx=5, pady=5)
@@ -225,8 +237,10 @@ class SupplierView():
         width_root = self.frame.winfo_width()
         height_root = self.frame.winfo_height()
 
-        width_win = 280
+        width_win = 305
         height_win = 280
+        btn_color = "#009688"
+        btn_hover = "#00796B"
 
         # centro
         x = x_root + (width_root // 2) - (width_win // 2)
@@ -299,23 +313,34 @@ class SupplierView():
         deb_entry = ctk.CTkEntry(add_win, textvariable=self.debt_var)
         deb_entry.grid(row=6, column=1, pady=5, sticky='nw')
 
+        cancel_btn = ctk.CTkButton(
+            add_win,
+            text="Cancelar",
+            font=ctk.CTkFont(size=12, weight="bold"),
+            fg_color="#E74C3C",
+            hover_color="#C0392B",
+            command=add_win.destroy
+        )
+
+        cancel_btn.grid(row=7, column=1, padx=6, pady=5)
+
         finish_btn = ctk.CTkButton(
             add_win, 
             text="Agregar", 
-            font=ctk.CTkFont(size=16, weight="bold"),
-            fg_color="#4CAF50", 
-            hover_color="#45a049",
+            font=ctk.CTkFont(size=12, weight="bold"),
+            fg_color=btn_color, 
+            hover_color=btn_hover,
             command=lambda: self.controller.add_new_supplier(add_win)
         )
-        finish_btn.grid(row=7, column=1, pady=5)
+        finish_btn.grid(row=7, column=0,  padx=6, pady=5)
     
-    def open_add_product_window(self):
+    def open_add_product_window(self, parent=None):
         """Ventana para agregar nuevo producto con CustomTkinter"""
-        add_win = ctk.CTkToplevel(self.frame)
+        add_win = ctk.CTkToplevel(parent if parent else self.frame)
         add_win.title("Agregar nuevo artículo")
         
         # Hacer que la ventana sea modal
-        add_win.transient(self.frame)
+        add_win.transient(parent)
         add_win.grab_set()
         
         # Centrar la ventana
@@ -392,14 +417,13 @@ class SupplierView():
         button_frame.grid(row=9, column=0, columnspan=2, pady=30)
 
         add_button = ctk.CTkButton(button_frame, text="Agregar", width=120, height=35, font=ctk.CTkFont(size=12, weight="bold"),
-            fg_color="#4CAF50", hover_color="#45a049")
+            fg_color="#4CAF50", hover_color="#45a049", command=lambda: self.controller.add_supplier_product())
         add_button.grid(row=0, column=0, padx=10)
 
         cancel_button = ctk.CTkButton(button_frame, text="Cancelar", width=120, height=35, font=ctk.CTkFont(size=12, weight="bold"),
             fg_color="#757575", hover_color="#616161", command=add_win.destroy)
         cancel_button.grid(row=0, column=1, padx=10)
         self.stock_view.clear_form_fields()
-
 
     def get_supplier_data(self):
         return {
@@ -431,7 +455,7 @@ class SupplierView():
         self.supplier_tree.tag_configure('orow', background="white", foreground='black')
 
     def open_info_window(self, supplier):
-        self.frame.update_idletasks() # calcula la posicion antes de renderizar ventana
+        self.frame.update_idletasks()  # calcula la posicion antes de renderizar ventana
 
         info_win = ctk.CTkToplevel(self.frame)
         info_win.title(f'Proveedor: {supplier[2]}')
@@ -444,33 +468,32 @@ class SupplierView():
 
         width_win = 800
         height_win = 450
+        btn_color = "#009688"
+        btn_hover = "#00796B"
+
         x = x_root + (width_root // 2) - (width_win // 2)
         y = y_root + (height_root // 2) - (height_win // 2)
-
         info_win.geometry(f"{width_win}x{height_win}+{x}+{y}")
 
         info_win.grid_rowconfigure(0, weight=1)
-        info_win.grid_columnconfigure(0, weight=3)  
-        info_win.grid_columnconfigure(1, weight=1)  
+        info_win.grid_rowconfigure(1, weight=0)
+        info_win.grid_columnconfigure(0, weight=3)
+        info_win.grid_columnconfigure(1, weight=1)
 
+        # --- Tksheet con productos ---
         products = self.stock_model.get_all_products_by_cuit(supplier[1])
-
-        print(f'que son los productos: {products}') 
         products = [(p[0], p[2], p[3]) for p in products]
 
-        # tksheet
         sheet = Sheet(info_win)
-        sheet.grid(row=0, column=0, sticky="nsew", padx=10, pady=10)
-
+        sheet.grid(row=0, column=0, sticky="nsew", padx=10, pady=(10, 0))
         sheet.headers(["Id", "Nombre Artículo", "Envase"])
         sheet.set_sheet_data(products)
 
-        debt = tk.StringVar()
-        debt.set(f'${supplier[6]}')
+        # --- Panel de deuda ---
+        debt = tk.StringVar(value=f'${supplier[6]}')
 
-        # deuda
         right_frame = ctk.CTkFrame(info_win, corner_radius=10)
-        right_frame.grid(row=0, column=1, sticky="nsew", padx=10, pady=10)
+        right_frame.grid(row=0, column=1, sticky="nsew", padx=10, pady=(10, 0))
 
         lbl_title = ctk.CTkLabel(right_frame, text="Deuda proveedor", font=("Arial", 16, "bold"))
         lbl_title.pack(pady=(20, 10))
@@ -478,8 +501,53 @@ class SupplierView():
         lbl_debt = ctk.CTkLabel(right_frame, textvariable=debt, font=("Arial", 24, "bold"), text_color="#059649")
         lbl_debt.pack(pady=10)
 
-        lbl_note = ctk.CTkLabel(right_frame, text="Última actualización:????", font=("Arial", 12))
+        lbl_note = ctk.CTkLabel(right_frame, text="Última actualización: ????", font=("Arial", 12))
         lbl_note.pack(pady=10)
+
+        # frame botones izquierda
+        left_btn_frame = ctk.CTkFrame(info_win, fg_color="transparent")
+        left_btn_frame.grid(row=1, column=0, sticky="ew", pady=15)
+        left_btn_frame.grid_columnconfigure((0, 1), weight=1)
+
+        # Botón Agregar Productos
+        add_products_btn = ctk.CTkButton(
+            left_btn_frame,
+            text='Agregar Productos',
+            fg_color=btn_color,
+            hover_color=btn_hover,
+            font=ctk.CTkFont(size=13, weight="bold"),
+            command=lambda: self.open_add_product_window()
+        )
+        add_products_btn.grid(row=0, column=0, padx=10, ipadx=5)
+
+        # Botón Cancelar 
+        cancel_btn = ctk.CTkButton(
+            left_btn_frame,
+            text='Cancelar',
+            fg_color="#E74C3C",
+            hover_color="#C0392B",
+            text_color="white",
+            font=ctk.CTkFont(size=13, weight="bold"),
+            command=info_win.destroy
+        )
+        cancel_btn.grid(row=0, column=1, padx=10, ipadx=5)
+
+        # frame botones derecha
+        right_btn_frame = ctk.CTkFrame(info_win, fg_color="transparent")
+        right_btn_frame.grid(row=1, column=1, sticky="ew", pady=15)
+        right_btn_frame.grid_columnconfigure(0, weight=1)
+
+        # Botón Actualizar Deuda
+        update_debt_btn = ctk.CTkButton(
+            right_btn_frame,
+            text='Actualizar Deuda',
+            fg_color=btn_color,
+            hover_color=btn_hover,
+            font=ctk.CTkFont(size=13, weight="bold"),
+            command=lambda: print("Actualizar deuda clickeado")  
+        )
+        update_debt_btn.grid(row=0, column=0, padx=10, ipadx=5)
+
 
 
     def show_error(self, message):

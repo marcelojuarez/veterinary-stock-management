@@ -1,14 +1,16 @@
 from models.supplier import SupplierModel
 from models.stock import StockModel
 from controllers.stock_controller import StockController
+from views.stock_view import StockView
 import re
 
 class SupplierController():
-    def __init__(self, view):
+    def __init__(self, view, stock_controller):
         self.model = SupplierModel()
         self.view = view
         self.stock_model = StockModel()
-        self.stock_controller = StockController(self.view.stock_view)
+        self.stock_controller = stock_controller
+        self.stock_view = self.view.stock_view
 
     def add_new_supplier(self, window=None):
         """Guardar nuevo proveedor"""
@@ -66,6 +68,25 @@ class SupplierController():
             self.view.show_error(f"Error en los datos {str(e)}")
         except Exception as e:
             self.view.show_error(f"Error al registrar el proveedor: {str(e)}")
+
+
+    def add_supplier_product(self):
+        data = self.stock_view.get_form_data()
+        print(f'Datos: {data}')
+        self.stock_controller.add_new_product()
+        self.stock_view.clear_form_fields()
+
+    def supplier_info(self):
+        # Obtengo las filas seleccionadas
+        selected = self.view.supplier_tree.selection()
+
+        try:
+            iid = selected[0]
+            values = self.view.supplier_tree.item(iid, "values")
+            print(f'Valores: {values}')
+            self.view.open_info_window(values)
+        except Exception:
+            self.view.show_warning('Por favor seleccione un proveedor')
 
     def show_suppliers(self):
         suppliers_data = self.model.get_all_suppliers()
@@ -161,19 +182,3 @@ class SupplierController():
         except Exception:
             self.view.show_warning('Por favor seleccione un proveedor para eliminar')
 
-    def add_supplier_product(self, win):
-        self.stock_controller.add_new_product(win)
-        self.view.stock_view.clear_form_fields()
-        self.view.open_add_product_window()
-
-    def supplier_info(self):
-        # Obtengo las filas seleccionadas
-        selected = self.view.supplier_tree.selection()
-
-        try:
-            iid = selected[0]
-            values = self.view.supplier_tree.item(iid, "values")
-            print(values)
-            self.view.open_info_window(values)
-        except Exception:
-            self.view.show_warning('Por favor seleccione un proveedor')

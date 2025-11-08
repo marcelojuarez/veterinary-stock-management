@@ -49,7 +49,7 @@ class SupplierModel:
     
     def add_supplier_product(self, supplier_id, product_data):
         query = """
-            INSERT INTO stock_proveedor (id, name, description, brand, price, quantity)
+            INSERT INTO stock_proveedores (id, name, description, brand, price, quantity)
             VALUES (?, ?, ?, ?, ?, ?)
         """
 
@@ -71,7 +71,7 @@ class SupplierModel:
 
     def delete_supplier(self, supplier_id):
         try:
-            query = "DELETE FROM proveedor where id = ?"
+            query = "DELETE FROM proveedores where id = ?"
             return db.execute_query(query, (supplier_id, ))
         except Exception as e:
             print(f'Error : {e}')

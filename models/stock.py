@@ -110,7 +110,7 @@ class StockModel:
     def search_products(self, search_term):
         """Buscar productos por nombre, ID o envase"""
         query = """
-            SELECT id, name, pack, profit, cost_price, price, iva, 
+            SELECT id, cuit_supplier, name, pack, profit, cost_price, price, iva, 
                    price_with_iva, created_at, last_price_update, quantity
             FROM stock 
             WHERE name LIKE ? OR id LIKE ? OR pack LIKE ?
@@ -124,7 +124,7 @@ class StockModel:
         try: 
             with self.db.cursor() as cursor:
                 cursor.execute(
-                    "SELECT id, name, pack, quantity FROM stock WHERE quantity < ? ORDER BY quantity", 
+                    "SELECT id, cuit_supplier, name, pack, quantity FROM stock WHERE quantity < ? ORDER BY quantity", 
                     (threshold,)
                 )
                 return cursor.fetchall()

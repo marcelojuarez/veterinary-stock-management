@@ -18,7 +18,6 @@ class StockController:
             print(form_data)
 
             print(f'Supplier cuit tiene {form_data['Cuit_supplier']}')
-            print('aca')
 
             # Validaciones
             if not self._validate_form_data(form_data):
