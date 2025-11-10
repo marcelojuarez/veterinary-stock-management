@@ -62,7 +62,7 @@ class SupplierController():
             
             self.view.show_success("Proveedor registrado correctamente.")
 
-            self.view.open_add_product_window()
+            self.view.open_add_product_window(data['cuit'])
 
         except ValueError as e:
             self.view.show_error(f"Error en los datos {str(e)}")
@@ -182,3 +182,14 @@ class SupplierController():
         except Exception:
             self.view.show_warning('Por favor seleccione un proveedor para eliminar')
 
+    def update_debt(self, supplier_data, win):
+        new_debt = self.view.debt.get()
+        self.view.lbl_debt.configure(text=f"${new_debt}")
+        # Se actualiza la deuda
+        self.model.update_debt(supplier_data[0] ,new_debt)
+        data = self.model.find_supplier_by_id(supplier_data[0])
+        # Se actualiza el momento de actualizacion
+        self.view.last_update_debt.set(value=f'Ultima actualizacion deuda: \n {data[7]}') 
+        self.refresh_supplier_table()
+        win.destroy()
+        ## deberia testear el tipo de valor ??

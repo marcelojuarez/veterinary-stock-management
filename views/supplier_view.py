@@ -167,17 +167,6 @@ class SupplierView():
         btn_color = "#009688"
         btn_hover = "#00796B"
 
-
-        save_btn = ctk.CTkButton(
-            manage_frame, 
-            text='Guardar', 
-            width=W, 
-            height=H,
-            font=ctk.CTkFont(size=12, weight="bold"),
-            fg_color=btn_color,
-            hover_color=btn_hover,
-        )
-
         info_btn = ctk.CTkButton(
             manage_frame, 
             text='Info', 
@@ -221,11 +210,10 @@ class SupplierView():
             command= lambda: self.open_add_product_window()
         )
 
-        save_btn.grid(row= 0, column=0, padx=5, pady=5)
-        info_btn.grid(row= 0, column=1, padx=5, pady=5)
-        delete_btn.grid(row= 0, column=2, padx=5, pady=5)
-        add_btn.grid(row= 0, column=3, padx=5, pady=5)
-        clear_btn.grid(row= 0, column=4, padx=5, pady=5)
+        info_btn.grid(row= 0, column=0, padx=5, pady=5)
+        delete_btn.grid(row= 0, column=1, padx=5, pady=5)
+        add_btn.grid(row= 0, column=2, padx=5, pady=5)
+        clear_btn.grid(row= 0, column=3, padx=5, pady=5)
 
     def open_add_window(self):
         add_win = ctk.CTkToplevel(self.frame)
@@ -334,7 +322,7 @@ class SupplierView():
         )
         finish_btn.grid(row=7, column=0,  padx=6, pady=5)
     
-    def open_add_product_window(self, parent=None):
+    def open_add_product_window(self, supplier_cuit, parent=None):
         """Ventana para agregar nuevo producto con CustomTkinter"""
         add_win = ctk.CTkToplevel(parent if parent else self.frame)
         add_win.title("Agregar nuevo artículo")
@@ -366,6 +354,11 @@ class SupplierView():
             ("% Rentabilidad:", self.stock_view.profit_var),
             ("Cantidad de Artículos:", self.stock_view.qnt_var)
         ]
+
+        print(f"Que es supplier cuit?: {supplier_cuit}")
+        self.stock_view.cuit_supplier.set(supplier_cuit)
+        print(f"Que es supplier cuit?: { self.stock_view.cuit_supplier.get()}")
+
 
         for i, (label_text, var) in enumerate(fields, start=0):
             label = ctk.CTkLabel(add_win, text=label_text, font=ctk.CTkFont(size=12))
@@ -423,7 +416,6 @@ class SupplierView():
         cancel_button = ctk.CTkButton(button_frame, text="Cancelar", width=120, height=35, font=ctk.CTkFont(size=12, weight="bold"),
             fg_color="#757575", hover_color="#616161", command=add_win.destroy)
         cancel_button.grid(row=0, column=1, padx=10)
-        self.stock_view.clear_form_fields()
 
     def get_supplier_data(self):
         return {
@@ -490,18 +482,18 @@ class SupplierView():
         sheet.set_sheet_data(products)
 
         # --- Panel de deuda ---
-        debt = tk.StringVar(value=f'${supplier[6]}')
-
+        self.debt = tk.StringVar(value=f'{supplier[6]}')
+        self.last_update_debt = tk.StringVar(value=f'Ultima actualizacion deuda: \n {supplier[7]}')
         right_frame = ctk.CTkFrame(info_win, corner_radius=10)
         right_frame.grid(row=0, column=1, sticky="nsew", padx=10, pady=(10, 0))
 
         lbl_title = ctk.CTkLabel(right_frame, text="Deuda proveedor", font=("Arial", 16, "bold"))
         lbl_title.pack(pady=(20, 10))
 
-        lbl_debt = ctk.CTkLabel(right_frame, textvariable=debt, font=("Arial", 24, "bold"), text_color="#059649")
-        lbl_debt.pack(pady=10)
+        self.lbl_debt = ctk.CTkLabel(right_frame, text=f'${self.debt.get()}', font=("Arial", 24, "bold"), text_color="#059649")
+        self.lbl_debt.pack(pady=10)
 
-        lbl_note = ctk.CTkLabel(right_frame, text="Última actualización: ????", font=("Arial", 12))
+        lbl_note = ctk.CTkLabel(right_frame, textvariable=self.last_update_debt,  font=("Arial", 18, "bold"))
         lbl_note.pack(pady=10)
 
         # frame botones izquierda
@@ -516,7 +508,7 @@ class SupplierView():
             fg_color=btn_color,
             hover_color=btn_hover,
             font=ctk.CTkFont(size=13, weight="bold"),
-            command=lambda: self.open_add_product_window()
+            command=lambda: self.open_add_product_window(supplier[1])
         )
         add_products_btn.grid(row=0, column=0, padx=10, ipadx=5)
 
@@ -544,20 +536,72 @@ class SupplierView():
             fg_color=btn_color,
             hover_color=btn_hover,
             font=ctk.CTkFont(size=13, weight="bold"),
-            command=lambda: print("Actualizar deuda clickeado")  
+            command=lambda: self.update_debt_win(info_win, supplier)
         )
         update_debt_btn.grid(row=0, column=0, padx=10, ipadx=5)
 
+    def update_debt_win(self, parent, supplier):
+        update_win = ctk.CTkToplevel(parent)
+        update_win.title("Actualizar Deuda Proveedor")
 
+        update_win.grid_rowconfigure(0, weight=1)
+        update_win.grid_columnconfigure(0, weight=1)
 
-    def show_error(self, message):
-        messagebox.showerror("Error", message)
+        # posicion y tamaño del frame
+        x_root = parent.winfo_rootx()
+        y_root = parent.winfo_rooty()
+        width_root = parent.winfo_width()
+        height_root = parent.winfo_height()
 
-    def show_success(self, message):
-        messagebox.showinfo("Éxito", message)
+        width_win = 300
+        height_win = 100
+        btn_color = "#009688"
+        btn_hover = "#00796B"
 
-    def show_warning(self, message):
-        messagebox.showwarning('Advertencia', message) 
+        x = x_root + (width_root // 2) - (width_win // 2)
+        y = y_root + (height_root // 2) - (height_win // 2)
+        update_win.geometry(f"{width_win}x{height_win}+{x}+{y}")
+
+        update_frame = ctk.CTkFrame(update_win, fg_color='transparent')
+        update_frame.grid(row=0, column=0, sticky='nsew')
+
+        update_frame.columnconfigure(0, weight=1)
+        update_frame.columnconfigure(1, weight=1)
+        update_frame.rowconfigure(0, weight=1)
+        update_frame.rowconfigure(1, weight=1)
+        
+        debt_lbl = ctk.CTkLabel(update_frame, text="Deuda:", font=ctk.CTkFont(size=18, weight="bold"))
+        debt_lbl.grid(row=0, column=0,  padx=5, ipadx=5)
+
+        debt_entry = ctk.CTkEntry(update_frame, textvariable=self.debt)
+        debt_entry.grid(row=0, column=1,  padx=5, ipadx=5)
+
+        # Botón Actualizar Deuda
+        update_debt_btn = ctk.CTkButton(
+            update_frame,
+            text='Actualizar',
+            fg_color=btn_color,
+            hover_color=btn_hover,
+            font=ctk.CTkFont(size=15, weight="bold"),
+            command=lambda: self.controller.update_debt(supplier, update_win)
+        )
+        update_debt_btn.grid(row=1, column=0, padx=10, ipadx=5)
+
+        cancel_update_btn = ctk.CTkButton(
+            update_frame,
+            text='Cancelar',
+            fg_color="#E74C3C",
+            hover_color="#C0392B",
+            font=ctk.CTkFont(size=15, weight="bold"),
+            command= update_win.destroy
+        )
+        cancel_update_btn.grid(row=1, column=1, padx=10, ipadx=5)
+
+    def show_error(self, message): messagebox.showerror("Error", message)
+
+    def show_success(self, message): messagebox.showinfo("Éxito", message)
+
+    def show_warning(self, message): messagebox.showwarning('Advertencia', message) 
     
     def ask_confirmation(self, message):
         """Preguntar confirmacion al usuario"""

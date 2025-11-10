@@ -84,7 +84,8 @@ class Database:
                     domicilio TEXT,
                     telefono TEXT,
                     email TEXT,
-                    deuda REAL
+                    deuda REAL,
+                    ult_act_deuda TEXT DEFAULT CURRENT_DATE
                 );
             ''')
 
