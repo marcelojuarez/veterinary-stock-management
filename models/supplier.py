@@ -1,4 +1,5 @@
 from db.database import db
+from datetime import datetime
 
 class SupplierModel:
     def __init__(self, db_connection=None):
@@ -16,44 +17,85 @@ class SupplierModel:
     def find_supplier_by_id(self, supplier_id):
         # Obtener proveedor a traves de id
         try:
-            query = "SELECT * FROM proveedores where id_proveedor = ?"
-            return db.execute_query(query, (supplier_id, ))
+            query = "SELECT * FROM proveedores where id = ?"
+            return db.fetch_one(query, (supplier_id, ))
+        except ValueError as e:
+            print(f'Error getting supplier by ID: {e}')
+            return None
+        
+    def find_suppplier_by_cuit(self, supplier_cuit):
+        try:
+            query = "SELECT * FROM proveedores where cuit = ?"
+            return db.fetch_one(query, (supplier_cuit,))
         except ValueError as e:
             print(f'Error getting supplier by ID: {e}')
             return None
 
     def add_supplier(self, supplier_data):
         # Agregar nuevo proveedor a la base de datos
+        date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         query = """
-            INSERT INTO proveedores (nombre, cuit, domicilio, telefono, email )
-            VALUES (?, ?, ?, ?, ?)
+            INSERT INTO proveedores (nombre, cuit, domicilio, telefono, email, deuda, ult_act_deuda)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
         """
         params = [
             supplier_data['nombre'],
             supplier_data['cuit'],
             supplier_data['domicilio'],
             supplier_data['telefono'],
-            supplier_data['email']
+            supplier_data['email'],
+            supplier_data['deuda'],
+            date
+        ]
+
+        return self.db.execute_query(query, params)
+    
+    def add_supplier_product(self, supplier_id, product_data):
+        query = """
+            INSERT INTO stock_proveedores (id, name, description, brand, price, quantity)
+            VALUES (?, ?, ?, ?, ?, ?)
+        """
+
+        params = [
+            supplier_id,
+            product_data['name'],
+            product_data['description'],
+            product_data['brand'],
+            product_data['price'],
+            product_data['quantity']
         ]
 
         print(params)
 
         return self.db.execute_query(query, params)
 
-    def update_supplier_info(self, supplier_id):
+    def show_supplier_info(self, supplier_id):
         pass
 
     def delete_supplier(self, supplier_id):
         try:
-            query = "DELETE FROM proveedor where id = ?"
+            query = "DELETE FROM proveedores where id = ?"
             return db.execute_query(query, (supplier_id, ))
         except Exception as e:
             print(f'Error : {e}')
             return None
 
-    def update_balance():
-        pass
+    def update_debt(self, supplier_id, new_supplier_debt):
+        date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        """Actualizar Saldo deuda a un proveedor"""
+        query = """
+            UPDATE proveedores
+            SET deuda = ?, ult_act_deuda = ?
+            WHERE id = ?
+        """
+        params = [
+            new_supplier_debt,
+            date,
+            supplier_id
+        ]
 
+        return db.execute_query(query, params)
+    
     def search_supplier(self, search_term):
         # Busco a un proveedor por nombre o ID
         pass

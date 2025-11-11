@@ -1,10 +1,16 @@
 from models.supplier import SupplierModel
+from models.stock import StockModel
+from controllers.stock_controller import StockController
+from views.stock_view import StockView
 import re
 
 class SupplierController():
-    def __init__(self, view):
+    def __init__(self, view, stock_controller):
         self.model = SupplierModel()
         self.view = view
+        self.stock_model = StockModel()
+        self.stock_controller = stock_controller
+        self.stock_view = self.view.stock_view
 
     def add_new_supplier(self, window=None):
         """Guardar nuevo proveedor"""
@@ -41,7 +47,8 @@ class SupplierController():
                 'cuit': data['cuit'],
                 'domicilio': data['domicilio'],
                 'telefono': data['telefono'],
-                'email': data['email']
+                'email': data['email'],
+                'deuda': data['deuda']
             }
 
             self.model.add_supplier(supplier_data)
@@ -60,12 +67,39 @@ class SupplierController():
         except Exception as e:
             self.view.show_error(f"Error al registrar el proveedor: {str(e)}")
 
+    def open_win_add_supplier_product(self, supplier_cuit):
+        try:
+            self.view.open_add_product_window(supplier_cuit)
+
+        except Exception as e:
+            print({e})
+
+
+    def add_supplier_product(self):
+        data = self.stock_view.get_form_data()
+        print(f'Datos: {data}')
+        self.stock_controller.add_new_product()
+        self.stock_view.clear_form_fields()
+
+
+    def supplier_info(self):
+        # Obtengo las filas seleccionadas
+        selected = self.view.supplier_tree.selection()
+
+        try:
+            iid = selected[0]
+            values = self.view.supplier_tree.item(iid, "values")
+            print(f'Valores: {values}')
+            self.view.open_info_window(values)
+        except Exception:
+            self.view.show_warning('Por favor seleccione un proveedor')
+
     def show_suppliers(self):
         suppliers_data = self.model.get_all_suppliers()
         return suppliers_data 
     
     def __validates_supplier_data(self, form_data):
-        required_files =  ['nombre', 'cuit', 'domicilio', 'telefono', 'email']
+        required_files =  ['nombre', 'cuit', 'domicilio', 'telefono', 'email', 'deuda']
 
         print(f'Formulario de datos {form_data}')
 
@@ -90,6 +124,10 @@ class SupplierController():
         
         if not re.fullmatch(pattern, cuit_field):
             self.view.show_warning("Por favor coloque el CUIT correctamente. Formato: XX-XXXXXXXX-X")
+            return False
+        
+        if self.model.find_suppplier_by_cuit(cuit_field) is not None:
+            self.view.show_error(f"Error: Ya existe un proveedor con el CUIT: {cuit_field}")
             return False
         
         return True
@@ -132,10 +170,10 @@ class SupplierController():
         self.view.cuit_var.set('')
         self.view.home_var.set('')
         self.view.phone_var.set('')
-
+        self.view.debt_var.set('')
 
     def delete_supplier(self):
-        # Obtengo las filas selecionadas
+        # Obtengo las filas seleccionadas
         selected = self.view.supplier_tree.selection()
 
         try:
@@ -146,7 +184,53 @@ class SupplierController():
             self.model.delete_supplier(iid)
             self.refresh_supplier_table()
             self.view.show_success('El proveedor fue eliminado correctamente')
-            
 
         except Exception:
             self.view.show_warning('Por favor seleccione un proveedor para eliminar')
+
+    def update_debt(self, supplier_data, win):
+        new_debt = self.view.debt.get()
+        self.view.lbl_debt.configure(text=f"${new_debt}")
+        # Se actualiza la deuda
+        self.model.update_debt(supplier_data[0] ,new_debt)
+        data = self.model.find_supplier_by_id(supplier_data[0])
+        # Se actualiza el momento de actualizacion
+        self.view.last_update_debt.set(value=f'Ultima actualizacion deuda: \n {data[7]}') 
+        self.refresh_supplier_table()
+        win.destroy()
+
+    
+    def register_purchase(self, product_tree, qty_var, window):
+        try:
+            selected = product_tree.selection()
+            if not selected:
+                self.view.show_warning("Seleccione un producto")
+                return
+            product_id = product_tree.item(selected[0])["values"][0]
+            quantity = int(qty_var.get())
+
+            if quantity <= 0:
+                self.view.show_warning("Cantidad inválida")
+                return
+
+      
+            product_data = self.stock_model.get_product_by_id(product_id)
+
+            message = f"¿Desea actualizar el stock del producto '{product_data[2]}' con {qty_var.get()} unidades?"
+
+            confirmation = self.view.ask_confirmation(message, "Actualizar stock")
+            print(f'product_data: {product_data[11]}')
+            quantity += int(product_data[11])
+            
+            if confirmation:
+                self.stock_model.update_quantity(product_id, quantity)
+
+                self.view.show_success("Compra registrada y stock actualizado.")
+                window.destroy()
+                self.view.stock_view.controller.refresh_stock_table()
+
+            else:
+                print('no hay actualizacion')
+
+        except Exception as e:
+            self.view.show_error(f"Error al registrar compra: {e}")

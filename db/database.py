@@ -48,17 +48,18 @@ class Database:
             # Tabla de stock
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS stock (
-                    id TEXT PRIMARY KEY,
-                    name TEXT NOT NULL,
-                    pack TEXT NOT NULL,
-                    profit REAL NOT NULL,
-                    cost_price REAL NOT NULL,
-                    price REAL NOT NULL,
-                    iva REAL NOT NULL,
-                    price_with_iva REAL NOT NULL,
-                    quantity INTEGER NOT NULL,
-                    created_at TEXT DEFAULT CURRENT_DATE,
-                    last_price_update TEXT DEFAULT CURRENT_DATE
+                id TEXT PRIMARY KEY,
+                cuit_supplier TEXT,
+                name TEXT NOT NULL,
+                pack TEXT NOT NULL,
+                profit REAL NOT NULL,
+                cost_price REAL NOT NULL,
+                price REAL NOT NULL,
+                iva REAL NOT NULL,
+                price_with_iva REAL NOT NULL,
+                quantity INTEGER NOT NULL,
+                created_at TEXT DEFAULT CURRENT_DATE,
+                last_price_update TEXT DEFAULT CURRENT_DATE
                 );
             ''')
 
@@ -76,13 +77,15 @@ class Database:
 
             # Tabla de proveedores
             cursor.execute('''
-                CREATE TABLE IF NOT EXISTS proveedor (
+                CREATE TABLE IF NOT EXISTS proveedores (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    nombre TEXT NOT NULL,
                     cuit TEXT,
+                    nombre TEXT NOT NULL,
                     domicilio TEXT,
                     telefono TEXT,
-                    email TEXT
+                    email TEXT,
+                    deuda REAL,
+                    ult_act_deuda TEXT DEFAULT CURRENT_DATE
                 );
             ''')
 

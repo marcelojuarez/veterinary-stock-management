@@ -109,9 +109,10 @@ class App():
         self.notebook.add(self.sales_view.frame, text='Venta')
 
         # --- SUPPLIERS ---
-        self.supplier_controller = SupplierController(None)
-        self.supplier_view = SupplierView(self.notebook, controller=self.supplier_controller)
+        self.supplier_view = SupplierView(self.notebook, stock_view=self.stock_view)
+        self.supplier_controller = SupplierController(self.supplier_view, stock_controller=self.stock_controller)
         self.supplier_controller.view = self.supplier_view
+        self.supplier_view.set_controller(self.supplier_controller)
         self.supplier_view.frame.pack(fill='both', expand=True)
         self.notebook.add(self.supplier_view.frame, text='Proveedores')
 
@@ -121,8 +122,6 @@ class App():
         self.customers_view.attach_controller(self.customer_controller)
         self.customers_view.frame.pack(fill='both', expand=True)
         self.notebook.add(self.customers_view.frame, text='Clientes')
-
-
 
     def load_initial_data(self):
         try:

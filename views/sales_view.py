@@ -348,7 +348,7 @@ class SalesView:
             products = self.stock_model.get_all_products()
             self.product_tree.delete(*self.product_tree.get_children())
             for p in products:
-                (pid, name, pack, profit, cost, price, iva, price_with_iva, created_at, last_update, qty) = p
+                (pid, cuit_supplier, name, pack, profit, cost, price, iva, price_with_iva, created_at, last_update, qty) = p
                 if qty > 0:
                     self.product_tree.insert("", "end", values=(pid, name, price_with_iva, qty))
         except Exception as e:
