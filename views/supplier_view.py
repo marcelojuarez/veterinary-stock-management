@@ -137,12 +137,12 @@ class SupplierView():
                            
         self.supplier_tree['columns'] = ("Id", "Nombre", "Cuit", "Domicilio", "Telefono", "Email", "Saldo Deuda")
         self.supplier_tree['displaycolumns'] = self.supplier_tree['columns']
-        self.supplier_tree.column("Id", anchor=tk.W, width=80,stretch=False)
-        self.supplier_tree.column("Nombre", anchor=tk.W, width=180,stretch=False)
-        self.supplier_tree.column("Cuit", anchor=tk.W, width=140,stretch=False)
-        self.supplier_tree.column("Domicilio", anchor=tk.W, width=140,stretch=False)
-        self.supplier_tree.column("Telefono", anchor=tk.W, width=140,stretch=False)
-        self.supplier_tree.column("Email", anchor=tk.W, width=140, stretch=False)
+        self.supplier_tree.column("Id", anchor=tk.W, width=50,stretch=False)
+        self.supplier_tree.column("Nombre", anchor=tk.W, width=350,stretch=False)
+        self.supplier_tree.column("Cuit", anchor=tk.W, width=200,stretch=False)
+        self.supplier_tree.column("Domicilio", anchor=tk.W, width=350,stretch=False)
+        self.supplier_tree.column("Telefono", anchor=tk.W, width=160,stretch=False)
+        self.supplier_tree.column("Email", anchor=tk.W, width=200, stretch=False)
         self.supplier_tree.column("Saldo Deuda", anchor=tk.W, width=140, stretch=False)
 
         self.supplier_tree.heading('Id', text='ID ↕')
@@ -454,7 +454,19 @@ class SupplierView():
 
         for supplier in suppliers:
             print(supplier)
-            self.supplier_tree.insert(parent='', index='end', iid=supplier[0], values=supplier, tag="orow")
+            self.supplier_tree.insert(
+                parent='', index='end', iid=supplier[0],
+                values=(
+                    supplier[0],   # id
+                    supplier[2],   # nombre
+                    supplier[1],   # cuit
+                    supplier[3],   # domicilio
+                    supplier[4],   # telefono
+                    supplier[5],   # email
+                    supplier[6],   # deuda
+                ),
+                tag="orow"
+            )
 
         self.supplier_tree.tag_configure('orow', background="white", foreground='black')
 
