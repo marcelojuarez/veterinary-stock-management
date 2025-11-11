@@ -119,27 +119,19 @@ class SalesController:
         except Exception as e:
             self.sales_view.show_error(f"Error al procesar venta: {e}")
 
-
-
     def show_today_sales(self):
-        """Mostrar un resumen de las ventas del día"""
+        """Mostrar ventas del día en una vista con tabla"""
         try:
             rows = self.sales_model.get_today_sales()
             if not rows:
                 self.sales_view.show_warning("No hay ventas registradas hoy.")
                 return
 
-            msg = "🧾 Ventas de hoy:\n\n"
-            total_dia = 0
-            for sale_id, date, total in rows:
-                msg += f"• Venta #{sale_id} - {date} - Total ${total:.2f}\n"
-                total_dia += total
-
-            msg += f"\nTOTAL DEL DÍA: ${total_dia:.2f}"
-            self.sales_view.show_success(msg)
+            self.sales_view.open_today_sales_window(rows)
 
         except Exception as e:
             self.sales_view.show_error(f"Error al listar ventas: {e}")
+
 
     def get_client_names(self):
         """Obtener nombres de clientes para el combo de ventas"""

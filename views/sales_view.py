@@ -2,6 +2,7 @@ import customtkinter as ctk
 from tkinter import ttk, messagebox
 import tkinter as tk
 from models.stock import StockModel
+from services.daily_sales_report import DailySalesReportService
 
 ctk.set_appearance_mode("light")
 ctk.set_default_color_theme("blue")
@@ -126,10 +127,12 @@ class SalesView:
             width=250,
             height=35,
             state="readonly",
-            command=self.on_client_selected  # 👈 Llamado cuando cambia selección
+            command=self.on_client_selected
         )
         self.client_combo.set("Consumidor Final")
         self.client_combo.grid(row=0, column=1, padx=10, pady=10, sticky="w")
+        self.client_combo.bind("<Button-1>", self.refresh_client_list)
+        self.client_combo.bind("<FocusIn>", self.refresh_client_list)
 
         # --- Campos de datos ---
         ctk.CTkLabel(client_frame, text="CUIT / DNI:",
@@ -253,6 +256,67 @@ class SalesView:
         except Exception as e:
             messagebox.showerror("Error", f"No se pudo agregar el producto: {e}")
 
+    def open_today_sales_window(self, rows):
+        """Ventana con tabla para mostrar ventas del día"""
+        win = ctk.CTkToplevel(self.frame)
+        win.title("Ventas del día")
+        win.geometry("700x600")
+        win.transient(self.frame)
+        win.grab_set()
+
+        title = ctk.CTkLabel(win, text="📅 Ventas del día",
+                            font=ctk.CTkFont(size=18, weight="bold"))
+        title.pack(pady=10)
+
+        # Tabla
+        tree = ttk.Treeview(win, show="headings", height=10)
+        tree["columns"] = ("ID", "Fecha", "Cliente", "Estado", "Total")
+
+        widths = [60, 150, 250, 100, 100]
+        for col, w in zip(tree["columns"], widths):
+            tree.column(col, width=w, anchor="center")
+            tree.heading(col, text=col)
+
+        for sale_id, date, total, cliente, estado in rows:
+            tree.insert("", "end", values=(
+                sale_id,
+                date,
+                cliente if cliente else "Consumidor Final",
+                estado.upper(),
+                f"${total:.2f}"
+            ))
+
+        tree.pack(padx=15, pady=10, fill="both", expand=True)
+
+        # Botones
+        btn_frame = ctk.CTkFrame(win)
+        btn_frame.pack(pady=10)
+
+        export_btn = ctk.CTkButton(
+            btn_frame,
+            text="🖨 Imprimir / Exportar",
+            width=180,
+            fg_color="#0078D4",
+            hover_color="#005A9E",
+            command=lambda: self.export_sales_day(rows)
+        )
+        export_btn.grid(row=0, column=0, padx=5)
+
+        close_btn = ctk.CTkButton(
+            btn_frame,
+            text="Cerrar",
+            width=140,
+            fg_color="#757575",
+            hover_color="#616161",
+            command=win.destroy
+        )
+        close_btn.grid(row=0, column=1, padx=5)
+
+    def export_sales_day(self, rows):
+        pdf = DailySalesReportService().generate(rows)
+        messagebox.showinfo("PDF generado", f"Archivo guardado:\n\n{pdf}\n\nPuedes imprimirlo.")
+
+
     def refresh_sale_table(self):
         self.sale_tree.delete(*self.sale_tree.get_children())
         for pid, qty, price in self.items_in_sale:
@@ -302,6 +366,14 @@ class SalesView:
                 self.client_address_var.set("")
         except Exception as e:
             self.show_error(f"No se pudieron cargar los datos del cliente: {e}")
+
+    def refresh_client_list(self, event=None):
+        names = self.controller.get_client_names()
+        self.client_combo.configure(values=names)
+
+        # Mantiene selección válida
+        if self.client_var.get() not in names:
+            self.client_combo.set("Consumidor Final")
 
 
     # Utilidades

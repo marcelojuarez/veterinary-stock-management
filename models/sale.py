@@ -34,15 +34,17 @@ class SalesModel:
             conn.commit()
             return sale_id
 
-
-
-
     def get_today_sales(self):
-        """Obtener todas las ventas del día actual"""
         query = """
-            SELECT id, date, total FROM sales
-            WHERE DATE(date) = DATE('now')
-            ORDER BY date DESC
+            SELECT s.id, s.date, s.total,
+                COALESCE(c.nombre, 'Consumidor Final') AS cliente,
+                s.estado
+            FROM sales s
+            LEFT JOIN clientes c ON s.cliente_id = c.id
+            WHERE date(s.date) = date('now')
+            ORDER BY s.date DESC
         """
-        return self.db.fetch_all(query)
+        return db.fetch_all(query)
+
+
 
