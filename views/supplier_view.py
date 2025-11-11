@@ -210,10 +210,22 @@ class SupplierView():
             command= lambda: self.open_add_product_window()
         )
 
+        purchase_btn = ctk.CTkButton(
+            manage_frame, 
+            text='Registrar Compra', 
+            width=W, 
+            height=H,
+            font=ctk.CTkFont(size=12, weight="bold"),
+            fg_color=btn_color,
+            hover_color=btn_hover,
+            command=lambda: self.open_purchase_window()
+        )
+        
         info_btn.grid(row= 0, column=0, padx=5, pady=5)
         delete_btn.grid(row= 0, column=1, padx=5, pady=5)
         add_btn.grid(row= 0, column=2, padx=5, pady=5)
         clear_btn.grid(row= 0, column=3, padx=5, pady=5)
+        purchase_btn.grid(row=0, column=4, padx=5, pady=5)
 
     def open_add_window(self):
         add_win = ctk.CTkToplevel(self.frame)
@@ -501,21 +513,10 @@ class SupplierView():
         left_btn_frame.grid(row=1, column=0, sticky="ew", pady=15)
         left_btn_frame.grid_columnconfigure((0, 1), weight=1)
 
-        # Botón Agregar Productos
-        add_products_btn = ctk.CTkButton(
-            left_btn_frame,
-            text='Agregar Productos',
-            fg_color=btn_color,
-            hover_color=btn_hover,
-            font=ctk.CTkFont(size=13, weight="bold"),
-            command=lambda: self.open_add_product_window(supplier[1])
-        )
-        add_products_btn.grid(row=0, column=0, padx=10, ipadx=5)
-
         # Botón Cancelar 
         cancel_btn = ctk.CTkButton(
             left_btn_frame,
-            text='Cancelar',
+            text='Cerrar',
             fg_color="#E74C3C",
             hover_color="#C0392B",
             text_color="white",
@@ -597,13 +598,130 @@ class SupplierView():
         )
         cancel_update_btn.grid(row=1, column=1, padx=10, ipadx=5)
 
+    def open_purchase_window(self):
+        win = ctk.CTkToplevel(self.frame)
+        win.title("Registrar Compra a Proveedor")
+        win.geometry("750x550")
+        win.grab_set()
+
+        # Configurar grilla principal
+        for i in range(6):
+            win.grid_rowconfigure(i, weight=0)
+        win.grid_rowconfigure(3, weight=1)
+        win.grid_columnconfigure(0, weight=1)
+        win.grid_columnconfigure(1, weight=1)
+
+        # --- Proveedor ---
+        ctk.CTkLabel(
+            win, text="Proveedor:", font=ctk.CTkFont(size=14, weight="bold")
+        ).grid(row=0, column=0, padx=10, pady=(15, 5), sticky="e")
+
+        proveedores = [f"{p[1]}" for p in self.model.get_all_suppliers()]  # nombre (CUIT)
+        self.purchase_supplier_var = tk.StringVar()
+
+        supplier_combo = ctk.CTkComboBox(
+            win, variable=self.purchase_supplier_var, values=proveedores, width=250
+        )
+        supplier_combo.grid(row=0, column=1, padx=10, pady=(15, 5), sticky="w")
+
+        # boton mostrar productos
+        show_products_btn = ctk.CTkButton(
+            win, text="Mostrar productos",
+            font=ctk.CTkFont(size=13, weight="bold"),
+            command=lambda: load_products()
+        )
+        show_products_btn.grid(row=1, column=0, columnspan=2, pady=(5, 10))
+
+        # frame para productos
+        product_frame = ctk.CTkFrame(win)
+        product_frame.grid(row=3, column=0, columnspan=2, sticky="nsew", padx=10, pady=5)
+        product_tree = ttk.Treeview(product_frame, show="headings", height=8)
+        product_tree["columns"] = ("id", "nombre", "precio", "stock")
+        for col in product_tree["columns"]:
+            product_tree.heading(col, text=col.capitalize())
+            product_tree.column(col, width=150, anchor="center")
+        product_tree.pack(side="left", fill="both", expand=True)
+
+        #  scrollbar 
+        scroll = ttk.Scrollbar(product_frame, orient="vertical", command=product_tree.yview)
+        product_tree.configure(yscroll=scroll.set)
+        scroll.pack(side="right", fill="y")
+
+        # --- Frame inferior (botones y cantidad) ---
+        buttons_frame = ctk.CTkFrame(win)
+        buttons_frame.grid(row=4, column=0, columnspan=2, sticky="ew", padx=10, pady=10)
+        for i in range(5):
+            buttons_frame.grid_columnconfigure(i, weight=1)
+
+        # Etiqueta cantidad
+        qty_label = ctk.CTkLabel(buttons_frame, text="Cantidad recibida:", font=ctk.CTkFont(size=12))
+        qty_label.grid(row=0, column=0, padx=(10, 5), pady=10, sticky="e")
+
+        qty_var = tk.StringVar(value="1")
+        qty_entry = ctk.CTkEntry(buttons_frame, textvariable=qty_var, width=100)
+        qty_entry.grid(row=0, column=1, padx=(0, 15), pady=10, sticky="w")
+
+        # Botón Registrar Compra
+        confirm_btn = ctk.CTkButton(
+            buttons_frame,
+            text="Agrega nuevos productos",
+            fg_color="#4CAF50",
+            hover_color="#45a049",
+            font=ctk.CTkFont(size=13, weight="bold"),
+            command=lambda: self.controller.open_win_add_supplier_product(self.purchase_supplier_var.get())
+        )
+        confirm_btn.grid(row=0, column=2, padx=5, pady=10)
+
+        # Botón Actualizar Stock
+        update_stock_btn = ctk.CTkButton(
+            buttons_frame,
+            text="Actualizar Stock",
+            fg_color="#3498DB",
+            hover_color="#2980B9",
+            font=ctk.CTkFont(size=13, weight="bold"),
+            command=lambda: self.controller.register_purchase(
+                product_tree, qty_var, win
+            )
+        )
+        update_stock_btn.grid(row=0, column=3, padx=5, pady=10)
+
+        # Botón Cerrar
+        close_win_btn = ctk.CTkButton(
+            buttons_frame,
+            text="Cerrar",
+            fg_color="#E74C3C",
+            hover_color="#C0392B",
+            font=ctk.CTkFont(size=13, weight="bold"),
+            command=win.destroy
+        )
+        close_win_btn.grid(row=0, column=4, padx=5, pady=10)
+
+        # --- Función para cargar productos ---
+        def load_products():
+            selected_supplier = self.purchase_supplier_var.get()
+            if not selected_supplier:
+                tk.messagebox.showwarning("Atención", "Primero selecciona un proveedor.")
+                return
+
+            # Limpiar tabla
+            for item in product_tree.get_children():
+                product_tree.delete(item)
+
+            # Cargar productos
+            for p in self.stock_model.get_all_products_by_cuit(selected_supplier):
+                product_tree.insert("", "end", values=(p[0], p[2], p[5], p[9]))
+
+
     def show_error(self, message): messagebox.showerror("Error", message)
 
     def show_success(self, message): messagebox.showinfo("Éxito", message)
 
     def show_warning(self, message): messagebox.showwarning('Advertencia', message) 
     
-    def ask_confirmation(self, message):
-        """Preguntar confirmacion al usuario"""
-        return messagebox.askquestion("Confirmacion", message) == 'yes'
-    
+    def ask_confirmation(self, message, title):
+        respuesta = messagebox.askokcancel(
+            title,
+            message
+        )
+
+        return respuesta

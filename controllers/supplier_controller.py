@@ -62,12 +62,17 @@ class SupplierController():
             
             self.view.show_success("Proveedor registrado correctamente.")
 
-            self.view.open_add_product_window(data['cuit'])
-
         except ValueError as e:
             self.view.show_error(f"Error en los datos {str(e)}")
         except Exception as e:
             self.view.show_error(f"Error al registrar el proveedor: {str(e)}")
+
+    def open_win_add_supplier_product(self, supplier_cuit):
+        try:
+            self.view.open_add_product_window(supplier_cuit)
+
+        except Exception as e:
+            print({e})
 
 
     def add_supplier_product(self):
@@ -75,6 +80,7 @@ class SupplierController():
         print(f'Datos: {data}')
         self.stock_controller.add_new_product()
         self.stock_view.clear_form_fields()
+
 
     def supplier_info(self):
         # Obtengo las filas seleccionadas
@@ -192,4 +198,39 @@ class SupplierController():
         self.view.last_update_debt.set(value=f'Ultima actualizacion deuda: \n {data[7]}') 
         self.refresh_supplier_table()
         win.destroy()
-        ## deberia testear el tipo de valor ??
+
+    
+    def register_purchase(self, product_tree, qty_var, window):
+        try:
+            selected = product_tree.selection()
+            if not selected:
+                self.view.show_warning("Seleccione un producto")
+                return
+            product_id = product_tree.item(selected[0])["values"][0]
+            quantity = int(qty_var.get())
+
+            if quantity <= 0:
+                self.view.show_warning("Cantidad inválida")
+                return
+
+      
+            product_data = self.stock_model.get_product_by_id(product_id)
+
+            message = f"¿Desea actualizar el stock del producto '{product_data[2]}' con {qty_var.get()} unidades?"
+
+            confirmation = self.view.ask_confirmation(message, "Actualizar stock")
+            print(f'product_data: {product_data[11]}')
+            quantity += int(product_data[11])
+            
+            if confirmation:
+                self.stock_model.update_quantity(product_id, quantity)
+
+                self.view.show_success("Compra registrada y stock actualizado.")
+                window.destroy()
+                self.view.stock_view.controller.refresh_stock_table()
+
+            else:
+                print('no hay actualizacion')
+
+        except Exception as e:
+            self.view.show_error(f"Error al registrar compra: {e}")
