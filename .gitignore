@@ -212,8 +212,8 @@ marimo/_lsp/
 __marimo__/
 
 # database
-stock.db
-.db
+db/stock.db
+db/*.db
+*.db
 
 ventas
-db/stock.db
