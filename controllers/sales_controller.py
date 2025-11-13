@@ -112,6 +112,13 @@ class SalesController:
 
             sale_id = self.sales_model.register_sale(total, items, cliente_id, estado)
 
+            from controllers.invoice_controller import InvoiceController
+            inv = InvoiceController()
+
+            invoice_id, pdf = inv.generate_invoice(cliente_id, items)
+
+            self.sales_view.show_success(f"Venta registrada.\nFactura creada: {pdf}")
+
             self.sales_view.show_success(f"Venta registrada correctamente (ID: {sale_id})")
             self.sales_view.clear_sale()
             self.sales_view.load_available_products()

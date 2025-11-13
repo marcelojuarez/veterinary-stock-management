@@ -34,13 +34,13 @@ class CustomerModel:
 
 
     def find_customer_by_id(self, customer_id):
-        # Obtener cliente a traves de id
         try:
-            query = "SELECT * FROM clientes where id = ?"
-            return db.execute_query(query, (customer_id,))
-        except ValueError as e:
+            query = "SELECT * FROM clientes WHERE id = ?"
+            return db.fetch_one(query, (customer_id,))
+        except Exception as e:
             print(f'Error getting customer by ID: {e}')
             return None
+
 
     def add_customer(self, customer_data):
         # Agregar nuevo cliente a la base de datos

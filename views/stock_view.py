@@ -222,7 +222,7 @@ class StockView():
 
         # Definición de columnas
         self.stock_tree.column("Id", anchor=tk.W, width=60, stretch=False)
-        self.stock_tree.column("SupplierCuit", anchor=tk.W, width=250, stretch=False)
+        self.stock_tree.column("SupplierCuit", anchor=tk.W, width=150, stretch=False)
         self.stock_tree.column("Name", anchor=tk.W, width=250, stretch=False)
         self.stock_tree.column("Package", anchor=tk.W, width=120, stretch=False)
         self.stock_tree.column("Profit", anchor=tk.CENTER, width=80, stretch=False)

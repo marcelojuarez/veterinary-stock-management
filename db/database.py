@@ -91,32 +91,30 @@ class Database:
 
             # Tabla de facturas
             cursor.execute('''
-                CREATE TABLE IF NOT EXISTS factura (
+                CREATE TABLE IF NOT EXISTS invoice (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    numero_factura TEXT NOT NULL,
-                    fecha_emision TEXT NOT NULL,
-                    cae TEXT,
-                    fecha_vencimiento_cae TEXT,
-                    cliente_id INTEGER NOT NULL,
-                    subtotal REAL NOT NULL,
-                    iva REAL NOT NULL,
-                    total REAL NOT NULL,
-                    estado TEXT DEFAULT 'autorizada',
-                    FOREIGN KEY(cliente_id) REFERENCES clientes(id) ON DELETE CASCADE
+                    number TEXT,
+                    date TEXT DEFAULT CURRENT_TIMESTAMP,
+                    customer_id INTEGER,
+                    subtotal REAL,
+                    iva REAL,
+                    total REAL,
+                    estado TEXT DEFAULT 'borrador',  -- o 'emitida'
+                    FOREIGN KEY(customer_id) REFERENCES clientes(id)
                 );
             ''')
 
             # Tabla de items de factura
             cursor.execute('''
-                CREATE TABLE IF NOT EXISTS factura_items (
+                CREATE TABLE IF NOT EXISTS invoice_items (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    factura_id INTEGER NOT NULL,
-                    producto_id TEXT NOT NULL,
-                    cantidad INTEGER NOT NULL,
-                    precio_unitario REAL NOT NULL,
-                    subtotal REAL NOT NULL,
-                    FOREIGN KEY(factura_id) REFERENCES factura(id) ON DELETE CASCADE,
-                    FOREIGN KEY(producto_id) REFERENCES stock(id)
+                    invoice_id INTEGER,
+                    product_id TEXT,
+                    quantity INTEGER,
+                    price REAL,
+                    subtotal REAL,
+                    FOREIGN KEY(invoice_id) REFERENCES invoice(id),
+                    FOREIGN KEY(product_id) REFERENCES stock(id)
                 );
             ''')
 
