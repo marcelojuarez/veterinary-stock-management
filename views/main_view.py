@@ -1,6 +1,6 @@
 import tkinter as tk
 import customtkinter as ctk
-from tkinter import ttk, messagebox
+from tkinter import ttk
 from controllers.auth_controller import validate_data
 from config.settings import settings
 from views.stock_view import StockView
@@ -87,7 +87,7 @@ class App():
         if (validate_data(self.user_var.get(), self.pwd_var.get())):
             self.root.deiconify()
             self.create_notebook()
-            self.load_initial_data()
+            self.root.after(100, self.load_initial_data)
             self.login_win.destroy()  
 
     def create_notebook(self):

@@ -28,8 +28,19 @@ class SupplierModel:
             query = "SELECT * FROM proveedores where cuit = ?"
             return db.fetch_one(query, (supplier_cuit,))
         except ValueError as e:
-            print(f'Error getting supplier by ID: {e}')
+            print(f'Error getting supplier by CUIT: {e}')
             return None
+        
+    def get_all_payment_of_supplier(self, supplier_id):
+        try:
+            query = """
+            SELECT * FROM movimientos_proveedor where id_proveedor = ?
+            """
+            return self.db.fetch_all(query, (supplier_id,))            
+        except ValueError as e:
+            print(f'Error getting supplier payment by cuit: {e}')
+            return None
+
 
     def add_supplier(self, supplier_data):
         # Agregar nuevo proveedor a la base de datos
@@ -49,25 +60,22 @@ class SupplierModel:
         ]
 
         return self.db.execute_query(query, params)
-    
-    def add_supplier_product(self, supplier_id, product_data):
+
+    def add_new_payment(self, supplier_id, payment_data):
+        datetime = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         query = """
-            INSERT INTO stock_proveedores (id, name, description, brand, price, quantity)
-            VALUES (?, ?, ?, ?, ?, ?)
+            INSERT INTO movimientos_proveedor (id_proveedor, monto, metodo, id_recibo, observaciones, saldo_anterior, saldo_posterior, date)
+            values(?, ?, ?, ?, ?, ?, ?, ?)
         """
 
         params = [
             supplier_id,
-            product_data['name'],
-            product_data['description'],
-            product_data['brand'],
-            product_data['price'],
-            product_data['quantity']
+            payment_data['monto']
+
         ]
 
-        print(params)
-
-        return self.db.execute_query(query, params)
+        self.db.execute_query(query, params)
+    
 
     def show_supplier_info(self, supplier_id):
         pass

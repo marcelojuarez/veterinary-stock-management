@@ -192,7 +192,7 @@ class StockView():
         # Configurar colores del Treeview
         style.configure('Treeview',
                        background='#ffffff',
-                       foreground='#333333',
+                       foreground='#ffffff',
                        rowheight=30,
                        fieldbackground='#ffffff',
                        font=('Arial', 12))

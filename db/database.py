@@ -79,13 +79,47 @@ class Database:
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS proveedores (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    cuit TEXT,
+                    cuit TEXT UNIQUE,
                     nombre TEXT NOT NULL,
                     domicilio TEXT,
                     telefono TEXT,
                     email TEXT,
                     deuda REAL,
                     ult_act_deuda TEXT DEFAULT CURRENT_DATE
+                );
+            ''')
+
+            # Tabla pagos proveedor 
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS movimientos_proveedor(
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    id_proveedor INTEGER,
+                    monto REAL NOT NULL,
+                    metodo TEXT,
+                    id_recibo TEXT,
+                    observaciones TEXT,
+                    saldo_anterior REAL,
+                    saldo_posterior REAL,
+                    date TEXT DEFAULT CURRENT_DATE,
+                    FOREIGN KEY (id_proveedor) REFERENCES proveedores (id)
+                );
+            ''')
+
+            # Tabla facturas de compra proveedor
+            cursor.execute(''' 
+                CREATE TABLE IF NOT EXISTS factura_proveedor(
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    id_proveedor INTEGER,
+                    tipo_factura TEXT,
+                    unto_de_venta INTEGER,
+                    factura_id INTEGER,
+                    fecha TEXT CURRENT_DATE
+                    total REAL,
+                    subtotal REAL,
+                    iva REAL
+                    tipo_de_pago TEXT,
+                    estado TEXT DEFAULT 'pendiente',
+                    FOREIGN KEY (id_proveedor) REFERENCES proveedores (id)
                 );
             ''')
 
