@@ -8,9 +8,9 @@ settings = {
 }
 
 COMPANY_CONFIG = {
-    "personal": "Veterinaria",
-    "direccion": "Chaján, Córdoba",
-    "telefono": "+54 9 358 4123456",
-    "email": "veterinaria@gmail.com",
+    "name": "Veterinaria Chajan",
+    "address": "Chaján, Córdoba",
+    "phone": "+54 9 358 4123456",
+    "email": "veterinariachajan@gmail.com",
     "cuit": "20-12345678-3"
 }

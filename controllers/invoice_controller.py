@@ -1,6 +1,6 @@
 from models.invoice import InvoiceModel
 from models.customer import CustomerModel
-from services.invoice_pdf import InvoicePDFService
+from services.invoice_internal_pdf import InvoiceInternalPDFService
 
 class InvoiceController:
     def __init__(self):
@@ -30,7 +30,7 @@ class InvoiceController:
         customer = self.customer_model.find_customer_by_id(customer_id)
 
         # Generar PDF
-        pdf_path = InvoicePDFService().generate_pdf(
+        pdf_path = InvoiceInternalPDFService().generate_pdf(
             number=number,
             customer=customer,
             items=items,
@@ -39,4 +39,4 @@ class InvoiceController:
             total=total
         )
 
-        return invoice_id, pdf_path
+        return pdf_path

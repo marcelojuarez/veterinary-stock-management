@@ -2,6 +2,7 @@ from models.stock import StockModel
 from models.sale import SalesModel
 from models.customer import CustomerModel
 from tkinter import messagebox
+from controllers.invoice_controller import InvoiceController
 
 class SalesController:
     def __init__(self, sales_view):
@@ -112,11 +113,9 @@ class SalesController:
 
             sale_id = self.sales_model.register_sale(total, items, cliente_id, estado)
 
-            from controllers.invoice_controller import InvoiceController
-            inv = InvoiceController()
+            invoice = InvoiceController()
 
-            invoice_id, pdf = inv.generate_invoice(cliente_id, items)
-
+            pdf = invoice.generate_invoice(cliente_id, items)
             self.sales_view.show_success(f"Venta registrada.\nFactura creada: {pdf}")
 
             self.sales_view.show_success(f"Venta registrada correctamente (ID: {sale_id})")
