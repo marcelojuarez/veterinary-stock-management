@@ -1,8 +1,10 @@
 from models.stock import StockModel
 from models.sale import SalesModel
 from models.customer import CustomerModel
+from models.remito import RemitoModel
 from tkinter import messagebox
 from controllers.invoice_controller import InvoiceController
+from services.remito_pdf import RemitoPDF
 
 class SalesController:
     def __init__(self, sales_view):
@@ -10,6 +12,7 @@ class SalesController:
         self.stock_model = StockModel()
         self.sales_model = SalesModel()
         self.customer_model = CustomerModel()
+        self.remito_model = RemitoModel()
 
 
     def search_product_for_sale(self, search_term: str):
@@ -122,6 +125,8 @@ class SalesController:
             self.sales_view.clear_sale()
             self.sales_view.load_available_products()
 
+            self.sales_view.last_sale_id = sale_id
+
         except Exception as e:
             self.sales_view.show_error(f"Error al procesar venta: {e}")
 
@@ -162,4 +167,22 @@ class SalesController:
         except Exception as e:
             print(f"Error obteniendo cliente: {e}")
             return None
+        
+    def create_delivery_note(self, sale_id):
+        sale = self.sales_model.get_sale_by_id(sale_id)
+        items = self.sales_model.get_sale_items(sale_id)
+        customer = self.customer_model.find_customer_by_id(sale['customer_id'])
+        number = self.remito_model.get_next_number()
+
+        delivery_note_id = self.remito_model.create_note(number, sale_id, customer[0])
+
+        for it in items:
+            self.remito_model.add_item(delivery_note_id, it['product_id'], it['quantity'])
+
+
+        pdf_path = RemitoPDF().generate_remito(number, customer, items)
+        self.sales_view.last_sale_id = None
+
+        return pdf_path
+
 

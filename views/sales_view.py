@@ -25,6 +25,7 @@ class SalesView:
         self.client_var = tk.StringVar()
         self.items_in_sale = []  # lista de productos (id, qty, price)
         self.sale_paid_var = tk.BooleanVar(value=True)
+        self.last_sale_id = None
 
     # --------------------------------------------------------------------
     # LAYOUT PRINCIPAL
@@ -196,7 +197,7 @@ class SalesView:
 
         buttons = [
             ("💰 Procesar venta", "#009688", "#00796B", lambda: self.controller.confirm_sale()),
-            ("🧾 Generar presupuesto", "#009688", "#00796B", lambda: self.controller.confirm_sale("presupuesto")),
+            ("🧾 Generar remito", "#009688", "#00796B", lambda: self.generate_delivery_note()),
             ("🗑️ Eliminar producto", "#009688", "#00796B", self.delete_selected_product),
             ("🧹 Limpiar", "#009688", "#00796B", self.clear_sale)
         ]
@@ -316,6 +317,16 @@ class SalesView:
         pdf = DailySalesReportService().generate(rows)
         messagebox.showinfo("PDF generado", f"Archivo guardado:\n\n{pdf}\n\nPuedes imprimirlo.")
 
+    def generate_delivery_note(self):
+        if not self.last_sale_id:
+            self.show_warning("Primero debe procesar una venta.")
+            return
+
+        try:
+            pdf = self.controller.create_delivery_note(self.last_sale_id)
+            self.show_success(f"Remito generado correctamente:\n{pdf}")
+        except Exception as e:
+            self.show_error(f"Error al generar remito: {e}")
 
     def refresh_sale_table(self):
         self.sale_tree.delete(*self.sale_tree.get_children())

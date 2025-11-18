@@ -144,6 +144,33 @@ class Database:
                 );
             ''')
 
+            # Remito
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS delivery_note (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                number TEXT NOT NULL,
+                date TEXT DEFAULT CURRENT_TIMESTAMP,
+                sale_id INTEGER NOT NULL,
+                customer_id INTEGER NOT NULL,
+                status TEXT DEFAULT 'issued',
+                notes TEXT,
+                FOREIGN KEY(customer_id) REFERENCES clientes(id)
+            );
+
+            ''')
+
+            # Remito items
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS delivery_note_items (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    delivery_note_id INTEGER NOT NULL,
+                    product_id TEXT NOT NULL,
+                    quantity INTEGER NOT NULL,
+                    FOREIGN KEY(delivery_note_id) REFERENCES delivery_note(id) ON DELETE CASCADE,
+                    FOREIGN KEY(product_id) REFERENCES stock(id)
+                );
+            ''')
+
             conn.commit()
 
     
