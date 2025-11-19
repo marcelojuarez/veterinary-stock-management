@@ -25,7 +25,7 @@ class RemitoPDF:
         elements = []
 
         # TITULO
-        title = Paragraph(f"<b>REMITO Nº {number}</b>", self.styles["RemitoTitle"])
+        title = Paragraph(f"<b>REMITO</b>", self.styles["RemitoTitle"])
         elements.append(title)
 
         # FECHA

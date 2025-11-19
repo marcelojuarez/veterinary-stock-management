@@ -61,23 +61,24 @@ class SalesController:
 
             # Buscar si ya existe en la venta
             existing_item = None
-            for i, (pid, qty, p) in enumerate(self.sales_view.items_in_sale):
+            for i, (pid, _, qty, p) in enumerate(self.sales_view.items_in_sale):
                 if pid == product_id:
                     existing_item = i
                     break
 
             if existing_item is not None:
                 # Ya existe: sumar cantidad
-                current_qty = self.sales_view.items_in_sale[existing_item][1]
+                current_qty = self.sales_view.items_in_sale[existing_item][2]
                 new_qty = current_qty + quantity
                 if new_qty > stock:
                     self.sales_view.show_warning("Stock insuficiente.")
                     return False
 
-                self.sales_view.items_in_sale[existing_item] = (product_id, new_qty, price)
+                self.sales_view.items_in_sale[existing_item] = (product_id, name, new_qty, price)
             else:
                 # Nuevo producto
-                self.sales_view.items_in_sale.append((product_id, quantity, price))
+                self.sales_view.items_in_sale.append((product_id, name, quantity, price))
+                print(self.sales_view.items_in_sale)
 
             return True
 
@@ -104,7 +105,7 @@ class SalesController:
                 self.sales_view.show_warning("No hay productos en la venta.")
                 return
 
-            total = sum(q * p for _, q, p in items)
+            total = sum(q * p for _, _, q, p in items)
 
             cliente_nombre = self.sales_view.client_var.get()
             cliente_id = self.customer_model.get_client_id_by_name(cliente_nombre)
@@ -119,13 +120,12 @@ class SalesController:
             invoice = InvoiceController()
 
             pdf = invoice.generate_invoice(cliente_id, items)
-            self.sales_view.show_success(f"Venta registrada.\nFactura creada: {pdf}")
 
-            self.sales_view.show_success(f"Venta registrada correctamente (ID: {sale_id})")
+            self.sales_view.show_success(f"Venta registrada.\nFactura creada: {pdf}")
+            self.sales_view.last_sale_id = sale_id
+            self.ask_remito(f"¿Desea generar remito?")
             self.sales_view.clear_sale()
             self.sales_view.load_available_products()
-
-            self.sales_view.last_sale_id = sale_id
 
         except Exception as e:
             self.sales_view.show_error(f"Error al procesar venta: {e}")
@@ -184,5 +184,10 @@ class SalesController:
         self.sales_view.last_sale_id = None
 
         return pdf_path
+    
+    def ask_remito(self, message):
+        if messagebox.askquestion("Confirmación", message) == "yes":
+            self.sales_view.generate_delivery_note()
+
 
 

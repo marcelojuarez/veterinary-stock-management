@@ -111,12 +111,11 @@ class InvoiceInternalPDFService:
         #           TABLA ITEMS
         # ===============================
 
-        table_data = [["Código", "Cant.", "P. Unit.", "Subtotal"]]
+        table_data = [["Descrición" "Cant.", "P. Unit.", "Subtotal"]]
+        for _, name, q, price in items:
+            table_data.append([name, q, f"${price:.2f}", f"${q*price:.2f}"])
 
-        for pid, q, price in items:
-            table_data.append([pid, q, f"${price:.2f}", f"${q*price:.2f}"])
-
-        table = Table(table_data, colWidths=[30*mm, 60*mm, 20*mm, 30*mm, 30*mm])
+        table = Table(table_data, colWidths=[90*mm, 20*mm, 30*mm, 30*mm])
 
         table_style = TableStyle([
             ("BACKGROUND", (0, 0), (-1, 0), colors.lightgrey),

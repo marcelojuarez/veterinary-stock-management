@@ -18,14 +18,13 @@ class SalesModel:
 
             sale_id = cursor.lastrowid
 
-            for product_id, quantity, price in items:
+            for product_id, _, quantity, price in items:
                 subtotal = round(price * quantity, 2)
                 cursor.execute("""
                     INSERT INTO sale_items (sale_id, product_id, quantity, price, subtotal)
                     VALUES (?, ?, ?, ?, ?)
                 """, (sale_id, product_id, quantity, price, subtotal))
 
-                # Reducir stock aquí (correcto)
                 cursor.execute("""
                     UPDATE stock SET quantity = quantity - ?
                     WHERE id = ?

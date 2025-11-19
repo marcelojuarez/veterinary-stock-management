@@ -330,13 +330,13 @@ class SalesView:
 
     def refresh_sale_table(self):
         self.sale_tree.delete(*self.sale_tree.get_children())
-        for pid, qty, price in self.items_in_sale:
+        for pid, name, qty, price in self.items_in_sale:
             subtotal = round(price * qty, 2)
             name = next((self.product_tree.item(r)["values"][1] for r in self.product_tree.get_children() if self.product_tree.item(r)["values"][0] == pid), "")
             self.sale_tree.insert("", "end", values=(pid, name, qty, price, subtotal))
 
     def update_total(self):
-        total = sum(q * p for _, q, p in self.items_in_sale)
+        total = sum(q * p for _, _, q, p in self.items_in_sale)
         self.total_var.set(f"TOTAL: ${total:.2f}")
 
     def clear_sale(self):
@@ -349,7 +349,7 @@ class SalesView:
             selected_item = self.sale_tree.selection()[0]
             pid = self.sale_tree.item(selected_item)["values"][0]
             self.sale_tree.delete(selected_item)
-            self.items_in_sale = [(p, q, pr) for p, q, pr in self.items_in_sale if p != pid]
+            self.items_in_sale = [(p, q, n, pr) for p, n, q, pr in self.items_in_sale if p != pid]
             self.update_total()
         except IndexError:
             messagebox.showwarning("Advertencia", "Seleccione un producto para eliminar.")
