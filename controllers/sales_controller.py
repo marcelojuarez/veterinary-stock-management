@@ -28,14 +28,19 @@ class SalesController:
             self.sales_view.product_tree.delete(*self.sales_view.product_tree.get_children())
 
             count = 0
-            for (pid, name, pack, profit, cost, price, iva, price_w_iva,
-                created_at, last_update, qty) in rows:
+            for row in rows:
+                pid = row[0]
+                name = row[2]
+                price_w_iva = row[8]
+                qty = row[11]
+
                 if qty and int(qty) > 0:
+                    count += 1
                     self.sales_view.product_tree.insert(
-                        "", "end",
+                        "",
+                        "end",
                         values=(pid, name, f"{price_w_iva:.2f}", int(qty))
                     )
-                    count += 1
 
             if count == 0:
                 self.sales_view.show_warning("No se encontraron productos disponibles")
