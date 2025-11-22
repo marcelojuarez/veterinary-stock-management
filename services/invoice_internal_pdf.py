@@ -8,6 +8,8 @@ from reportlab.lib.units import mm
 from datetime import datetime
 import os
 from config.settings import COMPANY_CONFIG
+from reportlab.platypus import Image
+
 
 class InvoiceInternalPDFService:
 
@@ -20,7 +22,7 @@ class InvoiceInternalPDFService:
             fontSize=18,
             spaceAfter=10,
             alignment=1,  # centre
-            textColor="black",
+            textColor=colors.black,
             leading=22
         ))
 
@@ -28,10 +30,11 @@ class InvoiceInternalPDFService:
         self.styles.add(ParagraphStyle(
             name="SectionHeader",
             fontSize=11,
-            textColor="black",
+            textColor=colors.black,
             leading=14,
             spaceAfter=4,
-            spaceBefore=8
+            spaceBefore=8,
+            fontName="Helvetica-Bold"
         ))
 
         # Texto general
@@ -45,8 +48,27 @@ class InvoiceInternalPDFService:
             name="TotalBold",
             fontSize=12,
             leading=14,
-            textColor="black",
+            textColor=colors.black,
             spaceBefore=4
+        ))
+        
+        # Estilo para el tipo de factura (letra grande en el recuadro)
+        self.styles.add(ParagraphStyle(
+            name="InvoiceType",
+            fontSize=24,
+            alignment=1,
+            textColor=colors.black,
+            fontName="Helvetica-Bold",
+            leading=28
+        ))
+        
+        # Estilo para código
+        self.styles.add(ParagraphStyle(
+            name="InvoiceCode",
+            fontSize=8,
+            alignment=1,
+            textColor=colors.black,
+            leading=10
         ))
 
     # ---------------------------------------------------
@@ -69,27 +91,91 @@ class InvoiceInternalPDFService:
         elements = []
 
         # ===============================
-        #      ENCABEZADO FACTURA
+        #   BANNER SUPERIOR "ORIGINAL"
         # ===============================
-        title = Paragraph(f"<b>FACTURA X</b>", self.styles["InvoiceTitle"])
-        elements.append(title)
+        original_banner = Table([[Paragraph("<b>ORIGINAL</b>", self.styles["InvoiceTitle"])]], 
+                                colWidths=[180*mm])
+        original_banner.setStyle(TableStyle([
+            ('BACKGROUND', (0,0), (-1,-1), colors.white),
+            ('BOX', (0,0), (-1,-1), 1.5, colors.black),
+            ('ALIGN', (0,0), (-1,-1), 'CENTER'),
+            ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+            ('TOPPADDING', (0,0), (-1,-1), 4),
+            ('BOTTOMPADDING', (0,0), (-1,-1), 4),
+        ]))
+        elements.append(original_banner)
+        elements.append(Spacer(1, 2))
 
-        subtitle = Paragraph(f"N° {number} — Fecha: {datetime.now().strftime('%d/%m/%Y')}",
-                             self.styles["SectionHeader"])
-        elements.append(subtitle)
-        elements.append(Spacer(1, 8))
+        # ===============================
+        #      ENCABEZADO PRINCIPAL
+        # ===============================
 
-        # ===============================
-        #        DATOS EMPRESA
-        # ===============================
-        company_text = f"""
+        # COLUMNA IZQUIERDA: Logo + Datos empresa
+        logo_path = "assets/logo.jpg"
+        if os.path.exists(logo_path):
+            logo_img = Image(logo_path, width=25*mm, height=25*mm)
+        else:
+            logo_img = Paragraph("<b>LOGO</b>", self.styles["InvoiceTitle"])
+
+        company_info = Paragraph(f"""
         <b>{COMPANY_CONFIG['name']}</b><br/>
-        CUIT: {COMPANY_CONFIG['cuit']}<br/>
-        {COMPANY_CONFIG['address']}<br/>
-        Tel: {COMPANY_CONFIG['phone']} - Email: {COMPANY_CONFIG['email']}
-        """
+        <b>RAZON SOCIAL:</b> {COMPANY_CONFIG['name']}<br/>
+        <b>DIRECCION:</b> {COMPANY_CONFIG['address']}<br/>
+        <b>CONDICION IVA:</b> RESPONSABLE INSCRIPTO
+        """, self.styles["NormalSmall"])
 
-        elements.append(Paragraph(company_text, self.styles["NormalSmall"]))
+        left_block = Table([[logo_img], [Spacer(1, 3)], [company_info]])
+        left_block.setStyle(TableStyle([
+            ('VALIGN', (0,0), (-1,-1), 'TOP'),
+            ('LEFTPADDING', (0,0), (-1,-1), 0),
+            ('RIGHTPADDING', (0,0), (-1,-1), 0),
+        ]))
+
+        # COLUMNA CENTRAL: Recuadro con tipo de factura
+        invoice_type_para = Paragraph("X", self.styles["InvoiceType"])
+        invoice_code_para = Paragraph("COD. 006", self.styles["InvoiceCode"])
+        
+        center_block = Table([[invoice_type_para], [invoice_code_para]], 
+                            colWidths=[25*mm])
+        center_block.setStyle(TableStyle([
+            ('BOX', (0,0), (-1,-1), 2, colors.black),
+            ('ALIGN', (0,0), (-1,-1), 'CENTER'),
+            ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+            ('LEFTPADDING', (0,0), (-1,-1), 2),
+            ('RIGHTPADDING', (0,0), (-1,-1), 2),
+            ('TOPPADDING', (0,0), (0,0), 8),
+            ('BOTTOMPADDING', (0,0), (0,0), 2),
+            ('TOPPADDING', (0,1), (0,1), 2),
+            ('BOTTOMPADDING', (0,1), (0,1), 4),
+        ]))
+
+        # COLUMNA DERECHA: Número de factura y datos
+        right_info = Paragraph(f"""
+        <b>FACTURA</b><br/>
+        <b>{number}</b><br/><br/>
+        <b>FECHA:</b> {datetime.now().strftime('%d/%m/%Y')}<br/>
+        <b>C.U.I.T.:</b> {COMPANY_CONFIG['cuit']}<br/>
+        """, self.styles["NormalSmall"])
+
+        # Tabla principal con 3 columnas
+        header_table = Table(
+            [[left_block, center_block, right_info]],
+            colWidths=[65*mm, 25*mm, 90*mm]
+        )
+
+        header_table.setStyle(TableStyle([
+            ('BOX', (0,0), (-1,-1), 1.5, colors.black),
+            ('VALIGN', (0,0), (-1,-1), 'TOP'),
+            ('ALIGN', (1,0), (1,0), 'CENTER'),
+            ('LEFTPADDING', (0,0), (0,0), 6),
+            ('LEFTPADDING', (1,0), (1,0), 0),
+            ('RIGHTPADDING', (1,0), (1,0), 0),
+            ('RIGHTPADDING', (2,0), (2,0), 6),
+            ('TOPPADDING', (0,0), (-1,-1), 6),
+            ('BOTTOMPADDING', (0,0), (-1,-1), 6),
+        ]))
+
+        elements.append(header_table)
         elements.append(Spacer(1, 12))
 
         # ===============================
@@ -111,7 +197,7 @@ class InvoiceInternalPDFService:
         #           TABLA ITEMS
         # ===============================
 
-        table_data = [["Descrición" "Cant.", "P. Unit.", "Subtotal"]]
+        table_data = [["Descripción", "Cant.", "P. Unit.", "Subtotal"]]
         for _, name, q, price in items:
             table_data.append([name, q, f"${price:.2f}", f"${q*price:.2f}"])
 
@@ -120,11 +206,14 @@ class InvoiceInternalPDFService:
         table_style = TableStyle([
             ("BACKGROUND", (0, 0), (-1, 0), colors.lightgrey),
             ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
-            ("ALIGN", (2, 1), (4, -1), "CENTER"),
+            ("ALIGN", (1, 0), (-1, 0), "CENTER"),
+            ("ALIGN", (1, 1), (1, -1), "CENTER"),
+            ("ALIGN", (2, 1), (2, -1), "RIGHT"),
             ("ALIGN", (3, 1), (3, -1), "RIGHT"),
-            ("ALIGN", (4, 1), (4, -1), "RIGHT"),
             ("GRID", (0,0), (-1,-1), 0.5, colors.grey),
             ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+            ("LEFTPADDING", (0,0), (-1,-1), 4),
+            ("RIGHTPADDING", (0,0), (-1,-1), 4),
         ])
         
         table.setStyle(table_style)
@@ -145,7 +234,8 @@ class InvoiceInternalPDFService:
             ("FONTNAME", (0,2), (-1,2), "Helvetica-Bold"),
             ("FONTSIZE", (0,0), (-1,-1), 11),
             ("ALIGN", (1,0), (1,-1), "RIGHT"),
-            ("LINEBELOW", (0,2), (-1,2), 1, colors.black),
+            ("LINEABOVE", (0,2), (-1,2), 1.5, colors.black),
+            ("TOPPADDING", (0,2), (-1,2), 6),
         ]))
         elements.append(totals_table)
 
