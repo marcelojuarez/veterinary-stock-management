@@ -8,7 +8,7 @@ class SupplierModel:
     def get_all_suppliers(self):
         # Obtener todos los proveedores
         try:
-            query = "SELECT * FROM proveedores ORDER BY id"
+            query = "SELECT * FROM supplier ORDER BY id"
             return  db.fetch_all(query)
         except ValueError as e:
             print(f'Error getting suppliers: {e}')
@@ -17,7 +17,7 @@ class SupplierModel:
     def find_supplier_by_id(self, supplier_id):
         # Obtener proveedor a traves de id
         try:
-            query = "SELECT * FROM proveedores where id = ?"
+            query = "SELECT * FROM supplier where id = ?"
             return db.fetch_one(query, (supplier_id, ))
         except ValueError as e:
             print(f'Error getting supplier by ID: {e}')
@@ -25,64 +25,34 @@ class SupplierModel:
         
     def find_suppplier_by_cuit(self, supplier_cuit):
         try:
-            query = "SELECT * FROM proveedores where cuit = ?"
+            query = "SELECT * FROM supplier where cuit = ?"
             return db.fetch_one(query, (supplier_cuit,))
         except ValueError as e:
             print(f'Error getting supplier by CUIT: {e}')
             return None
-        
-    def get_all_payment_of_supplier(self, supplier_id):
-        try:
-            query = """
-            SELECT * FROM movimientos_proveedor where id_proveedor = ?
-            """
-            return self.db.fetch_all(query, (supplier_id,))            
-        except ValueError as e:
-            print(f'Error getting supplier payment by cuit: {e}')
-            return None
-
 
     def add_supplier(self, supplier_data):
         # Agregar nuevo proveedor a la base de datos
         date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         query = """
-            INSERT INTO proveedores (nombre, cuit, domicilio, telefono, email, deuda, ult_act_deuda)
+            INSERT INTO supplier (name, cuit, home, phone, email, debt, last_debt_update)
             VALUES (?, ?, ?, ?, ?, ?, ?)
         """
         params = [
-            supplier_data['nombre'],
+            supplier_data['name'],
             supplier_data['cuit'],
-            supplier_data['domicilio'],
-            supplier_data['telefono'],
+            supplier_data['home'],
+            supplier_data['phone'],
             supplier_data['email'],
-            supplier_data['deuda'],
+            supplier_data['debt'],
             date
         ]
 
         return self.db.execute_query(query, params)
 
-    def add_new_payment(self, supplier_id, payment_data):
-        datetime = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        query = """
-            INSERT INTO movimientos_proveedor (id_proveedor, monto, metodo, id_recibo, observaciones, saldo_anterior, saldo_posterior, date)
-            values(?, ?, ?, ?, ?, ?, ?, ?)
-        """
-
-        params = [
-            supplier_id,
-            payment_data['monto']
-
-        ]
-
-        self.db.execute_query(query, params)
-    
-
-    def show_supplier_info(self, supplier_id):
-        pass
-
     def delete_supplier(self, supplier_id):
         try:
-            query = "DELETE FROM proveedores where id = ?"
+            query = "DELETE FROM supplier where id = ?"
             return db.execute_query(query, (supplier_id, ))
         except Exception as e:
             print(f'Error : {e}')
@@ -92,8 +62,8 @@ class SupplierModel:
         date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         """Actualizar Saldo deuda a un proveedor"""
         query = """
-            UPDATE proveedores
-            SET deuda = ?, ult_act_deuda = ?
+            UPDATE supplier
+            SET debt = ?, last_debt_update = ?
             WHERE id = ?
         """
         params = [
@@ -108,3 +78,70 @@ class SupplierModel:
         # Busco a un proveedor por nombre o ID
         pass
     
+
+    def add_new_payment(self, supplier_id, data):
+        date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        query = """
+            INSERT INTO supplier_movement (id_supplier, receipt_number, amount, method, observation, operation_num, 
+            origin, destination, check_number, bank, previous_debt, subsequent_debt, date)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ? ,? ,?, ?, ?, ?)
+        """
+
+        params = [
+            data['Id_supplier'],
+            data['Receipt_number'],
+            data['Amount'],
+            data['Method'],
+            data['Observation'],
+            data['Operation_num'],
+            data['Origin'],
+            data['Destination'],
+            data['Check_number'],
+            data['Bank'],
+            data['previous_debt'],
+            data['subsequent_debt'],
+            date
+        ]
+
+        print(f'data: {params}')
+        self.db.execute_query(query, params)
+
+    def get_payment_by_id_and_method(self, payment_id):
+        try:
+            query="""
+            SELECT * FROM supplier_movement where id = ? 
+            """
+            return self.db.fetch_one(query, (payment_id))
+        except ValueError as e:
+            print(f'Error getting supplier payment by cuit: {e}')
+            return None
+
+    def get_transfer_data(self, payment_id):
+        try:
+            query = """
+            SELECT operation_num, origin, destination FROM supplier_movement where id = ?
+            """
+            return self.db.fetch_one(query, (payment_id,))
+        except ValueError as e:
+            print(f'Error getting transfer data by payment id: {e}')
+            return None
+
+    def get_check_data(self, payment_id):
+        try:
+            query = """
+            SELECT check_number, bank FROM supplier_movement where id = ?
+            """
+            return self.db.fetch_one(query, (payment_id,))
+        except ValueError as e:
+            print(f'Error getting transfer data by payment id: {e}')
+            return None
+        
+    def get_all_payment_of_supplier(self, supplier_id):
+        try:
+            query = """
+            SELECT * FROM supplier_movement where id_supplier = ?
+            """
+            return self.db.fetch_all(query, (supplier_id,))            
+        except ValueError as e:
+            print(f'Error getting supplier payment by cuit: {e}')
+            return None

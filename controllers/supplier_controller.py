@@ -28,33 +28,33 @@ class SupplierController():
                 print('Entro al chequeo de cuit del proveedor')
                 return
             
-            if not self.__validate_supplier_phone(data['telefono']):
+            if not self.__validate_supplier_phone(data['phone']):
                 print('Entro al chequeo de telefono del proveedor')
                 return
             
-            if not self.__validate_supplier_name(data['nombre']):
+            if not self.__validate_supplier_name(data['name']):
                 print('Entro al chequeo de nombre del proveedor')
                 return
             
-            if not self.__validate_supplier_address(data['domicilio']):
+            if not self.__validate_supplier_address(data['home']):
                 print('Entro al chequeo de domicilio del proveedor')
                 return
 
             # convertir tipos
             supplier_data = {
-                'nombre': data['nombre'],
+                'name': data['name'],
                 'cuit': data['cuit'],
-                'domicilio': data['domicilio'],
-                'telefono': data['telefono'],
+                'home': data['home'],
+                'phone': data['phone'],
                 'email': data['email'],
-                'deuda': data['deuda']
+                'debt': data['debt']
             }
 
             self.model.add_supplier(supplier_data)
 
             self.refresh_supplier_table()
 
-            self.clear_form_supplier()
+            self.view.clear_form_supplier()
 
             if window:
                 window.destroy()
@@ -98,7 +98,7 @@ class SupplierController():
         return suppliers_data 
     
     def __validates_supplier_data(self, form_data):
-        required_files =  ['nombre', 'cuit', 'domicilio', 'telefono', 'email', 'deuda']
+        required_files =  ['name', 'cuit', 'home', 'phone', 'email', 'debt']
 
         print(f'Formulario de datos {form_data}')
 
@@ -162,25 +162,6 @@ class SupplierController():
         except Exception as e:
             show_error(f"Error al refrescar la tabla {str(e)}")
 
-    def clear_form_supplier(self):
-        """Limpiar formulario proveedor"""
-        self.view.email_var.set('')
-        self.view.name_var.set('')
-        self.view.cuit_var.set('')
-        self.view.home_var.set('')
-        self.view.phone_var.set('')
-        self.view.debt_var.set('')
-
-
-    def clear_form_payment(self):
-        """Limpiar formulario pago"""
-        self.view.cuit_var.set('')
-        self.view.id_receipt_var.set('')
-        self.view.observations_var.set('')
-        self.view.amount_var.set('')
-        self.view.method_var.set('')
-
-
     def delete_supplier(self):
         # Obtengo las filas seleccionadas
         selected = self.view.supplier_tree.selection()
@@ -197,8 +178,7 @@ class SupplierController():
         except Exception:
             show_warning('Por favor seleccione un proveedor para eliminar')
 
-    def update_debt(self, supplier_data, win):
-        new_debt = self.view.debt.get()
+    def update_debt(self, supplier_data, new_debt, win=None):
         self.view.lbl_debt.configure(text=f"${new_debt}")
         # Se actualiza la deuda
         self.model.update_debt(supplier_data[0] ,new_debt)
@@ -206,8 +186,9 @@ class SupplierController():
         # Se actualiza el momento de actualizacion
         self.view.last_update_debt.set(value=f'Ultima actualizacion deuda: \n {data[7]}') 
         self.refresh_supplier_table()
-        win.destroy()
-
+        if win:
+            win.destroy()
+        
     
     def register_purchase(self, product_tree, qty_var, window):
         try:
@@ -243,21 +224,3 @@ class SupplierController():
         except Exception as e:
             show_error(f"Error al registrar compra: {e}")
 
-    def register_payment(self, supplier_var):
-        try:
-            selected = supplier_var.get() # cuit proveedor
-            if not selected:
-               show_warning("Seleccione un proveedor")
-               return
-            
-            supplier_data = self.model.find_suppplier_by_cuit(selected)
-
-    
-            data = [
-                
-            ]
-
-            self.model.add_new_payment(supplier_data[0], data)
-
-        except Exception as e:
-            show_error(f"Error al registrar pago: {e}")

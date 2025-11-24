@@ -4,6 +4,7 @@ from tkinter import ttk, messagebox
 from tksheet import Sheet
 from models.supplier import SupplierModel
 from models.stock import StockModel
+from controllers.payment_controller import PaymentController
 from views.payments.payment_window import PaymentWindow
 from views.view_helpers import close_win, show_warning
 
@@ -18,8 +19,7 @@ class SupplierView():
         self.stock_model = StockModel()
         self.stock_view = stock_view
         self.frame = ctk.CTkFrame(parent, fg_color="#f0f0f0")
-        self.payment_window = PaymentWindow(self.model, self.controller, self.frame)
-        self.setup_variables()
+        self.payment_window = PaymentWindow(self.model, self.frame)
         self.create_widgets()
 
     def set_controller(self, controller):
@@ -28,16 +28,16 @@ class SupplierView():
         self.controller = controller
         print(f"DEBUG: Controller asignado correctamente: {self.controller}")
 
-    def setup_variables(self):
+    def setup_supplier_variables(self):
         # variables proveedor
         self.name_var = tk.StringVar()
         self.cuit_var = tk.StringVar()
         self.home_var = tk.StringVar()
         self.phone_var = tk.StringVar()
         self.email_var = tk.StringVar()
-        self.find_var = tk.StringVar()
         self.debt_var = tk.StringVar()
 
+    def setup_product_variables(self):
         # variables producto
         self.name_product_var = tk.StringVar()
         self.description_var = tk.StringVar()
@@ -53,6 +53,8 @@ class SupplierView():
         self.create_buttons_frame()
 
     def create_find_frame(self):
+        self.find_var = tk.StringVar()
+
         """Crear frame para formulario de proveedor"""
         find_frame = ctk.CTkFrame(self.frame)
         find_frame.grid(row=0, column=0, sticky='w', padx=10, pady=10)
@@ -136,7 +138,7 @@ class SupplierView():
         scrl_bar.grid(row=0, column=3, sticky='ns')
         self.supplier_tree.configure(yscrollcommand=scrl_bar.set)
                            
-        self.supplier_tree['columns'] = ("Id", "Nombre", "Cuit", "Domicilio", "Telefono", "Email", "Saldo Deuda")
+        self.supplier_tree['columns'] = ("Id", "Nombre", "Cuit", "Domicilio", "Telefono", "Email", "Saldo Deuda", "Ultima actualizacion deuda")
         self.supplier_tree['displaycolumns'] = self.supplier_tree['columns']
         self.supplier_tree.column("Id", anchor=tk.W, width=50,stretch=False)
         self.supplier_tree.column("Nombre", anchor=tk.W, width=350,stretch=False)
@@ -145,6 +147,7 @@ class SupplierView():
         self.supplier_tree.column("Telefono", anchor=tk.W, width=160,stretch=False)
         self.supplier_tree.column("Email", anchor=tk.W, width=200, stretch=False)
         self.supplier_tree.column("Saldo Deuda", anchor=tk.W, width=140, stretch=False)
+        self.supplier_tree.column("Ultima actualizacion deuda", anchor=tk.W, width=140, stretch=False)
 
         self.supplier_tree.heading('Id', text='ID ↕')
         self.supplier_tree.heading('Nombre', text='Nombre↕')
@@ -153,6 +156,7 @@ class SupplierView():
         self.supplier_tree.heading('Telefono', text='Telefono ↕')
         self.supplier_tree.heading('Email', text='Email ↕')
         self.supplier_tree.heading('Saldo Deuda', text='Saldo Deuda ↕')
+        self.supplier_tree.heading('Ultima actualizacion deuda', text='Ultima actualizacion deuda ↕')
 
         self.supplier_tree.tag_configure('orow', background="#FFFFFF")
         self.supplier_tree.grid(row=1, column=2, padx=[20, 20], pady=20, ipadx=[6], sticky='nsew')
@@ -229,6 +233,8 @@ class SupplierView():
         purchase_btn.grid(row=0, column=4, padx=5, pady=5)
 
     def open_add_window(self, parent):
+        self.setup_supplier_variables()
+
         add_win = ctk.CTkToplevel(self.frame)
         add_win.title("Agregar nuevo proveedor")
 
@@ -326,7 +332,7 @@ class SupplierView():
             font=ctk.CTkFont(size=12, weight="bold"),
             fg_color="#E74C3C",
             hover_color="#C0392B",
-            command=lambda: close_win(add_win, parent)
+            command=lambda: close_win(add_win, parent, self.clear_form_supplier)
         )
 
         cancel_btn.grid(row=7, column=1, padx=6, pady=5)
@@ -469,7 +475,7 @@ class SupplierView():
             fg_color=btn_color,
             hover_color=btn_hover,
             font=ctk.CTkFont(size=15, weight="bold"),
-            command=lambda: self.controller.update_debt(supplier, update_win)
+            command=lambda: self.controller.update_debt(supplier, self.debt.get(), update_win)
         )
         update_debt_btn.grid(row=1, column=0, padx=10, ipadx=5)
 
@@ -600,6 +606,8 @@ class SupplierView():
 
 
     def open_add_product_window(self, supplier_cuit, parent=None):
+        self.setup_product_variables()
+
         if self.purchase_supplier_var.get() == "":
             show_warning("Por favor seleccione un proveedor")
             return
@@ -698,7 +706,6 @@ class SupplierView():
             fg_color="#757575", hover_color="#616161", command=add_win.destroy)
         cancel_button.grid(row=0, column=1, padx=10)
 
-
     def refresh_supplier_table(self, suppliers):
         for item in self.supplier_tree.get_children():
             self.supplier_tree.delete(item)
@@ -708,26 +715,36 @@ class SupplierView():
                 parent='', index='end', iid=supplier[0],
                 values=(
                     supplier[0],   # id
-                    supplier[2],   # nombre
+                    supplier[2],   # name
                     supplier[1],   # cuit
-                    supplier[3],   # domicilio
-                    supplier[4],   # telefono
+                    supplier[3],   # home
+                    supplier[4],   # phone
                     supplier[5],   # email
-                    supplier[6],   # deuda
+                    supplier[6],   # debt
+                    supplier[7]    # last act debt
                 ),
                 tag="orow"
             )
 
         self.supplier_tree.tag_configure('orow', background="white", foreground='black')
 
+    def clear_form_supplier(self):
+        """Limpiar formulario proveedor"""
+        self.email_var.set('')
+        self.name_var.set('')
+        self.cuit_var.set('')
+        self.home_var.set('')
+        self.phone_var.set('')
+        self.debt_var.set('')
+
     def get_supplier_data(self):
         return {
-            'nombre': self.name_var.get().strip(),
+            'name': self.name_var.get().strip(),
             'cuit': self.cuit_var.get().strip(),
-            'domicilio': self.home_var.get().strip(),
-            'telefono': self.phone_var.get().strip(),
+            'home': self.home_var.get().strip(),
+            'phone': self.phone_var.get().strip(),
             'email': self.email_var.get().strip(),
-            'deuda': self.debt_var.get()
+            'debt': self.debt_var.get()
         }
     
     def get_product_data(self):

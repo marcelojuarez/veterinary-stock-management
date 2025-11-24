@@ -77,31 +77,45 @@ class Database:
 
             # Tabla de proveedores
             cursor.execute('''
-                CREATE TABLE IF NOT EXISTS proveedores (
+                CREATE TABLE IF NOT EXISTS supplier (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     cuit TEXT UNIQUE,
-                    nombre TEXT NOT NULL,
-                    domicilio TEXT,
-                    telefono TEXT,
+                    name TEXT NOT NULL,
+                    home TEXT,
+                    phone TEXT,
                     email TEXT,
-                    deuda REAL,
-                    ult_act_deuda TEXT DEFAULT CURRENT_DATE
+                    debt REAL,
+                    last_debt_update TEXT DEFAULT CURRENT_DATE
                 );
             ''')
 
             # Tabla pagos proveedor 
             cursor.execute('''
-                CREATE TABLE IF NOT EXISTS movimientos_proveedor(
+                CREATE TABLE IF NOT EXISTS supplier_movement (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    id_proveedor INTEGER,
-                    monto REAL NOT NULL,
-                    metodo TEXT,
-                    id_recibo TEXT,
-                    observaciones TEXT,
-                    saldo_anterior REAL,
-                    saldo_posterior REAL,
+                    id_supplier INTEGER,
+                    
+                    receipt_number TEXT, -- recibo que te entrega el proveedor                           
+
+                    amount REAL NOT NULL,     
+                    method TEXT,        -- EFECTIVO, TRANSFERENCIA, CHEQUE, MERCADO PAGO                                                        
+                    observation TEXT,
+
+                    -- TRANSFERENCIA
+                    operation_num INTEGER,  
+                    origin TEXT,
+                    destination TEXT,
+                           
+                    -- CHEQUE
+                    check_number TEXT, 
+                           
+                    -- TRANSFERENCIA o CHEQUE
+                    bank TEXT,  
+                           
+                    previous_debt REAL,
+                    subsequent_debt REAL,
                     date TEXT DEFAULT CURRENT_DATE,
-                    FOREIGN KEY (id_proveedor) REFERENCES proveedores (id)
+                    FOREIGN KEY (id_supplier) REFERENCES supplier (id)
                 );
             ''')
 
@@ -111,7 +125,7 @@ class Database:
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     id_proveedor INTEGER,
                     tipo_factura TEXT,
-                    unto_de_venta INTEGER,
+                    punto_de_venta INTEGER, 
                     factura_id INTEGER,
                     fecha TEXT CURRENT_DATE
                     total REAL,
