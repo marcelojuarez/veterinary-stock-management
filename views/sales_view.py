@@ -349,10 +349,22 @@ class SalesView:
             selected_item = self.sale_tree.selection()[0]
             pid = self.sale_tree.item(selected_item)["values"][0]
             self.sale_tree.delete(selected_item)
-            self.items_in_sale = [(p, q, n, pr) for p, n, q, pr in self.items_in_sale if p != pid]
+            self.items_in_sale = [
+                (p, n, q, pr) for (p, n, q, pr) in self.items_in_sale if p != pid
+            ]
             self.update_total()
         except IndexError:
             messagebox.showwarning("Advertencia", "Seleccione un producto para eliminar.")
+
+    def delete_item(self):
+        """Eliminar item seleccionado de la venta"""
+        if not self.sales_view.ask_confirmation("¿Eliminar artículo?"):
+            return
+
+        if self.sales_view.delete_selected_product():
+            self.sales_view.show_success("Artículo eliminado correctamente.")
+        else:
+            self.sales_view.show_warning("Seleccione el artículo que desea eliminar.")
 
     def load_available_products(self):
         try:
