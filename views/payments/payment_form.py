@@ -133,7 +133,7 @@ class PaymentFormView:
             height=35,
             font=ctk.CTkFont(size=12),
             state="readonly",
-            command=lambda value: self.render_dynamic_fields(parent, self.supplier_var)
+            command=lambda value: self.render_dynamic_fields(parent)
         )
         method_combo.set("-")
         method_combo.grid(row=5, column=1, padx=(15,20), pady=5)

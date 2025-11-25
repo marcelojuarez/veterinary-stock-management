@@ -3,6 +3,6 @@
 settings = {
     "VIEW_CONFIG" : {
         'window-title':"veterinary",
-        'window-size':"1700x768",
+        'window-size':"1750x800",
     }
 }

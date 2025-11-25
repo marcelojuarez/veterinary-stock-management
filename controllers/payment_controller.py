@@ -17,12 +17,16 @@ class PaymentController():
                show_warning("Seleccione un proveedor")
                return
             
-            supplier_data = self.model.find_suppplier_by_cuit(selected)
+            supplier_data = self.model.find_supplier_by_cuit(selected)
             if not self.validate_data(supplier_data[0], payment_data):
-                return False
+                return 
             
             amount = float(payment_data['amount'])
             debt = supplier_data[6]
+
+            if not self.validate_debt(amount, debt):
+                return
+
             new_debt = debt-amount
 
             data = {
@@ -40,13 +44,12 @@ class PaymentController():
                 'subsequent_debt': new_debt
             }
 
-            print(data)
             # update debt
             self.model.update_debt(data['Id_supplier'], new_debt)
 
             self.model.add_new_payment(data['Id_supplier'], data)
             self.view.clear_form_payment()
-            self.pay_win.load_payment_movement(data['Id_supplier'])
+            self.pay_win.load_payment_movement(data['Id_supplier'], selected)
             close_win(win, parent)
 
 
@@ -106,6 +109,17 @@ class PaymentController():
                 show_warning('Nombre de banco invalido')
                 return False
 
+        return True
+
+
+    def validate_debt(self, amount, debt):
+        if amount > debt:
+            msg = f'ERROR:.\n'\
+                  f'La deuda actual es: ${debt}\n'\
+                  f'El monto que intenta abonar es superior: ${amount}'
+            show_warning(msg)
+            return False
+        
         return True
 
     @staticmethod

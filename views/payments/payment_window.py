@@ -87,6 +87,9 @@ class PaymentWindow():
             payment_info.transient(parent)
             payment_info.grab_set()
 
+            payment_info.columnconfigure(0, weight=1)
+            payment_info.columnconfigure(1, weight=2)
+
             print(f'id pago: {payment_id}')
             print(f'metodo: {method}')
 
@@ -101,10 +104,10 @@ class PaymentWindow():
 
                 for i, (label, info) in enumerate(fields.items(), start=0):
                    label1 = ctk.CTkLabel(payment_info, text=label, font=ctk.CTkFont(size=15, weight="bold"))
-                   label1.grid(row=i, column=0, padx=20, pady=10, sticky="w")
+                   label1.grid(row=i, column=0, padx=(10,0), pady=10)
                               
                    label2 = ctk.CTkLabel(payment_info, text=info, font=ctk.CTkFont(size=12))
-                   label2.grid(row=i, column=1) 
+                   label2.grid(row=i, column=1, padx=(0,10)) 
 
                 print(fields)
             elif method == 'CHEQUE':
@@ -117,16 +120,16 @@ class PaymentWindow():
 
                 for i, (label, info) in enumerate(fields.items(), start=0):
                    label1 = ctk.CTkLabel(payment_info, text=label, font=ctk.CTkFont(size=15, weight="bold"))
-                   label1.grid(row=i, column=0, padx=10, pady=10, sticky="w")
+                   label1.grid(row=i, column=0, padx=(10,0), pady=10)
                               
                    label2 = ctk.CTkLabel(payment_info, text=info, font=ctk.CTkFont(size=15))
-                   label2.grid(row=i, column=1) 
+                   label2.grid(row=i, column=1, padx=(0,10))
 
                 print(fields)
 
         self.movement_tree.bind("<Button-1>", on_row_click)
 
-        # --- Frame inferior (botones y cantidad) ---
+        # frame inferior (botones y cantidad)
         buttons_frame = ctk.CTkFrame(pay_win)
         buttons_frame.grid(row=4, column=0, columnspan=2, sticky="ew", padx=10, pady=10)
         for i in range(5):
@@ -141,6 +144,16 @@ class PaymentWindow():
             font=ctk.CTkFont(size=13, weight="bold"),
             command=lambda: self.payment_form.add_payment_win(pay_win, self.supplier_var.get())
         )
+        confirm_btn.grid(row=0, column=1, padx=5, pady=10)
+
+        # Botón Registrar Compra
+        confirm_btn = ctk.CTkButton(
+            buttons_frame,
+            text="Eliminar registro de pago",
+            fg_color="#4CAF50",
+            hover_color="#45a049",
+            font=ctk.CTkFont(size=13, weight="bold"),
+        )
         confirm_btn.grid(row=0, column=2, padx=5, pady=10)
 
         # Botón Cerrar
@@ -153,18 +166,18 @@ class PaymentWindow():
             command=lambda: close_win(pay_win, parent, self.clear_supplier_field)
         )
         close_win_btn.grid(row=0, column=4, padx=5, pady=10)
-
-        # cargar movimientos
         
     def clear_supplier_field(self):
         self.supplier_var.set('')
 
-    # --- funcion para cargar movimientos ---
-    def load_payment_movement(self, selected_supplier=None):
-        if selected_supplier is None:
-            selected_supplier = self.supplier_var.get()
+    #  funcion para cargar movimientos 
+    def load_payment_movement(self, supplier_id=None, supplier_cuit=None):
+        if supplier_id is None and supplier_cuit is None:
+            supplier_cuit = self.supplier_var.get()
+            result = self.model.find_supplier_by_cuit(supplier_cuit)
+            supplier_id = result[0]
 
-        if not selected_supplier:
+        if not supplier_id and not supplier_cuit:
             messagebox.showwarning("Atención", "Primero selecciona un proveedor.")
             return
 
@@ -172,15 +185,16 @@ class PaymentWindow():
         for item in self.movement_tree.get_children():
             self.movement_tree.delete(item)
 
-        supplier_id = self.model.find_suppplier_by_cuit(selected_supplier)[0]
         payments = self.model.get_all_payment_of_supplier(supplier_id)
+        payments_sorted = sorted(payments, key=lambda x: x[0], reverse=True)
+
         # Cargar productos
-        for p in payments:
+        for p in payments_sorted:
             self.movement_tree.insert(
                 parent='', index='end', iid=p[0],
                 values=(
                    p[0],
-                   selected_supplier,
+                   supplier_cuit,
                    p[3], 
                    p[4],
                    p[11],

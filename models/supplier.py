@@ -23,7 +23,7 @@ class SupplierModel:
             print(f'Error getting supplier by ID: {e}')
             return None
         
-    def find_suppplier_by_cuit(self, supplier_cuit):
+    def find_supplier_by_cuit(self, supplier_cuit):
         try:
             query = "SELECT * FROM supplier where cuit = ?"
             return db.fetch_one(query, (supplier_cuit,))

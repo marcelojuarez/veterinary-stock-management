@@ -88,7 +88,6 @@ class SupplierController():
         try:
             iid = selected[0]
             values = self.view.supplier_tree.item(iid, "values")
-            print(f'Valores: {values}')
             self.view.open_info_window(values)
         except Exception:
             show_warning('Por favor seleccione un proveedor')
@@ -125,7 +124,7 @@ class SupplierController():
             show_warning("Por favor coloque el CUIT correctamente. Formato: XX-XXXXXXXX-X")
             return False
         
-        if self.model.find_suppplier_by_cuit(cuit_field) is not None:
+        if self.model.find_supplier_by_cuit(cuit_field) is not None:
             show_error(f"Error: Ya existe un proveedor con el CUIT: {cuit_field}")
             return False
         

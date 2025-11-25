@@ -131,7 +131,7 @@ class SupplierView():
                  background=[('selected', '#0078d4')])
 
         # Treeview
-        self.supplier_tree = ttk.Treeview(table_container, show='headings', height=10)
+        self.supplier_tree = ttk.Treeview(table_container, show='headings', height=15)
 
         # Scrollbar vertical para los proveedores
         scrl_bar = ttk.Scrollbar(table_container, orient='vertical', command=self.supplier_tree.yview)
@@ -147,7 +147,7 @@ class SupplierView():
         self.supplier_tree.column("Telefono", anchor=tk.W, width=160,stretch=False)
         self.supplier_tree.column("Email", anchor=tk.W, width=200, stretch=False)
         self.supplier_tree.column("Saldo Deuda", anchor=tk.W, width=140, stretch=False)
-        self.supplier_tree.column("Ultima actualizacion deuda", anchor=tk.W, width=140, stretch=False)
+        self.supplier_tree.column("Ultima actualizacion deuda", anchor=tk.W, width=200, stretch=False)
 
         self.supplier_tree.heading('Id', text='ID ↕')
         self.supplier_tree.heading('Nombre', text='Nombre↕')
@@ -159,7 +159,7 @@ class SupplierView():
         self.supplier_tree.heading('Ultima actualizacion deuda', text='Ultima actualizacion deuda ↕')
 
         self.supplier_tree.tag_configure('orow', background="#FFFFFF")
-        self.supplier_tree.grid(row=1, column=2, padx=[20, 20], pady=20, ipadx=[6], sticky='nsew')
+        self.supplier_tree.grid(row=0, column=2, padx=[20, 20], pady=20, ipadx=[6], sticky='nsew')
 
     def create_buttons_frame(self):
         """ Crear frame para botones de supplier"""
@@ -352,7 +352,7 @@ class SupplierView():
         self.frame.update_idletasks()  # calcula la posicion antes de renderizar ventana
 
         info_win = ctk.CTkToplevel(self.frame)
-        info_win.title(f'Proveedor: {supplier[2]}')
+        info_win.title(f'Proveedor: {supplier[2]} -- {supplier[1]}')
 
         # posicion y tamaño del frame
         x_root = self.frame.winfo_rootx()
@@ -360,7 +360,7 @@ class SupplierView():
         width_root = self.frame.winfo_width()
         height_root = self.frame.winfo_height()
 
-        width_win = 800
+        width_win = 1050
         height_win = 450
         btn_color = "#009688"
         btn_hover = "#00796B"
@@ -375,13 +375,14 @@ class SupplierView():
         info_win.grid_columnconfigure(1, weight=1)
 
         # --- Tksheet con productos ---
-        products = self.stock_model.get_all_products_by_cuit(supplier[1])
-        products = [(p[0], p[2], p[3]) for p in products]
+        products = self.stock_model.get_all_products_by_cuit(supplier[2])
+        products = [(p[0], p[2], p[3], p[9]) for p in products]
 
         sheet = Sheet(info_win)
         sheet.grid(row=0, column=0, sticky="nsew", padx=10, pady=(10, 0))
-        sheet.headers(["Id", "Nombre Artículo", "Envase"])
+        sheet.headers(["Id", "Nombre Artículo", "Envase", "Stock"])
         sheet.set_sheet_data(products)
+        sheet.set_column_widths([100, 200, 200, 50])
 
         # --- Panel de deuda ---
         self.debt = tk.StringVar(value=f'{supplier[6]}')
