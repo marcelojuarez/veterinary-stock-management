@@ -76,8 +76,8 @@ class InvoiceInternalPDFService:
     def generate_pdf(self, number, customer, items, subtotal, iva, total):
         """Genera la factura interna PDF con estilo moderno."""
 
-        os.makedirs("facturas", exist_ok=True)
-        filename = f"facturas/{number}.pdf"
+        os.makedirs("comprobantes/facturas", exist_ok=True)
+        filename = f"comprobantes/facturas/{number}.pdf"
 
         doc = SimpleDocTemplate(
             filename,

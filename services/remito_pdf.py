@@ -54,8 +54,8 @@ class RemitoPDF:
         ))
 
     def generate_remito(self, number, customer, items):
-        os.makedirs("remitos", exist_ok=True)
-        filename = f"remitos/REM-{number}.pdf"
+        os.makedirs("comprobantes/remitos", exist_ok=True)
+        filename = f"comprobantes/remitos/REM-{number}.pdf"
 
         doc = SimpleDocTemplate(
             filename, 
