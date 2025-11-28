@@ -173,6 +173,23 @@ class Database:
 
             conn.commit()
 
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS payments (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    sale_id INTEGER NOT NULL,
+                    client_id INTEGER NOT NULL,
+                    amount REAL NOT NULL,
+                    date TEXT DEFAULT CURRENT_TIMESTAMP,
+                    method TEXT,
+                    notes TEXT,
+                    FOREIGN KEY(sale_id) REFERENCES sales(id) ON DELETE CASCADE,
+                    FOREIGN KEY(client_id) REFERENCES clientes(id) ON DELETE CASCADE
+                );
+            ''')
+        
+            conn.commit()
+
+
     
     def execute_query(self, query, params=None):
         """Ejecutar una consulta que no devuelve resultados"""
