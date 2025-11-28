@@ -85,14 +85,46 @@ class CustomerModel:
     # 💳 GESTIÓN DE DEUDAS DE CLIENTES
     # --------------------------------------------------------------------
     def get_customer_debts(self, cliente_id):
-        """Devuelve las ventas fiadas (no pagadas) del cliente"""
         query = """
-            SELECT id, date, total
-            FROM sales
-            WHERE cliente_id = ? AND estado = 'fiada'
-            ORDER BY date DESC
+            SELECT 
+                s.id AS sale_id,
+                s.date,
+                s.total,
+                IFNULL(SUM(p.amount), 0) AS pagado,
+                (s.total - IFNULL(SUM(p.amount), 0)) AS saldo,
+                s.estado
+            FROM sales s
+            LEFT JOIN payments p ON s.id = p.sale_id
+            WHERE s.cliente_id = ?
+            GROUP BY s.id
+            ORDER BY sale_id DESC;
         """
-        return self.db.fetch_all(query, (cliente_id,))
+        
+        rows = self.db.fetch_all(query, (cliente_id,))
+
+        state_map = {
+            "fiada": "Fiada",
+            "pending": "Pendiente",
+            "partial": "Pago parcial",
+            "paid": "Pagada"
+        }
+
+        formatted = []
+        for row in rows:
+            sale_id, date, total, pagado, saldo, estado = row
+
+            # 🔥 Formateo profesional de floats
+            total = round(float(total), 2)
+            pagado = round(float(pagado), 2)
+            saldo = round(float(saldo), 2)
+
+            estado_es = state_map.get(estado, estado)
+
+            formatted.append((sale_id, date, total, pagado, saldo, estado_es))
+
+        return formatted
+
+
 
     def get_sale_items(self, sale_id):
         """Detalle de productos vendidos en una venta fiada"""
@@ -110,7 +142,21 @@ class CustomerModel:
         self.db.execute_query(query, (sale_id,))
 
     def get_total_debt(self, cliente_id):
-        """Calcular total adeudado por un cliente"""
-        query = "SELECT SUM(total) FROM sales WHERE cliente_id = ? AND estado = 'fiada'"
-        res = self.db.fetch_one(query, (cliente_id,))
-        return res[0] if res and res[0] else 0.0
+        """Devuelve el total pendiente del cliente (suma de saldos positivos)."""
+        query = """
+            SELECT 
+                s.total,
+                IFNULL((SELECT SUM(amount) FROM payments WHERE sale_id = s.id), 0) AS paid
+            FROM sales s
+            WHERE s.cliente_id = ?;
+        """
+
+        rows = self.db.fetch_all(query, (cliente_id,))
+
+        total_pending = 0
+        for total, paid in rows:
+            saldo = total - paid
+            if saldo > 0:
+                total_pending += saldo
+
+        return total_pending
