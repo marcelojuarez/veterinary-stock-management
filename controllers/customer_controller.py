@@ -1,12 +1,15 @@
 from models.customer import CustomerModel
+from models.payment_model import PaymentModel
 from tkinter import messagebox
 import re
+from utils.pdf_generator import generate_payment_receipt
+import os
 
 class CustomerController: 
     def __init__(self, view):
         self.view = view
         self.model = CustomerModel()
-        
+        self.payment_model = PaymentModel()
         self.refresh_customer_table()
 
     def add_new_customer_window(self, data, window):
@@ -111,17 +114,6 @@ class CustomerController:
         except Exception as e:
             self.view.show_error(f"Error al obtener las deudas: {e}")
 
-    def mark_debt_as_paid(self, sale_id, cliente_id, cliente_nombre):
-        """Marca una deuda como pagada y actualiza ventana"""
-        try:
-            self.model.mark_debt_as_paid(sale_id)
-            debts = self.model.get_customer_debts(cliente_id)
-            total = self.model.get_total_debt(cliente_id)
-            self.view.update_debt_window(debts, total)
-            self.view.show_success("✅ Deuda marcada como pagada.")
-        except Exception as e:
-            self.view.show_error(f"Error al actualizar la deuda: {e}")
-
     def load_sale_items_for_debt(self, sale_id):
         """Carga el detalle de productos de una venta fiada en la vista"""
         try:
@@ -139,3 +131,49 @@ class CustomerController:
             except Exception as e:
                 self.view.show_error(f"Error al obtener las deudas del cliente: {e}")
 
+    def register_payment(self, sale_id, client_id, amount, method, window):
+        try:
+            self.payment_model.create_payment(
+                sale_id=sale_id,
+                client_id=client_id,
+                amount=amount,
+                method=method,
+                notes="Payment through UI"
+            )
+
+            self.payment_model.update_sale_status(sale_id)
+
+            debts = self.model.get_customer_debts(client_id)
+            total = self.model.get_total_debt(client_id)
+
+            self.view.update_debt_window(debts, total)
+
+            window.destroy()
+            self.view.show_success("Pago registrado con éxito.")
+
+            # 6) PREGUNTA: ¿Desea generar comprobante?
+            generar = messagebox.askyesno(
+                "Generar Comprobante",
+                "¿Desea generar el comprobante de pago?"
+            )
+
+            if generar:
+                receipt_path = generate_payment_receipt(
+                    client_name=self.model.find_customer_by_id(client_id)[1],
+                    sale_id=sale_id,
+                    payment_amount=amount,
+                    method=method,
+                    sale_info=self.payment_model.get_sale_balance(sale_id),
+                    payments=self.payment_model.get_payments_for_sale(sale_id)
+                )
+
+                self.view.show_success("Comprobante generado con éxito.")
+                
+                # Abrir el PDF automáticamente (solo Windows)
+                try:
+                    os.startfile(receipt_path)
+                except:
+                    pass
+
+        except Exception as e:
+            self.view.show_error(f"Error: {e}")
