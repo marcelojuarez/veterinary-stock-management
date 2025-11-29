@@ -73,13 +73,11 @@ class SupplierController():
         except Exception as e:
             print({e})
 
-
     def add_supplier_product(self):
         data = self.stock_view.get_form_data()
         print(f'Datos: {data}')
         self.stock_controller.add_new_product()
         self.stock_view.clear_form_fields()
-
 
     def supplier_info(self):
         # Obtengo las filas seleccionadas
@@ -156,8 +154,8 @@ class SupplierController():
     def refresh_supplier_table(self):
         """Refrescar la tabla de proveedores"""
         try:    
-            suppliers = self.model.get_all_suppliers()
-            self.view.refresh_supplier_table(suppliers)
+            self.view.suppliers = self.model.get_all_suppliers()
+            self.view.refresh_supplier_table(self.view.suppliers)
         except Exception as e:
             show_error(f"Error al refrescar la tabla {str(e)}")
 
@@ -172,6 +170,8 @@ class SupplierController():
             print(values)
             self.model.delete_supplier(iid)
             self.refresh_supplier_table()
+            if self.view.find_var.get() != "":
+                self.view.find_var.set('')
             show_success('El proveedor fue eliminado correctamente')
 
         except Exception:

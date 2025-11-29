@@ -21,6 +21,11 @@ class SupplierView():
         self.frame = ctk.CTkFrame(parent, fg_color="#f0f0f0")
         self.payment_window = PaymentWindow(self.model, self.frame)
         self.create_widgets()
+        # proveedores en memoria
+        self.suppliers = self.model.get_all_suppliers()
+        
+        self.sort_column = None
+        self.sort_reverse = False
 
     def set_controller(self, controller):
         """Asignar controller después de la inicialización"""
@@ -79,16 +84,18 @@ class SupplierView():
         )
 
         self.find_entry.grid(row=0, column=1, padx=10, pady=15)
-        
+        self.find_entry.bind("<KeyRelease>", self.on_key_release)
+        self.search_after_id = None
+
         find_btn = ctk.CTkButton(
             find_frame,
-            text="Buscar",
-            width=160,
+            text="!",
+            width=60,
             height=35,
-            font=ctk.CTkFont(size=12, weight="bold"),
+            font=ctk.CTkFont(size=15, weight="bold"),
             fg_color=btn_color,
             hover_color=btn_hover,
-            #command=lambda: self.controller.find_product(self.find_var)
+            command=lambda: show_warning("Ingrese un NOMBRE o CUIT para buscar un proveedor...")
         )
 
         find_btn.grid(row=0, column=2, padx=5, pady=5)
@@ -512,7 +519,7 @@ class SupplierView():
             win, text="Proveedor:", font=ctk.CTkFont(size=14, weight="bold")
         ).grid(row=0, column=0, padx=10, pady=(15, 5), sticky="e")
 
-        proveedores = [f"{p[1]}" for p in self.model.get_all_suppliers()]  # nombre (CUIT)
+        proveedores = [f"{p[1]}" for p in self.suppliers]  # nombre (CUIT)
         self.purchase_supplier_var = tk.StringVar()
 
         #  funcion para cargar productos 
@@ -706,6 +713,52 @@ class SupplierView():
         cancel_button = ctk.CTkButton(button_frame, text="Cancelar", width=120, height=35, font=ctk.CTkFont(size=12, weight="bold"),
             fg_color="#757575", hover_color="#616161", command=add_win.destroy)
         cancel_button.grid(row=0, column=1, padx=10)
+
+    def on_key_release(self, event):
+        # Cancela búsquedas previas si el usuario sigue escribiendo
+        if self.search_after_id:
+            self.find_entry.after_cancel(self.search_after_id)
+        
+        # Ejecuta la búsqueda después de 150 ms
+        self.search_after_id = self.find_entry.after(200, self.update_treeview_filter)
+
+    def update_treeview_filter(self):
+        query = self.find_entry.get().lower()
+        # se verifica si el campo de busqueda esta vacio
+        if query == "":
+            self.controller.refresh_supplier_table()
+            return
+        
+        print(query)
+        
+        # limpia el tree view
+        for row in self.supplier_tree.get_children():
+            self.supplier_tree.delete(row)
+            
+        # # Filtrar la lista de proveedores
+        filtered = [
+            s for s in self.suppliers
+            if query in s[1] or query in s[2].lower()
+        ]
+        
+        # Insertar solo los resultados filtrados
+        for s in filtered:
+            self.supplier_tree.insert(
+                parent='', index='end', iid=s[0],
+                values=(
+                    s[0],   # id
+                    s[2],   # name
+                    s[1],   # cuit
+                    s[3],   # home
+                    s[4],   # phone
+                    s[5],   # email
+                    s[6],   # debt
+                    s[7]    # last act debt
+                ),
+                tag="orow"
+            )
+
+        self.supplier_tree.tag_configure('orow', background="white", foreground='black')
 
     def refresh_supplier_table(self, suppliers):
         for item in self.supplier_tree.get_children():
