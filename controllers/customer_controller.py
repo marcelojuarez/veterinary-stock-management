@@ -10,7 +10,29 @@ class CustomerController:
         self.view = view
         self.model = CustomerModel()
         self.payment_model = PaymentModel()
-        self.refresh_customer_table()
+        self.all_customers = []  
+        self.load_customers()  
+
+    def load_customers(self):
+        """Carga inicial de clientes en memoria"""
+        try:
+            self.all_customers = self.model.get_all_customers()
+            self.view.refresh_customer_table(self.all_customers)
+        except Exception as e:
+            self.view.show_error(f"Error al cargar clientes: {e}")
+
+    def refresh_customer_data(self):
+        """Recargar desde DB (solo cuando hay cambios)"""
+        try:
+            self.all_customers = self.model.get_all_customers()
+            self.view.refresh_customer_table(self.all_customers)
+        except Exception as e:
+            self.view.show_error(f"Error al refrescar datos: {e}")
+
+
+    def search_customer(self, query):
+        """Método existente - ahora usa filtrado en memoria"""
+        self.filter_customers(query)
 
     def add_new_customer_window(self, data, window):
         """Guarda un nuevo cliente desde la ventana modal"""
@@ -25,7 +47,7 @@ class CustomerController:
 
             # Guardar cliente
             self.model.add_customer(data)
-            self.refresh_customer_table()
+            self.refresh_customer_data()
             self.view.show_success("Cliente agregado correctamente.")
             window.destroy()
             return True
@@ -45,7 +67,7 @@ class CustomerController:
 
         try:
             self.model.delete_customer(customer_id)
-            self.refresh_customer_table()
+            self.refresh_customer_data()
             self.view.show_success("Cliente eliminado correctamente.")
             return True
         except Exception as e:
@@ -53,13 +75,27 @@ class CustomerController:
             return False
 
 
-    def search_customer(self, term):
-        # Buscar cliente por nombre o id
-        try:
-            customers = self.model.search_customer(term)
-            self.view.refresh_customer_table(customers)
-        except Exception as e:
-            self.view.show_error(f"Error al buscar cliente: {str(e)}")
+    def filter_customers(self, query: str):
+        """Filtra clientes en memoria según la búsqueda"""
+        query = query.strip().lower()
+        
+        if not query:
+            # Si no hay búsqueda, mostrar todos
+            self.view.refresh_customer_table(self.all_customers)
+            return
+        
+        # Filtrar en memoria
+        filtered = []
+        for customer in self.all_customers:
+            # customer estructura: (id, nombre, cuit, domicilio, telefono)
+            if (query in str(customer[0]).lower() or        # ID
+                query in customer[1].lower() or             # Nombre
+                query in customer[2].lower() or             # CUIT
+                query in customer[3].lower() or             # Domicilio
+                query in customer[4].lower()):              # Teléfono
+                filtered.append(customer)
+        
+        self.view.refresh_customer_table(filtered)
 
     
     def clear_form(self):
@@ -77,13 +113,6 @@ class CustomerController:
                 self.view.show_warning(f'Por favor complete el campo {field}.')
                 return False 
         return True
-    
-    def refresh_customer_table(self):
-        try:
-            customers = self.model.get_all_customers()
-            self.view.refresh_customer_table(customers)
-        except Exception as e:
-            self.view.show_error(f"Error al refrescar la tabla: {e}")
 
     def __validate_supplier_cuit(self, cuit_field):
         pattern = r'^\d{2}-\d{8}-\d$'
