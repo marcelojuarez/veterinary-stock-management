@@ -54,6 +54,11 @@ class CustomersView:
         )
         search_entry.grid(row=0, column=1, padx=10, pady=5, sticky="w")
 
+        search_entry.bind(
+            "<KeyRelease>",
+            lambda event: self.controller.filter_customers(self.search_var.get())
+        )
+
         # --- Botón Buscar ---
         search_btn = ctk.CTkButton(
             header,
@@ -64,7 +69,7 @@ class CustomersView:
             fg_color="#009688",
             hover_color="#00796B",
             corner_radius=8,
-            command=lambda: self.controller.search_customer(self.search_var.get()) if self.controller else None
+            command=lambda: self.controller.filter_customers(self.search_var.get()) if self.controller else None
         )
         search_btn.grid(row=0, column=2, padx=(5, 10), pady=5, sticky="w")
 
@@ -78,7 +83,7 @@ class CustomersView:
             fg_color="#009688",
             hover_color="#00796B",
             corner_radius=8,
-            command=lambda: self.controller.refresh_customer_table() if self.controller else None
+            command=lambda: self.controller.refresh_customer_data() if self.controller else None
         )
         refresh_btn.grid(row=0, column=3, padx=(10, 40), pady=5, sticky="w")
 
@@ -263,20 +268,34 @@ class CustomersView:
         self.create_footer_buttons()
 
     def refresh_customer_table(self, customers):
+        """Solo pinta la tabla - NO toca la DB"""
         try:
+            # Limpiar tabla
             for row in self.table.get_children():
                 self.table.delete(row)
+                
+            # Si no hay clientes, mostrar mensaje
             if not customers:
+                # Opcional: mostrar mensaje de "no resultados"
                 return
-            for c in customers:
-                if isinstance(c, dict):
+                
+            # Insertar clientes
+            for customer in customers:
+                if isinstance(customer, dict):
+                    # Si viene como diccionario desde DB
                     vals = (
-                        c.get("id"), c.get("nombre"), c.get("cuit"),
-                        c.get("domicilio"), c.get("telefono")
+                        customer.get("id"), 
+                        customer.get("nombre"), 
+                        customer.get("cuit"),
+                        customer.get("domicilio"), 
+                        customer.get("telefono")
                     )
                 else:
-                    vals = c
+                    # Si viene como tupla desde filtro en memoria
+                    vals = customer
+                    
                 self.table.insert("", "end", values=vals)
+                
         except Exception as e:
             messagebox.showerror("Error", f"No se pudieron cargar los clientes: {e}")
 
@@ -555,7 +574,6 @@ class CustomersView:
         # ================================================================
         def validate_amount(*args):
             val = amount_var.get().strip()
-            # Si no es número → no permitir
             try:
                 num = float(val)
                 if num <= 0 or num > balance:
@@ -568,7 +586,7 @@ class CustomersView:
         amount_var.trace("w", validate_amount)
 
         # ================================================================
-        #  BOTÓN REGISTRAR
+        #  FUNCIONES PARA LOS BOTONES
         # ================================================================
         def confirm_payment():
             val = amount_var.get().strip()
@@ -591,24 +609,53 @@ class CustomersView:
                 sale_id, client_id, amount, method_var.get(), win
             )
 
+        def pay_full_balance():
+            """Pagar el saldo completo usando los controles existentes"""
+            amount_var.set(str(balance))
+            # Mantener el método de pago que el usuario ya seleccionó
+            # No necesitamos ventana adicional, usamos los controles existentes
+
+        # ================================================================
+        #  BOTONES INFERIORES - DISEÑO PROFESIONAL
+        # ================================================================
+        button_frame = ctk.CTkFrame(win, fg_color="transparent")
+        button_frame.pack(pady=20)
+
+        # Usar grid para alinear los 3 botones en una fila
+        button_frame.grid_columnconfigure(0, weight=1)
+        button_frame.grid_columnconfigure(1, weight=1)
+        button_frame.grid_columnconfigure(2, weight=1)
+
         ctk.CTkButton(
-            win,
+            button_frame,
+            text="Pagar Saldo Completo",
+            fg_color="#4CAF50",
+            hover_color="#45a049",
+            command=pay_full_balance,
+            width=160,
+            height=40,
+            font=ctk.CTkFont(size=13, weight="bold")
+        ).grid(row=0, column=0, padx=5)
+
+        ctk.CTkButton(
+            button_frame,
             text="Registrar Pago",
             fg_color="#009688",
             hover_color="#00796B",
             command=confirm_payment,
-            width=200,
-            height=40
-        ).pack(pady=20)
+            width=160,
+            height=40,
+            font=ctk.CTkFont(size=13, weight="bold")
+        ).grid(row=0, column=1, padx=5)
 
         ctk.CTkButton(
-            win,
+            button_frame,
             text="Cerrar",
             fg_color="#757575",
             hover_color="#616161",
             command=win.destroy,
-            width=200,
-            height=40
-        ).pack()
-
+            width=160,
+            height=40,
+            font=ctk.CTkFont(size=13, weight="bold")
+        ).grid(row=0, column=2, padx=5)
 
