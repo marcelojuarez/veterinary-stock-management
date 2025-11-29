@@ -127,7 +127,7 @@ class App():
         try:
             self.stock_controller.refresh_stock_table()
             self.supplier_controller.refresh_supplier_table()
-            self.customer_controller.refresh_customer_table()
+            self.customer_controller.refresh_customer_data()
         except Exception as e:
             print(f"Error cargando datos iniciales: {e}")
 
