@@ -23,9 +23,7 @@ class StockView():
         
     def set_controller(self, controller):
         """Asignar controller después de la inicialización"""
-        print(f"DEBUG: Asignando controller: {controller}")
         self.controller = controller
-        print(f"DEBUG: Controller asignado correctamente: {self.controller}")
         
     def setup_variables(self):
         """Configurar variables del formulario"""
@@ -142,6 +140,7 @@ class StockView():
         )
 
         find_entry.grid(row=0, column=1, padx=10, pady=15)
+        find_entry.bind("<KeyRelease>", lambda event: self.controller.find_product_live(self.find_var.get()))
         
         find_btn = ctk.CTkButton(
             find_frame,

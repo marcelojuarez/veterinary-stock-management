@@ -95,9 +95,9 @@ class App():
         self.notebook.pack(fill='both', expand=True)
 
         # --- STOCK ---
-        self.stock_controller = StockController(None)
-        self.stock_view = StockView(self.notebook, controller=self.stock_controller)
-        self.stock_controller.view = self.stock_view
+        self.stock_view = StockView(self.notebook)
+        self.stock_controller = StockController(self.stock_view, stock_view=self.stock_view)
+        self.stock_view.set_controller(self.stock_controller)
         self.stock_view.frame.pack(fill='both', expand=True)
         self.notebook.add(self.stock_view.frame, text='Inventario')
 
@@ -125,7 +125,7 @@ class App():
 
     def load_initial_data(self):
         try:
-            self.stock_controller.refresh_stock_table()
+            self.stock_controller.load_products()
             self.supplier_controller.refresh_supplier_table()
             self.customer_controller.refresh_customer_data()
         except Exception as e:
