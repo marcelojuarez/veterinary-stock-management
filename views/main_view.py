@@ -1,6 +1,6 @@
 import tkinter as tk
 import customtkinter as ctk
-from tkinter import ttk, messagebox
+from tkinter import ttk
 from controllers.auth_controller import validate_data
 from config.settings import settings
 from views.stock_view import StockView
@@ -63,10 +63,10 @@ class App():
 
         # usuario
         user_lbl = ctk.CTkLabel(self.login_win, text="USUARIO: ", font=ctk.CTkFont(size=15, weight="bold"))
-        user_lbl.grid(row=0, column=0)
+        user_lbl.grid(row=0, column=0, pady=(15,1))
 
         user_entry = ctk.CTkEntry(self.login_win, textvariable=self.user_var)
-        user_entry.grid(row=0, column=1)
+        user_entry.grid(row=0, column=1, pady=(15,1))
 
         # password
         pwd_lbl = ctk.CTkLabel(self.login_win, text='CONTRASEÑA:', font=ctk.CTkFont(size=15, weight="bold"))
@@ -87,7 +87,7 @@ class App():
         if (validate_data(self.user_var.get(), self.pwd_var.get())):
             self.root.deiconify()
             self.create_notebook()
-            self.load_initial_data()
+            self.root.after(100, self.load_initial_data)
             self.login_win.destroy()  
 
     def create_notebook(self):
