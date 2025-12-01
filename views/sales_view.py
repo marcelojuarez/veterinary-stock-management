@@ -196,7 +196,8 @@ class SalesView:
         W, H = 250, 40
 
         buttons = [
-            ("💰 Procesar venta", "#009688", "#00796B", lambda: self.controller.confirm_sale()),
+            # CAMBIAR el comando de "Procesar venta":
+            ("💰 Procesar venta", "#009688", "#00796B", self.process_sale_with_confirmation),
             ("🧾 Generar remito", "#009688", "#00796B", lambda: self.generate_delivery_note()),
             ("🗑️ Eliminar producto", "#009688", "#00796B", self.delete_selected_product),
             ("🧹 Limpiar", "#009688", "#00796B", self.clear_sale)
@@ -398,6 +399,190 @@ class SalesView:
         if self.client_var.get() not in names:
             self.client_combo.set("Consumidor Final")
 
+    def show_sale_confirmation(self):
+        """Mostrar ventana de confirmación con preview de la venta"""
+        
+        # Validar que haya productos
+        if not self.items_in_sale:
+            self.show_warning("No hay productos en la venta")
+            return False
+        
+        # Crear ventana de confirmación - ALTURA REDUCIDA
+        confirm_win = ctk.CTkToplevel(self.frame)
+        confirm_win.title("Confirmar Venta")
+        confirm_win.geometry("650x650")  # Reducido de 700 a 650
+        confirm_win.transient(self.frame)
+        confirm_win.grab_set()
+        confirm_win.resizable(False, False)  # Evitar redimensionar
+        
+        # Centrar ventana
+        confirm_win.update_idletasks()
+        x = (confirm_win.winfo_screenwidth() // 2) - (325)
+        y = (confirm_win.winfo_screenheight() // 2) - (325)
+        confirm_win.geometry(f"650x650+{x}+{y}")
+        
+        # Título
+        title = ctk.CTkLabel(
+            confirm_win,
+            text="🧾 Resumen de la Venta",
+            font=ctk.CTkFont(size=18, weight="bold")  # Reducido de 20 a 18
+        )
+        title.pack(pady=(15, 8))  # Reducido padding
+        
+        # Frame de información del cliente - MÁS COMPACTO
+        client_frame = ctk.CTkFrame(confirm_win, fg_color="#f5f5f5")
+        client_frame.pack(padx=15, pady=5, fill="x")  # Reducido padding
+        
+        client_name = self.client_var.get()
+        client_cuit = self.client_cuit_var.get()
+        client_address = self.client_address_var.get()
+        is_paid = "PAGADA" if self.sale_paid_var.get() else "FIADA"
+        
+        ctk.CTkLabel(
+            client_frame,
+            text="📋 Datos del Cliente",
+            font=ctk.CTkFont(size=14, weight="bold")  # Reducido de 15 a 14
+        ).pack(pady=(8, 3))  # Reducido padding
+        
+        ctk.CTkLabel(
+            client_frame,
+            text=f"Cliente: {client_name}",
+            font=ctk.CTkFont(size=12)  # Reducido de 13 a 12
+        ).pack(anchor="w", padx=15, pady=1)  # Reducido padding
+        
+        if client_cuit:
+            ctk.CTkLabel(
+                client_frame,
+                text=f"CUIT/DNI: {client_cuit}",
+                font=ctk.CTkFont(size=12)
+            ).pack(anchor="w", padx=15, pady=1)
+        
+        if client_address:
+            ctk.CTkLabel(
+                client_frame,
+                text=f"Dirección: {client_address}",
+                font=ctk.CTkFont(size=12)
+            ).pack(anchor="w", padx=15, pady=1)
+        
+        ctk.CTkLabel(
+            client_frame,
+            text=f"Estado de pago: {is_paid}",
+            font=ctk.CTkFont(size=12, weight="bold"),  # Reducido de 13 a 12
+            text_color="#009688" if self.sale_paid_var.get() else "#f44336"
+        ).pack(anchor="w", padx=15, pady=(1, 8))  # Reducido padding
+        
+        # Frame de productos - MÁS COMPACTO
+        products_frame = ctk.CTkFrame(confirm_win)
+        products_frame.pack(padx=15, pady=5, fill="both", expand=True)  # Reducido padding
+        
+        ctk.CTkLabel(
+            products_frame,
+            text="📦 Productos",
+            font=ctk.CTkFont(size=14, weight="bold")  # Reducido de 15 a 14
+        ).pack(pady=(8, 3))  # Reducido padding
+        
+        # Tabla de productos - ALTURA REDUCIDA
+        preview_tree = ttk.Treeview(products_frame, show="headings", height=6)  # Reducido de 8 a 6
+        preview_tree["columns"] = ("Cant.", "Producto", "P. Unit.", "Subtotal")
+        
+        widths = [60, 280, 100, 100]
+        for col, w in zip(preview_tree["columns"], widths):
+            preview_tree.column(col, width=w, anchor="center")
+            preview_tree.heading(col, text=col)
+        
+        # Agregar productos
+        total = 0
+        for pid, name, qty, price in self.items_in_sale:
+            # Obtener nombre del producto
+            product_name = name
+            if not product_name:
+                for item in self.product_tree.get_children():
+                    values = self.product_tree.item(item)["values"]
+                    if values[0] == pid:
+                        product_name = values[1]
+                        break
+            
+            subtotal = round(price * qty, 2)
+            total += subtotal
+            
+            preview_tree.insert("", "end", values=(
+                qty,
+                product_name,
+                f"${price:.2f}",
+                f"${subtotal:.2f}"
+            ))
+        
+        preview_tree.pack(padx=8, pady=5, fill="both", expand=True)  # Reducido padding
+        
+        # Frame de totales - MÁS COMPACTO
+        totals_frame = ctk.CTkFrame(confirm_win, fg_color="#e8f5e9")
+        totals_frame.pack(padx=15, pady=5, fill="x")  # Reducido padding
+        
+        # Cantidad total de items
+        total_items = sum(qty for _, _, qty, _ in self.items_in_sale)
+        
+        ctk.CTkLabel(
+            totals_frame,
+            text=f"Total de productos: {len(self.items_in_sale)} | Total de unidades: {total_items}",
+            font=ctk.CTkFont(size=12)  # Reducido y combinado en una línea
+        ).pack(pady=(8, 3))
+        
+        ctk.CTkLabel(
+            totals_frame,
+            text=f"TOTAL A PAGAR: ${total:.2f}",
+            font=ctk.CTkFont(size=20, weight="bold"),  # Reducido de 22 a 20
+            text_color="#2e7d32"
+        ).pack(pady=(3, 10))  # Reducido padding
+        
+        # Variable para capturar la respuesta
+        result = {"confirmed": False}
+        
+        # Frame de botones - SIEMPRE VISIBLE
+        button_frame = ctk.CTkFrame(confirm_win, fg_color="transparent")
+        button_frame.pack(pady=10, side="bottom")  # Cambio importante: side="bottom"
+        
+        def confirm():
+            result["confirmed"] = True
+            confirm_win.destroy()
+        
+        def cancel():
+            result["confirmed"] = False
+            confirm_win.destroy()
+        
+        confirm_btn = ctk.CTkButton(
+            button_frame,
+            text="✅ Confirmar y Procesar",
+            width=200,
+            height=45,
+            font=ctk.CTkFont(size=14, weight="bold"),
+            fg_color="#4CAF50",
+            hover_color="#45a049",
+            command=confirm
+        )
+        confirm_btn.grid(row=0, column=0, padx=10)
+        
+        cancel_btn = ctk.CTkButton(
+            button_frame,
+            text="❌ Cancelar",
+            width=150,
+            height=45,
+            font=ctk.CTkFont(size=14, weight="bold"),
+            fg_color="#757575",
+            hover_color="#616161",
+            command=cancel
+        )
+        cancel_btn.grid(row=0, column=1, padx=10)
+        
+        # Esperar a que se cierre la ventana
+        confirm_win.wait_window()
+        
+        return result["confirmed"]
+
+    def process_sale_with_confirmation(self):
+        """Procesar venta con confirmación previa"""
+        if self.show_sale_confirmation():
+            # Si el usuario confirma, proceder con la venta
+            self.controller.confirm_sale()
 
     # Utilidades
     def show_success(self, msg): messagebox.showinfo("Éxito", msg)
