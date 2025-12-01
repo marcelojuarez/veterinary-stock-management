@@ -26,6 +26,7 @@ class SalesView:
         self.items_in_sale = []  # lista de productos (id, qty, price)
         self.sale_paid_var = tk.BooleanVar(value=True)
         self.last_sale_id = None
+        self.all_products = []  # Nuevo
 
     # --------------------------------------------------------------------
     # LAYOUT PRINCIPAL
@@ -62,12 +63,13 @@ class SalesView:
             placeholder_text="Buscar producto..."
         )
         search_entry.grid(row=0, column=1, padx=10)
+        search_entry.bind("<KeyRelease>", lambda event: self.controller.search_products_live())
 
         search_btn = ctk.CTkButton(
             header, text="Buscar",
             width=120, height=35,
             fg_color="#009688", hover_color="#00796B",
-            command=lambda: self.controller.search_product_for_sale(self.search_var.get())
+            command=lambda: self.controller.search_products_live()
         )
         search_btn.grid(row=0, column=2, padx=10)
 
@@ -368,15 +370,28 @@ class SalesView:
             self.sales_view.show_warning("Seleccione el artículo que desea eliminar.")
 
     def load_available_products(self):
+        """Cargar productos disponibles y guardar en caché"""
         try:
             products = self.stock_model.get_all_products()
-            self.product_tree.delete(*self.product_tree.get_children())
-            for p in products:
-                (pid, cuit_supplier, name, pack, profit, cost, price, iva, price_with_iva, created_at, last_update, qty) = p
-                if qty > 0:
-                    self.product_tree.insert("", "end", values=(pid, name, price_with_iva, qty))
+            self.all_products = [p for p in products if p[11] > 0]  # Solo productos con stock
+            
+            # Mostrar todos los productos inicialmente
+            self.refresh_product_tree(self.all_products)
+            
         except Exception as e:
             messagebox.showerror("Error", f"No se pudieron cargar los productos: {e}")
+
+    def refresh_product_tree(self, products):
+        """Actualizar la tabla de productos con la lista proporcionada"""
+        self.product_tree.delete(*self.product_tree.get_children())
+        
+        for p in products:
+            (pid, _, name, _, _, _, _, 
+            _, price_with_iva, _, _, qty) = p
+            
+            if qty > 0:  # Solo mostrar productos con stock
+                self.product_tree.insert("", "end", values=(pid, name, price_with_iva, qty))
+
 
     def on_client_selected(self, selected_name):
         """Actualizar datos del cliente al cambiar selección"""
@@ -407,31 +422,27 @@ class SalesView:
             self.show_warning("No hay productos en la venta")
             return False
         
-        # Crear ventana de confirmación - ALTURA REDUCIDA
         confirm_win = ctk.CTkToplevel(self.frame)
         confirm_win.title("Confirmar Venta")
-        confirm_win.geometry("650x650")  # Reducido de 700 a 650
+        confirm_win.geometry("650x650")
         confirm_win.transient(self.frame)
         confirm_win.grab_set()
         confirm_win.resizable(False, False)  # Evitar redimensionar
         
-        # Centrar ventana
         confirm_win.update_idletasks()
         x = (confirm_win.winfo_screenwidth() // 2) - (325)
         y = (confirm_win.winfo_screenheight() // 2) - (325)
         confirm_win.geometry(f"650x650+{x}+{y}")
         
-        # Título
         title = ctk.CTkLabel(
             confirm_win,
             text="🧾 Resumen de la Venta",
-            font=ctk.CTkFont(size=18, weight="bold")  # Reducido de 20 a 18
+            font=ctk.CTkFont(size=18, weight="bold")
         )
-        title.pack(pady=(15, 8))  # Reducido padding
+        title.pack(pady=(15, 8)) 
         
-        # Frame de información del cliente - MÁS COMPACTO
         client_frame = ctk.CTkFrame(confirm_win, fg_color="#f5f5f5")
-        client_frame.pack(padx=15, pady=5, fill="x")  # Reducido padding
+        client_frame.pack(padx=15, pady=5, fill="x")
         
         client_name = self.client_var.get()
         client_cuit = self.client_cuit_var.get()
@@ -441,14 +452,14 @@ class SalesView:
         ctk.CTkLabel(
             client_frame,
             text="📋 Datos del Cliente",
-            font=ctk.CTkFont(size=14, weight="bold")  # Reducido de 15 a 14
-        ).pack(pady=(8, 3))  # Reducido padding
+            font=ctk.CTkFont(size=14, weight="bold")
+        ).pack(pady=(8, 3))
         
         ctk.CTkLabel(
             client_frame,
             text=f"Cliente: {client_name}",
-            font=ctk.CTkFont(size=12)  # Reducido de 13 a 12
-        ).pack(anchor="w", padx=15, pady=1)  # Reducido padding
+            font=ctk.CTkFont(size=12)
+        ).pack(anchor="w", padx=15, pady=1)  
         
         if client_cuit:
             ctk.CTkLabel(

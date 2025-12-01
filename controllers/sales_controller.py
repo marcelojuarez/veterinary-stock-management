@@ -101,6 +101,31 @@ class SalesController:
         else:
             self.sales_view.show_warning("Seleccione el artículo que desea eliminar.")
 
+    def search_products_live(self):
+        """Buscar productos en tiempo real mientras se escribe"""
+        search_text = self.sales_view.search_var.get().strip().lower()
+        
+        # Si no hay texto de búsqueda, mostrar todos los productos
+        if not search_text:
+            self.refresh_product_tree(self.sales_view.all_products)
+            return
+        
+        # Filtrar productos que coincidan con la búsqueda
+        filtered_products = []
+        
+        for product in self.sales_view.all_products:
+            (pid, cuit_supplier, name, pack, profit, cost, price, 
+            iva, price_with_iva, created_at, last_update, qty) = product
+            
+            # Buscar en: ID, nombre y envase
+            if (search_text in str(pid).lower() or 
+                search_text in str(name).lower() or 
+                search_text in str(pack).lower()):
+                filtered_products.append(product)
+        
+        # Actualizar tabla con resultados filtrados
+        self.sales_view.refresh_product_tree(filtered_products)
+        
 
     def confirm_sale(self):
         """Procesar venta y actualizar stock"""
