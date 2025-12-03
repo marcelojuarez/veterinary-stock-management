@@ -299,6 +299,13 @@ class CustomersView:
         except Exception as e:
             messagebox.showerror("Error", f"No se pudieron cargar los clientes: {e}")
 
+    def get_selected_customer_id(self):
+        """Retorna el ID del cliente seleccionado o None"""
+        selected = self.table.selection()
+        if not selected:
+            return None     
+        return self.table.item(selected[0])["values"][0]
+
     def delete_selected_customer(self):
         selected = self.table.selection()
         if not selected:
@@ -415,25 +422,39 @@ class CustomersView:
 
         ctk.CTkButton(
             btn_frame,
+            text="Pago Global",
+            width=160,
+            height=35,
+            fg_color="#009688",
+            hover_color="#00796B",
+            font=ctk.CTkFont(size=13, weight="bold"),
+            command=self.controller.open_global_payment_window
+        ).grid(row=0, column=0, padx=10)
+
+        ctk.CTkButton(
+            btn_frame,
             text="Registrar Pago",
-            width=200,
+            width=160,
             height=35,
             fg_color="#009688",
             hover_color="#00796B",
             font=ctk.CTkFont(size=13, weight="bold"),
             command=mark_as_paid
-        ).grid(row=0, column=0, padx=15)
+        ).grid(row=0, column=1, padx=10)
 
         ctk.CTkButton(
             btn_frame,
             text="❌ Cerrar",
-            width=200,
+            width=160,
             height=35,
             fg_color="#757575",
             hover_color="#616161",
             font=ctk.CTkFont(size=13, weight="bold"),
             command=win.destroy
-        ).grid(row=0, column=1, padx=15)
+        ).grid(row=0, column=2, padx=10)
+
+
+
 
         # ----------------------------------------------------------------
         # Evento: seleccionar deuda -> cargar detalle de productos
@@ -612,19 +633,12 @@ class CustomersView:
         def pay_full_balance():
             """Pagar el saldo completo usando los controles existentes"""
             amount_var.set(str(balance))
-            # Mantener el método de pago que el usuario ya seleccionó
-            # No necesitamos ventana adicional, usamos los controles existentes
 
         # ================================================================
         #  BOTONES INFERIORES - DISEÑO PROFESIONAL
         # ================================================================
         button_frame = ctk.CTkFrame(win, fg_color="transparent")
         button_frame.pack(pady=20)
-
-        # Usar grid para alinear los 3 botones en una fila
-        button_frame.grid_columnconfigure(0, weight=1)
-        button_frame.grid_columnconfigure(1, weight=1)
-        button_frame.grid_columnconfigure(2, weight=1)
 
         ctk.CTkButton(
             button_frame,
@@ -650,7 +664,7 @@ class CustomersView:
 
         ctk.CTkButton(
             button_frame,
-            text="Cerrar",
+            text="❌ Cerrar",
             fg_color="#757575",
             hover_color="#616161",
             command=win.destroy,
