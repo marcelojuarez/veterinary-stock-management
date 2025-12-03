@@ -156,3 +156,131 @@ def generate_payment_receipt(client_name, sale_id, payment_amount, method, sale_
     doc.build(elements)
 
     return file_path
+
+def generate_global_payment_receipt(client_name, payment_amount, result_data):
+    """
+    Genera un comprobante para un pago global que afectó a varias ventas.
+    result_data: diccionario devuelto por payment_model.apply_global_payment
+    """
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    file_path = f"comprobantes/pagos/comprobante_global_{client_name.replace(' ', '_')}_{timestamp}.pdf"
+
+    doc = SimpleDocTemplate(
+        file_path,
+        pagesize=A4,
+        rightMargin=20*mm,
+        leftMargin=20*mm,
+        topMargin=15*mm,
+        bottomMargin=15*mm
+    )
+
+    styles = getSampleStyleSheet()
+    normal = styles["Normal"]
+    title = styles["Heading1"]
+    title.fontSize = 16
+    title.leading = 20
+    
+    elements = []
+
+    # ============================
+    # TÍTULO
+    # ============================
+    elements.append(Paragraph("<b>COMPROBANTE DE PAGO GLOBAL</b>", title))
+    elements.append(Spacer(1, 6))
+
+    # ============================
+    # DATOS DEL COMERCIO
+    # ============================
+    comercio_text = """
+    <b>Agroveterinaria El Fortín</b><br/>
+    Ruta Nacional N° 8, Km 681 – Chaján, Córdoba<br/>
+    C.U.I.T.: 20-12345678-3 – Responsable Inscripto<br/>
+    """
+    elements.append(Paragraph(comercio_text, normal))
+    elements.append(Spacer(1, 10))
+
+    # ============================
+    # INFO GENERAL DEL COMPROBANTE
+    # ============================
+    now = datetime.now().strftime("%d/%m/%Y %H:%M")
+    general_info = [
+        ["Fecha y Hora", now],
+        ["Tipo de Movimiento", "Pago Global a Cuenta"],
+    ]
+
+    tbl = Table(general_info, colWidths=[120, 280])
+    tbl.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (1, 0), colors.HexColor("#eeeeee")),
+        ('BOX', (0, 0), (-1, -1), 0.5, colors.grey),
+        ('INNERGRID', (0, 0), (-1, -1), 0.25, colors.grey),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+    ]))
+    elements.append(tbl)
+    elements.append(Spacer(1, 15))
+
+    # ============================
+    # DATOS DEL CLIENTE
+    # ============================
+    client_data = f"""
+    <b>Cliente:</b> {client_name}<br/>
+    <b>Monto Entregado:</b> ${payment_amount:.2f}<br/>
+    """
+    elements.append(Paragraph("<b>Datos del Cliente</b>", styles["Heading3"]))
+    elements.append(Spacer(1, 4))
+    elements.append(Paragraph(client_data, normal))
+    elements.append(Spacer(1, 10))
+
+    # ============================
+    # DETALLE DE LA DISTRIBUCIÓN
+    # ============================
+    elements.append(Paragraph("<b>Distribución del Pago</b>", styles["Heading3"]))
+    elements.append(Spacer(1, 4))
+
+    # Tabla de distribución
+    data = [["Venta ID", "Monto Aplicado"]]
+    for sale_id, amount in result_data["updated_debts"]:
+        data.append([f"#{sale_id}", f"${amount:.2f}"])
+    
+    # Agregar filas de resumen
+    data.append(["", ""])
+    data.append(["Total Aplicado", f"${result_data['used']:.2f}"])
+    data.append(["Deuda Restante del Cliente", f"${result_data['still_owed']:.2f}"])
+
+    tbl2 = Table(data, colWidths=[200, 150])
+    tbl2.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (1, 0), colors.HexColor("#e5f4ef")), # Mismo verde suave
+        ('BOX', (0, 0), (-1, -1), 0.6, colors.HexColor("#009688")),
+        ('INNERGRID', (0, 0), (-1, -1), 0.3, colors.HexColor("#009688")),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        
+        # Estilo para las filas de resumen final
+        ('LINEABOVE', (0, -3), (-1, -3), 1, colors.black),
+        ('FONTWEIGHT', (0, -3), (-1, -1), 'BOLD'),
+    ]))
+    
+    elements.append(tbl2)
+    elements.append(Spacer(1, 12))
+
+    # ============================
+    # LEGALES / NOTA FINAL
+    # ============================
+    nota = """
+    <i>Este pago se ha distribuido automáticamente entre las deudas más antiguas.
+    Este documento certifica la recepción de un pago registrado en el sistema.
+    No válido como factura.</i>
+    """
+    elements.append(Paragraph(nota, normal))
+    elements.append(Spacer(1, 20))
+
+    # ============================
+    # FIRMAS
+    # ============================
+    firma = """
+    <br/><br/><br/>
+    ________________________________<br/>
+    Firma del Cliente
+    """
+    elements.append(Paragraph(firma, normal))
+
+    doc.build(elements)
+    return file_path
