@@ -67,3 +67,70 @@ class PaymentModel:
             (sale_id,)
         )
         return rows
+
+    def apply_global_payment(self, customer_id, amount):
+        """
+        Aplica un pago global distribuido entre las deudas pendientes.
+        Orden: LIFO (según código original del usuario) -> De la más nueva a la más vieja? 
+        Nota: Usualmente es FIFO (ASC), pero respetamos el 'DESC' solicitado.
+        """
+        # 1. Obtener deudas con saldo pendiente
+        query = """
+            SELECT s.id, s.total, IFNULL(SUM(p.amount), 0) as paid
+            FROM sales s
+            LEFT JOIN payments p ON s.id = p.sale_id
+            WHERE s.cliente_id = ?
+            GROUP BY s.id
+            HAVING (s.total - paid) > 0.01
+            ORDER BY s.date DESC
+        """
+        rows = self.db.fetch_all(query, (customer_id,))
+        
+        remaining = amount
+        updated_debts = []
+
+        for row in rows:
+            if remaining <= 0:
+                break
+
+            sale_id, total, paid = row
+            balance = total - paid
+            
+            # Determinar cuánto pagar de esta venta
+            pay_amount = min(remaining, balance)
+            
+            if pay_amount > 0:
+                # Registrar el pago
+                self.create_payment(
+                    sale_id=sale_id,
+                    client_id=customer_id,
+                    amount=pay_amount,
+                    method="Global",
+                    notes="Pago Global Automático"
+                )
+                
+                # Actualizar estado de la venta
+                self.update_sale_status(sale_id)
+                
+                remaining -= pay_amount
+                updated_debts.append((sale_id, pay_amount))
+
+        # Calcular deuda total restante
+        # Reutilizamos la query de CustomerModel logic o una simple suma
+        total_debt_query = """
+            SELECT s.total, IFNULL(SUM(p.amount), 0)
+            FROM sales s
+            LEFT JOIN payments p ON s.id = p.sale_id
+            WHERE s.cliente_id = ?
+            GROUP BY s.id
+        """
+        all_sales = self.db.fetch_all(total_debt_query, (customer_id,))
+        still_owed = sum(s[0] - s[1] for s in all_sales if (s[0] - s[1]) > 0.01)
+
+        return {
+            "used": amount - remaining,
+            "remaining": remaining,
+            "updated_debts": updated_debts,
+            "still_owed": still_owed
+        }
+
