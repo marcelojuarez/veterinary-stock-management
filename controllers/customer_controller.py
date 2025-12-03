@@ -206,3 +206,142 @@ class CustomerController:
 
         except Exception as e:
             self.view.show_error(f"Error: {e}")
+
+    def open_global_payment_window(self):
+        import customtkinter as ctk 
+        from utils.pdf_generator import generate_global_payment_receipt
+
+        customer_id = self.view.get_selected_customer_id()
+        if not customer_id:
+            self.view.show_warning("Selecciona un cliente primero.")
+            return
+
+        # Crear ventana modal con estilo
+        win = ctk.CTkToplevel(self.view.frame)
+        win.title("Pago Global a Cuenta")
+        win.geometry("450x400")
+        win.transient(self.view.frame)
+        win.grab_set()
+
+        # Centrar
+        win.update_idletasks()
+        width = win.winfo_width()
+        height = win.winfo_height()
+        x = (win.winfo_screenwidth() // 2) - (width // 2)
+        y = (win.winfo_screenheight() // 2) - (height // 2)
+        win.geometry(f'{width}x{height}+{x}+{y}')
+
+        # Header
+        header = ctk.CTkFrame(win, fg_color="#009688", height=60, corner_radius=0)
+        header.pack(fill="x")
+        
+        ctk.CTkLabel(
+            header, 
+            text="Registrar Pago Global",
+            font=ctk.CTkFont(size=18, weight="bold"),
+            text_color="white"
+        ).pack(pady=15)
+
+        content = ctk.CTkFrame(win, fg_color="transparent")
+        content.pack(pady=20, padx=20, fill="both", expand=True)
+
+        ctk.CTkLabel(
+            content,
+            text="Este pago se distribuirá automáticamente\nentre las deudas más antiguas.",
+            font=ctk.CTkFont(size=12),
+            text_color="gray"
+        ).pack(pady=(0, 20))
+
+        # Input
+        ctk.CTkLabel(content, text="Monto a entregar:", font=ctk.CTkFont(weight="bold")).pack(anchor="w", pady=(0, 5))
+        
+        entry_amount = ctk.CTkEntry(content, width=250, height=40, placeholder_text="$ 0.00", font=ctk.CTkFont(size=14))
+        entry_amount.pack()
+
+        def process():
+            try:
+                val = entry_amount.get().strip()
+                if not val:
+                    self.view.show_warning("Ingrese un monto.")
+                    return
+                
+                amount = float(val)
+                if amount <= 0:
+                    self.view.show_warning("El monto debe ser mayor a 0.")
+                    return
+
+            except ValueError:
+                self.view.show_error("Monto inválido. Ingrese solo números.")
+                return
+
+            # Validar que el monto no supere la deuda total
+            total_debt = self.model.get_total_debt(customer_id)
+            if amount > total_debt:
+                self.view.show_warning(f"El monto ingresado (${amount:.2f}) supera la deuda total del cliente (${total_debt:.2f}).")
+                return
+
+            try:
+                result = self.payment_model.apply_global_payment(customer_id, amount)
+
+                # Construir mensaje de resultado
+                msg = ("Pago registrado con éxito.")
+                
+                self.view.show_success(msg) 
+                win.destroy()
+                
+                # 1. Actualizar tabla principal
+                self.refresh_customer_data()
+                
+                # 2. Actualizar ventana de deudas si está abierta
+                # Necesitamos volver a pedir los datos actualizados
+                debts = self.model.get_customer_debts(customer_id)
+                total = self.model.get_total_debt(customer_id)
+                self.view.update_debt_window(debts, total)
+
+                # 3. Generar comprobante
+                if result['used'] > 0:
+                    generar = messagebox.askyesno(
+                        "Comprobante", 
+                        "¿Desea generar un comprobante de este pago global?"
+                    )
+                    if generar:
+                        # Obtener nombre del cliente
+                        client_name = "Cliente"
+                        for c in self.all_customers:
+                            if c[0] == customer_id:
+                                client_name = c[1]
+                                break
+                        
+                        path = generate_global_payment_receipt(client_name, amount, result)
+                        try:
+                            os.startfile(path)
+                        except:
+                            pass
+
+            except Exception as e:
+                self.view.show_error(f"Error al procesar el pago: {e}")
+
+        # Botones
+        btn_frame = ctk.CTkFrame(win, fg_color="transparent")
+        btn_frame.pack(pady=20, fill="x", padx=20)
+
+        ctk.CTkButton(
+            btn_frame, 
+            text="Confirmar Pago",
+            fg_color="#009688",
+            hover_color="#00796B",
+            height=40,
+            font=ctk.CTkFont(weight="bold"),
+            command=process
+        ).pack(side="right", padx=5, expand=True, fill="x")
+
+        ctk.CTkButton(
+            btn_frame,
+            text="Cancelar",
+            width=150,
+            height=40,
+            fg_color="#757575",
+            hover_color="#616161",
+            font=ctk.CTkFont(size=13, weight="bold"),
+            command=win.destroy
+        ).pack(side="left", padx=5, expand=True, fill="x")
