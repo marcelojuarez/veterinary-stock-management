@@ -1,7 +1,6 @@
 from models.supplier import SupplierModel
 from models.stock import StockModel
-from controllers.stock_controller import StockController
-from views.stock_view import StockView
+from views.view_helpers import show_warning, show_error, show_success
 import re
 
 class SupplierController():
@@ -29,43 +28,43 @@ class SupplierController():
                 print('Entro al chequeo de cuit del proveedor')
                 return
             
-            if not self.__validate_supplier_phone(data['telefono']):
+            if not self.__validate_supplier_phone(data['phone']):
                 print('Entro al chequeo de telefono del proveedor')
                 return
             
-            if not self.__validate_supplier_name(data['nombre']):
+            if not self.__validate_supplier_name(data['name']):
                 print('Entro al chequeo de nombre del proveedor')
                 return
             
-            if not self.__validate_supplier_address(data['domicilio']):
+            if not self.__validate_supplier_address(data['home']):
                 print('Entro al chequeo de domicilio del proveedor')
                 return
 
             # convertir tipos
             supplier_data = {
-                'nombre': data['nombre'],
+                'name': data['name'],
                 'cuit': data['cuit'],
-                'domicilio': data['domicilio'],
-                'telefono': data['telefono'],
+                'home': data['home'],
+                'phone': data['phone'],
                 'email': data['email'],
-                'deuda': data['deuda']
+                'debt': data['debt']
             }
 
             self.model.add_supplier(supplier_data)
 
             self.refresh_supplier_table()
 
-            self.clear_form()
+            self.view.clear_form_supplier()
 
             if window:
                 window.destroy()
             
-            self.view.show_success("Proveedor registrado correctamente.")
+            show_success("Proveedor registrado correctamente.")
 
         except ValueError as e:
-            self.view.show_error(f"Error en los datos {str(e)}")
+            show_error(f"Error en los datos {str(e)}")
         except Exception as e:
-            self.view.show_error(f"Error al registrar el proveedor: {str(e)}")
+            show_error(f"Error al registrar el proveedor: {str(e)}")
 
     def open_win_add_supplier_product(self, supplier_cuit):
         try:
@@ -74,13 +73,11 @@ class SupplierController():
         except Exception as e:
             print({e})
 
-
     def add_supplier_product(self):
         data = self.stock_view.get_form_data()
         print(f'Datos: {data}')
         self.stock_controller.add_new_product()
         self.stock_view.clear_form_fields()
-
 
     def supplier_info(self):
         # Obtengo las filas seleccionadas
@@ -89,23 +86,22 @@ class SupplierController():
         try:
             iid = selected[0]
             values = self.view.supplier_tree.item(iid, "values")
-            print(f'Valores: {values}')
             self.view.open_info_window(values)
         except Exception:
-            self.view.show_warning('Por favor seleccione un proveedor')
+            show_warning('Por favor seleccione un proveedor')
 
     def show_suppliers(self):
         suppliers_data = self.model.get_all_suppliers()
         return suppliers_data 
     
     def __validates_supplier_data(self, form_data):
-        required_files =  ['nombre', 'cuit', 'domicilio', 'telefono', 'email', 'deuda']
+        required_files =  ['name', 'cuit', 'home', 'phone', 'email', 'debt']
 
         print(f'Formulario de datos {form_data}')
 
         for field in required_files:
             if not form_data[field]:
-                self.view.show_warning("Por favor complete todos los campos.")
+                show_warning("Por favor complete todos los campos.")
                 return False
         
         return True
@@ -114,7 +110,7 @@ class SupplierController():
         pattern = r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b'
         
         if not re.fullmatch(pattern, email_field):
-            self.view.show_warning("Por favor coloquen el e-mail correctamente.")
+            show_warning("Por favor coloquen el e-mail correctamente.")
             return False
         
         return True
@@ -123,11 +119,11 @@ class SupplierController():
         pattern = r'^\d{2}-\d{8}-\d$'
         
         if not re.fullmatch(pattern, cuit_field):
-            self.view.show_warning("Por favor coloque el CUIT correctamente. Formato: XX-XXXXXXXX-X")
+            show_warning("Por favor coloque el CUIT correctamente. Formato: XX-XXXXXXXX-X")
             return False
         
-        if self.model.find_suppplier_by_cuit(cuit_field) is not None:
-            self.view.show_error(f"Error: Ya existe un proveedor con el CUIT: {cuit_field}")
+        if self.model.find_supplier_by_cuit(cuit_field) is not None:
+            show_error(f"Error: Ya existe un proveedor con el CUIT: {cuit_field}")
             return False
         
         return True
@@ -136,21 +132,21 @@ class SupplierController():
         pattern = r'^\+?\d{7,15}$'
         
         if not re.fullmatch(pattern, phone_field):
-            self.view.show_warning("Por favor coloque el teléfono correctamente. Debe contener entre 7 y 15 dígitos, puede incluir un '+' al inicio.")
+            show_warning("Por favor coloque el teléfono correctamente. Debe contener entre 7 y 15 dígitos, puede incluir un '+' al inicio.")
             return False
         
         return True
     
     def __validate_supplier_name(self, name_field):
         if len(name_field) < 2 or len(name_field) > 100:
-            self.view.show_warning("El nombre del proveedor debe tener entre 2 y 100 caracteres.")
+            show_warning("El nombre del proveedor debe tener entre 2 y 100 caracteres.")
             return False
         
         return True
     
     def __validate_supplier_address(self, address_field):
         if len(address_field) < 5 or len(address_field) > 150:
-            self.view.show_warning("La dirección del proveedor debe tener entre 5 y 150 caracteres.")
+            show_warning("La dirección del proveedor debe tener entre 5 y 150 caracteres.")
             return False
         
         return True
@@ -158,19 +154,10 @@ class SupplierController():
     def refresh_supplier_table(self):
         """Refrescar la tabla de proveedores"""
         try:    
-            suppliers = self.model.get_all_suppliers()
-            self.view.refresh_supplier_table(suppliers)
+            self.view.suppliers = self.model.get_all_suppliers()
+            self.view.refresh_supplier_table(self.view.suppliers)
         except Exception as e:
-            self.view.show_error(f"Error al refrescar la tabla {str(e)}")
-
-    def clear_form(self):
-        """Limpiar formulario"""
-        self.view.email_var.set('')
-        self.view.name_var.set('')
-        self.view.cuit_var.set('')
-        self.view.home_var.set('')
-        self.view.phone_var.set('')
-        self.view.debt_var.set('')
+            show_error(f"Error al refrescar la tabla {str(e)}")
 
     def delete_supplier(self):
         # Obtengo las filas seleccionadas
@@ -183,13 +170,14 @@ class SupplierController():
             print(values)
             self.model.delete_supplier(iid)
             self.refresh_supplier_table()
-            self.view.show_success('El proveedor fue eliminado correctamente')
+            if self.view.find_var.get() != "":
+                self.view.find_var.set('')
+            show_success('El proveedor fue eliminado correctamente')
 
         except Exception:
-            self.view.show_warning('Por favor seleccione un proveedor para eliminar')
+            show_warning('Por favor seleccione un proveedor para eliminar')
 
-    def update_debt(self, supplier_data, win):
-        new_debt = self.view.debt.get()
+    def update_debt(self, supplier_data, new_debt, win=None):
         self.view.lbl_debt.configure(text=f"${new_debt}")
         # Se actualiza la deuda
         self.model.update_debt(supplier_data[0] ,new_debt)
@@ -197,23 +185,23 @@ class SupplierController():
         # Se actualiza el momento de actualizacion
         self.view.last_update_debt.set(value=f'Ultima actualizacion deuda: \n {data[7]}') 
         self.refresh_supplier_table()
-        win.destroy()
-
+        if win:
+            win.destroy()
+        
     
     def register_purchase(self, product_tree, qty_var, window):
         try:
             selected = product_tree.selection()
             if not selected:
-                self.view.show_warning("Seleccione un producto")
+                show_warning("Seleccione un producto")
                 return
             product_id = product_tree.item(selected[0])["values"][0]
             quantity = int(qty_var.get())
 
             if quantity <= 0:
-                self.view.show_warning("Cantidad inválida")
+                show_warning("Cantidad inválida")
                 return
 
-      
             product_data = self.stock_model.get_product_by_id(product_id)
 
             message = f"¿Desea actualizar el stock del producto '{product_data[2]}' con {qty_var.get()} unidades?"
@@ -225,7 +213,7 @@ class SupplierController():
             if confirmation:
                 self.stock_model.update_quantity(product_id, quantity)
 
-                self.view.show_success("Compra registrada y stock actualizado.")
+                show_success("Compra registrada y stock actualizado.")
                 window.destroy()
                 self.view.stock_view.controller.refresh_stock_table()
 
@@ -233,4 +221,5 @@ class SupplierController():
                 print('no hay actualizacion')
 
         except Exception as e:
-            self.view.show_error(f"Error al registrar compra: {e}")
+            show_error(f"Error al registrar compra: {e}")
+

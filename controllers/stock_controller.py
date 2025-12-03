@@ -8,6 +8,14 @@ class StockController:
         self.stock_model = StockModel()
         self.stock_view = stock_view   
         self.supplier_mdl = SupplierModel()
+        self.all_products = []
+        if self.stock_view:
+            self.load_products()
+
+    def load_products(self):
+        """Carga inicial (una sola vez)"""
+        self.all_products = self.stock_model.get_all_products()
+        self.stock_view.refresh_stock_table(self.all_products)
 
     def add_new_product(self, window=None):
         """Guardar nuevo producto"""
@@ -116,6 +124,23 @@ class StockController:
         except Exception as e:
             self.view.show_error(f"Error al buscar producto: {str(e)}")
 
+    def find_product_live(self, search_text):
+        search_text = search_text.strip().lower()
+
+        if not search_text:
+            self.view.refresh_stock_table(self.all_products)
+            return
+
+        filtered = [
+            product for product in self.all_products
+            if search_text in str(product[2]).lower()  # name
+            or search_text in str(product[0]).lower()  # id
+            or search_text in str(product[3]).lower()  # pack
+        ]
+
+        self.view.refresh_stock_table(filtered)
+
+
     def update_product_field(self, product_id, field, new_value):
         """Actualizar un campo específico de un producto"""
         try:
@@ -212,6 +237,7 @@ class StockController:
         """Refrescar tabla de stock"""
         try:
             products = self.stock_model.get_all_products()
+            self.all_products = products
             self.view.refresh_stock_table(products)
         except Exception as e:
             self.view.show_error(f"Error al refrescar tabla: {str(e)}")

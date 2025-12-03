@@ -2,6 +2,7 @@ import customtkinter as ctk
 from tkinter import ttk, messagebox
 import tkinter as tk
 from models.stock import StockModel
+from views.view_helpers import close_win
 import random
 
 # Configurar tema y colores
@@ -23,9 +24,7 @@ class StockView():
         
     def set_controller(self, controller):
         """Asignar controller después de la inicialización"""
-        print(f"DEBUG: Asignando controller: {controller}")
         self.controller = controller
-        print(f"DEBUG: Controller asignado correctamente: {self.controller}")
         
     def setup_variables(self):
         """Configurar variables del formulario"""
@@ -79,7 +78,7 @@ class StockView():
             font=ctk.CTkFont(size=12, weight="bold"),
             fg_color=btn_color,
             hover_color=btn_hover,
-            command=lambda: self.open_add_window()
+            command=lambda: self.open_add_window(manage_frame)
         )
         
         update_btn = ctk.CTkButton(
@@ -142,6 +141,7 @@ class StockView():
         )
 
         find_entry.grid(row=0, column=1, padx=10, pady=15)
+        find_entry.bind("<KeyRelease>", lambda event: self.controller.find_product_live(self.find_var.get()))
         
         find_btn = ctk.CTkButton(
             find_frame,
@@ -192,7 +192,7 @@ class StockView():
         # Configurar colores del Treeview
         style.configure('Treeview',
                        background='#ffffff',
-                       foreground='#333333',
+                       foreground='#ffffff',
                        rowheight=30,
                        fieldbackground='#ffffff',
                        font=('Arial', 12))
@@ -273,7 +273,7 @@ class StockView():
 
         self.stock_tree.grid(row=0, column=0, sticky="nsew")
 
-    def open_add_window(self):
+    def open_add_window(self, parent):
         """Ventana para agregar nuevo producto con CustomTkinter"""
         add_win = ctk.CTkToplevel(self.frame)
         add_win.title("Agregar nuevo artículo")
@@ -360,9 +360,8 @@ class StockView():
         add_button.grid(row=0, column=0, padx=10)
 
         cancel_button = ctk.CTkButton(button_frame, text="Cancelar", width=120, height=35, font=ctk.CTkFont(size=12, weight="bold"),
-            fg_color="#757575", hover_color="#616161", command=add_win.destroy)
+            fg_color="#757575", hover_color="#616161", command=lambda: close_win(add_win, parent, self.clear_form_fields))
         cancel_button.grid(row=0, column=1, padx=10)
-        self.clear_form_fields()
 
     def open_update_price_window(self):
         """Abrir ventana para actualizar precio de producto seleccionado con CustomTkinter"""
