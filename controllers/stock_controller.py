@@ -41,7 +41,6 @@ class StockController:
             sale_price = cost_price * (1 + profit / 100)
 
             product_data = {
-                'Id': form_data['Id'],
                 'Cuit_supplier': form_data['Cuit_supplier'],
                 'Name': (form_data['Name']).upper(),
                 'Package': form_data['Package'],

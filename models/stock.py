@@ -39,11 +39,10 @@ class StockModel:
         """Agregar un nuevo producto"""
         query = """
             INSERT INTO stock 
-            (id, cuit_supplier, name, pack, profit, cost_price, price, iva, price_with_iva, quantity) 
+            (cuit_supplier, name, pack, profit, cost_price, price, iva, price_with_iva, quantity) 
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """
         params = (
-            product_data['Id'],
             product_data['Cuit_supplier'],
             product_data['Name'],
             product_data['Package'],

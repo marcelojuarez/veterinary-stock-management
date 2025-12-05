@@ -48,7 +48,7 @@ class Database:
             # Tabla de stock
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS stock (
-                id TEXT PRIMARY KEY,
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
                 cuit_supplier TEXT,
                 name TEXT NOT NULL,
                 pack TEXT NOT NULL,

@@ -2,7 +2,7 @@ import customtkinter as ctk
 from tkinter import ttk, messagebox
 import tkinter as tk
 from models.stock import StockModel
-from views.view_helpers import close_win
+from views.view_helpers import close_win, show_warning
 import random
 
 # Configurar tema y colores
@@ -15,12 +15,14 @@ class StockView():
         # Usar CTkFrame en lugar de tk.Frame
         self.frame = ctk.CTkFrame(parent, fg_color="#f0f0f0")
         self.stock_model = StockModel()
-        self.setup_variables()
         self.create_widgets()
         self.edit_item = None
         self.edit_entry = None
         self.edit_column = None
         self.original_value = None
+
+        self.sort_column = None
+        self.sort_reverse = False
         
     def set_controller(self, controller):
         """Asignar controller después de la inicialización"""
@@ -28,7 +30,6 @@ class StockView():
         
     def setup_variables(self):
         """Configurar variables del formulario"""
-        self.id_var = tk.StringVar()
         self.cuit_supplier = tk.StringVar()
         self.name_var = tk.StringVar()
         self.pack_var = tk.StringVar()
@@ -37,10 +38,8 @@ class StockView():
         self.iva_var = tk.StringVar()
         self.stock_var = tk.StringVar()
         self.qnt_var = tk.StringVar()
-        self.find_var = tk.StringVar()
         
         self.form_vars = [
-            self.id_var,
             self.cuit_supplier,
             self.name_var,
             self.pack_var,
@@ -48,11 +47,8 @@ class StockView():
             self.price_var,
             self.iva_var,
             self.qnt_var,
-            self.find_var
         ]
 
-        self.sort_column = None
-        self.sort_reverse = False
     
     def create_widgets(self):
         """Crear todos los widgets de la vista"""
@@ -121,6 +117,11 @@ class StockView():
     
     def create_find_frame(self):
         """Crear frame para formulario de producto"""
+        self.find_var = tk.StringVar()
+
+        btn_color = "#009688"
+        btn_hover = "#00796B"
+
         find_frame = ctk.CTkFrame(self.frame)
         find_frame.grid(row=0, column=0, sticky='w', padx=10, pady=10)
 
@@ -145,28 +146,15 @@ class StockView():
         
         find_btn = ctk.CTkButton(
             find_frame,
-            text="Buscar",
-            width=160,
+            text="!",
+            width=60,
             height=35,
-            font=ctk.CTkFont(size=12, weight="bold"),
-            fg_color="#009688",
-            hover_color="#00796B",
-            command=lambda: self.controller.find_product(self.find_var)
+            font=ctk.CTkFont(size=15, weight="bold"),
+            fg_color=btn_color,
+            hover_color=btn_hover,
+            command=lambda: show_warning("Ingrese un NOMBRE, CUIT o ENVASE para buscar un Producto")
         )
-
-        clear_btn = ctk.CTkButton(
-            find_frame,
-            text="Mostrar todos los articulos",
-            width=160,
-            height=35,
-            font=ctk.CTkFont(size=12, weight="bold"),
-            fg_color="#009688",
-            hover_color="#00796B",
-            command=lambda: self.controller.show_all_products()
-        )
-
         find_btn.grid(row=0, column=2, padx=15, pady=15)
-        clear_btn.grid(row=0, column=3, padx=15, pady=15)
 
     def create_tree_frame(self):
         """Crear frame para tabla de stock"""
@@ -277,13 +265,16 @@ class StockView():
         """Ventana para agregar nuevo producto con CustomTkinter"""
         add_win = ctk.CTkToplevel(self.frame)
         add_win.title("Agregar nuevo artículo")
+
+        # se configuran las string vars
+        self.setup_variables()
         
         # Hacer que la ventana sea modal
         add_win.transient(self.frame)
         add_win.grab_set()
         
         # Centrar la ventana
-        add_win.geometry("400x600+{}+{}".format(
+        add_win.geometry("400x535+{}+{}".format(
             add_win.winfo_screenwidth()//2 - 200,
             add_win.winfo_screenheight()//2 - 250
         ))
@@ -298,7 +289,6 @@ class StockView():
         
         # Campos del formulario
         fields = [
-            ("Código:", self.id_var),
             ("Cuit Proveedor:", self.cuit_supplier),
             ("Nombre Artículo:", self.name_var),
             ("Precio Costo:", self.price_var),
@@ -676,14 +666,14 @@ class StockView():
         except Exception as e:
             self.show_error(f"Error al abrir ventana de actualización masiva: {str(e)}")
 
-    def generate_random_id(self):
-        """Generar ID aleatorio para producto"""
-        numeric = '1234567890'
-        item_id = ''
-        for i in range(4):
-            randno = random.randrange(0, len(numeric))
-            item_id += numeric[randno]
-        self.id_var.set(item_id)
+    # def generate_random_id(self):
+    #     """Generar ID aleatorio para producto"""
+    #     numeric = '1234567890'
+    #     item_id = ''
+    #     for i in range(4):
+    #         randno = random.randrange(0, len(numeric))
+    #         item_id += numeric[randno]
+    #     self.id_var.set(item_id)
     
     def clear_form_fields(self):
         """Limpiar todos los campos del formulario"""
@@ -695,7 +685,6 @@ class StockView():
     def get_form_data(self):
         """Obtener datos del formulario"""
         return {
-            'Id': self.id_var.get().strip(),
             'Cuit_supplier': self.cuit_supplier.get().strip(),
             'Name': self.name_var.get().strip(),
             'Package': self.pack_var.get().strip(),
