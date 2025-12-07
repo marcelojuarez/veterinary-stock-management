@@ -48,7 +48,6 @@ class CustomerController:
             # Guardar cliente
             self.model.add_customer(data)
             self.refresh_customer_data()
-            self.view.show_success("Cliente agregado correctamente.")
             window.destroy()
             return True
 

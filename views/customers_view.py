@@ -349,7 +349,7 @@ class CustomersView:
         """Muestra una ventana con las deudas del cliente"""
         win = ctk.CTkToplevel(self.frame)
         win.title(f"💳 Deudas de {cliente_nombre}")
-        win.geometry("750x600")
+        win.geometry("750x700")
         win.transient(self.frame)
         win.grab_set()
 
@@ -444,7 +444,7 @@ class CustomersView:
 
         ctk.CTkButton(
             btn_frame,
-            text="❌ Cerrar",
+            text="Cerrar",
             width=160,
             height=35,
             fg_color="#757575",
@@ -664,7 +664,7 @@ class CustomersView:
 
         ctk.CTkButton(
             button_frame,
-            text="❌ Cerrar",
+            text="Cerrar",
             fg_color="#757575",
             hover_color="#616161",
             command=win.destroy,

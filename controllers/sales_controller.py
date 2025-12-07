@@ -107,7 +107,7 @@ class SalesController:
         
         # Si no hay texto de búsqueda, mostrar todos los productos
         if not search_text:
-            self.refresh_product_tree(self.sales_view.all_products)
+            self.sales_view.refresh_product_tree(self.sales_view.all_products)
             return
         
         # Filtrar productos que coincidan con la búsqueda
