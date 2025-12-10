@@ -67,10 +67,10 @@ class Database:
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS clientes (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    nombre TEXT NOT NULL,
+                    nombre TEXT NOT NULL UNIQUE,
                     cuit TEXT UNIQUE,
                     domicilio TEXT,
-                    telefono TEXT,
+                    telefono TEXT UNIQUE,
                     condicion_iva TEXT DEFAULT 'Consumidor Final'
                 )
             ''')
