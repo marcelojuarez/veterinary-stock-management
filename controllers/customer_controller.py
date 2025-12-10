@@ -137,6 +137,7 @@ class CustomerController:
     def show_customer_debts(self, cliente_id, cliente_nombre):
         """Abre ventana con las deudas del cliente"""
         try:
+            self.current_client_id = cliente_id
             debts = self.model.get_customer_debts(cliente_id)
             total = self.model.get_total_debt(cliente_id)
             self.view.open_debt_window(cliente_id, cliente_nombre, debts, total)
@@ -255,7 +256,15 @@ class CustomerController:
         # Input
         ctk.CTkLabel(content, text="Monto a entregar:", font=ctk.CTkFont(weight="bold")).pack(anchor="w", pady=(0, 5))
         
-        entry_amount = ctk.CTkEntry(content, width=250, height=40, placeholder_text="$ 0.00", font=ctk.CTkFont(size=14))
+        amount_var = ctk.StringVar()
+        entry_amount = ctk.CTkEntry(
+            content,
+            textvariable=amount_var,
+            width=250,
+            height=40,
+            placeholder_text="$ 0.00",
+            font=ctk.CTkFont(size=14)
+        )
         entry_amount.pack()
 
         def process():
@@ -265,7 +274,8 @@ class CustomerController:
                     self.view.show_warning("Ingrese un monto.")
                     return
                 
-                amount = float(val)
+                amount = round(float(val), 2)
+
                 if amount <= 0:
                     self.view.show_warning("El monto debe ser mayor a 0.")
                     return
@@ -274,10 +284,13 @@ class CustomerController:
                 self.view.show_error("Monto inválido. Ingrese solo números.")
                 return
 
-            # Validar que el monto no supere la deuda total
-            total_debt = self.model.get_total_debt(customer_id)
+            total_debt = round(float(self.model.get_total_debt(customer_id)), 2)
             if amount > total_debt:
-                self.view.show_warning(f"El monto ingresado (${amount:.2f}) supera la deuda total del cliente (${total_debt:.2f}).")
+                self.view.show_warning(
+                    f"El monto ingresado (${amount:.2f}) supera la deuda total del cliente (${total_debt:.2f})."
+                )
+                amount = total_debt
+                amount_var.set(f"{total_debt:.2f}")
                 return
 
             try:
@@ -291,6 +304,8 @@ class CustomerController:
                 
                 # 1. Actualizar tabla principal
                 self.refresh_customer_data()
+                self.current_client_id = customer_id
+                self.view.select_customer_in_table(customer_id)
                 
                 # 2. Actualizar ventana de deudas si está abierta
                 # Necesitamos volver a pedir los datos actualizados
