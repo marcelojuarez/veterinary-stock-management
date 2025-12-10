@@ -68,7 +68,7 @@ class Database:
                 CREATE TABLE IF NOT EXISTS clientes (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     nombre TEXT NOT NULL,
-                    cuit TEXT,
+                    cuit TEXT UNIQUE,
                     domicilio TEXT,
                     telefono TEXT,
                     condicion_iva TEXT DEFAULT 'Consumidor Final'
