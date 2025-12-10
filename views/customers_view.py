@@ -420,38 +420,47 @@ class CustomersView:
             sale_id = self.debt_table.item(selected[0])["values"][0]
             self.open_payment_window(sale_id, cliente_id, cliente_nombre)
 
-        ctk.CTkButton(
+        btn_pago_global = ctk.CTkButton(
             btn_frame,
-            text="Pago Global",
+            text="Pagar todas las ventas",
             width=160,
             height=35,
             fg_color="#009688",
             hover_color="#00796B",
             font=ctk.CTkFont(size=13, weight="bold"),
-            command=self.controller.open_global_payment_window
-        ).grid(row=0, column=0, padx=10)
+            command=lambda: self.controller.open_global_payment_window() if self.controller else None
+        )
+        btn_pago_global.grid(row=0, column=0, padx=10)
 
-        ctk.CTkButton(
+        btn_pago_seleccionado = ctk.CTkButton(
             btn_frame,
-            text="Registrar Pago",
+            text="Pagar venta seleccionada",
             width=160,
             height=35,
             fg_color="#009688",
             hover_color="#00796B",
             font=ctk.CTkFont(size=13, weight="bold"),
             command=mark_as_paid
-        ).grid(row=0, column=1, padx=10)
+        )
+        btn_pago_seleccionado.grid(row=0, column=1, padx=10)
 
-        ctk.CTkButton(
+        btn_cerrar = ctk.CTkButton(
             btn_frame,
-            text="❌ Cerrar",
+            text="Cerrar",
             width=160,
             height=35,
             fg_color="#757575",
             hover_color="#616161",
             font=ctk.CTkFont(size=13, weight="bold"),
             command=win.destroy
-        ).grid(row=0, column=2, padx=10)
+        )
+        btn_cerrar.grid(row=0, column=2, padx=10)
+
+        # ❌ Si no hay deuda: deshabilitar botones
+        if total == 0:
+            for b in (btn_pago_global, btn_pago_seleccionado):
+                b.configure(state="disabled", fg_color="#BDBDBD")
+
 
 
 
@@ -489,6 +498,9 @@ class CustomersView:
             # Actualizar label de total
             if hasattr(self, "debt_total_label") and self.debt_total_label.winfo_exists():
                 self.debt_total_label.configure(text=f"Total adeudado: ${total:.2f}")
+
+            if hasattr(self.controller, "current_client_id"):
+                self.select_customer_in_table(self.controller.current_client_id)
 
         except Exception as e:
             messagebox.showerror("Error", f"No se pudo actualizar la ventana de deudas: {e}")
@@ -547,6 +559,36 @@ class CustomersView:
         )
         balance_label.pack(pady=(0, 15))
 
+        if balance <= 0:
+            balance_label.configure(
+                text="Esta venta ya está PAGADA ✔",
+                text_color="#4CAF50"
+            )
+
+            messagebox.showinfo("Venta Pagada", "Esta venta no tiene saldo pendiente.")
+
+            # Desactivar entradas
+            amount_entry = ctk.CTkEntry(form_frame, state="disabled")
+            try:
+                method_menu.configure(state="disabled")
+            except:
+                pass
+
+            # Desactivar controles
+            for w in form_frame.winfo_children():
+                try:
+                    w.configure(state="disabled")
+                except:
+                    pass
+
+            for w in button_frame.winfo_children():
+                try:
+                    w.configure(state="disabled")
+                except:
+                    pass
+
+            return
+
         # ================================================================
         #  HISTORIAL DE PAGOS
         # ================================================================
@@ -597,12 +639,21 @@ class CustomersView:
             val = amount_var.get().strip()
             try:
                 num = float(val)
-                if num <= 0 or num > balance:
-                    amount_entry.configure(fg_color="#FFCDD2")  # rojo suave
+
+                # Si ingresa más del saldo → sobrescribir automáticamente
+                if num > balance:
+                    amount_var.set(str(balance))
+                    amount_entry.configure(fg_color="white")
+                    return
+
+                if num <= 0:
+                    amount_entry.configure(fg_color="#FFCDD2")
                 else:
                     amount_entry.configure(fg_color="white")
+
             except:
                 amount_entry.configure(fg_color="#FFCDD2")
+
 
         amount_var.trace("w", validate_amount)
 
@@ -673,3 +724,12 @@ class CustomersView:
             font=ctk.CTkFont(size=13, weight="bold")
         ).grid(row=0, column=2, padx=5)
 
+
+    def select_customer_in_table(self, customer_id):
+        """Re-selecciona el cliente en la tabla luego de un pago."""
+        for row in self.table.get_children():
+            vals = self.table.item(row)["values"]
+            if vals and str(vals[0]) == str(customer_id):
+                self.table.selection_set(row)
+                self.table.see(row)
+                break
