@@ -3,6 +3,9 @@ from tkinter import ttk, messagebox
 import tkinter as tk
 from models.stock import StockModel
 from services.daily_sales_report import DailySalesReportService
+from views.client_selector import ClientSelectorDialog
+from models.customer import CustomerModel
+
 
 ctk.set_appearance_mode("light")
 ctk.set_default_color_theme("blue")
@@ -109,60 +112,6 @@ class SalesView:
             command=lambda: self.add_selected_product()
         )
         add_btn.pack(pady=(5, 10))
-
-    # --------------------------------------------------------------------
-    # PANEL DERECHO - CLIENTE + CARRITO
-    # --------------------------------------------------------------------
-    def create_client_section(self):
-        client_frame = ctk.CTkFrame(self.frame, fg_color="#fafafa")
-        client_frame.grid(row=1, column=1, sticky="ew", padx=10, pady=5)
-
-        # --- Combo de cliente ---
-        ctk.CTkLabel(client_frame, text="Cliente:",
-                    font=ctk.CTkFont(size=14, weight="bold")).grid(
-            row=0, column=0, padx=10, pady=10, sticky="w"
-        )
-
-        self.client_combo = ctk.CTkComboBox(
-            client_frame,
-            variable=self.client_var,
-            values=self.controller.get_client_names(),
-            width=250,
-            height=35,
-            state="readonly",
-            command=self.on_client_selected
-        )
-        self.client_combo.set("Consumidor Final")
-        self.client_combo.grid(row=0, column=1, padx=10, pady=10, sticky="w")
-        self.client_combo.bind("<Button-1>", self.refresh_client_list)
-        self.client_combo.bind("<FocusIn>", self.refresh_client_list)
-
-        # --- Campos de datos ---
-        ctk.CTkLabel(client_frame, text="CUIT / DNI:",
-                    font=ctk.CTkFont(size=13)).grid(row=1, column=0, padx=10, pady=5, sticky="w")
-        self.client_cuit_var = tk.StringVar()
-        ctk.CTkEntry(client_frame, textvariable=self.client_cuit_var,
-                    width=250, height=35, state="disabled").grid(row=1, column=1, padx=10, pady=5, sticky="w")
-
-        ctk.CTkLabel(client_frame, text="Dirección:",
-                    font=ctk.CTkFont(size=13)).grid(row=2, column=0, padx=10, pady=5, sticky="w")
-        self.client_address_var = tk.StringVar()
-        ctk.CTkEntry(client_frame, textvariable=self.client_address_var,
-                    width=250, height=35, state="disabled").grid(row=2, column=1, padx=10, pady=5, sticky="w")
-        
-        ctk.CTkLabel(client_frame, text="Forma de pago:",
-                font=ctk.CTkFont(size=13)).grid(row=3, column=0, padx=10, pady=10, sticky="w")
-
-        self.sale_paid_switch = ctk.CTkSwitch(
-            client_frame,
-            text="Pagada / Fiada",
-            variable=self.sale_paid_var,
-            onvalue=True,
-            offvalue=False,
-            width=80
-        )
-        self.sale_paid_switch.grid(row=3, column=1, padx=10, pady=10, sticky="w")
-
 
     def create_sales_table(self):
         table_frame = ctk.CTkFrame(self.frame)
@@ -594,6 +543,132 @@ class SalesView:
         if self.show_sale_confirmation():
             # Si el usuario confirma, proceder con la venta
             self.controller.confirm_sale()
+
+
+    # Client Selector
+    def create_client_section(self):
+        """Sección de cliente MEJORADA"""
+        client_frame = ctk.CTkFrame(self.frame, fg_color="#fafafa")
+        client_frame.grid(row=1, column=1, sticky="ew", padx=10, pady=5)
+
+        # --- Cliente con botón de búsqueda ---
+        ctk.CTkLabel(
+            client_frame, 
+            text="Cliente:",
+            font=ctk.CTkFont(size=14, weight="bold")
+        ).grid(row=0, column=0, padx=10, pady=10, sticky="w")
+
+        # Frame para entry + botón
+        client_select_frame = ctk.CTkFrame(client_frame, fg_color="transparent")
+        client_select_frame.grid(row=0, column=1, padx=10, pady=10, sticky="w")
+
+        self.client_var = tk.StringVar(value="Consumidor Final")
+        self.client_entry = ctk.CTkEntry(
+            client_select_frame,
+            textvariable=self.client_var,
+            width=200,
+            height=35,
+            state="readonly"
+        )
+        self.client_entry.grid(row=0, column=0, padx=(0, 5))
+
+        search_client_btn = ctk.CTkButton(
+            client_select_frame,
+            text="🔍 Buscar",
+            width=90,
+            height=35,
+            fg_color="#009688",
+            hover_color="#00796B",
+            command=self.open_client_selector
+        )
+        search_client_btn.grid(row=0, column=1)
+
+        # --- Campos de datos ---
+        ctk.CTkLabel(
+            client_frame, 
+            text="CUIT / DNI:",
+            font=ctk.CTkFont(size=13)
+        ).grid(row=1, column=0, padx=10, pady=5, sticky="w")
+        
+        self.client_cuit_var = tk.StringVar()
+        ctk.CTkEntry(
+            client_frame, 
+            textvariable=self.client_cuit_var,
+            width=250, 
+            height=35, 
+            state="disabled"
+        ).grid(row=1, column=1, padx=10, pady=5, sticky="w")
+
+        ctk.CTkLabel(
+            client_frame, 
+            text="Dirección:",
+            font=ctk.CTkFont(size=13)
+        ).grid(row=2, column=0, padx=10, pady=5, sticky="w")
+        
+        self.client_address_var = tk.StringVar()
+        ctk.CTkEntry(
+            client_frame, 
+            textvariable=self.client_address_var,
+            width=250, 
+            height=35, 
+            state="disabled"
+        ).grid(row=2, column=1, padx=10, pady=5, sticky="w")
+        
+        ctk.CTkLabel(
+            client_frame, 
+            text="Forma de pago:",
+            font=ctk.CTkFont(size=13)
+        ).grid(row=3, column=0, padx=10, pady=10, sticky="w")
+
+        self.sale_paid_switch = ctk.CTkSwitch(
+            client_frame,
+            text="Pagada / Fiada",
+            variable=self.sale_paid_var,
+            onvalue=True,
+            offvalue=False,
+            width=80
+        )
+        self.sale_paid_switch.grid(row=3, column=1, padx=10, pady=10, sticky="w")
+
+    def open_client_selector(self):
+        """Abrir diálogo de selección de cliente"""        
+        customer_model = CustomerModel()
+        
+        dialog = ClientSelectorDialog(
+            self.frame, 
+            customer_model,
+            self.client_var.get()
+        )
+        
+        selected = dialog.get_selected()
+        
+        if selected:
+            self.client_var.set(selected)
+            self.on_client_selected(selected)
+    
+    def on_client_selected(self, selected_name):
+        """Actualizar datos del cliente al cambiar selección"""
+        try:
+            if selected_name == "Consumidor Final":
+                self.client_cuit_var.set("")
+                self.client_address_var.set("")
+                return
+            
+            # Usar get_client_by_name que retorna: (id, nombre, cuit, domicilio)
+            customer_model = CustomerModel()
+            
+            client_data = customer_model.get_client_by_name(selected_name)
+            
+            if client_data:
+                # client_data es tupla: (id, nombre, cuit, domicilio)
+                self.client_cuit_var.set(client_data[2] if client_data[2] else "")
+                self.client_address_var.set(client_data[3] if client_data[3] else "")
+            else:
+                self.client_cuit_var.set("")
+                self.client_address_var.set("")
+                
+        except Exception as e:
+            self.show_error(f"No se pudieron cargar los datos del cliente: {e}")
 
     # Utilidades
     def show_success(self, msg): messagebox.showinfo("Éxito", msg)

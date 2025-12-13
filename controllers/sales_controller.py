@@ -173,6 +173,18 @@ class SalesController:
         except Exception as e:
             self.sales_view.show_error(f"Error al listar ventas: {e}")
 
+    def get_all_clients_with_data(self):
+        """Retorna lista completa de clientes con todos sus datos"""
+        # Ejemplo de implementación:
+        clients = self.customer_model.get_all_clients()
+        return [
+            {
+                "nombre": client[1],
+                "cuit": client[2],
+                "domicilio": client[3]
+            }
+            for client in clients
+        ]
 
     def get_client_names(self):
         """Obtener nombres de clientes para el combo de ventas"""
