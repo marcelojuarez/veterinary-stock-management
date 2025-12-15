@@ -162,6 +162,8 @@ class StockController:
                 new_value = float(new_value)
             elif field == 'Stock':
                 new_value = int(new_value)
+            elif field == 'Name':
+                new_value = new_value.upper()
             
             # Actualizar en base de datos
             self.stock_model.update_field(db_field, new_value, product_id)
