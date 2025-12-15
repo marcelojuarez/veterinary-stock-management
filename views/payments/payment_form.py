@@ -1,6 +1,5 @@
 import tkinter as tk
 import customtkinter as ctk
-from tkcalendar import DateEntry
 from controllers.payment_controller import PaymentController
 from views.view_helpers import close_win, show_warning
 
@@ -11,12 +10,20 @@ class PaymentFormView:
         self.frame = frame
         self.controller = controller
 
-    def setup_payment_variables(self, supplier_var):
+    def setup_payment_variables(self, supplier_var, purchase_id, amount):
         self.supplier_var = tk.StringVar()
         self.supplier_var.set(supplier_var)
 
-        # variables pago
         self.amount_var = tk.StringVar()
+
+        # Puede ser None
+        self.purchase_id = tk.StringVar()
+        self.purchase_id.set(purchase_id)
+ 
+        if amount is not None and purchase_id is not None:
+            self.amount_var.set(amount)
+
+        # variables pago
         self.method_var = tk.StringVar()
         self.num_receipt_var = tk.StringVar()
         self.observation_var = tk.StringVar()
@@ -35,9 +42,8 @@ class PaymentFormView:
         self.controller = controller
         print(f"DEBUG: Controller asignado correctamente: {self.controller}")
 
-    def add_payment_win(self, parent, supplier_var):
-        self.setup_payment_variables(supplier_var)
-
+    def add_payment_win(self, parent, supplier_cuit, purchase_id=None, amount=None):
+        self.setup_payment_variables(supplier_cuit, purchase_id, amount)
 
         """Ventana para registrar un nuevo pago"""
 
@@ -144,6 +150,8 @@ class PaymentFormView:
         self.dynamic_frame.columnconfigure(0, weight=0)
         self.dynamic_frame.columnconfigure(1, weight=1)
 
+    ## -- Renderiza distintos campos segun el metodo de pago -- ##
+
     def render_dynamic_fields(self, parent):
         method = self.method_var.get()
 
@@ -233,7 +241,7 @@ class PaymentFormView:
         button_frame.grid(row=row_num, column=0, columnspan=2, pady=15)
 
         add_button = ctk.CTkButton(button_frame, text="Agregar Pago", width=120, height=35, font=ctk.CTkFont(size=15, weight="bold"),
-            fg_color="#4CAF50", hover_color="#45a049", command=lambda: self.controller.register_payment(self.supplier_var, self.add_pay_win, parent))
+            fg_color="#4CAF50", hover_color="#45a049", command=lambda: self.controller.register_payment(self.supplier_var, self.add_pay_win, parent, self.purchase_id.get()))
         add_button.grid(row=0, column=0, padx=15, pady=15)
 
         cancel_button = ctk.CTkButton(button_frame, text="Cancelar", width=120, height=35, font=ctk.CTkFont(size=15, weight="bold"),
@@ -244,7 +252,8 @@ class PaymentFormView:
         for widget in self.dynamic_frame.winfo_children():
             widget.destroy()
 
-    
+    ## -- -- ##
+
     def clear_form_payment(self):
         """Limpiar formulario pago"""
         self.amount_var.set('')
@@ -261,6 +270,7 @@ class PaymentFormView:
         self.check_num_var.set('')
 
     def get_payment_data(self):
+        """Obtener datos del formulario de pago"""
         return {
             'amount': self.amount_var.get().strip(),
             'method': self.method_var.get().strip(),

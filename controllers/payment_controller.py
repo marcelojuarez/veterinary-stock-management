@@ -1,15 +1,19 @@
 import tkinter as tk
-from models.supplier import SupplierModel
 from views.view_helpers import show_warning, show_error, close_win
 
 
 class PaymentController():
-    def __init__(self, view, pay_win):
-        self.model = SupplierModel()
+    def __init__(self, view, pay_win, model):
+        self.model = model
         self.view = view
         self.pay_win = pay_win
 
-    def register_payment(self, supplier_var, win, parent):
+    """
+    Permitir pagar el monto de una compra
+    Permitir registrar un monto que afecta a las compras que mas proximo se vencen
+    """
+
+    def register_payment(self, supplier_var, win, parent, purchase_id):
         try:
             payment_data = self.view.get_payment_data()
             selected = supplier_var.get() # cuit proveedor
@@ -17,45 +21,88 @@ class PaymentController():
                show_warning("Seleccione un proveedor")
                return
             
-            supplier_data = self.model.find_supplier_by_cuit(selected)
+            supplier_data = self.model.core.find_supplier_by_cuit(selected)
             if not self.validate_data(supplier_data[0], payment_data):
                 return 
             
             amount = float(payment_data['amount'])
-            debt = supplier_data[6]
 
-            if not self.validate_debt(amount, debt):
-                return
+            if purchase_id:
+                print('Rama purchase id')
 
-            new_debt = debt-amount
+                purchase_data = self.model.get_purchase_by_id(purchase_id)
+                print(f'Purchase Data: {purchase_data}')
+                debt = purchase_data[9]
+                
+                if not self.validate_debt(amount, debt):
+                    self.view.amount_var.set(debt)
+                    return
 
-            data = {
-                'Id_supplier' : supplier_data[0],
-                'Receipt_number': payment_data['receipt_number'],
-                'Amount': amount,
-                'Method': payment_data['method'],
-                'Observation': payment_data['observation'],
-                'Operation_num': payment_data['operation_num'],
-                'Origin': payment_data['origin'],
-                'Destination': payment_data['destination'],
-                'Check_number': payment_data['check_number'],
-                'Bank': payment_data['bank'],
-                'previous_debt': debt,
-                'subsequent_debt': new_debt
-            }
+                last_debt = debt - amount
 
-            # update debt
-            self.model.update_debt(data['Id_supplier'], new_debt)
+                if last_debt == 0:
+                    if purchase_data[2] == 'REMITO':
+                    
+                        self.model.purchase.set_paid_purchase(
+                            purchase_id=purchase_id, 
+                            id=purchase_data[4],
+                            doc_type=purchase_data[2]
+                        )
+                        
+                    else:
 
-            self.model.add_new_payment(data['Id_supplier'], data)
-            self.view.clear_form_payment()
-            self.pay_win.load_payment_movement(data['Id_supplier'], selected)
+                        self.model.purchase.set_paid_purchase(
+                            purchase_id=purchase_id,  
+                            id=purchase_data[4],
+                            doc_type=purchase_data[2]
+                        )
+
+            else:
+                print('Debo aplicar ese pago a todas las facturas')
+                
+                purchases = self.model.purchase.get_all_purchases_without_paying(selected)
+                print(purchases)
+
+            # new_debt = debt-amount
+
+            # data = {
+            #     'Id_supplier' : supplier_data[0],
+            #     'Receipt_number': payment_data['receipt_number'],
+            #     'Amount': amount,
+            #     'Method': payment_data['method'],
+            #     'Observation': payment_data['observation'],
+            #     'Operation_num': payment_data['operation_num'],
+            #     'Origin': payment_data['origin'],
+            #     'Destination': payment_data['destination'],
+            #     'Check_number': payment_data['check_number'],
+            #     'Bank': payment_data['bank'],
+            #     'previous_debt': debt,
+            #     'subsequent_debt': new_debt
+            # }
+
+            # self.model.update_debt(data['Id_supplier'])
+            #self.model.add_new_payment(data['Id_supplier'], data)
+            # self.view.clear_form_payment()
+            # self.pay_win.load_payment_movement(data['Id_supplier'], selected)
+
+            # if purchase_id:
+
+            # else:
+            # # update debt
+
+
+            # if new_debt == 0:
+            #     self.model.mark_purchase_as_paid(purchase_id)
+
+
             close_win(win, parent)
-
 
         except Exception as e:
             show_error(f"Error al registrar pago: {e}")
 
+    def purchase_pay_management(self, purchase_id):
+        pass
+    
     @classmethod
     def validate_data(cls, supplier_id, data):
         

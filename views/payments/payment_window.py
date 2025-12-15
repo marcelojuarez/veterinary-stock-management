@@ -5,53 +5,62 @@ from tksheet import Sheet
 from .payment_form import PaymentFormView 
 from controllers.payment_controller import PaymentController
 from views.view_helpers import close_win, show_warning
+import locale
 
 # Configurar tema y colores
 ctk.set_appearance_mode("light")  # "light" o "dark"
 ctk.set_default_color_theme("blue")  # "blue", "green", "dark-blue"
 
 class PaymentWindow():
-    def __init__(self, model, frame):
+    def __init__(self, model, supplier_view, frame):
         self.model = model
         self.frame = frame
+        self.supplier_view = supplier_view
 
         self.payment_form = PaymentFormView(model, frame)
-        self.controller = PaymentController(self.payment_form, self)
+        self.controller = PaymentController(self.payment_form, self, self.model)
         self.payment_form.set_controller(self.controller)
 
     # Ventana para registrar un nuevo pago
     def open_payment_window(self, parent):
+
         btn_color = "#009688"
         btn_hover = "#00796B"
 
         self.supplier_var = tk.StringVar()
-        self.suppliers = self.model.get_all_suppliers()
+        self.debt_var = tk.StringVar()
+        self.suppliers = self.model.core.get_all_suppliers()
             
-        pay_win = ctk.CTkToplevel(self.frame)
-        pay_win.title("Registrar Pago a Proveedor")
-        pay_win.geometry("1100x750")
-        pay_win.grab_set()
+        win = ctk.CTkToplevel(self.frame)
+        win.title("Registrar Pago a Proveedor")
+        win.geometry("1100x700")
+        win.grab_set()
 
-        pay_win.protocol("WM_DELETE_WINDOW", lambda: close_win(pay_win, parent, self.clear_supplier_field))
-
+        win.protocol("WM_DELETE_WINDOW", lambda: close_win(win, parent, self.clear_supplier_field))
+        
         # Configurar grilla principal
         for i in range(6):
-            pay_win.grid_rowconfigure(i, weight=0)
-        pay_win.grid_rowconfigure(3, weight=1)
-        pay_win.grid_columnconfigure(0, weight=1)
-        pay_win.grid_columnconfigure(1, weight=1)
+            win.grid_rowconfigure(i, weight=0)
+        win.grid_rowconfigure(3, weight=1)
+        win.grid_columnconfigure(0, weight=1)
+        win.grid_columnconfigure(1, weight=1)
 
-        select_supplier_frame = ctk.CTkFrame(pay_win,fg_color="#f0f0f0")
-        select_supplier_frame.grid(row=1, column=0)
+        select_supplier_frame = ctk.CTkFrame(win,fg_color="#f0f0f0")
+        select_supplier_frame.grid(row=1, column=0, pady=(10,10), sticky="ew")
+
+        select_supplier_frame.grid_columnconfigure(0, weight=1)  # botón
+        select_supplier_frame.grid_columnconfigure(1, weight=0)  # entry
+        select_supplier_frame.grid_columnconfigure(2, weight=2)  # espacio flexible
+        select_supplier_frame.grid_columnconfigure(3, weight=0)  # debt_frame
 
         select_supplier_btn = ctk.CTkButton(
             select_supplier_frame,
-            width=120,
-            text="Seleccionar Proveedor:",
+            width=140,
+            text="Seleccionar Proveedor",
             fg_color=btn_color,
             hover_color=btn_hover,
             font=ctk.CTkFont(size=13, weight="bold"),
-            command=lambda: self.list_of_supplier(pay_win)
+            command=lambda: self.list_of_supplier(win)
         )
         select_supplier_btn.grid(row=0, column=0, padx=(0,10), pady=(15, 5), sticky="e")
 
@@ -62,15 +71,107 @@ class PaymentWindow():
         )
         select_supplier_entry.grid(row=0, column=1, pady=(15, 5), sticky="e")
 
+        debt_frame = ctk.CTkFrame(
+            select_supplier_frame,
+            fg_color=btn_color,
+            corner_radius=12
+        )
+        
+        debt_frame.grid(row=0, column=3, padx=20, sticky="nsew")
+
+        debt_lbl = ctk.CTkLabel(
+            debt_frame,
+            text="Deuda Proveedor",
+            font=ctk.CTkFont(size=14, weight="bold"),
+            text_color="#f8fffe"
+        )
+        debt_lbl.grid(row=0, column=0, padx=15, pady=(10, 5), sticky="w")
+
+        debt_entry = ctk.CTkEntry(
+            debt_frame,
+            textvariable=self.debt_var,
+            width=120,
+            corner_radius=10,
+            fg_color="white",
+            state='readonly'
+        )
+        debt_entry.grid(row=0, column=1, padx=5, pady=(10, 5), sticky="w")
+
+        # notebook para las tablas
+        payment_notebook = ttk.Notebook(win)
+        payment_notebook.grid(row=3, column=0, columnspan=2, sticky="nsew", padx=10, pady=5)
+
+        # add frames to the notebook
+        payment_notebook.add(self.set_movement_tree(payment_notebook), text='Movimientos')
+        payment_notebook.add(self.set_purchase_tree(payment_notebook), text='Registros de Compra')
+
+        # frame inferior (botones y cantidad)
+        buttons_frame = ctk.CTkFrame(win)
+        buttons_frame.grid(row=4, column=0, columnspan=2, sticky="ew", padx=10, pady=10)
+        for i in range(5):
+            buttons_frame.grid_columnconfigure(i, weight=1)
+
+        # Botón Registrar Compra
+        confirm_btn = ctk.CTkButton(
+            buttons_frame,
+            text="Registrar nuevo pago",
+            fg_color="#3C8A3E",
+            hover_color="#45a049",
+            font=ctk.CTkFont(size=13, weight="bold"),
+            command=lambda: self.payment_form.add_payment_win(win, self.supplier_var.get())
+        )
+        confirm_btn.grid(row=0, column=1, padx=5, pady=10)
+
+        # Pagar compra
+        confirm_btn = ctk.CTkButton(
+            buttons_frame,
+            text="Pagar Compra",
+            fg_color="#3C8A3E",
+            hover_color="#45a049",
+            font=ctk.CTkFont(size=13, weight="bold"),
+            command= lambda: self.pay_for_a_purchase(win)
+        )
+        confirm_btn.grid(row=0, column=2, padx=5, pady=10)
+
+        # Botón Registrar Compra
+        confirm_btn = ctk.CTkButton(
+            buttons_frame,
+            text="Eliminar registro de pago",
+            fg_color="#3C8A3E",
+            hover_color="#45a049",
+            font=ctk.CTkFont(size=13, weight="bold"),
+        )
+        confirm_btn.grid(row=0, column=3, padx=5, pady=10)
+
+        # Botón Cerrar
+        close_win_btn = ctk.CTkButton(
+            buttons_frame,
+            text="Cerrar",
+            fg_color="#E74C3C",
+            hover_color="#C0392B",
+            font=ctk.CTkFont(size=13, weight="bold"),
+            command=lambda: close_win(win, parent, self.clear_supplier_field)
+        )
+        close_win_btn.grid(row=0, column=5, padx=5, pady=10)
+
+        self.load_purchase_history(False)
+        
+    def clear_supplier_field(self):
+        self.supplier_var.set('')
+
+    def set_movement_tree(self, win):
         # frame para movimientos
-        movement_frame = ctk.CTkFrame(pay_win)
-        movement_frame.grid(row=3, column=0, columnspan=2, sticky="nsew", padx=10, pady=5)
+        movement_frame = ctk.CTkFrame(win)
+        movement_frame.pack(fill='both', expand=True)
 
         self.movement_tree = ttk.Treeview(movement_frame, show="headings", height=8)
         self.movement_tree["columns"] = ("ID", "CUIT PROVEEDOR", "MONTO", "METODO DE PAGO", "saldo ANTERIOR", "saldo POSTERIOR", "FECHA")
         for col in self.movement_tree["columns"]:
             self.movement_tree.heading(col, text=col.capitalize())
-            self.movement_tree.column(col, width=150, anchor="center")
+            if col == "ID":
+                self.movement_tree.column(col, width=100, anchor="center")
+            else:
+                self.movement_tree.column(col, width=150, anchor="center")
         self.movement_tree.pack(side="left", fill="both", expand=True)
 
         # scrollbar 
@@ -107,7 +208,7 @@ class PaymentWindow():
             print(f'metodo: {method}')
 
             if method == 'TRANSFERENCIA':
-                data = self.model.get_transfer_data(payment_id)
+                data = self.model.payment.get_transfer_data(payment_id)
 
                 fields = {
                     'Numero de operacion:': data[0],
@@ -124,7 +225,7 @@ class PaymentWindow():
 
                 print(fields)
             elif method == 'CHEQUE':
-                data = self.model.get_check_data(payment_id)
+                data = self.model.payment.get_check_data(payment_id)
 
                 fields = {
                     'Numero de cheque:': data[0],
@@ -141,47 +242,155 @@ class PaymentWindow():
                 print(fields)
 
         self.movement_tree.bind("<Button-1>", on_row_click)
-
-        # frame inferior (botones y cantidad)
-        buttons_frame = ctk.CTkFrame(pay_win)
-        buttons_frame.grid(row=4, column=0, columnspan=2, sticky="ew", padx=10, pady=10)
-        for i in range(5):
-            buttons_frame.grid_columnconfigure(i, weight=1)
-
-        # Botón Registrar Compra
-        confirm_btn = ctk.CTkButton(
-            buttons_frame,
-            text="Registrar nuevo pago",
-            fg_color="#4CAF50",
-            hover_color="#45a049",
-            font=ctk.CTkFont(size=13, weight="bold"),
-            command=lambda: self.payment_form.add_payment_win(pay_win, self.supplier_var.get())
-        )
-        confirm_btn.grid(row=0, column=1, padx=5, pady=10)
-
-        # Botón Registrar Compra
-        confirm_btn = ctk.CTkButton(
-            buttons_frame,
-            text="Eliminar registro de pago",
-            fg_color="#4CAF50",
-            hover_color="#45a049",
-            font=ctk.CTkFont(size=13, weight="bold"),
-        )
-        confirm_btn.grid(row=0, column=2, padx=5, pady=10)
-
-        # Botón Cerrar
-        close_win_btn = ctk.CTkButton(
-            buttons_frame,
-            text="Cerrar",
-            fg_color="#E74C3C",
-            hover_color="#C0392B",
-            font=ctk.CTkFont(size=13, weight="bold"),
-            command=lambda: close_win(pay_win, parent, self.clear_supplier_field)
-        )
-        close_win_btn.grid(row=0, column=4, padx=5, pady=10)
         
-    def clear_supplier_field(self):
-        self.supplier_var.set('')
+        return movement_frame
+
+    def set_purchase_tree(self, notebook):
+        purchase_frame = ctk.CTkFrame(notebook)
+        purchase_frame.pack(fill='both', expand=True)
+
+        self.purchase_tree = ttk.Treeview(purchase_frame, show="headings", height=8)
+        self.purchase_tree["columns"] = ("ID", "Cuit Proveedor", "Tipo Comprobante", "Fecha", "Fecha Venc.", "Estado", "Saldo Pendiente")
+        for col in self.purchase_tree["columns"]:
+            self.purchase_tree.heading(col, text=col.capitalize())
+            if col == "ID":
+                self.purchase_tree.column(col, width=100, anchor="center")
+            else:
+                self.purchase_tree.column(col, width=150, anchor="center")
+        self.purchase_tree.pack(side="left", fill="both", expand=True)   
+
+        scrollbar = ttk.Scrollbar(purchase_frame, orient="vertical", command=self.purchase_tree.yview)
+        self.purchase_tree.configure(yscroll=scrollbar.set)
+        scrollbar.pack(side="right",fill="y")
+
+        return purchase_frame
+
+    ## -- Purchase payment -- ##
+    def pay_for_a_purchase(self, parent):
+        try:
+            selected = self.purchase_tree.selection()
+            if not selected:
+                show_warning('Por favor selecciona una compra')
+                return
+            
+            iid = selected[0]
+            values = self.purchase_tree.item(iid, "values")
+            print(values)
+            if values[5] == 'PAGADA' or values[5] == 'CANCELADA':
+                show_warning(f'No puede pagar una compra: {values[5]}')
+                return
+
+            self.payment_form.add_payment_win(parent, values[1], values[0], values[6])
+
+        except ValueError as e:
+            show_warning(f'Error en la seleccion de la compra: {e}')
+
+    ## -- Payment Info -- ##
+
+    def on_click(self, win, parent):
+        selected = self.supplier_tree.selection()
+
+        try:
+            # primer fila seleccionada
+            if not selected:
+                return
+            iid = selected[0]
+
+            values = self.supplier_tree.item(iid, "values")
+            debt = self.model.purchase.get_debt_of_supplier(values[0])[0]
+            if debt is None:
+                debt = 0
+
+            self.supplier_var.set(values[0])
+            self.search_var.set(values[0])
+            self.debt_var.set(debt)
+
+            win.after(800, lambda: close_win(win, parent))
+            self.load_payment_movement()
+            self.load_purchase_history(True)
+        except ValueError as e:
+            show_warning(f'Error en la seleccion del proveedor: {e}')
+
+    ## -- -- ##
+
+    #  funcion para cargar movimientos 
+    def load_payment_movement(self, supplier_id=None, supplier_cuit=None):
+        if supplier_id is None and supplier_cuit is None:
+            supplier_cuit = self.supplier_var.get()
+            result = self.model.core.find_supplier_by_cuit(supplier_cuit)
+            supplier_id = result[0]
+            print(f'{supplier_id}')
+            print(f'{supplier_cuit}')
+
+
+        if not supplier_id or not supplier_cuit:
+            messagebox.showwarning("Atención", "Primero selecciona un proveedor.")
+            return
+
+        # Limpiar tabla
+        for item in self.movement_tree.get_children():
+            self.movement_tree.delete(item)
+
+        payments = self.model.payment.get_all_payment_of_supplier(supplier_id)
+
+        # Cargar productos
+        for p in payments:
+            self.movement_tree.insert(
+                parent='', index='end', iid=p[0],
+                values=(
+                   p[0],
+                   supplier_cuit,
+                   p[3], 
+                   p[4],
+                   p[11],
+                   p[12],
+                   p[13]                   
+                ),
+                tag="orow"
+            )
+            
+        self.movement_tree.tag_configure('orow', background="white", foreground='black')     
+
+    ## -- -- ##    
+
+    ## -- Funcion para cargar compras -- ##
+    def load_purchase_history(self, filter):
+
+        if filter:
+            selected_supplier = self.supplier_var.get()
+
+            if not selected_supplier:
+                messagebox.showwarning("Atención", "Primero selecciona un proveedor.")
+                return
+            
+            purchases = self.model.purchase.get_all_purchases(selected_supplier)
+
+        else:
+            purchases = self.model.purchase.get_all_purchases()
+
+        # Limpiar tabla
+        for item in self.purchase_tree.get_children():
+            self.purchase_tree.delete(item)
+
+        # Cargar compras
+        for p in purchases:
+            self.purchase_tree.insert(
+                parent="", index="end", iid=p[0],
+                values=(
+                    p[0],
+                    p[1],
+                    p[2],
+                    p[3],
+                    p[4],
+                    p[6],
+                    locale.format_string("%.2f", p[7], grouping=True),
+                ),
+                tag="orow"
+            )
+        
+    ## -- -- ##
+
+    ## -- Busqueda -- ##
 
     def list_of_supplier(self, parent):
         win = ctk.CTkToplevel(parent)
@@ -195,7 +404,6 @@ class PaymentWindow():
 
         self.search_var = tk.StringVar()
         
-
         btn_color = "#009688"
         btn_hover = "#00796B"
 
@@ -238,6 +446,8 @@ class PaymentWindow():
         )
         select_btn.grid(row=0, column=2, padx=5)
 
+        win.bind("<Return>", lambda event: select_btn.invoke())
+
         tree_frame = ctk.CTkFrame(win)
         tree_frame.grid(row=1, column=0)
 
@@ -257,62 +467,6 @@ class PaymentWindow():
         scroll = ttk.Scrollbar(tree_frame, orient="vertical", command=self.supplier_tree.yview)
         self.supplier_tree.configure(yscroll=scroll.set)
         scroll.pack(side="right", fill="y")
-
-    def on_click(self, win, parent):
-        selected = self.supplier_tree.selection()
-
-        try:
-            # primer fila seleccionada
-            if not selected:
-                return
-            iid = selected[0]
-            values = self.supplier_tree.item(iid, "values")
-            self.supplier_var.set(values[0])
-            self.search_var.set(values[0])
-            win.after(800, lambda: close_win(win, parent))
-            self.load_payment_movement()
-        except ValueError as e:
-            show_warning(f'Error en la seleccion del proveedor: {e}')
-
-    #  funcion para cargar movimientos 
-    def load_payment_movement(self, supplier_id=None, supplier_cuit=None):
-        if supplier_id is None and supplier_cuit is None:
-            print("aca")
-            supplier_cuit = self.supplier_var.get()
-            result = self.model.find_supplier_by_cuit(supplier_cuit)
-            supplier_id = result[0]
-            print(f'{supplier_id}')
-            print(f'{supplier_cuit}')
-
-
-        if not supplier_id or not supplier_cuit:
-            messagebox.showwarning("Atención", "Primero selecciona un proveedor.")
-            return
-
-        # Limpiar tabla
-        for item in self.movement_tree.get_children():
-            self.movement_tree.delete(item)
-
-        payments = self.model.get_all_payment_of_supplier(supplier_id)
-        payments_sorted = sorted(payments, key=lambda x: x[0], reverse=True)
-
-        # Cargar productos
-        for p in payments_sorted:
-            self.movement_tree.insert(
-                parent='', index='end', iid=p[0],
-                values=(
-                   p[0],
-                   supplier_cuit,
-                   p[3], 
-                   p[4],
-                   p[11],
-                   p[12],
-                   p[13]                   
-                ),
-                tag="orow"
-            )
-            
-        self.movement_tree.tag_configure('orow', background="white", foreground='black')     
 
     def on_key_release(self, event):
         # Cancela búsquedas previas si el usuario sigue escribiendo
@@ -369,3 +523,5 @@ class PaymentWindow():
             )
 
         self.supplier_tree.tag_configure('orow', background="white", foreground='black')
+
+    ## --  -- ##

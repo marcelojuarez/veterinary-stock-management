@@ -5,7 +5,7 @@ import sqlite3
 from datetime import datetime
 from random import choice, randint
 from models.user import User
-from models.supplier import SupplierModel
+from models.supplier.__init__ import SupplierModel
 from models.security import gen_password, validate_password
 
 DB_PATH = "db/stock.db"  # ruta a tu base de datos
@@ -219,7 +219,7 @@ def seed_suppliers():
     supplier_mdl = SupplierModel() 
 
     for supplier in suppliers:
-        supplier_mdl.add_supplier(supplier)
+        supplier_mdl.core.add_supplier(supplier)
 
     print("✅ Carga de proveedores correcta")
 

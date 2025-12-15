@@ -1,0 +1,459 @@
+import customtkinter as ctk
+import tkinter as tk
+from tkinter import ttk, messagebox
+import locale
+
+from views.view_helpers import close_win, show_warning
+from views.purchases.purchase_form import PurchaseForm
+from views.supplier_doc.supplier_invoice_form import SupplierInvoiceForm
+from views.supplier_doc.supplier_receipt import SupplierReceiptForm
+from controllers.purchase_controller import PurchaseController
+
+class PurchaseWindow():
+    def __init__(self, model, frame, supplier_view, stock_view, stock_model):
+        self.model = model
+        self.frame = frame
+        self.stock_model = stock_model
+        self.supplier_view = supplier_view
+
+        self.purchase_form = PurchaseForm(self.model, self.frame, stock_view)
+        self.controller = PurchaseController(self, self.purchase_form, stock_view, self.model)
+        self.purchase_form.set_controller(self.controller)
+
+        self.invoice_form = SupplierInvoiceForm(self, frame, self.supplier_view, self.model)
+        self.receipt_form = SupplierReceiptForm(self, frame, self.supplier_view, self.model)
+
+    def open_purchase_window(self, parent):
+
+        btn_color = "#009688"
+        btn_hover = "#00796B"
+
+        self.supplier_var = tk.StringVar()
+        self.suppliers = self.model.core.get_all_suppliers()
+
+        win = ctk.CTkToplevel(self.frame)
+        win.title("Registrar Compra a Proveedor")
+        win.geometry("1200x650")
+        win.grab_set()
+        win.transient(parent)
+
+        win.protocol("WM_DELETE_WINDOW",lambda: close_win(win, parent))
+
+        # Configurar grilla principal
+        for i in range(6):
+            win.grid_rowconfigure(i, weight=0)
+        win.grid_rowconfigure(3, weight=1)
+        win.grid_columnconfigure(0, weight=1)
+        win.grid_columnconfigure(1, weight=1)  
+
+        select_supplier_frame = ctk.CTkFrame(win,fg_color="#f0f0f0")
+        select_supplier_frame.grid(row=1, column=0)
+
+        select_supplier_btn = ctk.CTkButton(
+            select_supplier_frame,
+            width=120,
+            text="Seleccionar Proveedor:",
+            fg_color=btn_color,
+            hover_color=btn_hover,
+            font=ctk.CTkFont(size=13, weight="bold"),
+            command=lambda: self.list_of_supplier(win)
+        )
+        select_supplier_btn.grid(row=0, column=0, padx=(0,10), pady=(15, 5), sticky="e")
+
+        select_supplier_entry = ctk.CTkEntry(
+            select_supplier_frame,
+            textvariable=self.supplier_var,
+            font=ctk.CTkFont(size=12),
+        )
+        select_supplier_entry.grid(row=0, column=1, pady=(15, 5), sticky="e")
+
+        refresh_purchase_list_btn = ctk.CTkButton(
+            select_supplier_frame,
+            width=120,
+            text="Refrescar Lista de Compras",
+            font=ctk.CTkFont(size=13, weight="bold"),
+            command=lambda:self.load_purchases(False)
+        )
+        refresh_purchase_list_btn.grid(row=0, column=2, padx=(20,10), pady=(15, 5), sticky="e")
+
+        # frame para productos
+        product_frame = ctk.CTkFrame(win)
+        product_frame.grid(row=3, column=0, columnspan=2, sticky="nsew", padx=10, pady=5)
+
+        # tree view de productos
+        self.purchase_tree = ttk.Treeview(product_frame, show="headings", height=8)
+        self.purchase_tree["columns"] = ("Id", "Cuit Proveedor", "Tipo Comprobante", "Fecha", "Fecha Venc.", "Estado", 
+                                        "Saldo pendiente")
+        for col in self.purchase_tree["columns"]:
+            self.purchase_tree.heading(col, text=col.capitalize())
+            if col == "Id":
+                self.purchase_tree.column(col, width=60, anchor="center")
+            else:
+                self.purchase_tree.column(col, width=150, anchor="center")
+        self.purchase_tree.pack(side="left", fill="both", expand=True)
+
+        #  scrollbar 
+        scroll = ttk.Scrollbar(product_frame, orient="vertical", command=self.purchase_tree.yview)
+        self.purchase_tree.configure(yscroll=scroll.set)
+        scroll.pack(side="right", fill="y")
+
+        # --- Frame inferior (botones y cantidad) ---
+        buttons_frame = ctk.CTkFrame(win)
+        buttons_frame.grid(row=4, column=0, columnspan=2, sticky="ew", padx=10, pady=10)
+        for i in range(5):
+            buttons_frame.grid_columnconfigure(i, weight=1)
+
+        # boton Registrar Compra
+        confirm_btn = ctk.CTkButton(
+            buttons_frame,
+            text="Registrar Nueva Compra",
+            fg_color="#009688",
+            hover_color="#00796B",
+            font=ctk.CTkFont(size=13, weight="bold"),
+            command=lambda: self.open_doc_type(win)
+        )
+        confirm_btn.grid(row=0, column=0, padx=5, pady=10)
+
+        # boton para ver el detalle de una compra
+        update_stock_btn = ctk.CTkButton(
+            buttons_frame,
+            text="Detalle de Compra",
+            fg_color="#0B5D94",
+            hover_color="#2980B9",
+            font=ctk.CTkFont(size=13, weight="bold"),
+            command=lambda: self.purchase_info(win)
+        )
+        update_stock_btn.grid(row=0, column=1, padx=5, pady=10)
+
+        # boton Cerrar
+        close_win_btn = ctk.CTkButton(
+            buttons_frame,
+            text="Cerrar",
+            fg_color="#E74C3C",
+            hover_color="#C0392B",
+            font=ctk.CTkFont(size=13, weight="bold"),
+            command=lambda: close_win(win, parent)
+        )
+        close_win_btn.grid(row=0, column=3, padx=5, pady=10)
+
+        self.load_purchases(False)
+
+    def open_doc_type(self, parent):
+        """Ventana para elegir un tipo de comprobante"""
+
+        if self.supplier_var.get() == "":
+            show_warning("Por favor seleccione un proveedor")
+            return
+
+        # Crear ventana modal
+        self.doc_type_win = ctk.CTkToplevel(parent)
+        self.doc_type_win.title("Seleccionar Documento")
+        self.doc_type_win.configure(fg_color="#e0e0e0")
+        self.doc_type_win.transient(parent)
+        self.doc_type_win.grab_set()
+
+        # Tamaño fijo de la ventana
+        width_win = 350
+        height_win = 220
+
+        # Obtener info del padre para centrar
+        x_root = parent.winfo_x()
+        y_root = parent.winfo_y()
+        width_root = parent.winfo_width()
+        height_root = parent.winfo_height()
+
+        # Calcular centro de la ventana
+        x = x_root + (width_root // 2) - (width_win // 2)
+        y = y_root + (height_root // 2) - (height_win // 2)
+
+        # Aplicar geometría centrada
+        self.doc_type_win.geometry(f"{width_win}x{height_win}+{x}+{y}")
+
+        # Fondo gris
+        self.doc_type_win.configure(fg_color="#e0e0e0")
+
+        # --- Card centrado ---
+        card_frame = ctk.CTkFrame(
+            self.doc_type_win,
+            fg_color="white",
+            corner_radius=20
+        )
+        card_frame.pack(expand=True, padx=20, pady=20, fill="both")
+
+        # Contenedor de botones
+        btn_frame = ctk.CTkFrame(card_frame, fg_color="white")
+        btn_frame.pack(expand=True)
+
+        btn_style = {
+            "height": 60,
+            "width": 200,
+            "font": ctk.CTkFont(size=14, weight="bold")
+        }
+
+        # Botón Factura
+        invoice_btn = ctk.CTkButton(
+            btn_frame,
+            text="Factura",
+            fg_color="#009688",
+            hover_color="#00796B",
+            command=lambda: self.handle_selection("Factura", parent),
+            **btn_style
+        )
+        invoice_btn.pack(pady=10)
+
+        # Botón Otro Comprobante
+        other_btn = ctk.CTkButton(
+            btn_frame,
+            text="Otro Comprobante",
+            fg_color="#3498DB",
+            hover_color="#2980B9",
+            command=lambda: self.handle_selection("Otro Comprobante", parent),
+            **btn_style
+        )
+        other_btn.pack(pady=10)
+
+
+    def handle_selection(self, doc_type, parent):
+        """Función que se ejecuta al presionar cualquiera de los botones."""
+
+        if doc_type == "Factura":
+            self.invoice_form.open_invoice_form(parent, self.supplier_var.get())
+        elif doc_type == "Otro Comprobante":
+            self.receipt_form.open_receipt_form(parent, self.supplier_var.get())
+        else:
+            print('Error')
+        
+        # Cerrar la ventana emergente
+        self.doc_type_win.grab_release()
+        self.doc_type_win.destroy()
+
+    ## -- Supplier Selection -- ##
+
+    def list_of_supplier(self, parent):
+        win = ctk.CTkToplevel(parent)
+        win.title("Lista de proveedores")
+        win.geometry("500x400")
+        win.grab_set()
+        win.transient(parent)
+
+        win.rowconfigure(0, weight=1)
+        win.rowconfigure(1, weight=3)
+
+        self.search_var = tk.StringVar()
+    
+        btn_color = "#009688"
+        btn_hover = "#00796B"
+
+        find_frame = ctk.CTkFrame(win)
+        find_frame.grid(row=0,column=0)
+
+        find_frame.columnconfigure(0, weight=1)
+        find_frame.columnconfigure(1, weight=2)
+        find_frame.columnconfigure(2, weight=1)
+
+        find_lbl = ctk.CTkLabel(
+            find_frame, 
+            text="Buscar:",
+            font=ctk.CTkFont(size=15, weight='bold')
+        )
+        find_lbl.grid(row=0, column=0, padx=(10, 5), pady=(0, 5))
+
+        self.find_entry = ctk.CTkEntry(
+            find_frame,
+            width=300,
+            height=35,
+            textvariable=self.search_var,
+            font=ctk.CTkFont(size=12),
+            placeholder_text="Ingrese nombre del proveedor..."
+        )
+        self.find_entry.grid(row=0, column=1, padx=5)
+
+        self.find_entry.bind("<KeyRelease>", self.on_key_release)
+        self.search_after_id = None
+
+        select_btn = ctk.CTkButton(
+            find_frame,
+            text="Seleccionar",
+            font=ctk.CTkFont(size=12, weight='bold'),
+            width=50,
+            height=30,
+            fg_color=btn_color,
+            hover_color=btn_hover,
+            command=lambda: self.on_click(win, parent),
+        )
+        select_btn.grid(row=0, column=2, padx=5)
+        win.bind("<Return>", lambda event: select_btn.invoke())
+
+        tree_frame = ctk.CTkFrame(win)
+        tree_frame.grid(row=1, column=0)
+
+        self.supplier_tree = ttk.Treeview(tree_frame, show='headings', height=10)
+        self.supplier_tree["columns"] = ("cuit", "nombre")
+
+        for col in self.supplier_tree["columns"]:
+            self.supplier_tree.heading(col, text=col.capitalize())
+            self.supplier_tree.column(col, anchor="center")
+
+        self.supplier_tree.pack(side="left", fill="both", expand=True)
+
+        for s in self.suppliers:
+            self.supplier_tree.insert("", "end", values=(s[1], s[2]))
+
+        # scrollbar
+        scroll = ttk.Scrollbar(tree_frame, orient="vertical", command=self.supplier_tree.yview)
+        self.supplier_tree.configure(yscroll=scroll.set)
+        scroll.pack(side="right", fill="y")    
+
+    def on_key_release(self, event):
+        # Cancela búsquedas previas si el usuario sigue escribiendo
+        if self.search_after_id:
+            self.find_entry.after_cancel(self.search_after_id)
+        
+        # Ejecuta la búsqueda después de 150 ms
+        self.search_after_id = self.find_entry.after(200, self.update_treeview_filter)
+
+    def update_treeview_filter(self):
+        query = self.find_entry.get().lower()
+        # se verifica si el campo de busqueda esta vacio
+        if query == "":
+            self.refresh_supplier_table()
+            return
+        
+        # limpia el tree view
+        for row in self.supplier_tree.get_children():
+            self.supplier_tree.delete(row)
+            
+        # # Filtrar la lista de proveedores
+        filtered = [
+            s for s in self.suppliers
+            if query in s[1] or query in s[2].lower()
+        ]
+        
+        # Insertar solo los resultados filtrados
+        for s in filtered:
+            self.supplier_tree.insert(
+                parent='', index='end', iid=s[0],
+                values=(
+                    s[1],   # cuit
+                    s[2]   # name
+                ),
+                tag="orow"
+            )
+
+        self.supplier_tree.tag_configure('orow', background="white", foreground='black')  
+
+    def on_click(self, win, parent):
+        selected = self.supplier_tree.selection()
+
+        try:
+            # primer fila seleccionada
+            if not selected:
+                return
+            iid = selected[0]
+            values = self.supplier_tree.item(iid, "values")
+            self.supplier_var.set(values[0])
+            self.search_var.set(values[0])
+            win.after(800, lambda: close_win(win, parent))
+            parent.after(700, lambda: self.load_purchases(True))
+        except ValueError as e:
+            show_warning(f'Error en la seleccion del proveedor: {e}')
+
+    def refresh_supplier_table(self):
+        for item in self.supplier_tree.get_children():
+            self.supplier_tree.delete(item)
+
+        for supplier in self.suppliers:
+            self.supplier_tree.insert(
+                parent='', index='end', iid=supplier[0],
+                values=(
+                    supplier[1],   # cuit
+                    supplier[2]   # name
+                ),
+                tag="orow"
+            )
+
+        self.supplier_tree.tag_configure('orow', background="white", foreground='black') 
+
+    # -- -- #
+
+    def add_invoice_to_purchase(self):
+        self.invoice_form.open_invoice_form()
+
+    def add_sup_doc(self, parent, supplier_cuit, doc_type):
+        if doc_type == "REMITO":
+            print(doc_type)
+            self.receipt_form.open_receipt_form(parent, supplier_cuit)
+        elif doc_type == "FACTURA":
+            print(doc_type)
+            self.invoice_form.open_invoice_form(parent, supplier_cuit)
+        else:
+            print("no se que es")
+
+    ## -- Purchase Info -- ##
+
+    def purchase_info(self, parent):
+
+        try:
+            selected = self.purchase_tree.selection()
+
+            if not selected:
+                show_warning("Por favor seleccione una Compra")
+                return
+            
+            # primer fila seleccionada
+            iid = selected[0]
+            values = self.purchase_tree.item(iid, "values")
+            print(values)
+            data = self.model.purchase.get_all_purchases(values[1])
+            print(data)
+
+            #self.open_purchase_info(parent, values)
+
+        except ValueError as e:
+            show_warning(f'Error al mostrar: {e}')
+
+
+    def open_purchase_info(self, parent, values):
+        p_info_win = ctk.CTkToplevel(parent)
+        p_info_win.title(f"Detalle de Compra: Proveedor - {values[1]}")
+        p_info_win.geometry("800x600")          
+
+        print(values)
+        
+
+    ## --  Load Purchases Function -- ## 
+    def load_purchases(self, filter):
+
+        if filter:
+            selected_supplier = self.supplier_var.get()
+
+            if not selected_supplier:
+                messagebox.showwarning("Atención", "Primero selecciona un proveedor.")
+                return
+            
+            purchases = self.model.purchase.get_all_purchases(selected_supplier)
+
+        else:
+            self.supplier_var.set('')
+            purchases = self.model.purchase.get_all_purchases()
+
+        # Limpiar tabla
+        for item in self.purchase_tree.get_children():
+            self.purchase_tree.delete(item)
+
+        # Cargar compras
+        for p in purchases:
+            self.purchase_tree.insert(
+                parent="", index="end", iid=p[0],
+                values=(
+                    p[0],
+                    p[1],
+                    p[2],
+                    p[3],
+                    p[4],
+                    p[6],
+                    locale.format_string("%.2f", p[7], grouping=True),
+                ),
+                tag="orow"
+            )
+

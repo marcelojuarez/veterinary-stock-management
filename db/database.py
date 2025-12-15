@@ -48,7 +48,7 @@ class Database:
             # Tabla de stock
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS stock (
-                id TEXT PRIMARY KEY,
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
                 cuit_supplier TEXT,
                 name TEXT NOT NULL,
                 pack TEXT NOT NULL,
@@ -84,7 +84,6 @@ class Database:
                     home TEXT,
                     phone TEXT,
                     email TEXT,
-                    debt REAL,
                     last_debt_update TEXT DEFAULT CURRENT_DATE
                 );
             ''')
@@ -119,21 +118,93 @@ class Database:
                 );
             ''')
 
-            # Tabla facturas de compra proveedor
-            cursor.execute(''' 
-                CREATE TABLE IF NOT EXISTS factura_proveedor(
+            # Tabla de compras 
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS purchase (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    id_proveedor INTEGER,
-                    tipo_factura TEXT,
-                    punto_de_venta INTEGER, 
-                    factura_id INTEGER,
-                    fecha TEXT CURRENT_DATE
+                    supplier_id INTEGER,
+                    document_type TEXT,
+                    invoice_id TEXT NULL,
+                    receipt_id TEXT NULL,
+                    date TEXT DEFAULT CURRENT_DATE,
+                    expiration_date TEXT NULL,
+                    state TEXT DEFAULT 'PENDIENTE',
+                    observations TEXT,
+                    pending REAL,
+                    total REAL,
+                    FOREIGN KEY (supplier_id) REFERENCES supplier(id),
+                    FOREIGN KEY (receipt_id) REFERENCES supplier_receipt(id), 
+                    FOREIGN KEY (invoice_id) REFERENCES supplier_invoice(id)
+                );
+            ''')
+
+            # cursor.execute('''
+            #     CREATE TABLE IF NOT EXISTS purchase_items(
+            #         id INTEGER PRIMARY KEY AUTOINCREMENT,
+            #         product_id INTEGER,
+            #         quantity INTEGER,
+            #         cost_price REAL
+            #         IVA REAL,
+            #         total_line REAL,
+            #         FOREIGN KEY product_id REFERENCES 
+            #     );
+            # ''')
+
+
+            # Tabla facturas asociada a un proveedor
+            cursor.execute(''' 
+                CREATE TABLE IF NOT EXISTS supplier_invoice(
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                           
+                    -- Relacion
+                    supplier_id INTEGER,
+                           
+                    -- Datos de la factura
+                    invoice_id TEXT UNIQUE,
+                    invoice_type TEXT,
+                    point_of_sale INTEGER,
+                    
+                    -- Fechas
+                    date TEXT CURRENT_DATE,
+                    expiration_date TEXT CURRENT_DATE,
+
+                    -- Montos     
                     total REAL,
                     subtotal REAL,
-                    iva REAL
-                    tipo_de_pago TEXT,
-                    estado TEXT DEFAULT 'pendiente',
-                    FOREIGN KEY (id_proveedor) REFERENCES proveedores (id)
+                    iva REAL,
+                    discount REAL,
+                    
+                    -- Otros
+                    state TEXT DEFAULT 'PENDIENTE',
+                    observations TEXT,
+                           
+                    FOREIGN KEY (supplier_id) REFERENCES supplier (id)
+                );
+            ''')
+
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS supplier_receipt (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    supplier_id INTEGER NOT NULL,
+                    receipt_id TEXT UNIQUE,
+                    date TEXT CURRENT_DATE,
+                    expiration_date TEXT,
+                    observations TEXT,
+                    state TEXT DEFAULT 'PENDIENTE',
+                    total REAL,
+                    FOREIGN KEY (supplier_id) REFERENCES supplier(id)
+                );
+            ''')
+
+            # Tabla que vincula pagos con compras
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS supplier_purchase_payment(
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    purchase_id INTEGER NOT NULL,
+                    payment_id INTEGER NOT NULL,
+                    amount_applied REAL NOT NULL,
+                    FOREIGN KEY (purchase_id) REFERENCES purchase(id),
+                    FOREIGN KEY (payment_id) REFERENCES supplier_payment(id)
                 );
             ''')
 
@@ -196,17 +267,35 @@ class Database:
 
             conn.commit()
 
-    
-    def execute_query(self, query, params=None):
-        """Ejecutar una consulta que no devuelve resultados"""
-        with self.get_connection() as conn:
-            cursor = conn.cursor()
-            if params:
-                cursor.execute(query, params)
-            else:
-                cursor.execute(query)
+    def execute_query(self, query, params=None, conn=None, commit=True):
+        """
+        Ejecuta una consulta SQL.
+
+        - Si conn es None → abre su propia conexión (modo normal)
+        - Si conn se pasa → usa esa conexión (modo transacción)
+        - si commit=True hace commit si la conexión es propia
+        """
+
+        own_conn = False
+        if conn is None:
+            print('entro aca')
+            conn = self.get_connection()
+            own_conn = True
+
+        cursor = conn.cursor()
+        if params:
+            cursor.execute(query, params)
+
+        else:
+            cursor.execute(query)
+
+        if commit:
             conn.commit()
-            return cursor.lastrowid
+
+        if own_conn:
+            conn.close()
+            
+        return cursor.lastrowid
     
     def fetch_all(self, query, params=None):
         """Ejecutar una consulta que devuelve múltiples resultados"""
