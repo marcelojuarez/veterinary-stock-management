@@ -123,6 +123,12 @@ class App():
         self.customers_view.frame.pack(fill='both', expand=True)
         self.notebook.add(self.customers_view.frame, text='Clientes')
 
+        # --- BACKUPS ---
+        from views.backup_manager import BackupManagerView
+        self.backup_view = BackupManagerView(self.notebook, controller=self.stock_controller)
+        self.backup_view.frame.pack(fill='both', expand=True)
+        self.notebook.add(self.backup_view.frame, text='Backups')
+
     def load_initial_data(self):
         try:
             self.stock_controller.load_products()
