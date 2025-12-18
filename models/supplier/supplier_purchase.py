@@ -10,11 +10,11 @@ class SupplierPurchase():
         try:
             date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             query = """
-            INSERT INTO purchase (supplier_id, document_type, date, expiration_date, observations, state, pending, total) 
+            INSERT INTO purchase (supplier_id, document_type, date, expiration_date, state, observations, pending, total) 
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             """
 
-            params= [
+            params = [
                 data['supplier_id'],
                 data['doc_type'],
                 date,
@@ -45,11 +45,17 @@ class SupplierPurchase():
     def get_all_purchases(self, cuit=None):
 
         query = """
-            SELECT purchase.id, supplier.cuit, purchase.document_type, purchase.date, purchase.expiration_date,  
-            purchase.state, purchase.observations, purchase.pending, purchase.total
+            SELECT purchase.id, supplier.cuit, purchase.document_type, purchase.invoice_id, purchase.receipt_id , purchase.date, 
+            purchase.expiration_date, purchase.state, purchase.observations, purchase.pending, purchase.total
             FROM purchase
             JOIN supplier ON purchase.supplier_id = supplier.id
-            WHERE (? IS NULL OR supplier.cuit = ?) ORDER BY purchase.expiration_date
+            WHERE (? IS NULL OR supplier.cuit = ?) 
+            ORDER BY 
+            CASE 
+                WHEN purchase.state = 'PENDIENTE' THEN 0 
+                ELSE 1 
+            END,
+            purchase.expiration_date
         """ 
         params = [
             cuit,
@@ -61,11 +67,17 @@ class SupplierPurchase():
     def get_all_purchases_without_paying(self, cuit=None):
 
         query = """
-            SELECT purchase.id, supplier.cuit, purchase.document_type, purchase.date, purchase.expiration_date,  
-            purchase.state, purchase.observations, purchase.pending, purchase.total 
+            SELECT purchase.id, supplier.cuit, purchase.document_type, purchase.invoice_id, purchase.receipt_id , purchase.date, 
+            purchase.expiration_date, purchase.state, purchase.observations, purchase.pending, purchase.total
             FROM purchase
             JOIN supplier ON purchase.supplier_id = supplier.id
-            WHERE (? IS NULL OR supplier.cuit = ?) AND pending > 0 ORDER BY purchase.expiration_date
+            WHERE (? IS NULL OR supplier.cuit = ?) AND pending > 0 
+            ORDER BY 
+            CASE 
+                WHEN purchase.state = 'PENDIENTE' THEN 0 
+                ELSE 1 
+            END,
+            purchase.expiration_date
         """
 
         params = [
@@ -76,42 +88,47 @@ class SupplierPurchase():
         return self.db.fetch_all(query, params)
     
     ## -- Setear compra como pagada -- ##
-    def set_paid_purchase(self, purchase_id, id, doc_type):
-        """ Set paid purchase """
+    def set_new_debt_purchase(self, purchase_id, id, doc_type, new_debt, conn=None, commit=True):
+
+        new_debt = round(new_debt, 2)
+
+        print(f'new_debt: {new_debt}')
+
+        if new_debt <= 0:
+            new_debt = 0
 
         query = """
         UPDATE purchase
-        SET state = ?, pending = ?
+        SET
+            pending = ?,
+            state = CASE
+                WHEN ? <= 0 THEN 'PAGADA'
+                ELSE 'PENDIENTE'
+            END
         WHERE id = ?
         """
-        params = [
-            'PAGADA',
-            0,
-            purchase_id
-        ]
 
-        self.db.execute_query(query, params)
+        params = (new_debt, new_debt, purchase_id)
 
-        if doc_type == 'REMITO':
-            query = """
-            UPDATE supplier_receipt
-            SET state = ?
-            WHERE id = ?
-            """
+        self.db.execute_query(query, params, conn=conn, commit=commit)
 
-        else:
-            query = """
-            UPDATE supplier_invoice
-            SET state = ?
-            WHERE id = ?
-            """
+        # Si quedó pagada, actualizar comprobante
+        if new_debt == 0:
+            if doc_type == "REMITO":
+                query = """
+                UPDATE supplier_receipt
+                SET state = 'PAGADA'
+                WHERE id = ?
+                """
+            else:
+                query = """
+                UPDATE supplier_invoice
+                SET state = 'PAGADA'
+                WHERE id = ?
+                """
 
-        params = [
-            'Pagada',
-            id
-        ]
+            self.db.execute_query(query, (id,), conn=conn, commit=commit)
 
-        self.db.execute_query(query, params)
     
     ## -- Vincular comprobante con compra -- ##
     def set_doc_on_purchase(self, purchase_id, id, doc_type, conn=None, commit=True):
@@ -251,9 +268,6 @@ class SupplierPurchase():
 
             invoice_id = self.add_new_invoice(invoice_params, conn, commit=False)
             purchase_id = self.add_new_purchase(purchase_params, conn, commit=False)
-
-            print(f"invoice_id: {invoice_id}")
-            print(f"purchase_id: {purchase_id}")
 
             self.set_doc_on_purchase(purchase_id, invoice_id, "FACTURA", conn, commit=False)
 

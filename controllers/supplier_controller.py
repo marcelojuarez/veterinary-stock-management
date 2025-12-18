@@ -67,10 +67,15 @@ class SupplierController():
             show_error(f"Error al registrar el proveedor: {str(e)}")
 
     def supplier_info(self):
-        # Obtengo las filas seleccionadas
-        selected = self.view.supplier_tree.selection()
 
         try:
+            # Obtengo las filas seleccionadas
+            selected = self.view.supplier_tree.selection()
+            
+            if not selected:
+                show_warning('Por favor seleccione un proveedor')
+                return
+
             iid = selected[0]
             values = self.view.supplier_tree.item(iid, "values")
             print(values)
@@ -80,8 +85,7 @@ class SupplierController():
             print(debt)
             self.view.open_info_window(values, debt)
         except Exception as e:
-            show_warning('Por favor seleccione un proveedor')
-            print(e)
+            print(f'Hubo un error: {e}')
 
     def show_suppliers(self):
         suppliers_data = self.model.core.get_all_suppliers()

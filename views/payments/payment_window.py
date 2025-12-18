@@ -34,6 +34,7 @@ class PaymentWindow():
         win = ctk.CTkToplevel(self.frame)
         win.title("Registrar Pago a Proveedor")
         win.geometry("1100x700")
+        win.transient(parent)
         win.grab_set()
 
         win.protocol("WM_DELETE_WINDOW", lambda: close_win(win, parent, self.clear_supplier_field))
@@ -118,7 +119,7 @@ class PaymentWindow():
             fg_color="#3C8A3E",
             hover_color="#45a049",
             font=ctk.CTkFont(size=13, weight="bold"),
-            command=lambda: self.payment_form.add_payment_win(win, self.supplier_var.get())
+            command=lambda: self.pay_management(win, True)
         )
         confirm_btn.grid(row=0, column=1, padx=5, pady=10)
 
@@ -129,9 +130,19 @@ class PaymentWindow():
             fg_color="#3C8A3E",
             hover_color="#45a049",
             font=ctk.CTkFont(size=13, weight="bold"),
-            command= lambda: self.pay_for_a_purchase(win)
+            command= lambda: self.pay_management(win, False)
         )
         confirm_btn.grid(row=0, column=2, padx=5, pady=10)
+
+        # Botón Registrar Compra
+        info_btn = ctk.CTkButton(
+            buttons_frame,
+            text="Info Registro de Pago",
+            fg_color="#3C8A3E",
+            hover_color="#45a049",
+            font=ctk.CTkFont(size=13, weight="bold"),
+        )
+        info_btn.grid(row=0, column=3, padx=5, pady=10)
 
         # Botón Registrar Compra
         confirm_btn = ctk.CTkButton(
@@ -141,7 +152,7 @@ class PaymentWindow():
             hover_color="#45a049",
             font=ctk.CTkFont(size=13, weight="bold"),
         )
-        confirm_btn.grid(row=0, column=3, padx=5, pady=10)
+        confirm_btn.grid(row=0, column=4, padx=5, pady=10)
 
         # Botón Cerrar
         close_win_btn = ctk.CTkButton(
@@ -156,6 +167,22 @@ class PaymentWindow():
 
         self.load_purchase_history(False)
         
+    def pay_management(self, win, mode):
+
+        if self.supplier_var.get() == '':
+            show_warning('Por favor selecciona un Proveedor')
+            return            
+
+        if float(self.debt_var.get()) <= 0:
+            show_warning(f'Error. No se registra Deuda al proveedor: {self.supplier_var.get()}')
+            return
+        
+        if mode:
+            self.payment_form.add_payment_win(win, self.supplier_var.get())
+        else:
+            self.pay_for_a_purchase(win)
+
+    
     def clear_supplier_field(self):
         self.supplier_var.set('')
 
@@ -165,7 +192,7 @@ class PaymentWindow():
         movement_frame.pack(fill='both', expand=True)
 
         self.movement_tree = ttk.Treeview(movement_frame, show="headings", height=8)
-        self.movement_tree["columns"] = ("ID", "CUIT PROVEEDOR", "MONTO", "METODO DE PAGO", "saldo ANTERIOR", "saldo POSTERIOR", "FECHA")
+        self.movement_tree["columns"] = ("ID", "CUIT PROVEEDOR", "MONTO", "METODO DE PAGO", "OBSERVACION", "FECHA")
         for col in self.movement_tree["columns"]:
             self.movement_tree.heading(col, text=col.capitalize())
             if col == "ID":
@@ -280,7 +307,15 @@ class PaymentWindow():
                 show_warning(f'No puede pagar una compra: {values[5]}')
                 return
 
-            self.payment_form.add_payment_win(parent, values[1], values[0], values[6])
+            self.supplier_var.set(values[1])
+            self.load_purchase_history(True)
+
+            self.payment_form.add_payment_win(
+                parent=parent, 
+                supplier_cuit=values[1], 
+                purchase_id=values[0], 
+                amount=values[6]
+            )
 
         except ValueError as e:
             show_warning(f'Error en la seleccion de la compra: {e}')
@@ -297,13 +332,9 @@ class PaymentWindow():
             iid = selected[0]
 
             values = self.supplier_tree.item(iid, "values")
-            debt = self.model.purchase.get_debt_of_supplier(values[0])[0]
-            if debt is None:
-                debt = 0
 
             self.supplier_var.set(values[0])
             self.search_var.set(values[0])
-            self.debt_var.set(debt)
 
             win.after(800, lambda: close_win(win, parent))
             self.load_payment_movement()
@@ -332,7 +363,7 @@ class PaymentWindow():
             self.movement_tree.delete(item)
 
         payments = self.model.payment.get_all_payment_of_supplier(supplier_id)
-
+        print(f'Payments: {payments}')
         # Cargar productos
         for p in payments:
             self.movement_tree.insert(
@@ -342,9 +373,8 @@ class PaymentWindow():
                    supplier_cuit,
                    p[3], 
                    p[4],
-                   p[11],
-                   p[12],
-                   p[13]                   
+                   p[5],
+                   p[11]                  
                 ),
                 tag="orow"
             )
@@ -363,6 +393,12 @@ class PaymentWindow():
                 messagebox.showwarning("Atención", "Primero selecciona un proveedor.")
                 return
             
+            debt = self.model.purchase.get_debt_of_supplier(selected_supplier)[0]
+
+            if debt is None:
+                debt = 0
+
+            self.debt_var.set(debt)
             purchases = self.model.purchase.get_all_purchases(selected_supplier)
 
         else:
@@ -380,14 +416,13 @@ class PaymentWindow():
                     p[0],
                     p[1],
                     p[2],
-                    p[3],
-                    p[4],
+                    p[5],
                     p[6],
-                    locale.format_string("%.2f", p[7], grouping=True),
+                    p[7],
+                    locale.format_string("%.2f", p[9], grouping=True),
                 ),
                 tag="orow"
-            )
-        
+            )  
     ## -- -- ##
 
     ## -- Busqueda -- ##

@@ -90,9 +90,9 @@ class Database:
 
             # Tabla pagos proveedor 
             cursor.execute('''
-                CREATE TABLE IF NOT EXISTS supplier_movement (
+                CREATE TABLE IF NOT EXISTS payment (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    id_supplier INTEGER,
+                    supplier_id INTEGER,
                     
                     receipt_number TEXT, -- recibo que te entrega el proveedor                           
 
@@ -110,11 +110,9 @@ class Database:
                            
                     -- TRANSFERENCIA o CHEQUE
                     bank TEXT,  
-                           
-                    previous_debt REAL,
-                    subsequent_debt REAL,
+
                     date TEXT DEFAULT CURRENT_DATE,
-                    FOREIGN KEY (id_supplier) REFERENCES supplier (id)
+                    FOREIGN KEY (supplier_id) REFERENCES supplier (id)
                 );
             ''')
 
@@ -128,7 +126,7 @@ class Database:
                     receipt_id TEXT NULL,
                     date TEXT DEFAULT CURRENT_DATE,
                     expiration_date TEXT NULL,
-                    state TEXT DEFAULT 'PENDIENTE',
+                    state TEXT,
                     observations TEXT,
                     pending REAL,
                     total REAL,
@@ -198,13 +196,14 @@ class Database:
 
             # Tabla que vincula pagos con compras
             cursor.execute('''
-                CREATE TABLE IF NOT EXISTS supplier_purchase_payment(
+                CREATE TABLE IF NOT EXISTS purchase_payment(
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     purchase_id INTEGER NOT NULL,
                     payment_id INTEGER NOT NULL,
                     amount_applied REAL NOT NULL,
+                    applied_at TEXT DEFAULT CURRENT_DATE,
                     FOREIGN KEY (purchase_id) REFERENCES purchase(id),
-                    FOREIGN KEY (payment_id) REFERENCES supplier_payment(id)
+                    FOREIGN KEY (payment_id) REFERENCES payment(id)
                 );
             ''')
 

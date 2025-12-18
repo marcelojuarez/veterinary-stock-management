@@ -235,7 +235,6 @@ class SupplierView():
         add_win.title("Agregar nuevo proveedor")
 
         add_win.protocol("WM_DELETE_WINDOW", lambda: close_win(add_win, parent))
-        add_win.configure(fg_color="#e0e0e0")
 
         # Hacer que la ventana sea modal
         add_win.transient(self.frame)
@@ -247,8 +246,8 @@ class SupplierView():
         width_root = self.frame.winfo_width()
         height_root = self.frame.winfo_height()
 
-        width_win = 405
-        height_win = 400
+        width_win = 415
+        height_win = 420
         btn_color = "#009688"
         btn_hover = "#00796B"
 
@@ -257,95 +256,82 @@ class SupplierView():
         y = y_root + (height_root // 2) - (height_win // 2)
 
         add_win.geometry(f"{width_win}x{height_win}+{x}+{y}")
+        add_win.configure(fg_color="#e0e0e0")
+
+        card_frame = ctk.CTkFrame(
+            add_win,
+            fg_color="white",
+            corner_radius=20
+        )
+        card_frame.pack(fill="both", expand=True, padx=20, pady=20)
 
         title_label = ctk.CTkLabel(
-            add_win,
+            card_frame,
             text="Nuevo Proveedor",
-            font=ctk.CTkFont(size=18, weight="bold")
+            font=ctk.CTkFont(size=18, weight="bold"),
+            text_color="black"
         )
-        title_label.grid(row=0, column=0, columnspan=2, pady=(20, 20))
+        title_label.pack(pady=20)
 
-        # nombre
-        name_lbl = ctk.CTkLabel(
-            add_win, 
-            text='Nombre:',
-            font=ctk.CTkFont(size=14, weight="bold")
-        )
-        name_lbl.grid(row=1, column=0, padx=[10,5], pady=5, sticky='nw')
-        
-        name_entry = ctk.CTkEntry(add_win, textvariable=self.name_var)
-        name_entry.grid(row=1, column=1, pady=5, sticky='nw')
+                # contenedor del formulario
+        form_frame = ctk.CTkFrame(card_frame, fg_color="white")
+        form_frame.pack(pady=5, padx=10, fill="x")
 
-        # cuit
-        cuit_lbl = ctk.CTkLabel(
-            add_win, 
-            text='Cuit:',
-            font=ctk.CTkFont(size=14, weight="bold")
+        def add_field(row, label, widget):
+            field_lbl = ctk.CTkLabel(
+                form_frame,
+                text=label,
+                font=ctk.CTkFont(size=14, weight="bold"),
+                text_color="black"
             )
-        cuit_lbl.grid(row=2, column=0, padx=[10,5], pady=5, sticky='nw')
 
-        cuit_entry = ctk.CTkEntry(add_win, textvariable=self.cuit_var)
-        cuit_entry.grid(row=2, column=1, pady=5, sticky='nw')
+            field_lbl.grid(row=row, column=0, sticky="e", padx=(10,10), pady=7)
+            widget.grid(row=row, column=1, sticky="w", padx=(10,10), pady=7)
 
-        # domicilio
-        dom_lbl =  ctk.CTkLabel(
-            add_win, 
-            text='Domicilio:',
-            font=ctk.CTkFont(size=14, weight="bold")
-        )
-        dom_lbl.grid(row=3, column=0, padx=[10,5], pady=5, sticky='nw')
         
-        dom_entry = ctk.CTkEntry(add_win, textvariable=self.home_var)
-        dom_entry.grid(row=3, column=1, pady=5, sticky='nw')
+        add_field(0, "Nombre: ", 
+                  ctk.CTkEntry(form_frame, textvariable=self.name_var, width=200))
+        
+        add_field(1, "Cuit: ", 
+                  ctk.CTkEntry(form_frame, textvariable=self.cuit_var, width=200))
+        
+        add_field(2, "Domicilio: ",
+                  ctk.CTkEntry(form_frame, textvariable=self.home_var, width=200))
 
-        # phone
-        phone_lbl = ctk.CTkLabel(
-            add_win, 
-            text='Telefono:',
-            font=ctk.CTkFont(size=14, weight="bold")
-        )
-        phone_lbl.grid(row=4, column=0, padx=[10,5], pady=5, sticky='nw')
+        add_field(3, "Telefono: ",
+                  ctk.CTkEntry(form_frame, textvariable=self.phone_var, width=200))
 
-        phone_entry = ctk.CTkEntry(add_win, textvariable=self.phone_var)
-        phone_entry.grid(row=4, column=1, pady=5, sticky='nw')
+        add_field(4, "Email: ",
+                  ctk.CTkEntry(form_frame, textvariable=self.email_var, width=200))
 
-        email_lbl = ctk.CTkLabel(
-            add_win, 
-            text='Email:',
-            font=ctk.CTkFont(size=14, weight="bold")
-        )
-        email_lbl.grid(row=5, column=0, padx=[10,5], pady=5, sticky='nw')
 
-        email_entry = ctk.CTkEntry(add_win, textvariable=self.email_var)
-        email_entry.grid(row=5, column=1, pady=5, sticky='nw')
-
-        btn_frame = ctk.CTkFrame(add_win)
-        btn_frame.grid(row=6, column=0, columnspan=2, pady=10, sticky="nsew")
-
-        btn_frame.grid_columnconfigure(0, weight=1)
-        btn_frame.grid_columnconfigure(1, weight=1)
-        btn_frame.grid_columnconfigure(2, weight=1)
+        btn_frame = ctk.CTkFrame(card_frame, fg_color="white")
+        btn_frame.pack(pady=20)
 
         finish_btn = ctk.CTkButton(
             btn_frame, 
             text="Agregar", 
-            font=ctk.CTkFont(size=12, weight="bold"),
             fg_color=btn_color, 
             hover_color=btn_hover,
+            height=40,
+            width=160,
+            font=ctk.CTkFont(size=15, weight="bold"),
             command=lambda: self.controller.add_new_supplier(add_win)
         )
-        finish_btn.grid(row=0, column=0, padx=(30,20), pady=20)
+        finish_btn.grid(row=0, column=0, padx=15)
 
         cancel_btn = ctk.CTkButton(
             btn_frame,
             text="Cancelar",
-            font=ctk.CTkFont(size=12, weight="bold"),
             fg_color="#E74C3C",
             hover_color="#C0392B",
+            height=40,
+            width=160,
+            font=ctk.CTkFont(size=15, weight="bold"),
             command=lambda: close_win(add_win, parent, self.clear_form_supplier)
         )
 
-        cancel_btn.grid(row=0, column=1, padx=(20,30), pady=20)     
+        cancel_btn.grid(row=0, column=1, padx=15)     
 
     ## -- Ventana de informacion con productos y deuda -- ##
     def open_info_window(self, supplier, debt):
@@ -419,7 +405,6 @@ class SupplierView():
         cancel_btn.grid(row=0, column=1, padx=10, ipadx=5)
     
     ## -- -- ##
-
 
     def open_purchase_window(self, parent):
 

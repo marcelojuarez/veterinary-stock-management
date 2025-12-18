@@ -418,8 +418,6 @@ class PurchaseWindow():
         p_info_win.title(f"Detalle de Compra: Proveedor - {values[1]}")
         p_info_win.geometry("800x600")          
 
-        print(values)
-        
 
     ## --  Load Purchases Function -- ## 
     def load_purchases(self, filter):
@@ -449,10 +447,10 @@ class PurchaseWindow():
                     p[0],
                     p[1],
                     p[2],
-                    p[3],
-                    p[4],
+                    p[5],
                     p[6],
-                    locale.format_string("%.2f", p[7], grouping=True),
+                    p[7],
+                    locale.format_string("%.2f", p[9], grouping=True),
                 ),
                 tag="orow"
             )
