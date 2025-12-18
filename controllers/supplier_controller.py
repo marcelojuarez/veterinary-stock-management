@@ -1,11 +1,12 @@
-from models.supplier import SupplierModel
+# controllers/supplier_controller.py
+
 from models.stock import StockModel
 from views.view_helpers import show_warning, show_error, show_success
 import re
 
 class SupplierController():
     def __init__(self, view, stock_controller):
-        self.model = SupplierModel()
+        self.model = view.model
         self.view = view
         self.stock_model = StockModel()
         self.stock_controller = stock_controller
@@ -46,11 +47,10 @@ class SupplierController():
                 'cuit': data['cuit'],
                 'home': data['home'],
                 'phone': data['phone'],
-                'email': data['email'],
-                'debt': data['debt']
+                'email': data['email']
             }
 
-            self.model.add_supplier(supplier_data)
+            self.model.core.add_supplier(supplier_data)
 
             self.refresh_supplier_table()
 
@@ -66,36 +66,33 @@ class SupplierController():
         except Exception as e:
             show_error(f"Error al registrar el proveedor: {str(e)}")
 
-    def open_win_add_supplier_product(self, supplier_cuit):
-        try:
-            self.view.open_add_product_window(supplier_cuit)
-
-        except Exception as e:
-            print({e})
-
-    def add_supplier_product(self):
-        data = self.stock_view.get_form_data()
-        print(f'Datos: {data}')
-        self.stock_controller.add_new_product()
-        self.stock_view.clear_form_fields()
-
     def supplier_info(self):
-        # Obtengo las filas seleccionadas
-        selected = self.view.supplier_tree.selection()
 
         try:
+            # Obtengo las filas seleccionadas
+            selected = self.view.supplier_tree.selection()
+            
+            if not selected:
+                show_warning('Por favor seleccione un proveedor')
+                return
+
             iid = selected[0]
             values = self.view.supplier_tree.item(iid, "values")
-            self.view.open_info_window(values)
-        except Exception:
-            show_warning('Por favor seleccione un proveedor')
+            print(values)
+            debt = self.model.purchase.get_debt_of_supplier(values[2])[0]
+            if debt is None:
+                debt = 0
+            print(debt)
+            self.view.open_info_window(values, debt)
+        except Exception as e:
+            print(f'Hubo un error: {e}')
 
     def show_suppliers(self):
-        suppliers_data = self.model.get_all_suppliers()
+        suppliers_data = self.model.core.get_all_suppliers()
         return suppliers_data 
     
     def __validates_supplier_data(self, form_data):
-        required_files =  ['name', 'cuit', 'home', 'phone', 'email', 'debt']
+        required_files =  ['name', 'cuit', 'home', 'phone', 'email']
 
         print(f'Formulario de datos {form_data}')
 
@@ -122,7 +119,7 @@ class SupplierController():
             show_warning("Por favor coloque el CUIT correctamente. Formato: XX-XXXXXXXX-X")
             return False
         
-        if self.model.find_supplier_by_cuit(cuit_field) is not None:
+        if self.model.core.find_supplier_by_cuit(cuit_field) is not None:
             show_error(f"Error: Ya existe un proveedor con el CUIT: {cuit_field}")
             return False
         
@@ -154,7 +151,7 @@ class SupplierController():
     def refresh_supplier_table(self):
         """Refrescar la tabla de proveedores"""
         try:    
-            self.view.suppliers = self.model.get_all_suppliers()
+            self.view.suppliers = self.model.core.get_all_suppliers()
             self.view.refresh_supplier_table(self.view.suppliers)
         except Exception as e:
             show_error(f"Error al refrescar la tabla {str(e)}")
@@ -168,7 +165,7 @@ class SupplierController():
             iid = selected[0]
             values = self.view.supplier_tree.item(iid, "values")
             print(values)
-            self.model.delete_supplier(iid)
+            self.model.core.delete_supplier(iid)
             self.refresh_supplier_table()
             if self.view.find_var.get() != "":
                 self.view.find_var.set('')
@@ -177,49 +174,4 @@ class SupplierController():
         except Exception:
             show_warning('Por favor seleccione un proveedor para eliminar')
 
-    def update_debt(self, supplier_data, new_debt, win=None):
-        self.view.lbl_debt.configure(text=f"${new_debt}")
-        # Se actualiza la deuda
-        self.model.update_debt(supplier_data[0] ,new_debt)
-        data = self.model.find_supplier_by_id(supplier_data[0])
-        # Se actualiza el momento de actualizacion
-        self.view.last_update_debt.set(value=f'Ultima actualizacion deuda: \n {data[7]}') 
-        self.refresh_supplier_table()
-        if win:
-            win.destroy()
-        
-    
-    def register_purchase(self, product_tree, qty_var, window):
-        try:
-            selected = product_tree.selection()
-            if not selected:
-                show_warning("Seleccione un producto")
-                return
-            product_id = product_tree.item(selected[0])["values"][0]
-            quantity = int(qty_var.get())
-
-            if quantity <= 0:
-                show_warning("Cantidad inválida")
-                return
-
-            product_data = self.stock_model.get_product_by_id(product_id)
-
-            message = f"¿Desea actualizar el stock del producto '{product_data[2]}' con {qty_var.get()} unidades?"
-
-            confirmation = self.view.ask_confirmation(message, "Actualizar stock")
-            print(f'product_data: {product_data[11]}')
-            quantity += int(product_data[11])
-            
-            if confirmation:
-                self.stock_model.update_quantity(product_id, quantity)
-
-                show_success("Compra registrada y stock actualizado.")
-                window.destroy()
-                self.view.stock_view.controller.refresh_stock_table()
-
-            else:
-                print('no hay actualizacion')
-
-        except Exception as e:
-            show_error(f"Error al registrar compra: {e}")
-
+ 

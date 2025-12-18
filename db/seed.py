@@ -5,7 +5,7 @@ import sqlite3
 from datetime import datetime
 from random import choice, randint
 from models.user import User
-from models.supplier import SupplierModel
+from models.supplier.__init__ import SupplierModel
 from models.security import gen_password, validate_password
 
 DB_PATH = "db/stock.db"
@@ -492,13 +492,9 @@ def seed_suppliers():
     supplier_mdl = SupplierModel()
     
     for supplier in suppliers:
-        try:
-            supplier_mdl.add_supplier(supplier)
-        except:
-            # Si hay error (ej: CUIT duplicado), continuar
-            continue
-    
-    print(f"✅ Carga de {len(suppliers)} proveedores correcta")
+        supplier_mdl.core.add_supplier(supplier)
+
+    print("✅ Carga de proveedores correcta")
 
 if __name__ == "__main__":
     print("🌱 Iniciando seed de la base de datos...")

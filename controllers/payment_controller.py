@@ -1,36 +1,62 @@
 import tkinter as tk
-from models.supplier import SupplierModel
 from views.view_helpers import show_warning, show_error, close_win
 
 
 class PaymentController():
-    def __init__(self, view, pay_win):
-        self.model = SupplierModel()
+    def __init__(self, view, pay_win, model):
+        self.model = model
         self.view = view
         self.pay_win = pay_win
 
-    def register_payment(self, supplier_var, win, parent):
+    """
+    Permitir pagar el monto de una compra
+    Permitir registrar un monto que afecta a las compras que mas proximo se vencen
+    """
+
+    def register_payment(self, supplier_var, win, parent, purchase_id):
         try:
+
             payment_data = self.view.get_payment_data()
             selected = supplier_var.get() # cuit proveedor
+
             if not selected:
                show_warning("Seleccione un proveedor")
                return
             
-            supplier_data = self.model.find_supplier_by_cuit(selected)
-            if not self.validate_data(supplier_data[0], payment_data):
+            supplier_data = self.model.core.find_supplier_by_cuit(selected)
+            if not self.validate_data(payment_data):
                 return 
             
             amount = float(payment_data['amount'])
-            debt = supplier_data[6]
 
-            if not self.validate_debt(amount, debt):
-                return
+            if purchase_id is not None:
+                # Datos de la compra
+                purchase = self.model.purchase.get_purchase_by_id(purchase_id.get())
+                
+                # Deuda actual de la compra
+                debt = purchase[9]
+                
+                # Chequeo si quiere pagar de mas
+                if not self.validate_debt(amount, debt, False):
+                    self.view.amount_var.set(debt)
+                    return
 
-            new_debt = debt-amount
+            else:
+                
+                purchases = self.model.purchase.get_all_purchases_without_paying(selected)
+
+                for p in purchases:
+                    print(p)
+
+                total_debt = self.model.purchase.get_debt_of_supplier(selected)[0]
+
+                # Chequeo si quiere pagar de mas
+                if not self.validate_debt(amount, total_debt, True):
+                    self.view.amount_var.set(total_debt)
+                    return
 
             data = {
-                'Id_supplier' : supplier_data[0],
+                'Supplier_id' : supplier_data[0],
                 'Receipt_number': payment_data['receipt_number'],
                 'Amount': amount,
                 'Method': payment_data['method'],
@@ -40,28 +66,25 @@ class PaymentController():
                 'Destination': payment_data['destination'],
                 'Check_number': payment_data['check_number'],
                 'Bank': payment_data['bank'],
-                'previous_debt': debt,
-                'subsequent_debt': new_debt
             }
 
-            # update debt
-            self.model.update_debt(data['Id_supplier'], new_debt)
+            result = self.model.payment.register_payment(data, purchase_id)
+            
+            if result:
+                self.view.clear_form_payment()
+                self.pay_win.load_payment_movement(data['Supplier_id'], selected)
+                self.pay_win.load_purchase_history(True)
 
-            self.model.add_new_payment(data['Id_supplier'], data)
-            self.view.clear_form_payment()
-            self.pay_win.load_payment_movement(data['Id_supplier'], selected)
             close_win(win, parent)
-
 
         except Exception as e:
             show_error(f"Error al registrar pago: {e}")
 
+    def purchase_pay_management(self, purchase_id):
+        pass
+    
     @classmethod
-    def validate_data(cls, supplier_id, data):
-        
-        if supplier_id == "":
-            show_warning("Por favor ingrese el CUIT asociado al proveedor")
-            return False
+    def validate_data(cls, data):
 
         required_fields = {
             'amount': 'Monto', 
@@ -112,10 +135,15 @@ class PaymentController():
         return True
 
 
-    def validate_debt(self, amount, debt):
+    def validate_debt(self, amount, debt, total_debt):
+        if total_debt:
+            msg = 'La deuda Total es:'
+        else:
+            msg = 'La deuda de la compra es: '
+
         if amount > debt:
             msg = f'ERROR:.\n'\
-                  f'La deuda actual es: ${debt}\n'\
+                  f'{msg} ${debt}\n'\
                   f'El monto que intenta abonar es superior: ${amount}'
             show_warning(msg)
             return False

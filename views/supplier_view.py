@@ -1,11 +1,11 @@
 import customtkinter as ctk
 import tkinter as tk
-from tkinter import ttk, messagebox
+from tkinter import ttk
 from tksheet import Sheet
-from models.supplier import SupplierModel
+from models.supplier.__init__ import SupplierModel
 from models.stock import StockModel
-from controllers.payment_controller import PaymentController
 from views.payments.payment_window import PaymentWindow
+from views.purchases.purchase_window import PurchaseWindow
 from views.view_helpers import close_win, show_warning
 
 # Configurar tema y colores
@@ -19,10 +19,11 @@ class SupplierView():
         self.stock_model = StockModel()
         self.stock_view = stock_view
         self.frame = ctk.CTkFrame(parent, fg_color="#f0f0f0")
-        self.payment_window = PaymentWindow(self.model, self.frame)
+        self.payment_window = PaymentWindow(self.model, self, self.frame)
+        self.purchase_window = PurchaseWindow(self.model, self.frame, self, self.stock_view, self.stock_model)
         self.create_widgets()
         # proveedores en memoria
-        self.suppliers = self.model.get_all_suppliers()
+        self.suppliers = self.model.core.get_all_suppliers()
         
         self.sort_column = None
         self.sort_reverse = False
@@ -40,16 +41,6 @@ class SupplierView():
         self.home_var = tk.StringVar()
         self.phone_var = tk.StringVar()
         self.email_var = tk.StringVar()
-        self.debt_var = tk.StringVar()
-
-    def setup_product_variables(self):
-        # variables producto
-        self.name_product_var = tk.StringVar()
-        self.description_var = tk.StringVar()
-        self.brand_var = tk.StringVar()
-        self.price_var = tk.StringVar()
-        self.quantity_var = tk.StringVar()
-
 
     """ Crear todos los widgets del formulario """
     def create_widgets(self):
@@ -145,7 +136,7 @@ class SupplierView():
         scrl_bar.grid(row=0, column=3, sticky='ns')
         self.supplier_tree.configure(yscrollcommand=scrl_bar.set)
                            
-        self.supplier_tree['columns'] = ("Id", "Nombre", "Cuit", "Domicilio", "Telefono", "Email", "Saldo Deuda", "Ultima actualizacion deuda")
+        self.supplier_tree['columns'] = ("Id", "Nombre", "Cuit", "Domicilio", "Telefono", "Email", "Ultima actualizacion deuda")
         self.supplier_tree['displaycolumns'] = self.supplier_tree['columns']
         self.supplier_tree.column("Id", anchor=tk.W, width=50,stretch=False)
         self.supplier_tree.column("Nombre", anchor=tk.W, width=350,stretch=False)
@@ -153,7 +144,6 @@ class SupplierView():
         self.supplier_tree.column("Domicilio", anchor=tk.W, width=350,stretch=False)
         self.supplier_tree.column("Telefono", anchor=tk.W, width=160,stretch=False)
         self.supplier_tree.column("Email", anchor=tk.W, width=200, stretch=False)
-        self.supplier_tree.column("Saldo Deuda", anchor=tk.W, width=140, stretch=False)
         self.supplier_tree.column("Ultima actualizacion deuda", anchor=tk.W, width=200, stretch=False)
 
         self.supplier_tree.heading('Id', text='ID ↕')
@@ -162,7 +152,6 @@ class SupplierView():
         self.supplier_tree.heading('Domicilio', text='Domicilio ↕')
         self.supplier_tree.heading('Telefono', text='Telefono ↕')
         self.supplier_tree.heading('Email', text='Email ↕')
-        self.supplier_tree.heading('Saldo Deuda', text='Saldo Deuda ↕')
         self.supplier_tree.heading('Ultima actualizacion deuda', text='Ultima actualizacion deuda ↕')
 
         self.supplier_tree.tag_configure('orow', background="#FFFFFF")
@@ -230,7 +219,7 @@ class SupplierView():
             font=ctk.CTkFont(size=12, weight="bold"),
             fg_color=btn_color,
             hover_color=btn_hover,
-            command=lambda: self.open_purchase_window(manage_frame)
+            command=lambda: self.purchase_window.open_purchase_window(manage_frame)
         )
         
         info_btn.grid(row= 0, column=0, padx=5, pady=5)
@@ -257,8 +246,8 @@ class SupplierView():
         width_root = self.frame.winfo_width()
         height_root = self.frame.winfo_height()
 
-        width_win = 305
-        height_win = 280
+        width_win = 415
+        height_win = 420
         btn_color = "#009688"
         btn_hover = "#00796B"
 
@@ -267,96 +256,88 @@ class SupplierView():
         y = y_root + (height_root // 2) - (height_win // 2)
 
         add_win.geometry(f"{width_win}x{height_win}+{x}+{y}")
+        add_win.configure(fg_color="#e0e0e0")
 
-        # nombre
-        name_lbl = ctk.CTkLabel(
-            add_win, 
-            text='Nombre:',
-            font=ctk.CTkFont(size=14, weight="bold")
-        )
-        name_lbl.grid(row=1, column=0, padx=[10,5], pady=5, sticky='nw')
-        
-        name_entry = ctk.CTkEntry(add_win, textvariable=self.name_var)
-        name_entry.grid(row=1, column=1, pady=5, sticky='nw')
-
-        # cuit
-        cuit_lbl = ctk.CTkLabel(
-            add_win, 
-            text='Cuit:',
-            font=ctk.CTkFont(size=14, weight="bold")
-            )
-        cuit_lbl.grid(row=2, column=0, padx=[10,5], pady=5, sticky='nw')
-
-        cuit_entry = ctk.CTkEntry(add_win, textvariable=self.cuit_var)
-        cuit_entry.grid(row=2, column=1, pady=5, sticky='nw')
-
-        # domicilio
-        dom_lbl =  ctk.CTkLabel(
-            add_win, 
-            text='Domicilio:',
-            font=ctk.CTkFont(size=14, weight="bold")
-        )
-        dom_lbl.grid(row=3, column=0, padx=[10,5], pady=5, sticky='nw')
-        
-        dom_entry = ctk.CTkEntry(add_win, textvariable=self.home_var)
-        dom_entry.grid(row=3, column=1, pady=5, sticky='nw')
-
-        # phone
-        phone_lbl = ctk.CTkLabel(
-            add_win, 
-            text='Telefono:',
-            font=ctk.CTkFont(size=14, weight="bold")
-        )
-        phone_lbl.grid(row=4, column=0, padx=[10,5], pady=5, sticky='nw')
-
-        phone_entry = ctk.CTkEntry(add_win, textvariable=self.phone_var)
-        phone_entry.grid(row=4, column=1, pady=5, sticky='nw')
-
-
-        email_lbl = ctk.CTkLabel(
-            add_win, 
-            text='Email:',
-            font=ctk.CTkFont(size=14, weight="bold")
-        )
-        email_lbl.grid(row=5, column=0, padx=[10,5], pady=5, sticky='nw')
-
-        email_entry = ctk.CTkEntry(add_win, textvariable=self.email_var)
-        email_entry.grid(row=5, column=1, pady=5, sticky='nw')
-
-        deb_label = ctk.CTkLabel(
+        card_frame = ctk.CTkFrame(
             add_win,
-            text="Saldo Deuda:",
-            font=ctk.CTkFont(size=14, weight="bold")
+            fg_color="white",
+            corner_radius=20
         )
-        deb_label.grid(row=6, column=0, padx=[10,5], pady=5, sticky='nw')
+        card_frame.pack(fill="both", expand=True, padx=20, pady=20)
 
-        deb_entry = ctk.CTkEntry(add_win, textvariable=self.debt_var)
-        deb_entry.grid(row=6, column=1, pady=5, sticky='nw')
+        title_label = ctk.CTkLabel(
+            card_frame,
+            text="Nuevo Proveedor",
+            font=ctk.CTkFont(size=18, weight="bold"),
+            text_color="black"
+        )
+        title_label.pack(pady=20)
+
+                # contenedor del formulario
+        form_frame = ctk.CTkFrame(card_frame, fg_color="white")
+        form_frame.pack(pady=5, padx=10, fill="x")
+
+        def add_field(row, label, widget):
+            field_lbl = ctk.CTkLabel(
+                form_frame,
+                text=label,
+                font=ctk.CTkFont(size=14, weight="bold"),
+                text_color="black"
+            )
+
+            field_lbl.grid(row=row, column=0, sticky="e", padx=(10,10), pady=7)
+            widget.grid(row=row, column=1, sticky="w", padx=(10,10), pady=7)
+
+        
+        add_field(0, "Nombre: ", 
+                  ctk.CTkEntry(form_frame, textvariable=self.name_var, width=200))
+        
+        add_field(1, "Cuit: ", 
+                  ctk.CTkEntry(form_frame, textvariable=self.cuit_var, width=200))
+        
+        add_field(2, "Domicilio: ",
+                  ctk.CTkEntry(form_frame, textvariable=self.home_var, width=200))
+
+        add_field(3, "Telefono: ",
+                  ctk.CTkEntry(form_frame, textvariable=self.phone_var, width=200))
+
+        add_field(4, "Email: ",
+                  ctk.CTkEntry(form_frame, textvariable=self.email_var, width=200))
+
+
+        btn_frame = ctk.CTkFrame(card_frame, fg_color="white")
+        btn_frame.pack(pady=20)
+
+        finish_btn = ctk.CTkButton(
+            btn_frame, 
+            text="Agregar", 
+            fg_color=btn_color, 
+            hover_color=btn_hover,
+            height=40,
+            width=160,
+            font=ctk.CTkFont(size=15, weight="bold"),
+            command=lambda: self.controller.add_new_supplier(add_win)
+        )
+        finish_btn.grid(row=0, column=0, padx=15)
 
         cancel_btn = ctk.CTkButton(
-            add_win,
+            btn_frame,
             text="Cancelar",
-            font=ctk.CTkFont(size=12, weight="bold"),
             fg_color="#E74C3C",
             hover_color="#C0392B",
+            height=40,
+            width=160,
+            font=ctk.CTkFont(size=15, weight="bold"),
             command=lambda: close_win(add_win, parent, self.clear_form_supplier)
         )
 
-        cancel_btn.grid(row=7, column=1, padx=6, pady=5)
+        cancel_btn.grid(row=0, column=1, padx=15)     
 
-        finish_btn = ctk.CTkButton(
-            add_win, 
-            text="Agregar", 
-            font=ctk.CTkFont(size=12, weight="bold"),
-            fg_color=btn_color, 
-            hover_color=btn_hover,
-            command=lambda: self.controller.add_new_supplier(add_win)
-        )
-        finish_btn.grid(row=7, column=0,  padx=6, pady=5)
-
-
-    def open_info_window(self, supplier):
+    ## -- Ventana de informacion con productos y deuda -- ##
+    def open_info_window(self, supplier, debt):
         self.frame.update_idletasks()  # calcula la posicion antes de renderizar ventana
+
+        print(supplier)
 
         info_win = ctk.CTkToplevel(self.frame)
         info_win.title(f'Proveedor: {supplier[2]} -- {supplier[1]}')
@@ -392,8 +373,8 @@ class SupplierView():
         sheet.set_column_widths([100, 200, 200, 50])
 
         # --- Panel de deuda ---
-        self.debt = tk.StringVar(value=f'{supplier[6]}')
-        self.last_update_debt = tk.StringVar(value=f'Ultima actualizacion deuda: \n {supplier[7]}')
+        self.debt = tk.StringVar(value=f'{debt}')
+        self.last_update_debt = tk.StringVar(value=f'Ultima actualizacion deuda: \n {supplier[6]}')
         right_frame = ctk.CTkFrame(info_win, corner_radius=10)
         right_frame.grid(row=0, column=1, sticky="nsew", padx=10, pady=(10, 0))
 
@@ -408,7 +389,7 @@ class SupplierView():
 
         # frame botones izquierda
         left_btn_frame = ctk.CTkFrame(info_win, fg_color="transparent")
-        left_btn_frame.grid(row=1, column=0, sticky="ew", pady=15)
+        left_btn_frame.grid(row=1, column=0, sticky="we", pady=15)
         left_btn_frame.grid_columnconfigure((0, 1), weight=1)
 
         # Botón Cancelar 
@@ -422,81 +403,8 @@ class SupplierView():
             command=info_win.destroy
         )
         cancel_btn.grid(row=0, column=1, padx=10, ipadx=5)
-
-        # frame botones derecha
-        right_btn_frame = ctk.CTkFrame(info_win, fg_color="transparent")
-        right_btn_frame.grid(row=1, column=1, sticky="ew", pady=15)
-        right_btn_frame.grid_columnconfigure(0, weight=1)
-
-        # Botón Actualizar Deuda
-        update_debt_btn = ctk.CTkButton(
-            right_btn_frame,
-            text='Actualizar Deuda',
-            fg_color=btn_color,
-            hover_color=btn_hover,
-            font=ctk.CTkFont(size=13, weight="bold"),
-            command=lambda: self.update_debt_win(info_win, supplier)
-        )
-        update_debt_btn.grid(row=0, column=0, padx=10, ipadx=5)
-
-
-    def update_debt_win(self, parent, supplier):
-        update_win = ctk.CTkToplevel(parent)
-        update_win.title("Actualizar Deuda Proveedor")
-
-        update_win.grid_rowconfigure(0, weight=1)
-        update_win.grid_columnconfigure(0, weight=1)
-
-        # posicion y tamaño del frame
-        x_root = parent.winfo_rootx()
-        y_root = parent.winfo_rooty()
-        width_root = parent.winfo_width()
-        height_root = parent.winfo_height()
-
-        width_win = 300
-        height_win = 100
-        btn_color = "#009688"
-        btn_hover = "#00796B"
-
-        x = x_root + (width_root // 2) - (width_win // 2)
-        y = y_root + (height_root // 2) - (height_win // 2)
-        update_win.geometry(f"{width_win}x{height_win}+{x}+{y}")
-
-        update_frame = ctk.CTkFrame(update_win, fg_color='transparent')
-        update_frame.grid(row=0, column=0, sticky='nsew')
-
-        update_frame.columnconfigure(0, weight=1)
-        update_frame.columnconfigure(1, weight=1)
-        update_frame.rowconfigure(0, weight=1)
-        update_frame.rowconfigure(1, weight=1)
-        
-        debt_lbl = ctk.CTkLabel(update_frame, text="Deuda:", font=ctk.CTkFont(size=18, weight="bold"))
-        debt_lbl.grid(row=0, column=0,  padx=5, ipadx=5)
-
-        debt_entry = ctk.CTkEntry(update_frame, textvariable=self.debt)
-        debt_entry.grid(row=0, column=1,  padx=5, ipadx=5)
-
-        # Botón Actualizar Deuda
-        update_debt_btn = ctk.CTkButton(
-            update_frame,
-            text='Actualizar',
-            fg_color=btn_color,
-            hover_color=btn_hover,
-            font=ctk.CTkFont(size=15, weight="bold"),
-            command=lambda: self.controller.update_debt(supplier, self.debt.get(), update_win)
-        )
-        update_debt_btn.grid(row=1, column=0, padx=10, ipadx=5)
-
-        cancel_update_btn = ctk.CTkButton(
-            update_frame,
-            text='Cancelar',
-            fg_color="#E74C3C",
-            hover_color="#C0392B",
-            font=ctk.CTkFont(size=15, weight="bold"),
-            command= update_win.destroy
-        )
-        cancel_update_btn.grid(row=1, column=1, padx=10, ipadx=5)
-
+    
+    ## -- -- ##
 
     def open_purchase_window(self, parent):
 
@@ -729,8 +637,6 @@ class SupplierView():
             self.controller.refresh_supplier_table()
             return
         
-        print(query)
-        
         # limpia el tree view
         for row in self.supplier_tree.get_children():
             self.supplier_tree.delete(row)
@@ -752,8 +658,7 @@ class SupplierView():
                     s[3],   # home
                     s[4],   # phone
                     s[5],   # email
-                    s[6],   # debt
-                    s[7]    # last act debt
+                    s[6]    # last act debt
                 ),
                 tag="orow"
             )
@@ -774,8 +679,7 @@ class SupplierView():
                     supplier[3],   # home
                     supplier[4],   # phone
                     supplier[5],   # email
-                    supplier[6],   # debt
-                    supplier[7]    # last act debt
+                    supplier[6]    # last act debt
                 ),
                 tag="orow"
             )
@@ -789,7 +693,6 @@ class SupplierView():
         self.cuit_var.set('')
         self.home_var.set('')
         self.phone_var.set('')
-        self.debt_var.set('')
 
     def get_supplier_data(self):
         return {
@@ -798,14 +701,4 @@ class SupplierView():
             'home': self.home_var.get().strip(),
             'phone': self.phone_var.get().strip(),
             'email': self.email_var.get().strip(),
-            'debt': self.debt_var.get()
-        }
-    
-    def get_product_data(self):
-        return {
-            'name': self.name_product_var.get().strip(),
-            'description': self.description_var.get().strip(),
-            'brand': self.brand_var.get().strip(),
-            'price': self.price_var.get().strip(),
-            'quantity': self.quantity_var.get().strip(),
         }
