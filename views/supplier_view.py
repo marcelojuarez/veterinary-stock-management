@@ -176,7 +176,7 @@ class SupplierView():
             font=ctk.CTkFont(size=12, weight="bold"),
             fg_color=btn_color,
             hover_color=btn_hover,
-            command=lambda: self.controller.supplier_info()
+            command=lambda: self.controller.supplier_info(manage_frame)
         )
 
         delete_btn = ctk.CTkButton(
@@ -334,13 +334,15 @@ class SupplierView():
         cancel_btn.grid(row=0, column=1, padx=15)     
 
     ## -- Ventana de informacion con productos y deuda -- ##
-    def open_info_window(self, supplier, debt):
+    def open_info_window(self, supplier, debt, parent):
         self.frame.update_idletasks()  # calcula la posicion antes de renderizar ventana
 
         print(supplier)
 
         info_win = ctk.CTkToplevel(self.frame)
         info_win.title(f'Proveedor: {supplier[2]} -- {supplier[1]}')
+        info_win.transient(parent)
+        info_win.grab_set()
 
         # posicion y tamaño del frame
         x_root = self.frame.winfo_rootx()

@@ -5,7 +5,8 @@ from views.view_helpers import close_win, show_warning
 
 class PaymentFormView:
 
-    def __init__(self, model, frame, controller=None):
+    def __init__(self, pay_win, model, frame, controller=None):
+        self.pay_win = pay_win
         self.model = model
         self.frame = frame
         self.controller = controller
@@ -45,6 +46,15 @@ class PaymentFormView:
         print(f"DEBUG: Controller asignado correctamente: {self.controller}")
 
     def add_payment_win(self, parent, supplier_cuit, purchase_id=None, amount=None):
+
+        if supplier_cuit == '':
+            show_warning('Por favor selecciona un Proveedor')
+            return
+
+        if float(self.pay_win.debt_var.get()) <= 0:
+            show_warning(f'Atención. No se registra Deuda al proveedor: {supplier_cuit}')
+            return
+
         self.setup_payment_variables(supplier_cuit, purchase_id, amount)
 
         """Ventana para registrar un nuevo pago"""
@@ -247,7 +257,7 @@ class PaymentFormView:
         add_button.grid(row=0, column=0, padx=15, pady=15)
 
         cancel_button = ctk.CTkButton(button_frame, text="Cancelar", width=120, height=35, font=ctk.CTkFont(size=15, weight="bold"),
-            fg_color="#757575", hover_color="#616161", command= lambda: close_win(self.add_pay_win, parent, self.clear_form_payment))
+            fg_color="#757575", hover_color="#616161", command= lambda: close_win(self.add_pay_win, parent))
         cancel_button.grid(row=0, column=1, padx=15, pady=15) 
 
     def clear_dynamic_frame(self):
@@ -255,22 +265,7 @@ class PaymentFormView:
             widget.destroy()
 
     ## -- -- ##
-
-    def clear_form_payment(self):
-        """Limpiar formulario pago"""
-        self.amount_var.set('')
-        self.method_var.set('-')
-        self.num_receipt_var.set('')
-        self.observation_var.set('')
-
-        self.opt_num_var.set('')
-        self.origin_var.set('')
-        self.destinatation_var.set('')
-
-        self.bank_var.set('')
-
-        self.check_num_var.set('')
-
+    
     def get_payment_data(self):
         """Obtener datos del formulario de pago"""
         return {

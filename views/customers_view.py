@@ -190,37 +190,56 @@ class CustomersView:
     def open_add_customer_window(self):
         win = ctk.CTkToplevel(self.frame)
         win.title("Agregar nuevo cliente")
-        win.geometry("480x420")
+        win.geometry("400x400")
+        win.configure(fg_color="#e0e0e0")
         win.transient(self.frame)
         win.grab_set()
-
-        ctk.CTkLabel(
-            win, text="Registrar nuevo cliente",
-            font=ctk.CTkFont(size=18, weight="bold")
-        ).pack(pady=(20, 10))
 
         name_var = ctk.StringVar()
         cuit_var = ctk.StringVar()
         home_var = ctk.StringVar()
         phone_var = ctk.StringVar()
+        
+        card_frame = ctk.CTkFrame(
+            win,
+            fg_color="white",
+            corner_radius=20
+        )
+        card_frame.pack(fill="both", expand=True, padx=20, pady=20)
 
-        form_frame = ctk.CTkFrame(win, fg_color="#f9f9f9", corner_radius=10)
+        ctk.CTkLabel(
+            card_frame, 
+            text="Registrar Nuevo Cliente",
+            font=ctk.CTkFont(size=18, weight="bold")
+        ).pack(pady=(20, 10))
+
+        form_frame = ctk.CTkFrame(card_frame, fg_color="#f9f9f9", corner_radius=10)
         form_frame.pack(pady=10, padx=20, fill="x")
 
-        entries = [
-            ("Nombre:", name_var),
-            ("CUIT:", cuit_var),
-            ("Domicilio:", home_var),
-            ("Teléfono:", phone_var)
-        ]
+        def add_field(row, label, widget):
+            field_lbl = ctk.CTkLabel(
+                form_frame,
+                text=label,
+                font=ctk.CTkFont(size=14, weight="bold"),
+                text_color="black"
+            )
+            
+            field_lbl.grid(row=row, column=0, sticky="e", padx=(10,10), pady=7)
+            widget.grid(row=row, column=1, sticky="w", padx=(10,10), pady=7)
 
-        for i, (label, var) in enumerate(entries):
-            ctk.CTkLabel(form_frame, text=label, anchor="e",
-                         font=ctk.CTkFont(size=13)).grid(row=i, column=0, padx=10, pady=10, sticky="e")
-            ctk.CTkEntry(form_frame, textvariable=var,
-                         width=250, height=35).grid(row=i, column=1, padx=10, pady=10, sticky="w")
+        add_field(0, "Nombre: ",
+                  ctk.CTkEntry(form_frame, textvariable=name_var, width=200))
+        
+        add_field(1, "CUIT: ",
+                  ctk.CTkEntry(form_frame, textvariable=cuit_var, width=200))
+        
+        add_field(2, "Domicilio: ",
+                  ctk.CTkEntry(form_frame, textvariable=home_var, width=200))
 
-        btn_frame = ctk.CTkFrame(win, fg_color="transparent")
+        add_field(3, "Teléfono: ",
+                  ctk.CTkEntry(form_frame, textvariable=phone_var, width=200))
+
+        btn_frame = ctk.CTkFrame(card_frame, fg_color="transparent")
         btn_frame.pack(pady=15)
 
         def save_and_close():
@@ -243,7 +262,7 @@ class CustomersView:
             height=40,
             fg_color="#009688",
             hover_color="#00796B",
-            font=ctk.CTkFont(size=13, weight="bold"),
+            font=ctk.CTkFont(size=15, weight="bold"),
             command=save_and_close
         )
         save_btn.grid(row=0, column=0, padx=15)
@@ -253,9 +272,9 @@ class CustomersView:
             text="Cancelar",
             width=150,
             height=40,
-            fg_color="#757575",
-            hover_color="#616161",
-            font=ctk.CTkFont(size=13, weight="bold"),
+            fg_color="#E74C3C",
+            hover_color="#C0392B",
+            font=ctk.CTkFont(size=15, weight="bold"),
             command=win.destroy
         )
         cancel_btn.grid(row=0, column=1, padx=15)
@@ -615,13 +634,34 @@ class CustomersView:
         form_frame.pack(pady=10, padx=15, fill="x")
 
         # Entrada de monto
-        ctk.CTkLabel(form_frame, text="Monto a pagar:").grid(row=0, column=0, pady=10, sticky="w")
+        ctk.CTkLabel(
+            form_frame, 
+            text="Monto a pagar:",
+            font=ctk.CTkFont(size=12, weight="bold"),
+        ).grid(
+            row=0, 
+            column=0, 
+            padx=10, 
+            pady=10, 
+            sticky="w"
+        )
+
         amount_var = ctk.StringVar()
         amount_entry = ctk.CTkEntry(form_frame, textvariable=amount_var, width=150)
         amount_entry.grid(row=0, column=1, pady=10, padx=10)
 
         # Método de pago
-        ctk.CTkLabel(form_frame, text="Método:").grid(row=1, column=0, pady=10, sticky="w")
+        ctk.CTkLabel(
+            form_frame, 
+            text="Método:",
+            font=ctk.CTkFont(size=12, weight="bold"),
+        ).grid(
+            row=1, 
+            column=0, 
+            padx=10,
+            pady=10, 
+            sticky="w"
+        )
         method_var = ctk.StringVar(value="Efectivo")
 
         method_menu = ctk.CTkComboBox(

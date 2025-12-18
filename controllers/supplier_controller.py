@@ -66,7 +66,7 @@ class SupplierController():
         except Exception as e:
             show_error(f"Error al registrar el proveedor: {str(e)}")
 
-    def supplier_info(self):
+    def supplier_info(self, parent):
 
         try:
             # Obtengo las filas seleccionadas
@@ -83,7 +83,7 @@ class SupplierController():
             if debt is None:
                 debt = 0
             print(debt)
-            self.view.open_info_window(values, debt)
+            self.view.open_info_window(values, debt, parent)
         except Exception as e:
             print(f'Hubo un error: {e}')
 

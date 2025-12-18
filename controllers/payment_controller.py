@@ -14,6 +14,7 @@ class PaymentController():
     """
 
     def register_payment(self, supplier_var, win, parent, purchase_id):
+
         try:
 
             payment_data = self.view.get_payment_data()

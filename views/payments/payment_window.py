@@ -17,7 +17,7 @@ class PaymentWindow():
         self.frame = frame
         self.supplier_view = supplier_view
 
-        self.payment_form = PaymentFormView(model, frame)
+        self.payment_form = PaymentFormView(self, model, frame)
         self.controller = PaymentController(self.payment_form, self, self.model)
         self.payment_form.set_controller(self.controller)
 
@@ -119,7 +119,7 @@ class PaymentWindow():
             fg_color="#3C8A3E",
             hover_color="#45a049",
             font=ctk.CTkFont(size=13, weight="bold"),
-            command=lambda: self.pay_management(win, True)
+            command=lambda: self.payment_form.add_payment_win(win, self.supplier_var.get())
         )
         confirm_btn.grid(row=0, column=1, padx=5, pady=10)
 
@@ -130,7 +130,7 @@ class PaymentWindow():
             fg_color="#3C8A3E",
             hover_color="#45a049",
             font=ctk.CTkFont(size=13, weight="bold"),
-            command= lambda: self.pay_management(win, False)
+            command= lambda: self.pay_for_a_purchase(win)
         )
         confirm_btn.grid(row=0, column=2, padx=5, pady=10)
 
@@ -166,22 +166,6 @@ class PaymentWindow():
         close_win_btn.grid(row=0, column=5, padx=5, pady=10)
 
         self.load_purchase_history(False)
-        
-    def pay_management(self, win, mode):
-
-        if self.supplier_var.get() == '':
-            show_warning('Por favor selecciona un Proveedor')
-            return            
-
-        if float(self.debt_var.get()) <= 0:
-            show_warning(f'Error. No se registra Deuda al proveedor: {self.supplier_var.get()}')
-            return
-        
-        if mode:
-            self.payment_form.add_payment_win(win, self.supplier_var.get())
-        else:
-            self.pay_for_a_purchase(win)
-
     
     def clear_supplier_field(self):
         self.supplier_var.set('')
