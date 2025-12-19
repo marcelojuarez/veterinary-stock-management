@@ -203,7 +203,7 @@ class Database:
                     amount_applied REAL NOT NULL,
                     applied_at TEXT DEFAULT CURRENT_DATE,
                     FOREIGN KEY (purchase_id) REFERENCES purchase(id),
-                    FOREIGN KEY (payment_id) REFERENCES payment(id)
+                    FOREIGN KEY (payment_id) REFERENCES supplier_payment(id)
                 );
             ''')
 
@@ -318,7 +318,6 @@ class Database:
 
         own_conn = False
         if conn is None:
-            print('entro aca')
             conn = self.get_connection()
             own_conn = True
 

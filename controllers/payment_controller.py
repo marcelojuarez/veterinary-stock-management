@@ -72,7 +72,6 @@ class PaymentController():
             result = self.model.payment.register_payment(data, purchase_id)
             
             if result:
-                self.view.clear_form_payment()
                 self.pay_win.load_payment_movement(data['Supplier_id'], selected)
                 self.pay_win.load_purchase_history(True)
 

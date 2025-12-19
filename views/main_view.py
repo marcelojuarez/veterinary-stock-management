@@ -38,6 +38,9 @@ class App():
         # Asociar la cruz al cierre de la app
         self.login_win.protocol("WM_DELETE_WINDOW", self.root.destroy)
 
+        # Permitir usar Enter como boton
+        self.login_win.bind("<Return>", lambda event: entry_btn.invoke())
+
         # posicion y tamaño de root
         x_root = self.root.winfo_x() 
         y_root = self.root.winfo_y()

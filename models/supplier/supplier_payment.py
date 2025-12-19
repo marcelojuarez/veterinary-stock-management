@@ -11,7 +11,9 @@ class SupplierPayment():
     def get_payment_by_id(self, payment_id):
         try:
             query="""
-            SELECT * FROM supplier_payment where id = ? 
+            SELECT * 
+            FROM supplier_payment 
+            WHERE id = ? 
             """
             return self.db.fetch_one(query, (payment_id))
         except ValueError as e:
@@ -21,7 +23,9 @@ class SupplierPayment():
     def get_transfer_data(self, payment_id):
         try:
             query = """
-            SELECT operation_num, origin, destination FROM supplier_payment where id = ?
+            SELECT operation_num, origin, destination 
+            FROM supplier_payment 
+            WHERE id = ?
             """
             return self.db.fetch_one(query, (payment_id,))
         except ValueError as e:
@@ -31,7 +35,9 @@ class SupplierPayment():
     def get_check_data(self, payment_id):
         try:
             query = """
-            SELECT check_number, bank FROM supplier_payment where id = ?
+            SELECT check_number, bank 
+            FROM supplier_payment 
+            WHERE id = ?
             """
             return self.db.fetch_one(query, (payment_id,))
         except ValueError as e:
@@ -41,7 +47,8 @@ class SupplierPayment():
     def get_all_payment_of_supplier(self, supplier_id):
         try:
             query = """
-            SELECT * FROM supplier_payment where supplier_id = ? ORDER BY date DESC
+            SELECT * FROM supplier_payment 
+            WHERE supplier_id = ? ORDER BY date DESC
             """
             return self.db.fetch_all(query, (supplier_id,))            
         except ValueError as e:
@@ -63,6 +70,18 @@ class SupplierPayment():
         ]
 
         self.db.execute_query(query, params, conn=conn, commit=commit)
+
+    def get_purchase_payment_relation(self, payment_id):
+        try:
+            query = """
+            SELECT purchase_id, amount_applied, applied_at FROM purchase_payment 
+            WHERE payment_id = ?
+            """
+
+            return self.db.fetch_all(query, (payment_id, ))
+        except ValueError as e:
+            print(f'Error al obtener las compras asociadas a este pago {e}')
+            return None
 
     def register_payment(self, pay_data, purchase_id=None):
         try:

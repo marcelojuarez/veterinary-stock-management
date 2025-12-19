@@ -3,7 +3,7 @@ import customtkinter as ctk
 from controllers.payment_controller import PaymentController
 from views.view_helpers import close_win, show_warning
 
-class PaymentFormView:
+class PaymentForm:
 
     def __init__(self, pay_win, model, frame, controller=None):
         self.pay_win = pay_win
@@ -69,7 +69,7 @@ class PaymentFormView:
         self.add_pay_win.columnconfigure(0, weight=0)
         self.add_pay_win.columnconfigure(1, weight=1)
 
-        self.add_pay_win.protocol("WM_DELETE_WINDOW", lambda: close_win(self.add_pay_win, parent, self.clear_form_payment))
+        self.add_pay_win.protocol("WM_DELETE_WINDOW", lambda: close_win(self.add_pay_win, parent))
         
         # Hacer que la ventana sea modal
         self.add_pay_win.transient(parent)

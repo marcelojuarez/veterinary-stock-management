@@ -9,7 +9,7 @@ class SupplierCore():
     def get_all_suppliers(self):
         # Obtener todos los proveedores
         try:
-            query = "SELECT * FROM supplier ORDER BY id"
+            query = "SELECT * FROM supplier ORDER BY name"
             return  self.db.fetch_all(query)
         except ValueError as e:
             print(f'Error getting suppliers: {e}')
