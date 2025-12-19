@@ -23,6 +23,7 @@ class App():
         view_config = settings['VIEW_CONFIG']
         self.root.title(view_config['window-title'])
         self.root.geometry(view_config['window-size'])
+        self.root.resizable(False, False)
         self.root.withdraw()
         self.root.update_idletasks()
         

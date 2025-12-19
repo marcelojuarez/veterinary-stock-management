@@ -4,10 +4,8 @@ from tkinter import ttk, messagebox
 import locale
 
 from views.view_helpers import close_win, show_warning
-from views.purchases.purchase_form import PurchaseForm
 from views.supplier_doc.supplier_invoice_form import SupplierInvoiceForm
 from views.supplier_doc.supplier_receipt import SupplierReceiptForm
-from controllers.purchase_controller import PurchaseController
 
 class PurchaseWindow():
     def __init__(self, model, frame, supplier_view, stock_view, stock_model):
@@ -15,10 +13,6 @@ class PurchaseWindow():
         self.frame = frame
         self.stock_model = stock_model
         self.supplier_view = supplier_view
-
-        self.purchase_form = PurchaseForm(self.model, self.frame, stock_view)
-        self.controller = PurchaseController(self, self.purchase_form, stock_view, self.model)
-        self.purchase_form.set_controller(self.controller)
 
         self.invoice_form = SupplierInvoiceForm(self, frame, self.supplier_view, self.model)
         self.receipt_form = SupplierReceiptForm(self, frame, self.supplier_view, self.model)
