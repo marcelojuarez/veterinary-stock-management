@@ -59,7 +59,8 @@ class Database:
                 price_with_iva REAL NOT NULL,
                 quantity INTEGER NOT NULL,
                 created_at TEXT DEFAULT CURRENT_DATE,
-                last_price_update TEXT DEFAULT CURRENT_DATE
+                last_price_update TEXT DEFAULT CURRENT_DATE,
+                UNIQUE (name, pack)           
                 );
             ''')
 
@@ -136,17 +137,26 @@ class Database:
                 );
             ''')
 
-            # cursor.execute('''
-            #     CREATE TABLE IF NOT EXISTS purchase_items(
-            #         id INTEGER PRIMARY KEY AUTOINCREMENT,
-            #         product_id INTEGER,
-            #         quantity INTEGER,
-            #         cost_price REAL
-            #         IVA REAL,
-            #         total_line REAL,
-            #         FOREIGN KEY product_id REFERENCES 
-            #     );
-            # ''')
+            cursor.execute(''' 
+                CREATE TABLE IF NOT EXISTS purchase_item (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    purchase_id INTEGER NOT NULL,
+                    product_id INTEGER NOT NULL,
+
+                    quantity REAL NOT NULL,
+                    unit_cost REAL NOT NULL,
+                    iva_rate REAL NOT NULL,
+                    discount REAL DEFAULT 0,
+
+                    subtotal REAL NOT NULL,
+                    iva_amount REAL NOT NULL,
+                    total REAL NOT NULL,
+
+                    FOREIGN KEY (purchase_id) REFERENCES purchase(id),
+                    FOREIGN KEY (product_id) REFERENCES stock(id)
+                );
+            ''')
+            
 
 
             # Tabla facturas asociada a un proveedor
@@ -184,7 +194,7 @@ class Database:
                 CREATE TABLE IF NOT EXISTS supplier_receipt (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     supplier_id INTEGER NOT NULL,
-                    receipt_id TEXT UNIQUE,
+                    receipt_id TEXT,
                     date TEXT CURRENT_DATE,
                     expiration_date TEXT,
                     observations TEXT,

@@ -20,7 +20,7 @@ class SupplierView():
         self.stock_view = stock_view
         self.frame = ctk.CTkFrame(parent, fg_color="#f0f0f0")
         self.payment_window = PaymentWindow(self.model, self, self.frame)
-        self.purchase_window = PurchaseWindow(self.model, self.frame, self, self.stock_view, self.stock_model)
+        self.purchase_window = PurchaseWindow(self.model, self.frame, self)
         self.create_widgets()
         # proveedores en memoria
         self.suppliers = self.model.core.get_all_suppliers()
@@ -219,7 +219,7 @@ class SupplierView():
             font=ctk.CTkFont(size=12, weight="bold"),
             fg_color=btn_color,
             hover_color=btn_hover,
-            command=lambda: self.purchase_window.open_purchase_window(manage_frame)
+            command=lambda: self.purchase_window.open_purchase_window(self.frame)
         )
         
         info_btn.grid(row= 0, column=0, padx=5, pady=5)

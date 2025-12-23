@@ -1,15 +1,14 @@
-import customtkinter as ctk
 import tkinter as tk
-from views.view_helpers import show_warning, close_win
+import customtkinter as ctk
 import datetime
+import tksheet
+
+from views.view_helpers import show_warning, close_win
+
 
 class PurchaseForm():
-
-    def __init__(self, model, frame, stock_view,controller=None):
+    def __init__(self, model):
         self.model = model
-        self.frame = frame
-        self.stock_view = stock_view
-        self.controller = controller
 
     def set_controller(self, controller):
         """Asignar controller después de la inicialización"""
@@ -26,6 +25,86 @@ class PurchaseForm():
         self.total = tk.StringVar()
         self.obs = tk.StringVar()
         self.state = tk.StringVar()
+
+    def show_actual_products(self, parent, values):
+        product_win = ctk.CTkToplevel(parent)
+        product_win.title("Agregar Nuevo Producto")
+        product_win.geometry("750x600")
+        product_win.configure(fg_color="#e0e0e0")
+
+        product_win.transient(parent)
+        product_win.grab_set()
+
+        main_frame = ctk.CTkFrame(product_win, corner_radius=12, fg_color="white")
+        main_frame.pack(fill="both", expand=True, padx=10, pady=10)
+
+        # frame principal
+        main_frame.columnconfigure(0, weight=3)  
+        main_frame.columnconfigure(1, weight=1)  
+        main_frame.rowconfigure(0, weight=1)     
+        main_frame.rowconfigure(1, weight=0)     
+
+        # Tabla
+        product_frame = ctk.CTkFrame(main_frame)
+        product_frame.grid(
+            row=0,
+            column=0,
+            sticky="nsew",
+            padx=(15, 10),
+            pady=15
+        )
+
+        product_frame.columnconfigure(0, weight=1)
+        product_frame.rowconfigure(0, weight=1)
+
+        # Acá va tu tksheet
+        # sheet = tksheet.Sheet(product_frame, ...)
+        # sheet.grid(row=0, column=0, sticky="nsew")
+
+        add_btn_frame = ctk.CTkFrame(main_frame)
+        add_btn_frame.grid(
+            row=0,
+            column=1,
+            sticky="ns",
+            padx=(0, 15),
+            pady=15
+        )
+        add_btn_frame.columnconfigure(0, weight=1)
+
+        # Ejemplo botones
+        ctk.CTkButton(
+            add_btn_frame,
+            text="Nuevo Producto"
+        ).grid(row=0, column=0, pady=(10, 5), padx=10, sticky="ew")
+
+        ctk.CTkButton(
+            add_btn_frame,
+            text="Seleccionar"
+        ).grid(row=1, column=0, pady=5, padx=10, sticky="ew")
+
+        mng_btn_frame = ctk.CTkFrame(main_frame)
+        mng_btn_frame.grid(
+            row=1,
+            column=0,
+            columnspan=2,
+            sticky="ew",
+            padx=15,
+            pady=(0, 15)
+        )
+        mng_btn_frame.columnconfigure((0, 1), weight=1)
+
+        ctk.CTkButton(
+            mng_btn_frame,
+            text="Aceptar",
+            fg_color="#4CAF50"
+        ).grid(row=0, column=0, padx=10, pady=10, sticky="e")
+
+        ctk.CTkButton(
+            mng_btn_frame,
+            text="Cancelar",
+            fg_color="#757575"
+        ).grid(row=0, column=1, padx=10, pady=10, sticky="w")
+
 
     def setup_product_variables(self):
         # variables producto

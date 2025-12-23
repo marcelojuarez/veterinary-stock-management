@@ -3,19 +3,23 @@ import tkinter as tk
 from tkinter import ttk, messagebox
 import locale
 
-from views.view_helpers import close_win, show_warning
+from views.view_helpers import close_win, show_warning, show_error
+from .purchase_info import PurchaseInfo
+from .purchase_form import PurchaseForm
 from views.supplier_doc.supplier_invoice_form import SupplierInvoiceForm
-from views.supplier_doc.supplier_receipt import SupplierReceiptForm
+from views.supplier_doc.supplier_receipt_form import SupplierReceiptForm
 
 class PurchaseWindow():
-    def __init__(self, model, frame, supplier_view, stock_view, stock_model):
+    def __init__(self, model, frame, supplier_view):
         self.model = model
         self.frame = frame
-        self.stock_model = stock_model
         self.supplier_view = supplier_view
 
-        self.invoice_form = SupplierInvoiceForm(self, frame, self.supplier_view, self.model)
-        self.receipt_form = SupplierReceiptForm(self, frame, self.supplier_view, self.model)
+        self.invoice_form = SupplierInvoiceForm(self, frame, self.supplier_view)
+        self.receipt_form = SupplierReceiptForm(self, frame, self.supplier_view)
+
+        self.purchase_info = PurchaseInfo(self.model)
+        self.purchase_form = PurchaseForm(self.model)
 
     def open_purchase_window(self, parent):
 
@@ -27,11 +31,28 @@ class PurchaseWindow():
 
         win = ctk.CTkToplevel(self.frame)
         win.title("Registrar Compra a Proveedor")
-        win.geometry("1200x650")
+
         win.grab_set()
         win.transient(parent)
 
         win.protocol("WM_DELETE_WINDOW",lambda: close_win(win, parent))
+
+        width_win = 1200
+        height_win = 650
+
+        btn_color = "#009688"
+        btn_hover = "#00796B"
+
+        x_root = parent.winfo_x()
+        y_root = parent.winfo_y()
+        width_root = parent.winfo_width()
+        height_root = parent.winfo_height()
+
+        x = x_root + (width_root // 2) - (width_win // 2)
+        y = y_root + (height_root // 2) - (height_win // 2)
+
+        win.geometry(f"{width_win}x{height_win}+{x}+{y}")
+        win.configure(fg_color="#e0e0e0")
 
         # Configurar grilla principal
         for i in range(6):
@@ -93,7 +114,7 @@ class PurchaseWindow():
 
         # --- Frame inferior (botones y cantidad) ---
         buttons_frame = ctk.CTkFrame(win)
-        buttons_frame.grid(row=4, column=0, columnspan=2, sticky="ew", padx=10, pady=10)
+        buttons_frame.grid(row=4, column=0, columnspan=2, sticky="ew", pady=10)
         for i in range(5):
             buttons_frame.grid_columnconfigure(i, weight=1)
 
@@ -103,10 +124,24 @@ class PurchaseWindow():
             text="Registrar Nueva Compra",
             fg_color="#009688",
             hover_color="#00796B",
-            font=ctk.CTkFont(size=13, weight="bold"),
+            height=40,
+            width=90,
+            font=ctk.CTkFont(size=14, weight="bold"),
             command=lambda: self.open_doc_type(win)
         )
         confirm_btn.grid(row=0, column=0, padx=5, pady=10)
+
+        add_item_btn = ctk.CTkButton(
+            buttons_frame,
+            text="Agregar item en la compra",
+            fg_color="#009688",
+            hover_color="#00796B",
+            height=40,
+            width=90,            
+            font=ctk.CTkFont(size=14, weight="bold"),
+            command=lambda: self.open_add_item_win(win)
+        ) 
+        add_item_btn.grid(row=0, column=1, padx=5, pady=10)
 
         # boton para ver el detalle de una compra
         update_stock_btn = ctk.CTkButton(
@@ -114,10 +149,12 @@ class PurchaseWindow():
             text="Detalle de Compra",
             fg_color="#0B5D94",
             hover_color="#2980B9",
-            font=ctk.CTkFont(size=13, weight="bold"),
-            command=lambda: self.purchase_info(win)
+            height=40,
+            width=90,            
+            font=ctk.CTkFont(size=14, weight="bold"),
+            command=lambda: self.open_purchase_info(win)
         )
-        update_stock_btn.grid(row=0, column=1, padx=5, pady=10)
+        update_stock_btn.grid(row=0, column=2, padx=5, pady=10)
 
         # boton Cerrar
         close_win_btn = ctk.CTkButton(
@@ -125,12 +162,32 @@ class PurchaseWindow():
             text="Cerrar",
             fg_color="#E74C3C",
             hover_color="#C0392B",
-            font=ctk.CTkFont(size=13, weight="bold"),
+            height=40,
+            width=90,            
+            font=ctk.CTkFont(size=14, weight="bold"),
             command=lambda: close_win(win, parent)
         )
-        close_win_btn.grid(row=0, column=3, padx=5, pady=10)
+        close_win_btn.grid(row=0, column=4, padx=5, pady=10)
 
         self.load_purchases(False)
+
+    def open_add_item_win(self, parent):
+        try:
+            selected = self.purchase_tree.selection()
+            if not selected:
+                show_error('Por favor Seleccione un Registro de Compra')
+                return 
+
+            print(selected)
+            iid = selected[0]
+            values = self.purchase_tree.item(iid, "values")
+            self.purchase_form.show_actual_products(parent, values)
+
+        except ValueError as e:
+            print(f'Error al obtener la compra: {e}')
+
+
+    ## -- Tipo de comprobante -- ##
 
     def open_doc_type(self, parent):
         """Ventana para elegir un tipo de comprobante"""
@@ -206,6 +263,26 @@ class PurchaseWindow():
         )
         other_btn.pack(pady=10)
 
+    ## -- -- ##
+
+    ## Info de la compra ##
+    def open_purchase_info(self, parent):
+        try:
+            selected = self.purchase_tree.selection()
+            if not selected:
+                show_error('Por favor Seleccione un Registro de Compra')
+                return 
+
+            print(selected)
+            iid = selected[0]
+            values = self.purchase_tree.item(iid, "values")
+
+            self.purchase_info.show_purchase_info(parent, values)            
+
+        except ValueError as e:
+            print(f'Error al obtener la compra: {e}')
+
+    ## -- -- ##
 
     def handle_selection(self, doc_type, parent):
         """Función que se ejecuta al presionar cualquiera de los botones."""
@@ -382,36 +459,6 @@ class PurchaseWindow():
             self.invoice_form.open_invoice_form(parent, supplier_cuit)
         else:
             print("no se que es")
-
-    ## -- Purchase Info -- ##
-
-    def purchase_info(self, parent):
-
-        try:
-            selected = self.purchase_tree.selection()
-
-            if not selected:
-                show_warning("Por favor seleccione una Compra")
-                return
-            
-            # primer fila seleccionada
-            iid = selected[0]
-            values = self.purchase_tree.item(iid, "values")
-            print(values)
-            data = self.model.purchase.get_all_purchases(values[1])
-            print(data)
-
-            #self.open_purchase_info(parent, values)
-
-        except ValueError as e:
-            show_warning(f'Error al mostrar: {e}')
-
-
-    def open_purchase_info(self, parent, values):
-        p_info_win = ctk.CTkToplevel(parent)
-        p_info_win.title(f"Detalle de Compra: Proveedor - {values[1]}")
-        p_info_win.geometry("800x600")          
-
 
     ## --  Load Purchases Function -- ## 
     def load_purchases(self, filter):

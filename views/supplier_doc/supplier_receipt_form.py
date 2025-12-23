@@ -5,12 +5,11 @@ from controllers.supplier_receipt_controller import SupplierReceiptController
 import datetime
 
 class SupplierReceiptForm():
-    def __init__(self, view, frame, supplier_view, supplier_model):
-        self.supplier_model = supplier_model
+    def __init__(self, view, frame, supplier_view):
         self.view = view
         self.supplier_view = supplier_view
         self.frame = frame
-        self.controller = SupplierReceiptController(self, self.view, self.supplier_view, self.supplier_model)
+        self.controller = SupplierReceiptController(self, self.view, self.supplier_view)
 
     def setup_variables(self, supplier_var):
         self.supplier_var = tk.StringVar()

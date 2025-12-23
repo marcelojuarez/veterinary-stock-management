@@ -5,12 +5,11 @@ from controllers.supplier_invoice_controller import SupplierInvoiceController
 import datetime
 
 class SupplierInvoiceForm():
-    def __init__(self, view, frame, supplier_view, supplier_model):
-        self.supplier_model = supplier_model
+    def __init__(self, view, frame, supplier_view):
         self.view = view
         self.supplier_view = supplier_view
         self.frame = frame
-        self.controller = SupplierInvoiceController(self, self.view, self.supplier_model)
+        self.controller = SupplierInvoiceController(self, self.view, self.supplier_view)
 
     def setup_variables(self, supplier_var):
         self.supplier_var = tk.StringVar()
@@ -93,21 +92,25 @@ class SupplierInvoiceForm():
             widget.grid(row=row, column=1, sticky="w", padx=(10,20), pady=7)
 
         # Campos
-        add_field(0, "CUIT Proveedor:", ctk.CTkEntry(form_frame, textvariable=self.supplier_var, width=250))
+        add_field(0, "CUIT Proveedor:", ctk.CTkEntry(form_frame, textvariable=self.supplier_var, state='readonly', width=250))
         add_field(1, "Número Factura:", ctk.CTkEntry(form_frame, textvariable=self.invoice_id_var, width=250))
         add_field(2, "Tipo:", ctk.CTkComboBox(form_frame, values=["A","B","C","M","-"], variable=self.invoice_type_var, width=250, state="readonly"))
         add_field(3, "Punto de venta:", ctk.CTkEntry(form_frame, textvariable=self.pos_var, width=250))
         add_field(4, "Vencimiento:", ctk.CTkEntry(form_frame, textvariable=self.expiration_var, width=250))
-        add_field(5, "IVA:", ctk.CTkEntry(form_frame, textvariable=self.iva_var, width=250))
-        add_field(6, "Descuento:", ctk.CTkEntry(form_frame, textvariable=self.discount_var, width=250))
-        add_field(7, "Observaciones:", ctk.CTkEntry(form_frame, textvariable=self.obs_var, width=250, height=80))
-        add_field(8, "Estado:", ctk.CTkComboBox(form_frame, values=["PENDIENTE","PAGADA","CANCELADA"], variable=self.state_var, width=250, state="readonly"))
-        add_field(9, "Subtotal:", ctk.CTkEntry(form_frame, textvariable=self.subtotal_var, width=250))
-        add_field(10, "Total:", ctk.CTkEntry(form_frame, textvariable=self.total_var, width=250))
+        add_field(5, "Observaciones:", ctk.CTkEntry(form_frame, textvariable=self.obs_var, width=250, height=80))
+        add_field(6, "Estado:", ctk.CTkComboBox(form_frame, values=["PENDIENTE","PAGADA","CANCELADA"], variable=self.state_var, width=250, state="readonly"))
+        add_field(7, "IVA:", ctk.CTkEntry(form_frame, textvariable=self.iva_var, state='readonly', width=250))
+        add_field(8, "Descuento:", ctk.CTkEntry(form_frame, textvariable=self.discount_var, state='readonly', width=250))
+        add_field(9, "Subtotal:", ctk.CTkEntry(form_frame, textvariable=self.subtotal_var, state='readonly', width=250))
+        add_field(10, "Total:", ctk.CTkEntry(form_frame, textvariable=self.total_var, state='readonly', width=250))
 
         self.invoice_type_var.set("-")
         self.expiration_var.set(formated_act_date)
         self.state_var.set("PENDIENTE")
+        # self.iva_var.set("0")
+        # self.discount_var.set("0")
+        # self.subtotal_var.set("0")
+        # self.total_var.set("0")
 
         btn_frame = ctk.CTkFrame(card_frame, fg_color="white")
         btn_frame.pack(pady=20)
