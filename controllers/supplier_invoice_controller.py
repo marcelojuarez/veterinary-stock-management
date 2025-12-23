@@ -2,15 +2,16 @@ from views.view_helpers import show_success, show_error, show_warning, close_win
 from datetime import datetime
 
 class SupplierInvoiceController():
-    def __init__(self, view, purchase_view, model):
-        self.view = view
+    def __init__(self, form_view, purchase_view, supplier_view):
+        self.form_view = form_view
         self.purchase_view = purchase_view
-        self.model = model
+        self.supplier_view = supplier_view
+        self.model = supplier_view.model
 
     def add_new_invoice(self, win, parent):
 
         try:
-            data = self.view.get_invoice_form_data()
+            data = self.form_view.get_invoice_form_data()
             supplier_data = self.model.core.find_supplier_by_cuit(data['supplier_cuit'])
             print(data)
             if not self.validate_date(data):
@@ -21,12 +22,19 @@ class SupplierInvoiceController():
                 'invoice_id': data['invoice_id'],
                 'invoice_type': data['invoice_type'],
                 'point_of_sale': data['point_of_sale'],
+                'expiration_date': data['expiration_date'],
+                'state': data['state'],
+                'observations': data['observations'],
                 'subtotal': data['subtotal'],
                 'iva': data['iva'],
                 'discount': data['discount'],
-                'observations': data['observations'],
                 'total': float(data['total'])
             }
+
+            if data['state'] == 'PAGADA':
+                pending = 0
+            else:
+                pending = float(data['total'])
 
             purchase_params = {
                 'supplier_id': supplier_data[0],
@@ -34,12 +42,13 @@ class SupplierInvoiceController():
                 'expiration_date': data['expiration_date'],
                 'state': data['state'],
                 'observations': data['observations'],
+                'pending': pending, 
                 'total': float(data['total']), 
             }
 
             result = self.model.purchase.create_invoice_and_purchase(invoice_params, purchase_params)
-            self.view.load_purchases(False)
-            close_win(win, parent, self.view.clear_invoice_form())
+            self.purchase_view.load_purchases(False)
+            close_win(win, parent, self.form_view.clear_invoice_form())
             if result:
                 self.supplier_view.controller.refresh_supplier_table()
 
@@ -55,10 +64,11 @@ class SupplierInvoiceController():
             'invoice_type': 'Tipo de Factura',
             'point_of_sale': 'Punto de Venta',
             'expiration_date': 'Fecha de vencimiento',
+            'state': 'Estado',
+            'observations': 'Observaciones',
             'subtotal': 'Subtotal',
             'iva': 'Iva',
             'discount': 'Descuento',
-            'observations': 'Observaciones',
             'total': 'Total'
         }
         

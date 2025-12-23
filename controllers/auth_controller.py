@@ -6,7 +6,7 @@ from tkinter import messagebox
 def validate_data(username, password):
     user_model = User()
     user = user_model.get_user_by_username(username)
-    print(f'{user}')
+    print(f'\n{user}\n')
     
     if not user:
         messagebox.showwarning('Error', 'Usuario no encontrado')

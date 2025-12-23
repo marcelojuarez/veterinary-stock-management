@@ -206,7 +206,15 @@ class SupplierPurchase():
             data['observations'],
         ]
 
-        self.db.execute_query(query, params, conn=conn, commit=commit)
+        return self.db.execute_query(query, params, conn=conn, commit=commit)
+
+    def get_invoice_data(self, invoice_id):
+        query = """
+        SELECT * FROM supplier_invoice
+        WHERE id = ? 
+        """
+
+        return self.db.fetch_one(query, (invoice_id, ))
 
     ## -- Receipt -- ##
     def add_new_receipt(self, data, conn=None, commit=True):
@@ -227,6 +235,14 @@ class SupplierPurchase():
         ]
 
         return self.db.execute_query(query, params, conn=conn, commit=commit)
+    
+    def get_receipt_data(self, receipt_id):
+        query = """
+        SELECT * FROM supplier_receipt
+        WHERE id = ? 
+        """
+
+        return self.db.fetch_one(query, (receipt_id, ))
 
     ## -- Transaccion para agregar venta y recibo -- ##
     def create_receipt_and_purchase(self, receipt_params, purchase_params):
@@ -247,7 +263,6 @@ class SupplierPurchase():
             self.update_last_debt_update(purchase_params['supplier_id'], conn, commit=False)
 
             conn.commit()
-            return receipt_id, purchase_id
 
         except Exception as e:
             conn.rollback()

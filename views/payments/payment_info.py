@@ -10,7 +10,7 @@ class PaymentInfo():
     def show_payment_info(self, parent, values):
         payment_info = ctk.CTkToplevel(parent)
         payment_info.title("Información del Pago")
-        payment_info.geometry("650x500")
+        payment_info.geometry("650x650")
         payment_info.resizable(False, False)
 
         payment_info.protocol(
@@ -28,8 +28,7 @@ class PaymentInfo():
             text=f"Detalle del Pago: (ID: {values[0]})",
             font=ctk.CTkFont(size=20, weight="bold")
         )
-        header.pack(anchor="w", padx=10, pady=(10, 20))
-
+        header.pack(anchor="w", padx=20, pady=(10, 20))
 
         info_frame = ctk.CTkFrame(main_frame, corner_radius=10)
         info_frame.pack(fill="x", padx=10, pady=(0, 20))
@@ -45,8 +44,8 @@ class PaymentInfo():
             fields = [
                 ("Método", "Transferencia"),
                 ("Número de operación", data[0]),
-                ("CBU/Alias (Origen)", data[1]),
-                ("CBU/Alias (Destino)", data[2]),
+                ("CBU/Alias (Cuenta Emisora)", data[1]),
+                ("CBU/Alias (Cuenta Receptora)", data[2]),
             ]
 
         elif method == "CHEQUE":
@@ -81,10 +80,10 @@ class PaymentInfo():
             text="Compras afectadas por este pago",
             font=ctk.CTkFont(size=15, weight="bold")
         )
-        sep.pack(anchor="w", padx=10, pady=(10, 5))
+        sep.pack(anchor="w", padx=20, pady=(5, 5))
 
         table_frame = ctk.CTkFrame(main_frame, corner_radius=10)
-        table_frame.pack(fill="both", expand=True, padx=10, pady=(5, 10))
+        table_frame.pack(fill="both", expand=True, padx=10, pady=5)
 
         data = self.model.payment.get_purchase_payment_relation(payment_id)
         for d in data:
@@ -111,8 +110,11 @@ class PaymentInfo():
         btn_close = ctk.CTkButton(
             main_frame,
             text="Cerrar",
+            fg_color="#E74C3C",
+            hover_color="#C0392B",
+            font=ctk.CTkFont(size=13, weight="bold"),
             width=120,
             command=lambda: close_win(payment_info, parent)
         )
-        btn_close.pack(pady=(10, 5))
+        btn_close.pack(pady=(5,10))
 

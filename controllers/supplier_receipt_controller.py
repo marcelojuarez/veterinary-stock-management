@@ -2,7 +2,7 @@ from views.view_helpers import close_win, show_warning, show_error
 from datetime import datetime
 
 class SupplierReceiptController():
-    def __init__(self, form_view, purchase_view, supplier_view, model):
+    def __init__(self, form_view, purchase_view, supplier_view):
         self.form_view = form_view 
         self.purchase_view = purchase_view 
         self.supplier_view = supplier_view

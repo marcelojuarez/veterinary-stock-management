@@ -186,7 +186,7 @@ class PaymentForm:
             )
             op_num_entry.grid(row=0, column=1, padx=(0,40), pady=5)
 
-            origin_lbl = ctk.CTkLabel(self.dynamic_frame, text="CBU/Alias (origen):", font=ctk.CTkFont(size=12, weight="bold"))
+            origin_lbl = ctk.CTkLabel(self.dynamic_frame, text="CBU/Alias (Cuenta Emisora):", font=ctk.CTkFont(size=12, weight="bold"))
             origin_lbl. grid(row=1, column=0, padx=20, pady=5)
 
             origin_entry = ctk.CTkEntry(
@@ -198,7 +198,7 @@ class PaymentForm:
             )
             origin_entry.grid(row=1, column=1, padx=(0,40), pady=5)
 
-            destino_lbl = ctk.CTkLabel(self.dynamic_frame, text="CBU/Alias (destino):", font=ctk.CTkFont(size=12, weight="bold"))
+            destino_lbl = ctk.CTkLabel(self.dynamic_frame, text="CBU/Alias (Cuenta Receptora):", font=ctk.CTkFont(size=12, weight="bold"))
             destino_lbl. grid(row=2, column=0, padx=20, pady=5)
 
             destino_entry = ctk.CTkEntry(

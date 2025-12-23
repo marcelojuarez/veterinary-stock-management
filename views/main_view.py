@@ -89,10 +89,14 @@ class App():
 
     def load_system(self):
         if (validate_data(self.user_var.get(), self.pwd_var.get())):
-            self.root.deiconify()
+                
             self.create_notebook()
-            self.root.after(100, self.load_initial_data)
-            self.login_win.destroy()  
+            self.root.after(100, self.load_initial_data) 
+
+            self.root.deiconify()
+            self.root.update_idletasks()
+
+            self.login_win.destroy() 
 
     def create_notebook(self):
         self.notebook = ttk.Notebook(self.root)

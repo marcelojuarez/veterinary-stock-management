@@ -35,7 +35,7 @@ class PaymentWindow():
             
         win = ctk.CTkToplevel(self.frame)
         win.title("Registrar Pago a Proveedor")
-        win.geometry("1100x700")
+        win.geometry("1100x600")
         win.transient(parent)
         win.grab_set()
 
@@ -110,7 +110,7 @@ class PaymentWindow():
 
         # frame inferior (botones y cantidad)
         buttons_frame = ctk.CTkFrame(win)
-        buttons_frame.grid(row=4, column=0, columnspan=2, sticky="ew", padx=10, pady=10)
+        buttons_frame.grid(row=4, column=0, columnspan=2, sticky="ew", pady=10)
         for i in range(5):
             buttons_frame.grid_columnconfigure(i, weight=1)
 
@@ -120,10 +120,12 @@ class PaymentWindow():
             text="Registrar Pago Multiple",
             fg_color="#3C8A3E",
             hover_color="#45a049",
-            font=ctk.CTkFont(size=13, weight="bold"),
+            height=40,
+            width=90,
+            font=ctk.CTkFont(size=14, weight="bold"),
             command=lambda: self.payment_form.add_payment_win(win, self.supplier_var.get())
         )
-        confirm_btn.grid(row=0, column=1, padx=5, pady=10)
+        confirm_btn.grid(row=0, column=0, padx=5, pady=10)
 
         # Pagar compra
         confirm_btn = ctk.CTkButton(
@@ -131,31 +133,37 @@ class PaymentWindow():
             text="Registrar Pago",
             fg_color="#3C8A3E",
             hover_color="#45a049",
-            font=ctk.CTkFont(size=13, weight="bold"),
+            height=40,
+            width=90,
+            font=ctk.CTkFont(size=14, weight="bold"),
             command= lambda: self.pay_for_a_purchase(win)
         )
-        confirm_btn.grid(row=0, column=2, padx=5, pady=10)
+        confirm_btn.grid(row=0, column=1, padx=5, pady=10)
 
         # Botón Registrar Compra
         info_btn = ctk.CTkButton(
             buttons_frame,
             text="Info Registro de Pago",
-            fg_color="#3C8A3E",
-            hover_color="#45a049",
-            font=ctk.CTkFont(size=13, weight="bold"),
+            fg_color="#898A3C",
+            hover_color="#b5ae4e",
+            height=40,
+            width=90,
+            font=ctk.CTkFont(size=14, weight="bold"),
             command=lambda: self.open_payment_info(win)
         )
-        info_btn.grid(row=0, column=3, padx=5, pady=10)
+        info_btn.grid(row=0, column=2, padx=5, pady=10)
 
         # Botón Registrar Compra
         confirm_btn = ctk.CTkButton(
             buttons_frame,
-            text="Eliminar registro de pago",
-            fg_color="#3C8A3E",
-            hover_color="#45a049",
-            font=ctk.CTkFont(size=13, weight="bold"),
+            text="Eliminar Registro de Pago",
+            fg_color="#050D06",
+            hover_color="#4f4f4f",
+            height=40,
+            width=90,
+            font=ctk.CTkFont(size=14, weight="bold"),
         )
-        confirm_btn.grid(row=0, column=4, padx=5, pady=10)
+        confirm_btn.grid(row=0, column=3, padx=5, pady=10)
 
         # Botón Cerrar
         close_win_btn = ctk.CTkButton(
@@ -163,10 +171,12 @@ class PaymentWindow():
             text="Cerrar",
             fg_color="#E74C3C",
             hover_color="#C0392B",
-            font=ctk.CTkFont(size=13, weight="bold"),
+            height=40,
+            width=90,
+            font=ctk.CTkFont(size=14, weight="bold"),
             command=lambda: close_win(win, parent, self.clear_supplier_field)
         )
-        close_win_btn.grid(row=0, column=5, padx=5, pady=10)
+        close_win_btn.grid(row=0, column=4, padx=(15,0), pady=10)
 
         self.load_purchase_history(False)
     
@@ -192,19 +202,6 @@ class PaymentWindow():
         scroll = ttk.Scrollbar(movement_frame, orient="vertical", command=self.movement_tree.yview)
         self.movement_tree.configure(yscroll=scroll.set)
         scroll.pack(side="right", fill="y")
-
-        # # presiona fila para mostrar info
-        # def on_row_click(event):
-        #     row_id = self.movement_tree.identify_row(event.y)
-        #     col_id = self.movement_tree.identify_column(event.x)
-        #     if not row_id:
-        #         return
-            
-        #     if col_id == "#4":
-        #         data = self.movement_tree.item(row_id, "values")
-        #         if data[3] == 'EFECTIVO':
-        #             return
-        #         show_details(movement_frame, data[0], data[3])
         
         return movement_frame
 
