@@ -1,6 +1,6 @@
 from views.view_helpers import close_win, show_error
 import customtkinter as ctk
-import tksheet
+from tksheet import Sheet
 
 class PurchaseInfo():
     def __init__(self, model):
@@ -118,7 +118,7 @@ class PurchaseInfo():
         table_frame = ctk.CTkFrame(main_frame, corner_radius=10)
         table_frame.pack(fill="both", expand=True, padx=10, pady=5)
 
-        sheet = tksheet.Sheet(
+        sheet = Sheet(
             table_frame,
             # data=data,
             # headers=headers,

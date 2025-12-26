@@ -283,7 +283,7 @@ class PaymentWindow():
             if not selected:
                 return
             iid = selected[0]
-
+            print(iid)
             values = self.supplier_tree.item(iid, "values")
 
             self.supplier_var.set(values[0])

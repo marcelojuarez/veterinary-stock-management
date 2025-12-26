@@ -1,14 +1,20 @@
 import tkinter as tk
+from tkinter import ttk
 import customtkinter as ctk
 import datetime
-import tksheet
 
 from views.view_helpers import show_warning, close_win
-
+from models.stock import StockModel
 
 class PurchaseForm():
     def __init__(self, model):
         self.model = model
+        self.stock_model = StockModel()
+
+        products = self.stock_model.get_all_products()
+        self.products = [(p[0], p[2], p[3], p[11]) for p in products]
+
+        self.entry_var = tk.StringVar()
 
     def set_controller(self, controller):
         """Asignar controller después de la inicialización"""
@@ -29,45 +35,83 @@ class PurchaseForm():
     def show_actual_products(self, parent, values):
         product_win = ctk.CTkToplevel(parent)
         product_win.title("Agregar Nuevo Producto")
-        product_win.geometry("750x600")
+        product_win.withdraw()
         product_win.configure(fg_color="#e0e0e0")
 
         product_win.transient(parent)
         product_win.grab_set()
+
+        x = (parent.winfo_screenwidth() // 2) - 300
+        y = (parent.winfo_screenheight() // 2) - 250
+        product_win.geometry(f"800x600+{x}+{y}")
+
+        product_win.update_idletasks()
+        product_win.deiconify()
 
         main_frame = ctk.CTkFrame(product_win, corner_radius=12, fg_color="white")
         main_frame.pack(fill="both", expand=True, padx=10, pady=10)
 
         # frame principal
         main_frame.columnconfigure(0, weight=3)  
-        main_frame.columnconfigure(1, weight=1)  
-        main_frame.rowconfigure(0, weight=1)     
-        main_frame.rowconfigure(1, weight=0)     
+        main_frame.columnconfigure(1, weight=1)
+
+        main_frame.rowconfigure(0, weight=0)     
+        main_frame.rowconfigure(1, weight=1)
+        main_frame.rowconfigure(2, weight=0)    
+
+        # Campo de Busqueda
+        search_frame = ctk.CTkFrame(main_frame, height=30)
+        search_frame.grid(
+            row=0,
+            column=0,
+            sticky="nsew",
+            padx=(15, 5),
+            pady=10
+        ) 
+
+        search_lbl = ctk.CTkLabel(
+            search_frame,
+            text='Buscar Producto:'
+        )
+        search_lbl.grid(row=0, column=0, padx=10, pady=10, sticky='w')
 
         # Tabla
         product_frame = ctk.CTkFrame(main_frame)
         product_frame.grid(
-            row=0,
+            row=1,
             column=0,
             sticky="nsew",
-            padx=(15, 10),
-            pady=15
+            columnspan=2,
         )
 
-        product_frame.columnconfigure(0, weight=1)
-        product_frame.rowconfigure(0, weight=1)
+        # tabla de productos
+        self.product_tree = ttk.Treeview(product_frame, show='headings', height=10)
+        self.product_tree['columns'] = ('Id', 'Nombre', 'Envase', 'Stock')
 
-        # Acá va tu tksheet
-        # sheet = tksheet.Sheet(product_frame, ...)
-        # sheet.grid(row=0, column=0, sticky="nsew")
+        for col in self.product_tree['columns']:
+            self.product_tree.heading(col, text=col.capitalize())
+            if col == "Id":
+                self.product_tree.column(col, width=50, anchor='center')
+            else:
+                self.product_tree.column(col, width=150, anchor='center')
 
-        add_btn_frame = ctk.CTkFrame(main_frame)
+        self.product_tree.pack(side='left', fill='both', expand=True)
+
+        # scrollbar
+        scroll_bar = ttk.Scrollbar(product_frame, orient='vertical', command=self.product_tree.yview)
+        self.product_tree.configure(yscroll=scroll_bar.set)
+
+        scroll_bar.pack(side='right', fill='y')
+
+        self.load_products()
+
+        add_btn_frame = ctk.CTkFrame(main_frame, height=30)
         add_btn_frame.grid(
             row=0,
             column=1,
             sticky="ns",
-            padx=(0, 15),
-            pady=15
+            padx=(5, 15),
+            pady=10
         )
         add_btn_frame.columnconfigure(0, weight=1)
 
@@ -84,27 +128,45 @@ class PurchaseForm():
 
         mng_btn_frame = ctk.CTkFrame(main_frame)
         mng_btn_frame.grid(
-            row=1,
+            row=2,
             column=0,
             columnspan=2,
             sticky="ew",
             padx=15,
-            pady=(0, 15)
+            pady=15
         )
         mng_btn_frame.columnconfigure((0, 1), weight=1)
 
         ctk.CTkButton(
             mng_btn_frame,
             text="Aceptar",
-            fg_color="#4CAF50"
+            fg_color="#4CAF50",
+            font=ctk.CTkFont(size=13, weight='bold'),
         ).grid(row=0, column=0, padx=10, pady=10, sticky="e")
 
         ctk.CTkButton(
             mng_btn_frame,
             text="Cancelar",
-            fg_color="#757575"
+            fg_color="#757575",
+            font=ctk.CTkFont(size=13, weight='bold'),
+            command=lambda: close_win(product_win, parent)
         ).grid(row=0, column=1, padx=10, pady=10, sticky="w")
 
+
+    def load_products(self):
+        # limpio la tabla
+        for item in self.product_tree.get_children():
+            self.product_tree.delete(item)
+
+        # cargo los productos
+        for p in self.products:
+            self.product_tree.insert(
+                parent='', index='end', iid=p[0],
+                values=p,
+                tags='orow'
+            )
+
+        self.product_tree.tag_configure('orow', background="white", foreground='black')   
 
     def setup_product_variables(self):
         # variables producto

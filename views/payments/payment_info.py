@@ -1,5 +1,5 @@
 import customtkinter as ctk
-import tksheet
+from tksheet import Sheet
 from views.view_helpers import close_win
 
 
@@ -91,7 +91,7 @@ class PaymentInfo():
 
         headers = ["ID Compra", "Monto aplicado", "Fecha"]
 
-        sheet = tksheet.Sheet(
+        sheet = Sheet(
             table_frame,
             data=data,
             headers=headers,
