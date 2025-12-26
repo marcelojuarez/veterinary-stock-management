@@ -6,26 +6,33 @@ class ClientSelectorDialog:
     """Diálogo mejorado para selección de clientes con búsqueda"""
     
     def __init__(self, parent, customer_model, current_client=""):
+        
         self.customer_model = customer_model
         self.selected_client = None
         self.current_client = current_client
         
         # Crear ventana
         self.dialog = ctk.CTkToplevel(parent)
+        # se oculta la ventana
+        self.dialog.withdraw() 
+        
         self.dialog.title("Seleccionar Cliente")
-        self.dialog.geometry("600x500")
+        #parent.update_idletasks()
+
         self.dialog.transient(parent)
         self.dialog.grab_set()
         self.dialog.resizable(False, False)
         
         # Centrar ventana
-        self.dialog.update_idletasks()
-        x = (self.dialog.winfo_screenwidth() // 2) - 300
-        y = (self.dialog.winfo_screenheight() // 2) - 250
-        self.dialog.geometry(f"600x500+{x}+{y}")
+        x = (parent.winfo_screenwidth() // 2) - 300
+        y = (parent.winfo_screenheight() // 2) - 250
+        self.dialog.geometry(f"600x600+{x}+{y}")
         
         self.create_ui()
         self.load_clients()
+
+        self.dialog.update_idletasks()
+        self.dialog.deiconify()
         
     def create_ui(self):
         # Header

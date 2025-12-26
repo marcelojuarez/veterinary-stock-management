@@ -183,9 +183,13 @@ class SalesView:
             # Ventana emergente para cantidad
             qty_win = ctk.CTkToplevel(self.frame)
             qty_win.title(f"Agregar {name}")
-            qty_win.geometry("320x220")
             qty_win.transient(self.frame)
             qty_win.grab_set()
+
+            # Centrar ventana
+            x = (self.frame.winfo_screenwidth() // 2) - 300
+            y = (self.frame.winfo_screenheight() // 2) - 220
+            qty_win.geometry(f"320x220+{x}+{y}")
 
             ctk.CTkLabel(qty_win, text=f"Agregar '{name}'", font=ctk.CTkFont(size=15, weight="bold")).pack(pady=(15, 5))
             ctk.CTkLabel(qty_win, text=f"Stock disponible: {stock}", font=ctk.CTkFont(size=13)).pack()
@@ -372,16 +376,19 @@ class SalesView:
             return False
         
         confirm_win = ctk.CTkToplevel(self.frame)
+        confirm_win.withdraw()
         confirm_win.title("Confirmar Venta")
-        confirm_win.geometry("650x650")
+
         confirm_win.transient(self.frame)
         confirm_win.grab_set()
         confirm_win.resizable(False, False)  # Evitar redimensionar
         
-        confirm_win.update_idletasks()
         x = (confirm_win.winfo_screenwidth() // 2) - (325)
         y = (confirm_win.winfo_screenheight() // 2) - (325)
         confirm_win.geometry(f"650x650+{x}+{y}")
+        
+        confirm_win.update_idletasks()
+        confirm_win.deiconify()
         
         title = ctk.CTkLabel(
             confirm_win,

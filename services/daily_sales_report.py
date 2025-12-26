@@ -38,8 +38,8 @@ class DailySalesReportService:
 
         # ENCABEZADO EMPRESA
         company_info = f"""
-        <b>{COMPANY_CONFIG['personal']}</b><br/>
-        {COMPANY_CONFIG['direccion']} | Tel: {COMPANY_CONFIG['telefono']} | CUIT: {COMPANY_CONFIG['cuit']}
+        <b>{COMPANY_CONFIG['name']}</b><br/>
+        {COMPANY_CONFIG['address']} | Tel: {COMPANY_CONFIG['phone']} | CUIT: {COMPANY_CONFIG['cuit']}
         """
         elements.append(Paragraph(company_info, self.styles["Company"]))
 
