@@ -143,7 +143,7 @@ class SalesController:
             if cliente_id is None:
                 cliente_id = None
 
-            estado = "pagada" if self.sales_view.sale_paid_var.get() else "fiada"
+            estado = "pagada" if self.sales_view.payment_type_var.get() == "PAID" else "fiada"
 
             sale_id = self.sales_model.register_sale(total, items, cliente_id, estado)
 

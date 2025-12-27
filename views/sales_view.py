@@ -369,10 +369,12 @@ class SalesView:
 
     def show_sale_confirmation(self):
         """Mostrar ventana de confirmación con preview de la venta"""
-        
         # Validar que haya productos
         if not self.items_in_sale:
             self.show_warning("No hay productos en la venta")
+            return False
+        if self.client_var.get() == "":
+            self.show_warning("Seleccione un cliente específico o Consumidor Final")
             return False
         
         confirm_win = ctk.CTkToplevel(self.frame)
@@ -403,7 +405,7 @@ class SalesView:
         client_name = self.client_var.get()
         client_cuit = self.client_cuit_var.get()
         client_address = self.client_address_var.get()
-        is_paid = "PAGADA" if self.sale_paid_var.get() else "FIADA"
+        is_paid = "PAGADA" if self.payment_type_var.get() == "PAID" else "CON DEUDA"
         
         ctk.CTkLabel(
             client_frame,
@@ -435,7 +437,7 @@ class SalesView:
             client_frame,
             text=f"Estado de pago: {is_paid}",
             font=ctk.CTkFont(size=12, weight="bold"),  # Reducido de 13 a 12
-            text_color="#009688" if self.sale_paid_var.get() else "#f44336"
+            text_color="#009688" if self.payment_type_var.get() == "PAID" else "#f44336"
         ).pack(anchor="w", padx=15, pady=(1, 8))  # Reducido padding
         
         # Frame de productos - MÁS COMPACTO
@@ -518,7 +520,7 @@ class SalesView:
         
         confirm_btn = ctk.CTkButton(
             button_frame,
-            text="✅ Confirmar y Procesar",
+            text="Confirmar y Procesar",
             width=200,
             height=45,
             font=ctk.CTkFont(size=14, weight="bold"),
@@ -530,7 +532,7 @@ class SalesView:
         
         cancel_btn = ctk.CTkButton(
             button_frame,
-            text="❌ Cancelar",
+            text="Cancelar",
             width=150,
             height=45,
             font=ctk.CTkFont(size=14, weight="bold"),
@@ -569,7 +571,7 @@ class SalesView:
         client_select_frame = ctk.CTkFrame(client_frame, fg_color="transparent")
         client_select_frame.grid(row=0, column=1, padx=10, pady=10, sticky="w")
 
-        self.client_var = tk.StringVar(value="Consumidor Final")
+        self.client_var = tk.StringVar(value="")
         self.client_entry = ctk.CTkEntry(
             client_select_frame,
             textvariable=self.client_var,
@@ -627,15 +629,34 @@ class SalesView:
             font=ctk.CTkFont(size=13)
         ).grid(row=3, column=0, padx=10, pady=10, sticky="w")
 
-        self.sale_paid_switch = ctk.CTkSwitch(
-            client_frame,
-            text="Pagada / Fiada",
-            variable=self.sale_paid_var,
-            onvalue=True,
-            offvalue=False,
-            width=80
+        # --- Forma de pago ---
+        ctk.CTkLabel(
+            client_frame, 
+            text="Forma de pago:",
+            font=ctk.CTkFont(size=13)
+        ).grid(row=3, column=0, padx=10, pady=10, sticky="w")
+
+        self.payment_type_var = tk.StringVar(value="PAID")
+
+        payment_frame = ctk.CTkFrame(client_frame, fg_color="transparent")
+        payment_frame.grid(row=3, column=1, padx=10, pady=10, sticky="w")
+
+        self.radio_paid = ctk.CTkRadioButton(
+            payment_frame,
+            text="Pagada",
+            variable=self.payment_type_var,
+            value="PAID"
         )
-        self.sale_paid_switch.grid(row=3, column=1, padx=10, pady=10, sticky="w")
+        self.radio_paid.grid(row=0, column=0, padx=(0, 15))
+
+        self.radio_credit = ctk.CTkRadioButton(
+            payment_frame,
+            text="Cuenta Corriente",
+            variable=self.payment_type_var,
+            value="CREDIT"
+        )
+        self.radio_credit.grid(row=0, column=1)
+
 
     def open_client_selector(self):
         """Abrir diálogo de selección de cliente"""        
@@ -654,28 +675,34 @@ class SalesView:
             self.on_client_selected(selected)
     
     def on_client_selected(self, selected_name):
-        """Actualizar datos del cliente al cambiar selección"""
         try:
             if selected_name == "Consumidor Final":
                 self.client_cuit_var.set("")
                 self.client_address_var.set("")
+
+                # Forzar Pagada
+                self.payment_type_var.set("PAID")
+
+                # Deshabilitar Fiada
+                self.radio_credit.configure(state="disabled")
                 return
-            
-            # Usar get_client_by_name que retorna: (id, nombre, cuit, domicilio)
+
+            # Cliente normal
+            self.radio_credit.configure(state="normal")
+
             customer_model = CustomerModel()
-            
             client_data = customer_model.get_client_by_name(selected_name)
-            
+
             if client_data:
-                # client_data es tupla: (id, nombre, cuit, domicilio)
-                self.client_cuit_var.set(client_data[2] if client_data[2] else "")
-                self.client_address_var.set(client_data[3] if client_data[3] else "")
+                self.client_cuit_var.set(client_data[2] or "")
+                self.client_address_var.set(client_data[3] or "")
             else:
                 self.client_cuit_var.set("")
                 self.client_address_var.set("")
-                
+
         except Exception as e:
             self.show_error(f"No se pudieron cargar los datos del cliente: {e}")
+
 
     # Utilidades
     def show_success(self, msg): messagebox.showinfo("Éxito", msg)
