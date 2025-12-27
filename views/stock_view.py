@@ -373,7 +373,7 @@ class StockView():
             window = ctk.CTkToplevel(self.frame)
             window.title(f"Actualizar Precio - {name}")
             window.grab_set()
-            window.geometry("450x450+{}+{}".format(window.winfo_screenwidth()//2 - 225, window.winfo_screenheight()//2 - 225))
+            window.geometry("550x550+{}+{}".format(window.winfo_screenwidth()//2 - 225, window.winfo_screenheight()//2 - 225))
 
             # Información básica
             info_label = ctk.CTkLabel(
@@ -432,9 +432,9 @@ class StockView():
                         new_sale = float(sale_var.get())
                         new_profit = round(((new_sale - cost_price) / cost_price) * 100, 2)
                         
-                        if iva == "21%":
+                        if iva == 21.0:
                             price_with_iva = round(new_sale * 1.21, 2)
-                        elif iva == "10.5%":
+                        elif iva == 10.5:
                             price_with_iva = round(new_sale * 1.105, 2)
                         else:
                             price_with_iva = new_sale
@@ -449,9 +449,9 @@ class StockView():
                         new_profit = float(profit_var.get())
                         new_sale = round(cost_price * (1 + new_profit / 100), 2)
                         
-                        if iva == "21%":
+                        if iva == 21:
                             price_with_iva = round(new_sale * 1.21, 2)
-                        elif iva == "10.5%":
+                        elif iva == 10.5:
                             price_with_iva = round(new_sale * 1.105, 2)
                         else:
                             price_with_iva = new_sale
@@ -481,9 +481,9 @@ class StockView():
                         new_profit = float(profit_var.get())
                         new_sale_price = round(cost_price * (1 + new_profit / 100), 2)
 
-                    if iva == "21%":
+                    if iva == 21.0:
                         price_with_iva = round(new_sale_price * 1.21, 2)
-                    elif iva == "10.5%":
+                    elif iva == 10.5:
                         price_with_iva = round(new_sale_price * 1.105, 2)
                     else:
                         price_with_iva = new_sale_price
