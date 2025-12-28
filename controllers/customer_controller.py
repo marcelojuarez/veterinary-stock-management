@@ -2,8 +2,13 @@ from models.customer import CustomerModel
 from models.payment_model import PaymentModel
 from tkinter import messagebox
 import re
-from utils.pdf_generator import generate_payment_receipt
+import customtkinter as ctk
+from datetime import datetime
 import os
+
+from utils.receipts.pdf_generator import generate_payment_receipt, generate_global_payment_receipt
+from utils.receipts.ticket_pos import generate_payment_ticket, generate_global_payment_ticket
+
 
 class CustomerController: 
     def __init__(self, view):
@@ -182,37 +187,49 @@ class CustomerController:
             window.destroy()
             self.view.show_success("Pago registrado con éxito.")
 
-            # 6) PREGUNTA: ¿Desea generar comprobante?
-            generar = messagebox.askyesno(
-                "Generar Comprobante",
-                "¿Desea generar el comprobante de pago?"
-            )
+            fmt = self.ask_receipt_format()
+            if not fmt:
+                return
 
-            if generar:
-                receipt_path = generate_payment_receipt(
-                    client_name=self.model.find_customer_by_id(client_id)[1],
+            client_name = self.model.find_customer_by_id(client_id)[1]
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+
+            if fmt in ("ticket", "both"):
+                ticket_path = f"comprobantes/tickets/ticket_{sale_id}_{timestamp}.pdf"
+                generate_payment_ticket(
+                    file_path=ticket_path,
+                    commerce_name="Agroveterinaria El Fortín",
+                    commerce_address="Ruta Nacional N° 8, Km 681 – Chaján, Córdoba",
+                    commerce_cuit="20-12345678-3",
+                    client_name=client_name,
+                    sale_id=sale_id,
+                    amount=amount,
+                    method=method
+                )
+                try:
+                    os.startfile(ticket_path)
+                except:
+                    pass
+
+            if fmt in ("a4", "both"):
+                a4_path = generate_payment_receipt(
+                    client_name=client_name,
                     sale_id=sale_id,
                     payment_amount=amount,
                     method=method,
                     sale_info=self.payment_model.get_sale_balance(sale_id),
                     payments=self.payment_model.get_payments_for_sale(sale_id)
                 )
-
-                self.view.show_success("Comprobante generado con éxito.")
-                
-                # Abrir el PDF automáticamente (solo Windows)
                 try:
-                    os.startfile(receipt_path)
+                    os.startfile(a4_path)
                 except:
                     pass
+
 
         except Exception as e:
             self.view.show_error(f"Error: {e}")
 
     def open_global_payment_window(self):
-        import customtkinter as ctk 
-        from utils.pdf_generator import generate_global_payment_receipt
-
         customer_id = self.view.get_selected_customer_id()
         if not customer_id:
             self.view.show_warning("Selecciona un cliente primero.")
@@ -322,23 +339,41 @@ class CustomerController:
 
                 # 3. Generar comprobante
                 if result['used'] > 0:
-                    generar = messagebox.askyesno(
-                        "Comprobante", 
-                        "¿Desea generar un comprobante de este pago global?"
-                    )
-                    if generar:
-                        # Obtener nombre del cliente
-                        client_name = "Cliente"
-                        for c in self.all_customers:
-                            if c[0] == customer_id:
-                                client_name = c[1]
-                                break
-                        
-                        path = generate_global_payment_receipt(client_name, amount, result)
+                   fmt = self.ask_receipt_format()
+                   if not fmt:
+                        return
+
+                   client_name = "Cliente"
+                   for c in self.all_customers:
+                        if c[0] == customer_id:
+                            client_name = c[1]
+                            break
+
+                   timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+
+                   if fmt in ("ticket", "both"):
+                        ticket_path = f"comprobantes/tickets/ticket_global_{customer_id}_{timestamp}.pdf"
+                        generate_global_payment_ticket(
+                            file_path=ticket_path,
+                            commerce_name="Agroveterinaria El Fortín",
+                            commerce_address="Ruta Nacional N° 8, Km 681 – Chaján, Córdoba",
+                            commerce_cuit="20-12345678-3",
+                            client_name=client_name,
+                            amount=amount,
+                            result_data=result
+                        )
                         try:
-                            os.startfile(path)
+                            os.startfile(ticket_path)
                         except:
                             pass
+
+                   if fmt in ("a4", "both"):
+                        a4_path = generate_global_payment_receipt(client_name, amount, result)
+                        try:
+                            os.startfile(a4_path)
+                        except:
+                            pass
+
 
             except Exception as e:
                 self.view.show_error(f"Error al procesar el pago: {e}")
@@ -367,3 +402,12 @@ class CustomerController:
             font=ctk.CTkFont(size=13, weight="bold"),
             command=win.destroy
         ).pack(side="left", padx=5, expand=True, fill="x")
+
+
+    def ask_receipt_format(self):
+        if not messagebox.askyesno("Comprobante", "¿Desea generar comprobante?"):
+            return None
+
+        both = messagebox.askyesno("Formato", "¿Desea generar también el comprobante A4 (extendido)?")
+        return "both" if both else "ticket"
+

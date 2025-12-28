@@ -433,10 +433,12 @@ class CustomersView:
 
         def mark_as_paid():
             selected = self.debt_table.selection()
+            
             if total == 0:
                 messagebox.showwarning("Advertencia", "El cliente no tiene deudas pendientes")
                 return
-            elif not selected:
+            
+            if not selected:
                 messagebox.showwarning("Advertencia", "Seleccione una venta para registrar un pago.")
                 return
             sale_id = self.debt_table.item(selected[0])["values"][0]
