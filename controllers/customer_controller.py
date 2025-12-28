@@ -130,9 +130,11 @@ class CustomerController:
             return False
         
         return True
+    
     # --------------------------------------------------------------------
     # 💳 DEUDAS DE CLIENTES
     # --------------------------------------------------------------------
+
     def show_customer_debts(self, cliente_id, cliente_nombre):
         """Abre ventana con las deudas del cliente"""
         try:
@@ -216,6 +218,12 @@ class CustomerController:
             self.view.show_warning("Selecciona un cliente primero.")
             return
 
+        total_debt = round(float(self.model.get_total_debt(customer_id)), 2)
+
+        if total_debt == 0:
+            self.view.show_warning("El cliente no tiene deudas pendientes")
+            return
+        
         # Crear ventana modal con estilo
         win = ctk.CTkToplevel(self.view.frame)
         win.title("Pago Global a Cuenta")
@@ -283,7 +291,7 @@ class CustomerController:
                 self.view.show_error("Monto inválido. Ingrese solo números.")
                 return
 
-            total_debt = round(float(self.model.get_total_debt(customer_id)), 2)
+            
             if amount > total_debt:
                 self.view.show_warning(
                     f"El monto ingresado (${amount:.2f}) supera la deuda total del cliente (${total_debt:.2f})."
