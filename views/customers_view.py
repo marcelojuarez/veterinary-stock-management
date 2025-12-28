@@ -433,7 +433,10 @@ class CustomersView:
 
         def mark_as_paid():
             selected = self.debt_table.selection()
-            if not selected:
+            if total == 0:
+                messagebox.showwarning("Advertencia", "El cliente no tiene deudas pendientes")
+                return
+            elif not selected:
                 messagebox.showwarning("Advertencia", "Seleccione una venta para registrar un pago.")
                 return
             sale_id = self.debt_table.item(selected[0])["values"][0]
@@ -474,15 +477,6 @@ class CustomersView:
             command=win.destroy
         )
         btn_cerrar.grid(row=0, column=2, padx=10)
-
-        # ❌ Si no hay deuda: deshabilitar botones
-        if total == 0:
-            for b in (btn_pago_global, btn_pago_seleccionado):
-                b.configure(state="disabled", fg_color="#BDBDBD")
-
-
-
-
 
         # ----------------------------------------------------------------
         # Evento: seleccionar deuda -> cargar detalle de productos
