@@ -151,8 +151,8 @@ class StockModel:
             UPDATE stock 
             SET price = ROUND(price * ?, 2),
                 price_with_iva = CASE 
-                    WHEN iva = '21%' THEN ROUND(price * ? * 1.21, 2)
-                    WHEN iva = '10.5%' THEN ROUND(price * ? * 1.105, 2)
+                    WHEN iva = 21.0 THEN ROUND(price * ? * 1.21, 2)
+                    WHEN iva = 10.5 THEN ROUND(price * ? * 1.105, 2)
                     ELSE ROUND(price * ?, 2)
                 END,
                 profit = ROUND(((price * ? - cost_price) / cost_price) * 100, 2),
