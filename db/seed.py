@@ -349,7 +349,7 @@ def seed_sales_with_fiados():
     ventas = [
         {"cliente_id": 1, "total": 15000, "estado": "fiada"},
         {"cliente_id": 2, "total": 8200, "estado": "fiada"},
-        {"cliente_id": 3, "total": 12500, "estado": "pagada"},
+        {"cliente_id": 3, "total": 0, "estado": "pagada"},
         {"cliente_id": 4, "total": 5600, "estado": "fiada"}
     ]
 
