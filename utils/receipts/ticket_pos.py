@@ -184,11 +184,6 @@ def generate_global_payment_ticket(
 
     lr("MONTO ENTREGADO", f"$ {amount:,.2f}", 8, True, True)
 
-    used = float(result_data.get("used", 0))
-    still = float(result_data.get("still_owed", 0))
-    lr("TOTAL APLICADO", f"$ {used:,.2f}", 8, False, False)
-    lr("DEUDA RESTANTE", f"$ {still:,.2f}", 8, False, False)
-
     sep(False)
 
     c.setFont("Helvetica-Bold", 10)
