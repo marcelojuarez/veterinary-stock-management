@@ -41,23 +41,10 @@ class App():
         # Permitir usar Enter como boton
         self.login_win.bind("<Return>", lambda event: entry_btn.invoke())
 
-        # posicion y tamaño de root
-        x_root = self.root.winfo_x() 
-        y_root = self.root.winfo_y()
-        width_root = self.root.winfo_width()
-        height_root = self.root.winfo_height()
 
         width_win = 300
         height_win = 160
-
-        # calculo del centro
-        x = x_root + (width_root // 2) - (width_win // 2)
-        y = y_root + (height_root // 2) - (height_win // 2)
-
-        print(x)
-        print(y)
-      
-        self.login_win.geometry(f"{width_win}x{height_win}+{x}+{y}")
+        self.center_window(self.login_win, width_win, height_win)
 
         self.login_win.columnconfigure(0, weight=1)
         self.login_win.columnconfigure(1, weight=1)
@@ -145,6 +132,16 @@ class App():
         except Exception as e:
             print(f"Error cargando datos iniciales: {e}")
 
+    def center_window(self, win, width_win, height_win):
+        win.update_idletasks()
+
+        screen_width = win.winfo_screenwidth()
+        screen_height = win.winfo_screenheight()
+
+        x = (screen_width // 2) - (width_win // 2)
+        y = (screen_height // 2) - (height_win // 2)
+
+        win.geometry(f"{width_win}x{height_win}+{x}+{y}")
 
     def run(self):
         self.root.mainloop()
