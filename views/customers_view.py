@@ -22,14 +22,9 @@ class CustomersView:
         self.create_table_section()
         # footer se crea en attach_controller()
 
-    # --------------------------------------------------------------------
-    # HEADER (idéntico estilo que SalesView)
-    # --------------------------------------------------------------------
     def create_header(self):
         header = ctk.CTkFrame(self.frame, fg_color="#e0e0e0", corner_radius=10)
-        header.grid(row=0, column=0, sticky="ew", padx=10, pady=(8, 5))
-
-        # 🔹 Alineamos todo hacia la izquierda (como en SalesView)
+        header.grid(row=0, column=0, sticky="w", padx=10, pady=(8, 5))
         header.grid_columnconfigure(0, weight=0)  # título
         header.grid_columnconfigure(1, weight=0)  # entry búsqueda
         header.grid_columnconfigure(2, weight=0)  # botón buscar
@@ -188,10 +183,21 @@ class CustomersView:
     # MODAL PARA AGREGAR CLIENTE
     # --------------------------------------------------------------------
     def open_add_customer_window(self):
+        width_win = 400
+        height_win = 400
+
+        x_root = self.frame.winfo_x()
+        y_root = self.frame.winfo_y()
+        width_root = self.frame.winfo_width()
+        height_root = self.frame.winfo_height()
+
+        x = x_root + (width_root // 2) - (width_win // 2)
+        y = y_root + (height_root // 2) - (height_win // 2)
+
         win = ctk.CTkToplevel(self.frame)
-        win.title("Agregar nuevo cliente")
-        win.geometry("400x400")
+        win.geometry(f"{width_win}x{height_win}+{x}+{y}")
         win.configure(fg_color="#e0e0e0")
+        win.title("Agregar nuevo cliente")
         win.transient(self.frame)
         win.grab_set()
 
@@ -366,9 +372,21 @@ class CustomersView:
 
     def open_debt_window(self, cliente_id, cliente_nombre, debts, total):
         """Muestra una ventana con las deudas del cliente"""
+        width_win = 750
+        height_win = 580
+
+        x_root = self.frame.winfo_x()
+        y_root = self.frame.winfo_y()
+        width_root = self.frame.winfo_width()
+        height_root = self.frame.winfo_height()
+
+        x = x_root + (width_root // 2) - (width_win // 2)
+        y = y_root + (height_root // 2) - (height_win // 2)
+
         win = ctk.CTkToplevel(self.frame)
         win.title(f"💳 Deudas de {cliente_nombre}")
-        win.geometry("750x700")
+        win.geometry(f"{width_win}x{height_win}+{x}+{y}")
+
         win.transient(self.frame)
         win.grab_set()
 
