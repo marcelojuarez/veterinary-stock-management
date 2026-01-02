@@ -118,7 +118,7 @@ class StockView():
         new_btn.grid(row=1, column=0, padx=10, pady=10)
         delete_btn.grid(row=1, column=1, padx=10, pady=10)
         update_btn.grid(row=1, column=2, padx=10, pady=10)
-        bulk_update_btn.grid(row=1, column=4, padx=10, pady=10)
+        bulk_update_btn.grid(row=1, column=3, padx=10, pady=10)
     
     def create_find_frame(self):
         """Crear frame para formulario de producto"""
