@@ -95,14 +95,15 @@ class SupplierReceiptForm():
         
         # Estado
         add_field(4, "Estado:",
-                ctk.CTkComboBox(form_frame, values=["PENDIENTE", "PAGADA", "CANCELADA"], variable=self.state_var, width=250))
+                ctk.CTkEntry(form_frame, textvariable=self.state_var, width=250))
 
         # Total
         add_field(5, "Total:",
-                ctk.CTkEntry(form_frame, textvariable=self.total_var, width=250))
+                ctk.CTkEntry(form_frame, textvariable=self.total_var, width=250, state='readonly'))
         
         self.expiration_var.set(formated_act_date)
-        self.state_var.set("PENDIENTE")
+        self.state_var.set("BORRADOR")
+        self.total_var.set("0")
 
         # --- Botones inferior ---
         button_frame = ctk.CTkFrame(card_frame, fg_color="white")

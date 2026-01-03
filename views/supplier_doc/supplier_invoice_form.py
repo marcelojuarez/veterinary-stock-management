@@ -17,7 +17,6 @@ class SupplierInvoiceForm():
 
         self.invoice_id_var = tk.StringVar()
         self.invoice_type_var = tk.StringVar()
-        self.pos_var = tk.StringVar()
         self.expiration_var = tk.StringVar()
         self.subtotal_var = tk.StringVar()
         self.iva_var = tk.StringVar()
@@ -25,7 +24,6 @@ class SupplierInvoiceForm():
         self.discount_var = tk.StringVar()
         self.total_var = tk.StringVar()
         self.state_var = tk.StringVar()
-        
 
     def open_invoice_form(self, parent, supplier_var):
         btn_color = "#009688"
@@ -92,25 +90,43 @@ class SupplierInvoiceForm():
             widget.grid(row=row, column=1, sticky="w", padx=(10,20), pady=7)
 
         # Campos
-        add_field(0, "CUIT Proveedor:", ctk.CTkEntry(form_frame, textvariable=self.supplier_var, state='readonly', width=250))
-        add_field(1, "Número Factura:", ctk.CTkEntry(form_frame, textvariable=self.invoice_id_var, width=250))
-        add_field(2, "Tipo:", ctk.CTkComboBox(form_frame, values=["A","B","C","M","-"], variable=self.invoice_type_var, width=250, state="readonly"))
-        add_field(3, "Punto de venta:", ctk.CTkEntry(form_frame, textvariable=self.pos_var, width=250))
-        add_field(4, "Vencimiento:", ctk.CTkEntry(form_frame, textvariable=self.expiration_var, width=250))
-        add_field(5, "Observaciones:", ctk.CTkEntry(form_frame, textvariable=self.obs_var, width=250, height=80))
-        add_field(6, "Estado:", ctk.CTkComboBox(form_frame, values=["PENDIENTE","PAGADA","CANCELADA"], variable=self.state_var, width=250, state="readonly"))
-        add_field(7, "IVA:", ctk.CTkEntry(form_frame, textvariable=self.iva_var, state='readonly', width=250))
-        add_field(8, "Descuento:", ctk.CTkEntry(form_frame, textvariable=self.discount_var, state='readonly', width=250))
-        add_field(9, "Subtotal:", ctk.CTkEntry(form_frame, textvariable=self.subtotal_var, state='readonly', width=250))
-        add_field(10, "Total:", ctk.CTkEntry(form_frame, textvariable=self.total_var, state='readonly', width=250))
+        add_field(0, "CUIT Proveedor:", 
+                ctk.CTkEntry(form_frame, textvariable=self.supplier_var, state='readonly', width=250))
+        
+        add_field(1, "Número Factura:", 
+                ctk.CTkEntry(form_frame, textvariable=self.invoice_id_var, width=250))
+        
+        add_field(2, "Tipo:",
+                ctk.CTkComboBox(form_frame, values=["A","B","C","M","-"], variable=self.invoice_type_var, width=250, state="readonly"))
+        
+        add_field(3, "Vencimiento:",
+                ctk.CTkEntry(form_frame, textvariable=self.expiration_var, width=250))
+        
+        add_field(4, "Observaciones:", 
+                ctk.CTkEntry(form_frame, textvariable=self.obs_var, width=250, height=80))
+        
+        add_field(5, "Estado:", 
+                ctk.CTkEntry(form_frame, textvariable=self.state_var, width=250, state="readonly"))
+        
+        add_field(6, "IVA:",
+                ctk.CTkEntry(form_frame, textvariable=self.iva_var, state='readonly', width=250))
+        
+        add_field(7, "Descuento:", 
+                ctk.CTkEntry(form_frame, textvariable=self.discount_var, state='readonly', width=250))
+        
+        add_field(8, "Subtotal:", 
+                ctk.CTkEntry(form_frame, textvariable=self.subtotal_var, state='readonly', width=250))
+        
+        add_field(9, "Total:", 
+                ctk.CTkEntry(form_frame, textvariable=self.total_var, state='readonly', width=250))
 
         self.invoice_type_var.set("-")
         self.expiration_var.set(formated_act_date)
-        self.state_var.set("PENDIENTE")
-        # self.iva_var.set("0")
-        # self.discount_var.set("0")
-        # self.subtotal_var.set("0")
-        # self.total_var.set("0")
+        self.state_var.set("BORRADOR")
+        self.iva_var.set("0")
+        self.discount_var.set("0")
+        self.subtotal_var.set("0")
+        self.total_var.set("0")
 
         btn_frame = ctk.CTkFrame(card_frame, fg_color="white")
         btn_frame.pack(pady=20)
@@ -147,7 +163,6 @@ class SupplierInvoiceForm():
         """Limpiar formulario de factura"""
         self.invoice_id_var.set('')
         self.invoice_type_var.set('')
-        self.pos_var.set('')
         self.expiration_var.set('')
         self.subtotal_var.set('')
         self.iva_var.set('')
@@ -162,7 +177,6 @@ class SupplierInvoiceForm():
             'supplier_cuit': self.supplier_var.get().strip(),
             'invoice_id': self.invoice_id_var.get().strip(),
             'invoice_type': self.invoice_type_var.get().strip(),
-            'point_of_sale': self.pos_var.get().strip(),
             'expiration_date': self.expiration_var.get().strip(),
             'subtotal': self.subtotal_var.get().strip(),
             'iva': self.iva_var.get().strip(),

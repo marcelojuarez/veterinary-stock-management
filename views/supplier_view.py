@@ -161,7 +161,9 @@ class SupplierView():
         """ Crear frame para botones de supplier"""
 
         manage_frame = ctk.CTkFrame(self.frame)
-        manage_frame.grid(row=2, column= 0,padx=[10, 20], pady=20, ipadx=[6])
+        manage_frame.grid(row=2, column= 0,padx=[10, 20], pady=20, ipadx=[6], sticky='ew')
+
+        manage_frame.columnconfigure((0, 1, 2, 3, 4), weight=1)
         
         W = 240
         H = 35
@@ -336,8 +338,6 @@ class SupplierView():
     ## -- Ventana de informacion con productos y deuda -- ##
     def open_info_window(self, supplier, debt, parent):
         self.frame.update_idletasks()  # calcula la posicion antes de renderizar ventana
-
-        print(supplier)
 
         info_win = ctk.CTkToplevel(self.frame)
         info_win.title(f'Proveedor: {supplier[2]} -- {supplier[1]}')

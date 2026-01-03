@@ -113,22 +113,29 @@ class SupplierPurchase():
         self.db.execute_query(query, params, conn=conn, commit=commit)
 
         # Si quedó pagada, actualizar comprobante
-        if new_debt == 0:
-            if doc_type == "REMITO":
-                query = """
-                UPDATE supplier_receipt
-                SET state = 'PAGADA'
-                WHERE id = ?
-                """
-            else:
-                query = """
-                UPDATE supplier_invoice
-                SET state = 'PAGADA'
-                WHERE id = ?
-                """
 
-            self.db.execute_query(query, (id,), conn=conn, commit=commit)
+        if doc_type == "REMITO":
+            query = """
+            UPDATE supplier_receipt
+            SET 
+                state = CASE 
+                    WHEN ? <= 0 THEN 'PAGADA'
+                    ELSE 'PENDIENTE'
+                END
+            WHERE id = ?
+            """
+        else:
+            query = """
+            UPDATE supplier_invoice
+                SET state = CASE
+                    WHEN ? <= 0 'PAGADA'
+                    ELSE 'PENDIENTE'
+                END
+            WHERE id = ?
+            """
 
+        params = (new_debt, id)
+        self.db.execute_query(query, params, conn=conn, commit=commit)
     
     ## -- Vincular comprobante con compra -- ##
     def set_doc_on_purchase(self, purchase_id, id, doc_type, conn=None, commit=True):
@@ -180,22 +187,21 @@ class SupplierPurchase():
 
         self.db.execute_query(query, params, conn=conn, commit=commit)
         return date
-    
+
     ## -- -- ##
 
     ## -- Invoice -- ##
     def add_new_invoice(self, data, conn=None, commit=True):
         date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         query = """
-        INSERT INTO supplier_invoice(supplier_id, invoice_id, invoice_type, point_of_sale, date, expiration_date, 
+        INSERT INTO supplier_invoice(supplier_id, invoice_id, invoice_type, date, expiration_date, 
         total, subtotal, iva, discount, state, observations)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """
         params =[
             data['supplier_id'],
             data['invoice_id'],
             data['invoice_type'],
-            data['point_of_sale'],
             date,
             data['expiration_date'],
             data['total'],
@@ -215,6 +221,30 @@ class SupplierPurchase():
         """
 
         return self.db.fetch_one(query, (invoice_id, ))
+        
+    def update_invoice_info(self, invoice_id, data, conn=None, commit=True):
+        date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        query = """
+        UPDATE supplier_invoice
+        SET 
+            invoice_id = ?,
+            invoice_type = ?,
+            observations = ?,
+            date = ?,
+            expiration_date = ?
+        WHERE id = ?
+        """
+
+        params = [
+            data['invoice_id'],
+            data['invoice_type'], 
+            data['obs'],
+            date,
+            data['expiration'],
+            invoice_id
+        ]
+
+        self.db.execute_query(query, params, conn=conn, commit=False)
 
     ## -- Receipt -- ##
     def add_new_receipt(self, data, conn=None, commit=True):
@@ -243,6 +273,68 @@ class SupplierPurchase():
         """
 
         return self.db.fetch_one(query, (receipt_id, ))
+    
+    def update_receipt_info(self, receipt_id, data, conn=None, commit=True):
+        date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        query = """
+        UPDATE supplier_receipt
+        SET 
+            receipt_id = ?,
+            date = ?,
+            expiration_date = ?,
+            observations = ?
+        WHERE id = ?
+        """
+
+        params = [
+            data['receipt_id'],            
+            date,
+            data['expiration'],
+            data['obs'],
+            receipt_id
+        ]
+
+        self.db.execute_query(query, params, conn=conn, commit=False)
+
+    # ## Transaccion para actualizar informacion de la compra y su doc asociado
+    def update_purchase(self, purchase_id, doc_id, data, doc_type):
+
+        try:
+            conn = self.db.get_connection()
+            date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+            query = """
+            UPDATE purchase
+            SET
+                date = ?,
+                expiration_date = ?
+            WHERE id = ?
+            """
+            params = [
+                date,
+                data['expiration'],
+                purchase_id
+            ]
+            
+            self.db.execute_query(query, params, conn=conn, commit=False)
+
+            # Si es remito
+            if doc_type == 'REMITO':
+                self.update_receipt_info(doc_id, data, conn=conn, commit=False)
+
+            else:
+                self.update_invoice_info(doc_id, data, conn=conn, commit=False)
+
+            conn.commit()
+        
+        except Exception as e:
+            conn.rollback()
+            print(f'Hubo un error {e}')
+            return False
+        finally:
+            conn.close()
+            return True
+
 
     ## -- Transaccion para agregar venta y recibo -- ##
     def create_receipt_and_purchase(self, receipt_params, purchase_params):

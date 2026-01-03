@@ -156,8 +156,6 @@ class Database:
                     FOREIGN KEY (product_id) REFERENCES stock(id)
                 );
             ''')
-            
-
 
             # Tabla facturas asociada a un proveedor
             cursor.execute(''' 
@@ -170,7 +168,6 @@ class Database:
                     -- Datos de la factura
                     invoice_id TEXT UNIQUE,
                     invoice_type TEXT,
-                    point_of_sale INTEGER,
                     
                     -- Fechas
                     date TEXT CURRENT_DATE,
@@ -183,7 +180,7 @@ class Database:
                     discount REAL,
                     
                     -- Otros
-                    state TEXT DEFAULT 'PENDIENTE',
+                    state TEXT,
                     observations TEXT,
                            
                     FOREIGN KEY (supplier_id) REFERENCES supplier (id)
@@ -198,7 +195,7 @@ class Database:
                     date TEXT CURRENT_DATE,
                     expiration_date TEXT,
                     observations TEXT,
-                    state TEXT DEFAULT 'PENDIENTE',
+                    state TEXT,
                     total REAL,
                     FOREIGN KEY (supplier_id) REFERENCES supplier(id)
                 );

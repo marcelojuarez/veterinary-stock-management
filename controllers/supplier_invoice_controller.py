@@ -21,7 +21,6 @@ class SupplierInvoiceController():
                 'supplier_id': supplier_data[0],
                 'invoice_id': data['invoice_id'],
                 'invoice_type': data['invoice_type'],
-                'point_of_sale': data['point_of_sale'],
                 'expiration_date': data['expiration_date'],
                 'state': data['state'],
                 'observations': data['observations'],
@@ -47,7 +46,7 @@ class SupplierInvoiceController():
             }
 
             result = self.model.purchase.create_invoice_and_purchase(invoice_params, purchase_params)
-            self.purchase_view.load_purchases(False)
+            self.purchase_view.load_purchases(True)
             close_win(win, parent, self.form_view.clear_invoice_form())
             if result:
                 self.supplier_view.controller.refresh_supplier_table()
@@ -62,7 +61,6 @@ class SupplierInvoiceController():
         required_files = {
             'invoice_id': 'Numero de Factura',
             'invoice_type': 'Tipo de Factura',
-            'point_of_sale': 'Punto de Venta',
             'expiration_date': 'Fecha de vencimiento',
             'state': 'Estado',
             'observations': 'Observaciones',

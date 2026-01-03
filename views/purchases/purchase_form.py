@@ -14,7 +14,7 @@ class PurchaseForm():
         products = self.stock_model.get_all_products()
         self.products = [(p[0], p[2], p[3], p[11]) for p in products]
 
-        self.entry_var = tk.StringVar()
+        self.find_entry = tk.StringVar()
 
     def set_controller(self, controller):
         """Asignar controller después de la inicialización"""
@@ -71,9 +71,22 @@ class PurchaseForm():
 
         search_lbl = ctk.CTkLabel(
             search_frame,
-            text='Buscar Producto:'
+            text='Buscar Producto:',
+            font=ctk.CTkFont(size=14, weight='bold')
         )
         search_lbl.grid(row=0, column=0, padx=10, pady=10, sticky='w')
+
+        self.search_entry = ctk.CTkEntry(
+            search_frame,
+            textvariable=self.find_entry,
+            width=300,
+            height=35,      
+        )
+        self.search_entry.grid(row=0, column=1, padx=10, pady=10, sticky='ew')
+        self.search_entry.focus()
+
+        self.search_after_id = None
+        self.search_entry.bind("<KeyRelease>", self.on_key_release)
 
         # Tabla
         product_frame = ctk.CTkFrame(main_frame)
@@ -118,12 +131,14 @@ class PurchaseForm():
         # Ejemplo botones
         ctk.CTkButton(
             add_btn_frame,
-            text="Nuevo Producto"
-        ).grid(row=0, column=0, pady=(10, 5), padx=10, sticky="ew")
+            text="Nuevo Producto",
+            font=ctk.CTkFont(size=12, weight='bold')
+        ).grid(row=0, column=0, pady=5, padx=10, sticky="ew")
 
         ctk.CTkButton(
             add_btn_frame,
-            text="Seleccionar"
+            text="Seleccionar",
+            font=ctk.CTkFont(size=12, weight='bold')
         ).grid(row=1, column=0, pady=5, padx=10, sticky="ew")
 
         mng_btn_frame = ctk.CTkFrame(main_frame)
@@ -152,6 +167,32 @@ class PurchaseForm():
             command=lambda: close_win(product_win, parent)
         ).grid(row=0, column=1, padx=10, pady=10, sticky="w")
 
+    def on_key_release(self, event):
+        if self.search_after_id:
+            self.search_entry.after_cancel(self.search_after_id)
+
+        self.search_after_id = self.search_entry.after(200, self.update_tree_view_filter)
+
+    def update_tree_view_filter(self):
+        query = self.find_entry.get().lower()
+
+        if query == "":
+            self.load_products()
+            return
+        
+        for p in self.product_tree.get_children():
+            self.product_tree.delete(p)
+
+        # Filtro de lista de productos
+        filtered = [
+            p for p in self.products
+            if query in str(p[0]) or query in p[1].lower()
+        ]
+
+        for f in filtered:
+            self.product_tree.insert(
+                parent='', index='end', iid=f[0], values=f
+            )
 
     def load_products(self):
         # limpio la tabla

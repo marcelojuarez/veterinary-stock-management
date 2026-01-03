@@ -6,6 +6,8 @@ import locale
 from views.view_helpers import close_win, show_warning, show_error
 from .purchase_info import PurchaseInfo
 from .purchase_form import PurchaseForm
+from controllers.purchase_controller import PurchaseController
+
 from views.supplier_doc.supplier_invoice_form import SupplierInvoiceForm
 from views.supplier_doc.supplier_receipt_form import SupplierReceiptForm
 
@@ -19,7 +21,13 @@ class PurchaseWindow():
         self.receipt_form = SupplierReceiptForm(self, frame, self.supplier_view)
 
         self.purchase_info = PurchaseInfo(self.model)
+
+        # controlador
+        self.controller = PurchaseController(self.model, self, self.purchase_info)
+        self.purchase_info.set_controller(self.controller)
+
         self.purchase_form = PurchaseForm(self.model)
+
 
     def open_purchase_window(self, parent):
 
@@ -48,7 +56,7 @@ class PurchaseWindow():
         width_root = parent.winfo_width()
         height_root = parent.winfo_height()
 
-        x = x_root + (width_root // 2) - (width_win // 2)
+        x = x_root + (width_root // 2) - (width_win // 2) 
         y = y_root + (height_root // 2) - (height_win // 2)
 
         win.geometry(f"{width_win}x{height_win}+{x}+{y}")
@@ -147,8 +155,8 @@ class PurchaseWindow():
         update_stock_btn = ctk.CTkButton(
             buttons_frame,
             text="Detalle de Compra",
-            fg_color="#0B5D94",
-            hover_color="#2980B9",
+            fg_color="#2980B9",
+            hover_color="#0B5D94",
             height=40,
             width=90,            
             font=ctk.CTkFont(size=14, weight="bold"),
@@ -175,17 +183,20 @@ class PurchaseWindow():
         try:
             selected = self.purchase_tree.selection()
             if not selected:
-                show_error('Por favor Seleccione un Registro de Compra')
+                show_error('Por favor seleccione un Registro de Compra')
                 return 
 
-            print(selected)
             iid = selected[0]
             values = self.purchase_tree.item(iid, "values")
+
+            if values[5] != 'BORRADOR':
+                show_warning('Error, no puede agregar productos a una factura ya confirmada')
+                return
+
             self.purchase_form.show_actual_products(parent, values)
 
         except ValueError as e:
             print(f'Error al obtener la compra: {e}')
-
 
     ## -- Tipo de comprobante -- ##
 
@@ -270,10 +281,9 @@ class PurchaseWindow():
         try:
             selected = self.purchase_tree.selection()
             if not selected:
-                show_error('Por favor Seleccione un Registro de Compra')
+                show_error('Por favor seleccione un Registro de Compra')
                 return 
 
-            print(selected)
             iid = selected[0]
             values = self.purchase_tree.item(iid, "values")
 
@@ -338,6 +348,7 @@ class PurchaseWindow():
             placeholder_text="Ingrese nombre del proveedor..."
         )
         self.find_entry.grid(row=0, column=1, padx=5)
+        self.find_entry.focus()
 
         self.find_entry.bind("<KeyRelease>", self.on_key_release)
         self.search_after_id = None
