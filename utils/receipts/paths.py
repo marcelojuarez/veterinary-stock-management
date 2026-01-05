@@ -71,6 +71,18 @@ def get_statement_path(client_name: str) -> str:
     filename = f"estado_cuenta_{timestamp}.pdf"
     return os.path.join(folder, filename)
 
+def get_remito_path(client_name: str, remito_number: int) -> str:
+    """
+    Genera ruta para remitos.
+    Ejemplo: comprobantes/Pet Shop Los Andes/remitos/remito_001_20260104_165000.pdf
+    """
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    folder = os.path.join(get_client_folder(client_name), "remitos")
+    os.makedirs(folder, exist_ok=True)
+    
+    filename = f"remito_{remito_number:03d}_{timestamp}.pdf"  # Formato 001, 002, 003...
+    return os.path.join(folder, filename)
+
 
 # ============================================================
 # FUNCIONES DE CONVENIENCIA PARA CADA TIPO DE COMPROBANTE
@@ -99,3 +111,7 @@ def a4_pago_global(client_name: str) -> str:
 def estado_cuenta(client_name: str) -> str:
     """Estado de cuenta del cliente"""
     return get_statement_path(client_name)
+
+def remito_path(client_name: str, remito_number: int) -> str:
+    """Remito del cliente"""
+    return get_remito_path(client_name, remito_number)
