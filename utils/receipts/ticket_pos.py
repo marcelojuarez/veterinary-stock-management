@@ -118,7 +118,7 @@ def generate_global_payment_ticket(
     os.makedirs(os.path.dirname(file_path), exist_ok=True)
 
     W = ticket_width_mm * mm
-    H = 130 * mm
+    H = 120 * mm
     L = 5 * mm
     R = W - 5 * mm
 
@@ -129,13 +129,11 @@ def generate_global_payment_ticket(
         nonlocal y
         c.setFont("Helvetica-Bold" if b else "Helvetica", s)
         c.drawString(L, y, t)
-        y -= s + 2
 
     def tr(t, s=8, b=False):
         nonlocal y
         c.setFont("Helvetica-Bold" if b else "Helvetica", s)
         c.drawRightString(R, y, t)
-        y -= s + 2
 
     def lr(l, r, s=8, bl=False, br=False):
         nonlocal y
@@ -143,7 +141,6 @@ def generate_global_payment_ticket(
         c.drawString(L, y, l)
         c.setFont("Helvetica-Bold" if br else "Helvetica", s)
         c.drawRightString(R, y, r)
-        y -= s + 2
 
     def sep(d=False):
         nonlocal y
@@ -151,7 +148,6 @@ def generate_global_payment_ticket(
         c.setDash(1, 2) if d else c.setDash()
         c.line(L, y, R, y)
         c.setDash()
-        y -= 8
 
     def pill(label):
         nonlocal y
@@ -171,27 +167,38 @@ def generate_global_payment_ticket(
 
     now = datetime.now()
     tr(f"{now:%d/%m/%y} - {now:%H:%M} h", 7.5)
-    sep(False)
+    y -= 10
+    sep()
+    y -= 8
 
     tl(commerce_name.upper(), 9, True)
+    y -= 11
     tl(commerce_address.upper(), 7.5)
+    y -= 9
     tl(f"CUIT: {commerce_cuit}", 7.5)
-    sep(False)
+    y -= 10
+    sep()
+    y -= 8
 
     tl(f"CLIENTE: {client_name}", 7.5)
+    y -= 9
     tl("PAGO GLOBAL A CUENTA", 7.5)
+    y -= 9
     sep(True)
+    y -= 10
 
     lr("MONTO ENTREGADO", f"$ {amount:,.2f}", 8, True, True)
-
-    sep(False)
+    y -= 10
+    sep()
+    y -= 14
 
     c.setFont("Helvetica-Bold", 10)
     c.drawCentredString(W / 2, y, "APROBADO")
     y -= 18
 
-    c.setFont("Helvetica", 6.5)
+    c.setFont("Helvetica", 7)
     c.drawCentredString(W / 2, y, "No válido como factura")
+    y -= 10
 
     c.showPage()
     c.save()
