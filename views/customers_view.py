@@ -370,10 +370,10 @@ class CustomersView:
         if self.controller:
             self.controller.show_customer_debts(cliente_id, cliente_nombre)
 
-    def open_debt_window(self, cliente_id, cliente_nombre, debts, total):
+    def open_debt_window(self, cliente_id, cliente_nombre, debts, total, credit, net):
         """Muestra una ventana con las deudas del cliente"""
         width_win = 750
-        height_win = 580
+        height_win = 640
 
         x_root = self.frame.winfo_x()
         y_root = self.frame.winfo_y()
@@ -443,6 +443,23 @@ class CustomersView:
         )
         self.debt_total_label.pack(pady=(10, 15))
 
+        self.credit_label = ctk.CTkLabel(
+            win,
+            text=f"Saldo a favor: ${credit:.2f}",
+            font=ctk.CTkFont(size=14, weight="bold"),
+            text_color="#333333"
+        )
+        self.credit_label.pack(pady=(0, 5))
+
+        self.net_label = ctk.CTkLabel(
+            win,
+            text=f"Deuda neta: ${net:.2f}",
+            font=ctk.CTkFont(size=14, weight="bold"),
+            text_color="#333333"
+        )
+        self.net_label.pack(pady=(0, 10))
+
+
         # ----------------------------------------------------------------
         # Botones inferiores
         # ----------------------------------------------------------------
@@ -486,17 +503,30 @@ class CustomersView:
         )
         btn_pago_seleccionado.grid(row=0, column=1, padx=10)
 
-        btn_cerrar = ctk.CTkButton(
+        btn_usar_credito = ctk.CTkButton(
             btn_frame,
-            text="Cerrar",
+            text="💰 Usar saldo a favor",
             width=160,
             height=35,
-            fg_color="#757575",
-            hover_color="#616161",
+            fg_color="#2196F3",
+            hover_color="#1976D2",
             font=ctk.CTkFont(size=13, weight="bold"),
-            command=win.destroy
+            state="normal" if credit > 0 else "disabled",
+            command=lambda: self.controller.apply_credit_to_debts(cliente_id, cliente_nombre) if self.controller else None
         )
-        btn_cerrar.grid(row=0, column=2, padx=10)
+        btn_usar_credito.grid(row=0, column=2, padx=10, pady=5)
+        
+        btn_historial = ctk.CTkButton(
+            btn_frame,
+            text="📊 Ver Historial",
+            width=160,
+            height=35,
+            fg_color="#2196F3",
+            hover_color="#1976D2",
+            font=ctk.CTkFont(size=13, weight="bold"),
+            command=lambda: self.controller.show_account_history(cliente_id, cliente_nombre) if self.controller else None
+        )
+        btn_historial.grid(row=0, column=3, padx=10)
 
         # ----------------------------------------------------------------
         # Evento: seleccionar deuda -> cargar detalle de productos
@@ -513,7 +543,7 @@ class CustomersView:
 
 
 
-    def update_debt_window(self, debts, total):
+    def update_debt_window(self, debts, total, credit=0.0, net=0.0):
         """Actualiza los datos de la ventana de deudas abierta"""
         try:
             # Si la ventana o la tabla ya no existen, no hacemos nada
@@ -531,6 +561,12 @@ class CustomersView:
             # Actualizar label de total
             if hasattr(self, "debt_total_label") and self.debt_total_label.winfo_exists():
                 self.debt_total_label.configure(text=f"Total adeudado: ${total:.2f}")
+            
+            if hasattr(self, "credit_label") and self.credit_label.winfo_exists():
+                self.credit_label.configure(text=f"Saldo a favor: ${credit:.2f}")
+
+            if hasattr(self, "net_label") and self.net_label.winfo_exists():
+                self.net_label.configure(text=f"Deuda neta: ${net:.2f}")
 
             if hasattr(self.controller, "current_client_id"):
                 self.select_customer_in_table(self.controller.current_client_id)
@@ -558,9 +594,19 @@ class CustomersView:
         # ================================================================
         #  CREAR VENTANA
         # ================================================================
+        width_win = 550
+        height_win = 550
+
+        x_root = self.frame.winfo_x()
+        y_root = self.frame.winfo_y()
+        width_root = self.frame.winfo_width()
+        height_root = self.frame.winfo_height()
+
+        x = x_root + (width_root // 2) - (width_win // 2)
+        y = y_root + (height_root // 2) - (height_win // 2)
         win = ctk.CTkToplevel(self.frame)
         win.title(f"Registrar Pago - Venta #{sale_id}")
-        win.geometry("550x550")
+        win.geometry(f"{width_win}x{height_win}+{x}+{y}")
         win.transient(self.frame)
         win.grab_set()
 
@@ -597,7 +643,6 @@ class CustomersView:
                 text="Esta venta ya está PAGADA ✔",
                 text_color="#4CAF50"
             )
-
             messagebox.showinfo("Venta Pagada", "Esta venta no tiene saldo pendiente.")
 
             # Desactivar entradas
@@ -787,3 +832,193 @@ class CustomersView:
                 self.table.selection_set(row)
                 self.table.see(row)
                 break
+
+    def open_account_history_window(self, cliente_id, cliente_nombre, movements, summary):
+        """Ventana de historial de cuenta completo"""
+        width_win = 950
+        height_win = 700
+
+        x_root = self.frame.winfo_x()
+        y_root = self.frame.winfo_y()
+        width_root = self.frame.winfo_width()
+        height_root = self.frame.winfo_height()
+
+        x = x_root + (width_root // 2) - (width_win // 2)
+        y = y_root + (height_root // 2) - (height_win // 2)
+
+         # Usar porcentaje en lugar de valor fijo
+        offset_percentage = 0.1  # 10% hacia arriba
+        y_offset = int(height_win * offset_percentage)
+        
+        x = x_root + (width_root // 2) - (width_win // 2)
+        y = y_root + (height_root // 2) - (height_win // 2) - y_offset
+        
+        # Asegurarnos de que no sea negativo
+        if y < 0:
+            y = max(20, y_root + 50) 
+
+        win = ctk.CTkToplevel(self.frame)
+        win.title(f"📊 Estado de Cuenta - {cliente_nombre}")
+        win.geometry(f"{width_win}x{height_win}+{x}+{y}")
+        win.transient(self.frame)
+        win.grab_set()
+
+        # ----------------------------------------------------------------
+        # HEADER
+        # ----------------------------------------------------------------
+        header = ctk.CTkFrame(win, fg_color="#009688", height=60, corner_radius=0)
+        header.pack(fill="x")
+        header.pack_propagate(False)
+
+        ctk.CTkLabel(
+            header,
+            text=f"📊 Estado de Cuenta - {cliente_nombre}",
+            font=ctk.CTkFont(size=18, weight="bold"),
+            text_color="white"
+        ).pack(pady=15)
+
+        # ----------------------------------------------------------------
+        # RESUMEN SUPERIOR
+        # ----------------------------------------------------------------
+        summary_frame = ctk.CTkFrame(win, fg_color="#f5f5f5", corner_radius=10)
+        summary_frame.pack(fill="x", padx=15, pady=10)
+
+        # Grid de resumen
+        summary_frame.grid_columnconfigure((0, 1, 2, 3), weight=1)
+
+        def create_summary_card(parent, row, col, title, value, color="#333333"):
+            card = ctk.CTkFrame(parent, fg_color="white", corner_radius=8)
+            card.grid(row=row, column=col, padx=8, pady=8, sticky="nsew")
+            
+            ctk.CTkLabel(
+                card, text=title,
+                font=ctk.CTkFont(size=11),
+                text_color="#666666"
+            ).pack(pady=(10, 2))
+            
+            ctk.CTkLabel(
+                card, text=value,
+                font=ctk.CTkFont(size=16, weight="bold"),
+                text_color=color
+            ).pack(pady=(2, 10))
+
+        create_summary_card(summary_frame, 0, 0, "Total Comprado", f"${summary['total_comprado']:,.2f}")
+        create_summary_card(summary_frame, 0, 1, "Total Pagado", f"${summary['total_pagado']:,.2f}", "#4CAF50")
+        
+        if summary['saldo_a_favor'] > 0:
+            create_summary_card(summary_frame, 0, 2, "Saldo a Favor", f"${summary['saldo_a_favor']:,.2f}", "#2196F3")
+        else:
+            create_summary_card(summary_frame, 0, 2, "Deuda Pendiente", f"${summary['deuda_pendiente']:,.2f}", "#F44336")
+        
+        create_summary_card(summary_frame, 0, 3, "Ventas", f"{summary['ventas_pagadas']}/{summary['total_ventas']} pagadas")
+
+        # ----------------------------------------------------------------
+        # TABLA DE MOVIMIENTOS
+        # ----------------------------------------------------------------
+        ctk.CTkLabel(
+            win,
+            text="📋 Historial de Movimientos",
+            font=ctk.CTkFont(size=14, weight="bold")
+        ).pack(pady=(15, 5))
+
+        table_frame = ctk.CTkFrame(win)
+        table_frame.pack(fill="both", expand=True, padx=15, pady=5)
+
+        # Estilo de tabla
+        style = ttk.Style()
+        style.configure(
+            "History.Treeview",
+            rowheight=28,
+            font=("Segoe UI", 10)
+        )
+        style.configure(
+            "History.Treeview.Heading",
+            font=("Segoe UI", 10, "bold")
+        )
+
+        cols = ("Fecha", "Tipo", "Descripción", "Debe", "Haber", "Saldo")
+        history_table = ttk.Treeview(
+            table_frame,
+            columns=cols,
+            show="headings",
+            height=15,
+            style="History.Treeview"
+        )
+
+        col_widths = [140, 90, 300, 100, 100, 100]
+        for col, w in zip(cols, col_widths):
+            history_table.column(col, width=w, anchor="center" if col != "Descripción" else "w")
+            history_table.heading(col, text=col, anchor="center")
+
+        # Scrollbar
+        scroll_y = ttk.Scrollbar(table_frame, orient="vertical", command=history_table.yview)
+        history_table.configure(yscrollcommand=scroll_y.set)
+        scroll_y.pack(side="right", fill="y")
+        history_table.pack(fill="both", expand=True)
+
+        # Insertar movimientos
+        for mov in movements:
+            fecha_fmt = mov["fecha"][:16] if len(mov["fecha"]) > 16 else mov["fecha"]
+            debe_txt = f"${mov['debe']:,.2f}" if mov["debe"] > 0 else ""
+            haber_txt = f"${mov['haber']:,.2f}" if mov["haber"] > 0 else ""
+            
+            # Color del saldo
+            saldo = mov["saldo"]
+            if saldo < 0:
+                saldo_txt = f"-${abs(saldo):,.2f}"
+            else:
+                saldo_txt = f"${saldo:,.2f}"
+
+            history_table.insert("", "end", values=(
+                fecha_fmt,
+                mov["tipo"],
+                mov["descripcion"],
+                debe_txt,
+                haber_txt,
+                saldo_txt
+            ))
+
+        # Colorear filas según tipo
+        def tag_rows():
+            for item in history_table.get_children():
+                values = history_table.item(item)["values"]
+                tipo = values[1]
+                if tipo == "VENTA":
+                    history_table.item(item, tags=("venta",))
+                elif tipo == "PAGO":
+                    history_table.item(item, tags=("pago",))
+                elif tipo == "CRÉDITO":
+                    history_table.item(item, tags=("credito",))
+
+        history_table.tag_configure("venta", background="#FFF3E0")
+        history_table.tag_configure("pago", background="#E8F5E9")
+        history_table.tag_configure("credito", background="#E3F2FD")
+        tag_rows()
+
+        # ----------------------------------------------------------------
+        # BOTONES
+        # ----------------------------------------------------------------
+        btn_frame = ctk.CTkFrame(win, fg_color="transparent")
+        btn_frame.pack(pady=15)
+
+        ctk.CTkButton(
+            btn_frame,
+            text="Exportar a PDF",
+            width=150,
+            height=40,
+            fg_color="#009688",
+            hover_color="#00796B",
+            font=ctk.CTkFont(size=13, weight="bold"),
+            command=lambda: self.controller.export_account_history_pdf(cliente_id, cliente_nombre) if self.controller else None
+        ).grid(row=0, column=0, padx=10)
+
+        ctk.CTkButton(
+            btn_frame,
+            text="Cerrar",
+            width=150,
+            height=40,
+            fg_color="#757575",
+            hover_color="#616161",
+            font=ctk.CTkFont(size=13, weight="bold"),
+            command=win.destroy
+        ).grid(row=0, column=1, padx=10)
