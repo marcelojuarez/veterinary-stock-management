@@ -253,7 +253,9 @@ class Database:
                     date TEXT DEFAULT CURRENT_TIMESTAMP,
                     total REAL NOT NULL,
                     cliente_id INTEGER,
-                    estado TEXT DEFAULT 'pagada',
+                    estado TEXT DEFAULT 'paid',
+                    total_cerrado REAL,
+                    fecha_cierre TEXT,
                     FOREIGN KEY(cliente_id) REFERENCES clientes(id) ON DELETE CASCADE
                 );
             ''')
@@ -263,7 +265,7 @@ class Database:
                 CREATE TABLE IF NOT EXISTS sale_items (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     sale_id INTEGER NOT NULL,
-                    product_id TEXT NOT NULL,
+                    product_id INTEGER NOT NULL,
                     quantity INTEGER NOT NULL,
                     price REAL NOT NULL,
                     subtotal REAL NOT NULL,
@@ -314,7 +316,20 @@ class Database:
                     FOREIGN KEY(client_id) REFERENCES clientes(id) ON DELETE CASCADE
                 );
             ''')
-        
+
+            cursor.execute('''
+                    CREATE TABLE IF NOT EXISTS customer_credit(
+                           id INTEGER PRIMARY KEY AUTOINCREMENT,
+                           client_id INTEGER NOT NULL,
+                           amount REAL NOT NULL,
+                           reason TEXT,
+                           created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                           sale_id INTEGER,
+                           FOREIGN KEY(client_id) REFERENCES clientes(id) ON DELETE CASCADE,
+                           FOREIGN KEY(sale_id) REFERENCES sales(id) ON DELETE SET NULL
+                    );
+            ''')
+
             conn.commit()
 
     def execute_query(self, query, params=None, conn=None, commit=True):

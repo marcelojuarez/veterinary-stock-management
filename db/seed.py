@@ -2,8 +2,8 @@ import sys, os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import sqlite3
-from datetime import datetime
-from random import choice, randint
+from datetime import datetime, timedelta
+from random import choice, randint, uniform
 from models.user import User
 from models.supplier.__init__ import SupplierModel
 from models.security import gen_password, validate_password
@@ -345,71 +345,100 @@ def seed_clients():
     conn.close()
     print(f"✅ Seed completado: {len(clientes)} clientes insertados correctamente")
 
-def seed_sales_with_fiados():
-    ventas = [
-        {"cliente_id": 1, "total": 15000, "estado": "fiada"},
-        {"cliente_id": 2, "total": 8200, "estado": "fiada"},
-        {"cliente_id": 3, "total": 0, "estado": "pagada"},
-        {"cliente_id": 4, "total": 5600, "estado": "fiada"}
-    ]
-
-    conn = sqlite3.connect(DB_PATH)
-    cursor = conn.cursor()
-
-    for v in ventas:
-        cursor.execute("""
-            INSERT INTO sales (date, total, cliente_id, estado)
-            VALUES (datetime('now'), ?, ?, ?)
-        """, (v['total'], v['cliente_id'], v['estado']))
-
-    conn.commit()
-    conn.close()
-    print("💰 Seed completado: ventas con estado 'fiada' y 'pagada'")
 
 def seed_sales_with_products():
-    """Crea ventas con productos y deudas (fiadas)"""
+    """
+    MEJORADO: Crea ventas con productos usando estados correctos
+    Estados: 'paid', 'pending', 'partial'
+    """
     conn = sqlite3.connect(DB_PATH)
     cur = conn.cursor()
 
     # Obtener clientes y productos
-    clientes = cur.execute("SELECT id FROM clientes").fetchall()
+    clientes = cur.execute("SELECT id FROM clientes WHERE id > 1").fetchall()  # Excluir Consumidor Final
     productos = cur.execute("SELECT id, price_with_iva FROM stock").fetchall()
+    
     if not clientes or not productos:
         print("⚠️ Debes ejecutar seed_clients() y seed_stock() primero.")
+        conn.close()
         return
 
-    ventas = [
-        {"cliente_id": clientes[0][0], "estado": "fiada"},
-        {"cliente_id": clientes[1][0], "estado": "fiada"},
-        {"cliente_id": clientes[2][0], "estado": "pagada"},
-        {"cliente_id": clientes[3][0], "estado": "fiada"},
+    # Generar ventas variadas con diferentes estados
+    ventas_config = [
+        # Ventas PAGADAS (50% de las ventas)
+        *[{"cliente_id": choice(clientes)[0], "estado": "paid", "fecha_dias_atras": randint(1, 30)} for _ in range(20)],
+        
+        # Ventas PENDIENTES sin pagos (30% de las ventas)
+        *[{"cliente_id": choice(clientes)[0], "estado": "pending", "fecha_dias_atras": randint(5, 20)} for _ in range(12)],
+        
+        # Ventas con PAGO PARCIAL (20% de las ventas)
+        *[{"cliente_id": choice(clientes)[0], "estado": "partial", "fecha_dias_atras": randint(3, 15)} for _ in range(8)],
     ]
 
-    for venta in ventas:
-        total = 0
+    print(f"📦 Creando {len(ventas_config)} ventas con productos...")
+
+    for idx, venta in enumerate(ventas_config, 1):
+        # Calcular fecha de la venta
+        fecha_venta = datetime.now() - timedelta(days=venta["fecha_dias_atras"])
+        fecha_str = fecha_venta.strftime("%Y-%m-%d %H:%M:%S")
+        
+        # Insertar venta inicial con total 0
         cur.execute("""
             INSERT INTO sales (date, total, cliente_id, estado)
             VALUES (?, 0, ?, ?)
-        """, (datetime.now().strftime("%Y-%m-%d %H:%M:%S"), venta["cliente_id"], venta["estado"]))
+        """, (fecha_str, venta["cliente_id"], venta["estado"]))
         sale_id = cur.lastrowid
 
-        # Insertar productos aleatorios
-        for _ in range(randint(2, 4)):
+        # Agregar productos aleatorios
+        total_venta = 0
+        num_productos = randint(2, 5)
+        
+        for _ in range(num_productos):
             prod_id, price = choice(productos)
-            cantidad = randint(1, 3)
+            cantidad = randint(1, 4)
             subtotal = round(price * cantidad, 2)
-            total += subtotal
+            total_venta += subtotal
+            
             cur.execute("""
                 INSERT INTO sale_items (sale_id, product_id, quantity, price, subtotal)
                 VALUES (?, ?, ?, ?, ?)
             """, (sale_id, prod_id, cantidad, price, subtotal))
 
         # Actualizar total de la venta
-        cur.execute("UPDATE sales SET total = ? WHERE id = ?", (round(total, 2), sale_id))
+        total_venta = round(total_venta, 2)
+        cur.execute("UPDATE sales SET total = ? WHERE id = ?", (total_venta, sale_id))
+
+        # 🔹 CREAR PAGOS según el estado
+        if venta["estado"] == "paid":
+            # Venta pagada: pago completo
+            cur.execute("""
+                INSERT INTO payments (sale_id, client_id, amount, date, method, notes)
+                VALUES (?, ?, ?, ?, ?, ?)
+            """, (sale_id, venta["cliente_id"], total_venta, fecha_str, 
+                  choice(["Efectivo", "Transferencia", "Tarjeta"]), "Pago completo"))
+        
+        elif venta["estado"] == "partial":
+            # Venta parcial: pago entre 30% y 70% del total
+            monto_pagado = round(total_venta * uniform(0.3, 0.7), 2)
+            fecha_pago = fecha_venta + timedelta(days=randint(1, 3))
+            
+            cur.execute("""
+                INSERT INTO payments (sale_id, client_id, amount, date, method, notes)
+                VALUES (?, ?, ?, ?, ?, ?)
+            """, (sale_id, venta["cliente_id"], monto_pagado, 
+                  fecha_pago.strftime("%Y-%m-%d %H:%M:%S"),
+                  choice(["Efectivo", "Transferencia"]), "Pago parcial"))
+
+        # Para 'pending' no creamos pagos
+        
+        if idx % 10 == 0:
+            print(f"  ✓ {idx}/{len(ventas_config)} ventas creadas...")
 
     conn.commit()
     conn.close()
-    print("✅ Ventas con productos fiadas y pagadas creadas correctamente.")
+    
+    print("✅ Ventas con productos creadas correctamente.")
+    print(f"   📊 Estados: paid (50%), pending (30%), partial (20%)")
 
 def seed_suppliers():
     # Nombres base para proveedores
@@ -504,7 +533,6 @@ if __name__ == "__main__":
     seed_client()
     seed_clients()
     seed_stock()
-    seed_sales_with_fiados()
     seed_sales_with_products()
     
     print("-" * 50)
