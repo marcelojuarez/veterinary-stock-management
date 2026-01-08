@@ -107,7 +107,8 @@ def generate_receipts_for_payment(
                 file_path=a4_path,
                 client_name=client_name,
                 payment_amount=amount,
-                result_data=result_data
+                result_data=result_data,
+                sale_items=sale_items
             )
             paths.append(a4_path)
 

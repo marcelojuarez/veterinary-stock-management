@@ -304,18 +304,19 @@ def generate_payment_receipt(*, file_path, client_name, sale_id, payment_amount,
 # ============================================================
 #               RECIBO DE PAGO GLOBAL 
 # ============================================================
-def generate_global_payment_receipt(*, file_path, client_name, payment_amount, result_data):
+def generate_global_payment_receipt(*, file_path, client_name, payment_amount, result_data, sale_items=None):
     """
     Genera comprobante A4 de pago global.
     Estilo ticket profesional en blanco y negro.
+    Incluye detalle de productos de cada venta pagada.
     """
     os.makedirs(os.path.dirname(file_path), exist_ok=True)
     
     W, H = A4
-    margin = 45 * mm  # Aumentado de 40mm a 45mm
+    margin = 45 * mm
     
     c = canvas.Canvas(file_path, pagesize=A4)
-    y = H - 35 * mm  # Aumentado de 30mm a 35mm
+    y = H - 35 * mm
     
     # Colores (blanco y negro)
     black = colors.black
@@ -323,7 +324,7 @@ def generate_global_payment_receipt(*, file_path, client_name, payment_amount, r
     light_gray = colors.HexColor("#cccccc")
     
     # ================================================================
-    # FUNCIONES HELPER (MODIFICADAS CON MÁS ESPACIO)
+    # FUNCIONES HELPER
     # ================================================================
     def draw_text_left(text, size=10, bold=False, extra_spacing=0):
         nonlocal y
@@ -331,7 +332,7 @@ def generate_global_payment_receipt(*, file_path, client_name, payment_amount, r
         c.setFont(font, size)
         c.setFillColor(black)
         c.drawString(margin, y, text)
-        y -= size + 4 + extra_spacing  # Espacio adicional opcional
+        y -= size + 8 + extra_spacing
     
     def draw_text_center(text, size=10, bold=False, extra_spacing=0):
         nonlocal y
@@ -339,7 +340,7 @@ def generate_global_payment_receipt(*, file_path, client_name, payment_amount, r
         c.setFont(font, size)
         c.setFillColor(black)
         c.drawCentredString(W / 2, y, text)
-        y -= size + 4 + extra_spacing  # Espacio adicional opcional
+        y -= size + 8 + extra_spacing
     
     def draw_text_right(text, size=10, bold=False):
         nonlocal y
@@ -355,11 +356,11 @@ def generate_global_payment_receipt(*, file_path, client_name, payment_amount, r
         c.drawString(margin, y, left)
         c.setFont("Helvetica-Bold" if bold_r else "Helvetica", size)
         c.drawRightString(W - margin, y, right)
-        y -= size + 4 + extra_spacing  # Espacio adicional opcional
+        y -= size + 8 + extra_spacing
     
-    def draw_separator(dashed=False, thick=False, extra_spacing=12):  # Aumentado de 8 a 12
+    def draw_separator(dashed=False, thick=False, extra_spacing=12):
         nonlocal y
-        y -= 4  # Aumentado de 3 a 4
+        y -= 4
         c.setStrokeColor(black if thick else light_gray)
         c.setLineWidth(1.5 if thick else 0.5)
         if dashed:
@@ -368,7 +369,7 @@ def generate_global_payment_receipt(*, file_path, client_name, payment_amount, r
             c.setDash()
         c.line(margin, y, W - margin, y)
         c.setDash()
-        y -= extra_spacing  # Usa el parámetro extra_spacing
+        y -= extra_spacing
     
     def draw_pill(text):
         nonlocal y
@@ -381,85 +382,125 @@ def generate_global_payment_receipt(*, file_path, client_name, payment_amount, r
         c.setFont("Helvetica-Bold", 8)
         c.drawCentredString(x + pill_width/2, y + 3, text)
         c.setFillColor(black)
-        y -= 2  # Espacio adicional después del píldora
+        y -= 2
     
     # ================================================================
-    # ENCABEZADO (CON MÁS ESPACIO)
+    # ENCABEZADO
     # ================================================================
     draw_text_left("ORIGINAL", 8, bold=True)
-    y += 15  # Aumentado de 12 a 15
+    y += 15
     draw_pill("COMPROBANTE PAGO GLOBAL")
-    y -= 20  # Aumentado de 18 a 20
+    y -= 20
     
     now = datetime.now()
     draw_text_right(f"{now:%d/%m/%Y} - {now:%H:%M} h", 8)
-    y -= 5  # Aumentado de 3 a 5
+    y -= 5
     
-    draw_separator(thick=True, extra_spacing=15)  # Más espacio después del separador
+    draw_separator(thick=True, extra_spacing=15)
     
     # ================================================================
-    # DATOS DEL COMERCIO (CON MÁS ESPACIO)
+    # DATOS DEL COMERCIO
     # ================================================================
-    draw_text_center("AGROVETERINARIA EL FORTÍN", 14, bold=True, extra_spacing=4)
-    y -= 4  # Espacio adicional
-    
+    draw_text_center("AGROVETERINARIA EL FORTÍN", 14, bold=True)
+    y -= 4
     c.setFont("Helvetica", 9)
     c.setFillColor(gray)
     c.drawCentredString(W / 2, y, "Ruta Nacional N° 8, Km 681 – Chaján, Córdoba")
-    y -= 14  # Aumentado de 12 a 14
-    
+    y -= 14
     c.drawCentredString(W / 2, y, "CUIT: 20-12345678-3 – Responsable Inscripto")
-    y -= 18  # Aumentado de 14 a 18
+    y -= 18
     
-    draw_separator(extra_spacing=15)  # Más espacio después del separador
+    draw_separator(extra_spacing=15)
     
     # ================================================================
-    # DATOS DEL CLIENTE (CON MÁS ESPACIO)
+    # DATOS DEL CLIENTE
     # ================================================================
     draw_text_left(f"CLIENTE: {client_name}", 11, bold=True, extra_spacing=2)
     draw_text_left("TIPO: PAGO GLOBAL A CUENTA", 10, extra_spacing=2)
     
-    draw_separator(extra_spacing=15)  # Más espacio después del separador
+    draw_separator(extra_spacing=15)
     
     # ================================================================
-    # MONTO ENTREGADO (destacado) - CON MÁS ESPACIO
+    # MONTO ENTREGADO
     # ================================================================
-    y -= 5  # Espacio adicional antes
+    y -= 5
     c.setFont("Helvetica-Bold", 12)
     c.setFillColor(black)
     c.drawString(margin, y, "MONTO ENTREGADO:")
     c.drawRightString(W - margin, y, f"${payment_amount:,.2f}")
-    y -= 22  # Aumentado de 18 a 22
+    y -= 22
     
-    draw_separator(dashed=True, extra_spacing=18)  # Más espacio después del separador
-    
-    # ================================================================
-    # DISTRIBUCIÓN DEL PAGO (CON MÁS ESPACIO)
-    # ================================================================
-    draw_text_left("DISTRIBUCIÓN DEL PAGO", 10, bold=True, extra_spacing=4)
-    y -= 8  # Aumentado de 5 a 8
-    
-    # Encabezado
-    c.setFont("Helvetica-Bold", 8)
-    c.drawString(margin, y, "Venta N°")
-    c.drawRightString(W - margin, y, "Monto Aplicado")
-    y -= 14  # Aumentado de 12 a 14
-    
-    c.setStrokeColor(black)
-    c.setLineWidth(0.5)
-    c.line(margin, y + 8, W - margin, y + 8)
-    
-    c.setFont("Helvetica", 9)
-    for sid, amt in result_data["updated_debts"]:
-        c.drawString(margin, y, f"#{sid}")
-        c.drawRightString(W - margin, y, f"${amt:,.2f}")
-        y -= 13  # Aumentado de 11 a 13
-    
-    y -= 6  # Aumentado de 3 a 6
-    draw_separator(dashed=True, extra_spacing=15)  # Más espacio después del separador
+    draw_separator(dashed=True, extra_spacing=18)
     
     # ================================================================
-    # RESUMEN (CON MÁS ESPACIO)
+    # DETALLE DE PRODUCTOS POR VENTA
+    # ================================================================
+    if sale_items and len(sale_items) > 0:
+        draw_text_left("DETALLE DE PRODUCTOS", 10, bold=True, extra_spacing=4)
+        
+        # Recorrer cada venta pagada
+        for sale_id, amount_paid in result_data["updated_debts"]:
+            # Título de la venta
+            y -= 4
+            c.setFont("Helvetica-Bold", 9)
+            c.setFillColor(black)
+            c.drawString(margin, y, f"■ Venta #{sale_id}")
+            c.drawRightString(W - margin, y, f"Pagado: ${amount_paid:,.2f}")
+            y -= 12
+            
+            # Verificar si hay items para esta venta
+            if sale_id in sale_items and sale_items[sale_id]:
+                items = sale_items[sale_id]
+                
+                # Definir posiciones de columnas (ALINEADAS CON PDF COMÚN)
+                col_producto = margin + 5*mm
+                col_cant = margin + 65*mm
+                col_precio = margin + 95*mm
+                col_subtotal = W - margin
+                
+                # Encabezado de tabla
+                c.setFont("Helvetica-Bold", 8)
+                c.setFillColor(gray)
+                c.drawString(col_producto, y, "Producto")
+                c.drawRightString(col_cant + 5*mm, y, "Cant.")
+                c.drawRightString(col_precio + 10*mm, y, "Precio")
+                c.drawRightString(col_subtotal, y, "Subtotal")
+                y -= 16
+                
+                # Línea bajo encabezado
+                c.setStrokeColor(black)
+                c.setLineWidth(0.5)
+                c.line(margin + 5*mm, y + 6, W - margin, y + 6)
+                y -= 8
+                
+                # Items
+                c.setFont("Helvetica", 8)
+                c.setFillColor(black)
+                for item in items:
+                    nombre, cantidad, precio, subtotal = item
+                    
+                    # Truncar nombre si es muy largo
+                    nombre_display = nombre[:28] + "..." if len(str(nombre)) > 28 else str(nombre)
+                    
+                    c.drawString(col_producto, y, nombre_display)
+                    c.drawRightString(col_cant + 5*mm, y, str(int(cantidad)))
+                    c.drawRightString(col_precio + 10*mm, y, f"${float(precio):,.2f}")
+                    c.drawRightString(col_subtotal, y, f"${float(subtotal):,.2f}")
+                    y -= 14
+                
+                y -= 4
+            else:
+                c.setFont("Helvetica", 8)
+                c.setFillColor(gray)
+                c.drawString(margin + 8*mm, y, "(Sin detalle de productos)")
+                y -= 12
+            
+        
+        y -= 4
+        draw_separator(extra_spacing=15)
+    
+    # ================================================================
+    # RESUMEN DEL PAGO
     # ================================================================
     draw_line_lr("Total Aplicado:", f"${result_data['used']:,.2f}", 10, 
                  bold_l=True, bold_r=True, extra_spacing=4)
@@ -472,45 +513,46 @@ def generate_global_payment_receipt(*, file_path, client_name, payment_amount, r
                     f"${result_data['credit_added']:,.2f}", 10, 
                     bold_l=True, bold_r=True, extra_spacing=4)
     
-    draw_separator(extra_spacing=18)  # Más espacio después del separador
+    draw_separator(extra_spacing=18)
     
     # ================================================================
-    # ESTADO APROBADO (CON MÁS ESPACIO)
+    # ESTADO APROBADO
     # ================================================================
-    y -= 10  # Aumentado de 8 a 10
+    y -= 10
     
+    # Círculo con check
     c.setFillColor(black)
     c.circle(W/2, y + 5, 12, fill=1, stroke=0)
     c.setFillColor(colors.white)
     c.setFont("Helvetica-Bold", 14)
     c.drawCentredString(W/2, y + 1, "✓")
-    y -= 26  # Aumentado de 22 a 26
+    y -= 26
     
     c.setFillColor(black)
     c.setFont("Helvetica-Bold", 12)
     c.drawCentredString(W / 2, y, "APROBADO")
-    y -= 26  # Aumentado de 22 a 26
+    y -= 26
     
     # ================================================================
-    # PIE DE PÁGINA (CON MÁS ESPACIO)
+    # PIE DE PÁGINA
     # ================================================================
     c.setFillColor(gray)
     c.setFont("Helvetica", 9)
     c.drawCentredString(W / 2, y, "Gracias por su compra")
-    y -= 16  # Aumentado de 12 a 16
+    y -= 16
     
     c.setFont("Helvetica", 7)
     c.drawCentredString(W / 2, y, "Este documento no es válido como factura")
-    y -= 40  # Aumentado de 35 a 40
+    y -= 40
     
     # ================================================================
-    # FIRMA (CON MÁS ESPACIO)
+    # FIRMA
     # ================================================================
     c.setStrokeColor(black)
     c.setLineWidth(0.5)
     line_width = 70 * mm
     c.line(W/2 - line_width/2, y, W/2 + line_width/2, y)
-    y -= 16  # Aumentado de 12 a 16
+    y -= 12
     
     c.setFont("Helvetica", 8)
     c.setFillColor(gray)
