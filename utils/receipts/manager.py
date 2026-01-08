@@ -79,7 +79,8 @@ def generate_receipts_for_payment(
                 commerce_cuit=COMMERCE["cuit"],
                 client_name=client_name,
                 amount=amount,
-                result_data=result_data
+                result_data=result_data,
+                sales_items=sale_items
             )
             paths.append(ticket_path)
 
