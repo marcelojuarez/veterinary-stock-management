@@ -3,16 +3,17 @@ from tkinter import ttk
 import customtkinter as ctk
 import datetime
 
-from views.view_helpers import show_warning, close_win
+from views.view_helpers import show_warning, show_error, close_win
 from models.stock import StockModel
 
 class PurchaseForm():
-    def __init__(self, model):
+    def __init__(self, model, controller=None):
         self.model = model
         self.stock_model = StockModel()
+        self.controller = controller
 
         products = self.stock_model.get_all_products()
-        self.products = [(p[0], p[2], p[3], p[11]) for p in products]
+        self.products = [(p[0], p[2], p[3], p[10]) for p in products]
 
         self.find_entry = tk.StringVar()
 
@@ -22,7 +23,8 @@ class PurchaseForm():
         self.controller = controller
         print(f"DEBUG: Controller asignado correctamente: {self.controller}")
 
-    def setup_purchase_variables(self, supplier_cuit):
+    # Configuracion de Variables 
+    def setup_purchase_variables(self, supplier_cuit, ):
         self.supplier_var = tk.StringVar()
         self.supplier_var.set(supplier_cuit)
 
@@ -32,21 +34,14 @@ class PurchaseForm():
         self.obs = tk.StringVar()
         self.state = tk.StringVar()
 
-    def show_actual_products(self, parent, values):
+    # Muestra los productos actuales
+    def show_actual_products(self, parent, purchase_values):
+        self.setup_purchase_variables(supplier_cuit=purchase_values[1])
+
         product_win = ctk.CTkToplevel(parent)
         product_win.title("Agregar Nuevo Producto")
         product_win.withdraw()
         product_win.configure(fg_color="#e0e0e0")
-
-        product_win.transient(parent)
-        product_win.grab_set()
-
-        x = (parent.winfo_screenwidth() // 2) - 300
-        y = (parent.winfo_screenheight() // 2) - 250
-        product_win.geometry(f"800x600+{x}+{y}")
-
-        product_win.update_idletasks()
-        product_win.deiconify()
 
         main_frame = ctk.CTkFrame(product_win, corner_radius=12, fg_color="white")
         main_frame.pack(fill="both", expand=True, padx=10, pady=10)
@@ -138,7 +133,8 @@ class PurchaseForm():
         ctk.CTkButton(
             add_btn_frame,
             text="Seleccionar",
-            font=ctk.CTkFont(size=12, weight='bold')
+            font=ctk.CTkFont(size=12, weight='bold'),
+            command= lambda: self.select_product(purchase_id=purchase_values[0], parent=product_win)
         ).grid(row=1, column=0, pady=5, padx=10, sticky="ew")
 
         mng_btn_frame = ctk.CTkFrame(main_frame)
@@ -150,23 +146,217 @@ class PurchaseForm():
             padx=15,
             pady=15
         )
-        mng_btn_frame.columnconfigure((0, 1), weight=1)
+        mng_btn_frame.columnconfigure(0, weight=1)
+        mng_btn_frame.rowconfigure(0, weight=1)
 
         ctk.CTkButton(
             mng_btn_frame,
-            text="Aceptar",
+            text="Listo",
             fg_color="#4CAF50",
             font=ctk.CTkFont(size=13, weight='bold'),
-        ).grid(row=0, column=0, padx=10, pady=10, sticky="e")
-
-        ctk.CTkButton(
-            mng_btn_frame,
-            text="Cancelar",
-            fg_color="#757575",
-            font=ctk.CTkFont(size=13, weight='bold'),
             command=lambda: close_win(product_win, parent)
-        ).grid(row=0, column=1, padx=10, pady=10, sticky="w")
+        ).grid(row=0, column=0, padx=10, pady=10)
 
+        # Centrar ventana
+        width_win = 800
+        height_win = 600
+
+        x_root = parent.winfo_x()
+        y_root = parent.winfo_y()
+
+        width_root = parent.winfo_width()
+        height_root = parent.winfo_height()
+
+        x = x_root + (width_root // 2) - (width_win // 2)
+        y = y_root + (height_root // 2) - (height_win // 2)
+
+        product_win.geometry(f"{width_win}x{height_win}+{x}+{y}")
+        product_win.deiconify()
+
+        product_win.transient(parent)
+        product_win.grab_set()
+
+    # Seleccionar Producto
+    def select_product(self, purchase_id, parent):
+        try:
+            selected = self.product_tree.selection()
+            if not selected:
+                show_error('Por favor seleccione un producto')
+                return
+            
+            iid = selected[0]
+            values = self.product_tree.item(iid, "values")
+            self.open_add_purchase_item(purchase_id, parent=parent)
+            self.load_item_info(product_id=values[0])
+
+        except ValueError as e:
+            show_error(f'Ocurrio un error: {e}')
+
+    # Configuracion de Variables - Items de compra
+    def setup_purchase_items_variables(self, purchase_id):
+        # variables producto
+        self.purchase_id = tk.StringVar()
+        self.purchase_id.set(purchase_id)
+
+        self.product_id = tk.StringVar()
+        self.product_name = tk.StringVar()
+        self.product_pack = tk.StringVar()
+        self.quantity = tk.StringVar()
+        self.cost_price = tk.StringVar()
+        self.iva_rate = tk.StringVar()
+        
+        self.discount = tk.StringVar()
+        self.discount_amount = tk.StringVar()
+
+        self.subtotal = tk.StringVar()
+        
+        self.iva_amount = tk.StringVar()
+        self.total = tk.StringVar()
+
+    # Formulario para agregar items en la compra
+    def open_add_purchase_item(self, purchase_id, parent):
+
+        if self.supplier_var.get() == "":
+            show_warning("Por favor seleccione un proveedor")
+            return
+        
+        self.setup_purchase_items_variables(purchase_id)
+
+        """Ventana para agregar nuevo producto con CustomTkinter"""
+        add_win = ctk.CTkToplevel(parent)
+        add_win.configure(fg_color="#e0e0e0")
+        add_win.title("Agregar nuevo artículo")
+        
+        # Hacer que la ventana sea modalxz
+        add_win.transient(parent)
+        add_win.grab_set()
+
+        # Centrar la ventana
+        add_win.geometry("800x450+{}+{}".format(
+            add_win.winfo_screenwidth()//2 - 200,
+            add_win.winfo_screenheight()//2 - 250
+        ))
+
+        card_frame = ctk.CTkFrame(
+            add_win,
+            fg_color='white',
+            corner_radius=20
+        )
+        card_frame.pack(fill='both', expand=True, padx=20, pady=20)
+
+        # Título
+        title_label = ctk.CTkLabel(
+            card_frame,
+            text="Nuevo Artículo",
+            font=ctk.CTkFont(size=18, weight="bold")
+        )
+        title_label.pack(pady=20)
+
+        form_frame = ctk.CTkFrame(card_frame, fg_color='white')
+        form_frame.pack(pady=5, padx=(10,0), fill='x')
+
+        def add_field(row, column,label, witget):
+            field_lbl = ctk.CTkLabel(
+                form_frame,
+                text=label,
+                font=ctk.CTkFont(size=13, weight='bold'),
+                text_color='black',
+            )
+            field_lbl.grid(row=row, column=column, sticky="e", padx=10, pady=7)
+
+            witget.grid(row=row, column=column+1, padx=(10,20), pady=7, sticky='w')
+
+        add_field(0, 0,"Id Compra:",
+                ctk.CTkEntry(form_frame, textvariable=self.purchase_id, state='readonly', width=200))
+        
+        add_field(1, 0, "Id Producto:",
+                ctk.CTkEntry(form_frame, textvariable=self.product_id, state='readonly', width=200))
+        
+        add_field(2, 0, "Nombre:",
+                ctk.CTkEntry(form_frame, textvariable=self.product_name, width=200))
+        
+        add_field(3, 0, "Envase:",
+                ctk.CTkComboBox(form_frame,  values=["UNIDAD", "CAJA", "FRASCO", "AMPOLLA", "SOBRE", "OTRO"], variable=self.product_pack, width=200))
+        
+        add_field(4, 0, "Stock:",
+                ctk.CTkEntry(form_frame, textvariable=self.quantity, width=200))
+        
+        add_field(5, 0, "Precio Costo:",
+                ctk.CTkEntry(form_frame, textvariable=self.cost_price, width=200))
+
+        add_field(0, 2, "Porcentaje Iva:",
+                ctk.CTkComboBox(form_frame, values=["21", "10.5", "0"],variable=self.iva_rate, width=200))
+
+        add_field(1, 2, "Porcentaje Descuento:",
+                ctk.CTkEntry(form_frame, textvariable=self.discount, width=200))
+        
+        add_field(2, 2, "Monto Descuento:",
+                ctk.CTkEntry(form_frame, textvariable=self.discount_amount, state='readonly', width=200))
+        
+        add_field(3, 2, "SubTotal:",
+                ctk.CTkEntry(form_frame, textvariable=self.subtotal, state='readonly', width=200))
+        
+        add_field(4, 2, "Importe Iva:",
+                ctk.CTkEntry(form_frame, textvariable=self.iva_amount, state='readonly', width=200))
+
+        add_field(5, 2, "Total:",
+                ctk.CTkEntry(form_frame, textvariable=self.total, state='readonly', width=200))
+        
+        self.discount.set("0")
+
+        def recalc(*args):
+            try:
+                qty = max(0, float(self.quantity.get() or 0))
+                cost = float(self.cost_price.get() or 0)
+                iva = float(self.iva_rate.get() or 0)
+                discount = float(self.discount.get() or 0)
+
+                if discount > 99:
+                    show_error('Error. No puede colocar un descuento mayor al 100%')
+                    return
+                
+                self.discount_amount.set(((qty * cost) * discount) // 100)
+                print(self.discount_amount.get())
+
+                subtotal = qty * cost - float(self.discount_amount.get())
+
+                iva_amount = subtotal * (iva / 100)
+                total = subtotal + iva_amount
+
+                self.subtotal.set(round(subtotal, 2))
+                self.iva_amount.set(round(iva_amount, 2))
+                self.total.set(round(total, 2))
+
+            except ValueError:
+                pass
+
+        self.quantity.trace_add("write", recalc)
+        self.cost_price.trace_add("write", recalc)
+        self.iva_rate.trace_add("write", recalc)
+        self.discount.trace_add("write", recalc) 
+
+        # Botones
+        button_frame = ctk.CTkFrame(card_frame, fg_color="transparent")
+        button_frame.pack(pady=20)
+
+        add_button = ctk.CTkButton(button_frame, text="Agregar", width=120, height=35, font=ctk.CTkFont(size=12, weight="bold"),
+            fg_color="#4CAF50", hover_color="#45a049", command=lambda: self.controller.add_purchase_item(win=add_win, parent=parent))
+        add_button.grid(row=0, column=0, padx=10)
+
+        cancel_button = ctk.CTkButton(button_frame, text="Cancelar", width=120, height=35, font=ctk.CTkFont(size=12, weight="bold"),
+            fg_color="#757575", hover_color="#616161", command=add_win.destroy)
+        cancel_button.grid(row=0, column=1, padx=10)
+
+    def load_item_info(self, product_id):
+        product_data = self.stock_model.get_product_by_id(product_id)
+
+        self.product_id.set(product_data[0])
+        self.product_name.set(product_data[2])
+        self.product_pack.set(product_data[3])
+        self.cost_price.set(product_data[5])
+        self.iva_rate.set(product_data[7])
+
+    ## -- Busqueda de un producto -- ##
     def on_key_release(self, event):
         if self.search_after_id:
             self.search_entry.after_cancel(self.search_after_id)
@@ -208,272 +398,24 @@ class PurchaseForm():
             )
 
         self.product_tree.tag_configure('orow', background="white", foreground='black')   
+    
+    ## -- -- ##
 
-    def setup_product_variables(self):
-        # variables producto
-        self.name_product_var = tk.StringVar()
-        self.description_var = tk.StringVar()
-        self.brand_var = tk.StringVar()
-        self.price_var = tk.StringVar()
-        self.quantity_var = tk.StringVar()
-
-    def open_add_purchase_window(self, parent, supplier_cuit):
-        btn_color = "#009688"
-        btn_hover = "#00796B"
-
-        self.setup_purchase_variables(supplier_cuit)
-        actual_date = datetime.datetime.now()
-        formated_act_date = actual_date.strftime("%d/%m/%Y")
-
-        if supplier_cuit == "":
-            show_warning("Por favor seleccione un proveedor")
-            return
-
-        self.purchase_win = ctk.CTkToplevel(self.frame)
-        self.purchase_win.title("Registrar Compra")
-
-        # Modal
-        self.purchase_win.transient(parent)
-        self.purchase_win.grab_set()
-
-        # Config grid
-        self.purchase_win.columnconfigure(0, weight=0)
-        self.purchase_win.columnconfigure(1, weight=1)
-
-        # Cerrar ventana
-        self.purchase_win.protocol("WM_DELETE_WINDOW",
-                                lambda: close_win(self.purchase_win, parent))
-
-        # Centrar
-        self.purchase_win.geometry("500x450+{}+{}".format(
-            self.purchase_win.winfo_screenwidth()//2 - 240,
-            self.purchase_win.winfo_screenheight()//2 - 360
-        ))
-
-        # Título
-        title = ctk.CTkLabel(
-            self.purchase_win,
-            text="Nueva Compra",
-            font=ctk.CTkFont(size=18, weight="bold")
-        )
-        title.grid(row=0, column=0, columnspan=2, pady=30)
-
-        # CUIT proveedor
-        cuit_lbl = ctk.CTkLabel(
-            self.purchase_win,
-            text="Cuit Proveedor:",
-            font=ctk.CTkFont(size=14, weight="bold")
-        )
-        cuit_lbl.grid(row=1, column=0, padx=(20,10), pady=5)
-
-        cuit_entry = ctk.CTkEntry(
-            self.purchase_win,
-            textvariable=self.supplier_var,
-            width=230,
-            height=35,
-            font=ctk.CTkFont(size=14)
-        )
-        cuit_entry.grid(row=1, column=1, padx=(15,20), pady=5)
-        cuit_entry.configure(state="readonly")
-
-        # Fecha de vencimiento
-        exp_lbl = ctk.CTkLabel(self.purchase_win, text="Vencimiento:", font=ctk.CTkFont(size=14, weight="bold"))
-        exp_lbl.grid(row=2, column=0, padx=(20,10), pady=5)
-
-        exp_entry = ctk.CTkEntry(
-            self.purchase_win,
-            textvariable=self.exp,
-            width=230,
-            height=35
-        )
-        self.exp.set(formated_act_date)
-        exp_entry.grid(row=2, column=1, padx=(15,20), pady=5)
-
-        # Tipo de Comprobante
-        doc_lbl = ctk.CTkLabel(self.purchase_win, text="Tipo de Comprobante:", font=ctk.CTkFont(size=14, weight="bold"))
-        doc_lbl.grid(row=3, column=0, padx=(15,20), pady=5)
-
-        doc_combo = ctk.CTkComboBox(
-            self.purchase_win,
-            values=["FACTURA", "REMITO"],
-            variable=self.doc_type,
-            width=230,
-            state="readonly"            
-        )
-        doc_combo.set("FACTURA")
-        doc_combo.grid(row=3, column=1, padx=(15,20), pady=5)
-
-        # Observaciones
-        obs_lbl = ctk.CTkLabel(self.purchase_win, text="Observaciones:", font=ctk.CTkFont(size=14, weight="bold"))
-        obs_lbl.grid(row=4, column=0, padx=(20,10), pady=5)
-
-        obs_entry = ctk.CTkEntry(
-            self.purchase_win,
-            textvariable=self.obs,
-            width=230,
-            height=80
-        )
-        obs_entry.grid(row=4, column=1, padx=(15,20), pady=5)
-
-        # Estado de compra
-        state_lbl = ctk.CTkLabel(self.purchase_win, text="Estado:", font=ctk.CTkFont(size=14, weight="bold"))
-        state_lbl.grid(row=5, column=0, padx=(20,10), pady=5)
-
-        state_combo = ctk.CTkComboBox(
-            self.purchase_win,
-            values=["PENDIENTE", "PAGADA", "CANCELADA"],
-            variable=self.state,
-            width=230,
-            state="readonly"
-        )
-        state_combo.set("")
-        state_combo.grid(row=5, column=1, padx=(15,20), pady=5)
-
-        # Total
-        total_lbl = ctk.CTkLabel(self.purchase_win, text="Total:", font=ctk.CTkFont(size=14, weight="bold"))
-        total_lbl.grid(row=6, column=0, padx=(20,10), pady=5)
-
-        total_entry = ctk.CTkEntry(
-            self.purchase_win,
-            textvariable=self.total,
-            width=230
-        )
-        total_entry.grid(row=6, column=1, padx=(15,20), pady=5)
-
-        # Botón Guardar
-        save_btn = ctk.CTkButton(
-            self.purchase_win,
-            text="Continuar",
-            height=40,
-            fg_color=btn_color,
-            hover_color=btn_hover,
-            font=ctk.CTkFont(size=14, weight="bold"),
-            command=lambda: self.controller.register_purchase(self.purchase_win, parent)
-        )
-        save_btn.grid(row=7, column=0, columnspan=1, pady=20)
-
-        cancel_btn = ctk.CTkButton(
-            self.purchase_win,
-            text="Cancelar",
-            height=40,
-            fg_color="#E74C3C",
-            hover_color="#C0392B",
-            command=lambda: close_win(self.purchase_win, parent)
-        )
-        cancel_btn.grid(row=7, column=2, columnspan=1, pady=20)
-
-    def open_add_purchase_product(self, supplier_cuit, parent=None):
-
-        if supplier_cuit == "":
-            show_warning("Por favor seleccione un proveedor")
-            return
-        
-        """Ventana para agregar nuevo producto con CustomTkinter"""
-        add_win = ctk.CTkToplevel(parent if parent else self.frame)
-        add_win.title("Agregar nuevo artículo")
-        
-        # Hacer que la ventana sea modal
-        add_win.transient(parent)
-        add_win.grab_set()
-
-        # Centrar la ventana
-        add_win.geometry("400x600+{}+{}".format(
-            add_win.winfo_screenwidth()//2 - 200,
-            add_win.winfo_screenheight()//2 - 250
-        ))
-
-        # Título
-        title_label = ctk.CTkLabel(
-            add_win,
-            text="Nuevo Artículo",
-            font=ctk.CTkFont(size=18, weight="bold")
-        )
-        title_label.grid(row=0, column=0, columnspan=2, pady=(20, 20))
-        
-        # Campos del formulario
-        fields = [
-            ("Código:", self.stock_view.id_var),
-            ("Cuit Proveedor:", self.stock_view.cuit_supplier),
-            ("Nombre Artículo:", self.stock_view.name_var),
-            ("Precio Costo:", self.stock_view.price_var),
-            ("% Rentabilidad:", self.stock_view.profit_var),
-            ("Cantidad de Artículos:", self.stock_view.qnt_var)
-        ]
-
-        self.stock_view.cuit_supplier.set(supplier_cuit)
-
-        for i, (label_text, var) in enumerate(fields, start=0):
-            label = ctk.CTkLabel(add_win, text=label_text, font=ctk.CTkFont(size=12))
-            label.grid(row=i+1, column=0, padx=20, pady=10, sticky="w")
-            
-            entry = ctk.CTkEntry(
-                add_win,
-                textvariable=var,
-                width=200,
-                height=35,
-                font=ctk.CTkFont(size=12)
-            )
-            entry.grid(row=i+1, column=1, padx=20, pady=10)
-
-        # Combobox para Envase
-        pack_label = ctk.CTkLabel(add_win, text="Envase:", font=ctk.CTkFont(size=12))
-        pack_label.grid(row=7, column=0, padx=20, pady=10, sticky="w")
-        
-        pack_combo = ctk.CTkComboBox(
-            add_win,
-            values=["UNIDAD", "CAJA", "FRASCO", "AMPOLLA", "SOBRE", "OTRO"],
-            variable=self.stock_view.pack_var,
-            width=200,
-            height=35,
-            font=ctk.CTkFont(size=12),
-            state="readonly"
-        )
-        pack_combo.set("UNIDAD")
-        pack_combo.grid(row=7, column=1, padx=20, pady=10)
-
-        # Combobox para IVA
-        iva_label = ctk.CTkLabel(add_win, text="% Iva:", font=ctk.CTkFont(size=12))
-        iva_label.grid(row=8, column=0, padx=20, pady=10, sticky="w")
-        
-        iva_combo = ctk.CTkComboBox(
-            add_win,
-            values=["21%", "10.5%", "0%"],
-            variable=self.stock_view.iva_var,
-            width=200,
-            height=35,
-            font=ctk.CTkFont(size=12),
-            state="readonly"
-        )
-        iva_combo.set("21%")
-        iva_combo.grid(row=8, column=1, padx=20, pady=10)
-
-        # Botones
-        button_frame = ctk.CTkFrame(add_win, fg_color="transparent")
-        button_frame.grid(row=9, column=0, columnspan=2, pady=30)
-
-        add_button = ctk.CTkButton(button_frame, text="Agregar", width=120, height=35, font=ctk.CTkFont(size=12, weight="bold"),
-            fg_color="#4CAF50", hover_color="#45a049", command=lambda: self.controller.add_supplier_product())
-        add_button.grid(row=0, column=0, padx=10)
-
-        cancel_button = ctk.CTkButton(button_frame, text="Cancelar", width=120, height=35, font=ctk.CTkFont(size=12, weight="bold"),
-            fg_color="#757575", hover_color="#616161", command=add_win.destroy)
-        cancel_button.grid(row=0, column=1, padx=10)
-
-    def clear_purchase_form(self):
-        """Limpiar formulario de compra"""
-        self.supplier_var.set('')
-        self.exp.set('')
-        self.doc_type.set('')
-        self.total.set('')
-        self.obs.set('')
-        self.state.set('')
-
-    def get_purchase_data(self):
+    def get_purchase_item_data(self):
         return{
-            'supplier_cuit': self.supplier_var.get().strip(),
-            'expiration': self.exp.get().strip(),
-            'doc_type': self.doc_type.get().strip(),
-            'observations': self.obs.get().strip(),
-            'state': self.state.get().strip(), 
-            'total': self.total.get().strip(),
+            'purchase_id': self.purchase_id.get().strip(),
+            'product_id': self.product_id.get().strip(),
+            'product_name': self.product_name.get().strip(),
+            'pack': self.product_pack.get().strip(),
+            'qty': self.quantity.get().strip(), 
+            'cost': self.cost_price.get().strip(),
+            'iva_rate': self.iva_rate.get().strip(),
+            'discount': self.discount.get().strip(),
+            'discount_amount': self.discount_amount.get().strip(),
+            'subtotal': self.subtotal.get().strip(),
+            'iva_amount': self.iva_amount.get().strip(),
+            'total': self.total.get().strip()
         }
+    
+    def get_product_data(self):
+        pass

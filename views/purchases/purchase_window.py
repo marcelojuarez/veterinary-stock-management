@@ -21,14 +21,14 @@ class PurchaseWindow():
         self.receipt_form = SupplierReceiptForm(self, frame, self.supplier_view)
 
         self.purchase_info = PurchaseInfo(self.model)
-
-        # controlador
-        self.controller = PurchaseController(self.model, self, self.purchase_info)
-        self.purchase_info.set_controller(self.controller)
-
         self.purchase_form = PurchaseForm(self.model)
 
+        # Set controller
+        self.controller = PurchaseController(self.model, self, self.purchase_info, self.purchase_form)
 
+        self.purchase_info.set_controller(self.controller)
+        self.purchase_form.set_controller(self.controller)
+    
     def open_purchase_window(self, parent):
 
         btn_color = "#009688"
@@ -164,6 +164,19 @@ class PurchaseWindow():
         )
         update_stock_btn.grid(row=0, column=2, padx=5, pady=10)
 
+        # boton para ver el detalle de una compra
+        delete_purchase_btn = ctk.CTkButton(
+            buttons_frame,
+            text="Eliminar Registro de Compra",
+            fg_color="#2980B9",
+            hover_color="#0B5D94",
+            height=40,
+            width=90,            
+            font=ctk.CTkFont(size=14, weight="bold"),
+            command=self.delete_purchase
+        )
+        delete_purchase_btn.grid(row=0, column=3, padx=(5,15), pady=10)
+
         # boton Cerrar
         close_win_btn = ctk.CTkButton(
             buttons_frame,
@@ -178,6 +191,32 @@ class PurchaseWindow():
         close_win_btn.grid(row=0, column=4, padx=5, pady=10)
 
         self.load_purchases(False)
+
+    ## -- Eliminar un registro de compra (BORRADOR) -- ##
+    def delete_purchase(self):
+        try:
+            selected = self.purchase_tree.selection()
+            if not selected:
+                show_error('Por favor seleccione un Registro de Compra')
+                return 
+            
+            iid = selected[0]
+            values = self.purchase_tree.item(iid, "values")
+
+            print(values)
+            if values[5] != 'BORRADOR':
+                show_error('Error. No puede eliminar una compra ya confirmada.') 
+                return
+            
+            self.controller.delete_purchase(purchase_id=values[0], doc_type=values[2])
+
+        except ValueError as e:
+            print(f'Error al obtener la compra: {e}')
+            return
+
+    ## -- -- ##
+
+    ## -- Ventana para agregar productos a una compra -- ##
 
     def open_add_item_win(self, parent):
         try:
@@ -197,6 +236,9 @@ class PurchaseWindow():
 
         except ValueError as e:
             print(f'Error al obtener la compra: {e}')
+            return
+    
+    ## -- -- ##
 
     ## -- Tipo de comprobante -- ##
 

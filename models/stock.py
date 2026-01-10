@@ -7,7 +7,7 @@ class StockModel:
     def get_all_products(self):
         """Obtener todos los productos del stock"""
         query = """
-            SELECT id, cuit_supplier, name, pack, profit, cost_price, price, iva, 
+            SELECT id, name, pack, profit, cost_price, price, iva, 
                    price_with_iva, created_at, last_price_update, quantity
             FROM stock 
             ORDER BY name
@@ -22,28 +22,21 @@ class StockModel:
     def get_product_by_id(self, product_id):
         """Obtener un producto por su ID"""
         query = """
-            SELECT id, cuit_supplier, name, pack, profit, cost_price, price, iva, 
+            SELECT id, name, pack, profit, cost_price, price, iva, 
                    price_with_iva, created_at, last_price_update, quantity
             FROM stock 
             WHERE id = ?
         """
         return db.fetch_one(query, (product_id,))
-    
-    def get_all_products_by_cuit(self, supplier_cuit):
-        query = """
-            SELECT * FROM stock where cuit_supplier = ?
-        """
-        return db.fetch_all(query, (supplier_cuit,))
         
     def add_product(self, product_data):
         """Agregar un nuevo producto"""
         query = """
             INSERT INTO stock 
-            (cuit_supplier, name, pack, profit, cost_price, price, iva, price_with_iva, quantity) 
+            (name, pack, profit, cost_price, price, iva, price_with_iva, quantity) 
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """
         params = (
-            product_data['Cuit_supplier'],
             product_data['Name'],
             product_data['Package'],
             product_data['Profit'],
@@ -109,7 +102,7 @@ class StockModel:
     def search_products(self, search_term):
         """Buscar productos por nombre, ID o envase"""
         query = """
-            SELECT id, cuit_supplier, name, pack, profit, cost_price, price, iva, 
+            SELECT id, name, pack, profit, cost_price, price, iva, 
                    price_with_iva, created_at, last_price_update, quantity
             FROM stock 
             WHERE name LIKE ? OR id LIKE ? OR pack LIKE ?
@@ -123,7 +116,7 @@ class StockModel:
         try: 
             with self.db.cursor() as cursor:
                 cursor.execute(
-                    "SELECT id, cuit_supplier, name, pack, quantity FROM stock WHERE quantity < ? ORDER BY quantity", 
+                    "SELECT id, name, pack, quantity FROM stock WHERE quantity < ? ORDER BY quantity", 
                     (threshold,)
                 )
                 return cursor.fetchall()

@@ -23,10 +23,6 @@ class StockController:
             # Obtener datos del formulario
             form_data = self.view.get_form_data()
 
-            print(form_data)
-
-            print(f'Supplier cuit tiene {form_data['Cuit_supplier']}')
-
             # Validaciones
             if not self._validate_form_data(form_data):
                 return
@@ -41,7 +37,6 @@ class StockController:
             sale_price = cost_price * (1 + profit / 100)
 
             product_data = {
-                'Cuit_supplier': form_data['Cuit_supplier'],
                 'Name': (form_data['Name']).upper(),
                 'Package': form_data['Package'],
                 'Profit': profit,
@@ -57,7 +52,7 @@ class StockController:
                 product_data['PriceWIva'] = round(product_data['SalePrice'] * 1.105, 2)
             else:
                 product_data['PriceWIva'] = product_data['SalePrice']
-
+ 
             # Guardar en DB
             self.stock_model.add_product(product_data)
 
@@ -74,7 +69,6 @@ class StockController:
 
         except Exception as e:
             self.view.show_error(f"Error al registrar producto: {str(e)}")
-
 
     def delete_product(self):
         """Eliminar producto seleccionado"""
@@ -146,7 +140,6 @@ class StockController:
             # Mapeo de nombres de columnas a nombres de BD
             field_mapping = {
                 'Name': 'name',
-                'Cuit_supplier': 'cuit_supplier',
                 'Package': 'pack',
                 'Profit': 'profit', 
                 'Price': 'price',
@@ -216,7 +209,6 @@ class StockController:
 
         complete_product_data = {
             'Name': product_data['Name'],
-            'Cuit_supplier': product_data['Cuit_supplier'],
             'Package': product_data['Package'],
             'Profit': new_profit,
             'CostPrice': new_cost,
@@ -237,6 +229,7 @@ class StockController:
     def refresh_stock_table(self):
         """Refrescar tabla de stock"""
         try:
+            print('Se Refresca la tabla')
             products = self.stock_model.get_all_products()
             self.all_products = products
             self.view.refresh_stock_table(products)
@@ -245,7 +238,7 @@ class StockController:
     
     def _validate_form_data(self, form_data):
         """Validar datos del formulario"""
-        required_fields = ['Id', 'Cuit_supplier', 'Name', 'Package', 'Profit', 'CostPrice', 'Stock']
+        required_fields = ['Id', 'Name', 'Package', 'Profit', 'CostPrice', 'Stock']
         
         for field in required_fields:
             if not form_data[field]:

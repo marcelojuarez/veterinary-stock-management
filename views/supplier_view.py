@@ -365,8 +365,8 @@ class SupplierView():
         info_win.grid_columnconfigure(1, weight=1)
 
         # --- Tksheet con productos ---
-        products = self.stock_model.get_all_products_by_cuit(supplier[2])
-        products = [(p[0], p[2], p[3], p[9]) for p in products]
+        products = self.model.purchase.get_all_products_by_supplier_id(supplier_id=supplier[0])
+        products = [(p[0], p[1], p[2], p[5]) for p in products]
 
         sheet = Sheet(info_win)
         sheet.grid(row=0, column=0, sticky="nsew", padx=10, pady=(10, 0))

@@ -28,9 +28,11 @@ class StockView():
         """Asignar controller después de la inicialización"""
         self.controller = controller
         
-    def setup_variables(self):
+    def setup_variables(self, supplier_cuit):
         """Configurar variables del formulario"""
         self.cuit_supplier = tk.StringVar()
+        self.cuit_supplier.set(supplier_cuit)
+
         self.name_var = tk.StringVar()
         self.pack_var = tk.StringVar()
         self.profit_var = tk.StringVar()
@@ -49,7 +51,6 @@ class StockView():
             self.qnt_var,
         ]
 
-    
     def create_widgets(self):
         """Crear todos los widgets de la vista"""
         self.create_find_frame()
@@ -74,7 +75,7 @@ class StockView():
             font=ctk.CTkFont(size=12, weight="bold"),
             fg_color=btn_color,
             hover_color=btn_hover,
-            command=lambda: self.open_add_window(manage_frame)
+            #command=lambda: self.open_add_window(manage_frame)
         )
         
         update_btn = ctk.CTkButton(
@@ -152,7 +153,7 @@ class StockView():
             font=ctk.CTkFont(size=15, weight="bold"),
             fg_color=btn_color,
             hover_color=btn_hover,
-            command=lambda: show_warning("Ingrese un NOMBRE, CUIT o ENVASE para buscar un Producto")
+            command=lambda: show_warning("Ingrese un NOMBRE, o ENVASE para buscar un Producto")
         )
         find_btn.grid(row=0, column=2, padx=15, pady=15)
 
@@ -202,7 +203,7 @@ class StockView():
         self.stock_tree.configure(yscrollcommand=scrollbar.set)
 
         self.stock_tree['columns'] = (
-            "Id", "SupplierCuit","Name", "Package", "Profit", "CostPrice", "SalePrice",
+            "Id", "Name", "Package", "Profit", "CostPrice", "SalePrice",
             "Iva", "SalePriceWithIva", "ValidityDate", "LastPriceUpdate", "Stock"
         )
 
@@ -210,7 +211,6 @@ class StockView():
 
         # Definición de columnas
         self.stock_tree.column("Id", anchor=tk.W, width=60, stretch=False)
-        self.stock_tree.column("SupplierCuit", anchor=tk.W, width=150, stretch=False)
         self.stock_tree.column("Name", anchor=tk.W, width=250, stretch=False)
         self.stock_tree.column("Package", anchor=tk.W, width=120, stretch=False)
         self.stock_tree.column("Profit", anchor=tk.CENTER, width=80, stretch=False)
@@ -225,8 +225,6 @@ class StockView():
         # Encabezados
         self.stock_tree.heading("Id", text="Cód. ↕", anchor=tk.W,
                                 command=lambda: self.sort_tree("Id"))
-        self.stock_tree.heading("SupplierCuit", text="Cuit Proveedor ↕", anchor=tk.W,
-                                command=lambda: self.sort_tree("SupplierCuit"))
         self.stock_tree.heading("Name", text="Nombre Artículo ↕", anchor=tk.W,
                                 command=lambda: self.sort_tree("Name"))
         self.stock_tree.heading("Package", text="Envase ↕", anchor=tk.W,
@@ -261,13 +259,13 @@ class StockView():
 
         self.stock_tree.grid(row=0, column=0, sticky="nsew")
 
-    def open_add_window(self, parent):
+    def open_add_window(self, parent, supplier_cuit):
         """Ventana para agregar nuevo producto con CustomTkinter"""
         add_win = ctk.CTkToplevel(self.frame)
         add_win.title("Agregar nuevo artículo")
 
         # se configuran las string vars
-        self.setup_variables()
+        self.setup_variables(supplier_cuit)
         
         # Hacer que la ventana sea modal
         add_win.transient(self.frame)
@@ -289,7 +287,6 @@ class StockView():
         
         # Campos del formulario
         fields = [
-            ("Cuit Proveedor:", self.cuit_supplier),
             ("Nombre Artículo:", self.name_var),
             ("Precio Costo:", self.price_var),
             ("% Rentabilidad:", self.profit_var),
@@ -685,7 +682,6 @@ class StockView():
     def get_form_data(self):
         """Obtener datos del formulario"""
         return {
-            'Cuit_supplier': self.cuit_supplier.get().strip(),
             'Name': self.name_var.get().strip(),
             'Package': self.pack_var.get().strip(),
             'Profit': self.profit_var.get().strip(),
@@ -838,7 +834,7 @@ class StockView():
             self.stock_tree.delete(item)
         
         for product in products:  
-            (id, cuit_supplier, name, pack, profit, cost_price, price, 
+            (id, name, pack, profit, cost_price, price, 
             iva, price_with_iva, created_at, last_price_update, quantity) = product
 
             # Decidir el tag según stock
@@ -852,14 +848,13 @@ class StockView():
             # Insertar en la Treeview
             self.stock_tree.insert(
                 "", "end", 
-                values=(id, cuit_supplier, name, pack, profit, cost_price, price, iva, price_with_iva, 
+                values=(id, name, pack, profit, cost_price, price, iva, price_with_iva, 
                         created_at, last_price_update, quantity), 
                 tags=(tag,)
             )
 
         if self.sort_column:
             self.sort_tree(self.sort_column)
-
 
     def show_success(self, message):
         """Mostrar mensaje de éxito"""
@@ -936,7 +931,6 @@ class StockView():
         
         column_texts = {
             "Id": "Cód.",
-            "SupplierCuit": "Cuit Proveedor",
             "Name": "Nombre Artículo",
             "Package": "Envase",
             "Profit": "% Rent.",

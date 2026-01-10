@@ -35,9 +35,7 @@ class SupplierReceiptForm():
 
         self.receipt_win = ctk.CTkToplevel(self.frame)
         self.receipt_win.title("Registrar nuevo Remito")
-        self.receipt_win.geometry("500x520")
-        self.receipt_win.transient(parent)
-        self.receipt_win.grab_set()
+        self.receipt_win.withdraw()
         self.receipt_win.protocol("WM_DELETE_WINDOW",
                                 lambda: close_win(self.receipt_win, parent))
 
@@ -132,6 +130,24 @@ class SupplierReceiptForm():
             command=lambda: close_win(self.receipt_win, parent, self.clear_receipt_form)
         )
         cancel_btn.grid(row=0, column=1, padx=15)
+
+        # centrar ventana
+        
+        width_win = 500
+        height_win = 520
+
+        x_root = parent.winfo_x() 
+        y_root = parent.winfo_y()
+        width_root = parent.winfo_width()
+        height_root = parent.winfo_height()
+
+        x = x_root + (width_root // 2) - (width_win // 2)
+        y = y_root + (height_root // 2) - (height_win // 2)
+
+        self.receipt_win.geometry(f"{width_win}x{height_win}+{x}+{200}")
+        self.receipt_win.deiconify()
+        self.receipt_win.transient(parent)
+        self.receipt_win.grab_set()
 
     def clear_receipt_form(self):
         """Limpiar formulario de factura"""

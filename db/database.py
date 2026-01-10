@@ -49,7 +49,6 @@ class Database:
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS stock (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                cuit_supplier TEXT,
                 name TEXT NOT NULL,
                 pack TEXT NOT NULL,
                 profit REAL NOT NULL,
@@ -123,8 +122,8 @@ class Database:
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     supplier_id INTEGER,
                     document_type TEXT,
-                    invoice_id TEXT NULL,
-                    receipt_id TEXT NULL,
+                    invoice_id INTEGER NULL,
+                    receipt_id INTEGER NULL,
                     date TEXT DEFAULT CURRENT_DATE,
                     expiration_date TEXT NULL,
                     state TEXT,
@@ -142,17 +141,20 @@ class Database:
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     purchase_id INTEGER NOT NULL,
                     product_id INTEGER NOT NULL,
+                    product_name TEXT NOT NULL,
+                    pack TEXT NOT NULL,
 
-                    quantity REAL NOT NULL,
-                    unit_cost REAL NOT NULL,
+                    quantity INTEGER NOT NULL,
+                    cost_price REAL NOT NULL,
                     iva_rate REAL NOT NULL,
                     discount REAL DEFAULT 0,
+                    discount_amount REAL DEFAULT 0,
 
                     subtotal REAL NOT NULL,
                     iva_amount REAL NOT NULL,
                     total REAL NOT NULL,
 
-                    FOREIGN KEY (purchase_id) REFERENCES purchase(id),
+                    FOREIGN KEY (purchase_id) REFERENCES purchase(id) ON DELETE CASCADE,
                     FOREIGN KEY (product_id) REFERENCES stock(id)
                 );
             ''')

@@ -260,20 +260,25 @@ class PurchaseInfo():
             table_frame = ctk.CTkFrame(main_frame, corner_radius=10)
             table_frame.pack(fill="both", expand=True, padx=10, pady=5)
 
+            data = self.model.purchase.get_purchase_items(purchase_id=values[0])
+            print(f'Purchase items: {data}')
+            headers = ["Id", "Nombre", "Envase", "Cantidad", "Precio Unidad", "Porc. Iva", "Descuento", 
+                       "Monto Descuento", "Subtotal", "Monto Iva", "Total"]
+
             sheet = Sheet(
                 table_frame,
-                # data=data,
-                # headers=headers,
-                show_x_scrollbar=False,
+                data=data,
+                headers=headers,
+                show_x_scrollbar=True,
                 show_y_scrollbar=True
             )
-            # sheet.enable_bindings((
-            #     "single_select",
-            #     "row_select",
-            #     "column_width_resize",
-            #     "double_click_column_resize",
-            # ))
-            # sheet.set_column_widths([100, 150, 200])
+            sheet.enable_bindings((
+                "single_select",
+                "row_select",
+                "column_width_resize",
+                "double_click_column_resize",
+            ))
+            sheet.set_column_widths([50, 220, 100, 80, 100, 100, 100, 150, 100, 100, 100])
             sheet.pack(fill="both", expand=True, padx=5, pady=5)
 
             btn_frame = ctk.CTkFrame(main_frame, height=50, fg_color="white")
@@ -307,6 +312,16 @@ class PurchaseInfo():
             )
             self.edit_btn.grid(row=0, column=1, padx=10)
 
+            self.print_info = ctk.CTkButton(
+                btn_frame,
+                text="Imprimir Detalle",
+                fg_color="#0B9E97",
+                hover_color="#087E78",
+                font=ctk.CTkFont(size=13, weight="bold"),
+                command= None
+            )
+            self.print_info.grid(row=0, column=2, padx=10)
+
             close_btn = ctk.CTkButton(
                 btn_frame,
                 text="Cerrar",
@@ -316,7 +331,7 @@ class PurchaseInfo():
                 width=120,
                 command=lambda: close_win(purchase_info, parent, parent.focus_force)
             )
-            close_btn.grid(row=0, column=2, padx=10)
+            close_btn.grid(row=0, column=3, padx=10)
 
             x_root = parent.winfo_x()
             y_root = parent.winfo_y()
@@ -357,6 +372,8 @@ class PurchaseInfo():
 
         # Guardar valores anteriores
         self.save_previous_values(doc_type)
+
+        self.print_info.configure(state='disabled')
 
         # Habilita el boton de cancelar edicion
         self.edit_btn.configure(
@@ -399,6 +416,8 @@ class PurchaseInfo():
             self.save_btn.configure(fg_color="#3A3251")
             self.save_btn.configure(hover_color="#3A3251")    
 
+            self.print_info.configure(state='normal')
+
     # Guardar valores anteriores de campos
     def save_previous_values(self, doc_type):
 
@@ -422,6 +441,8 @@ class PurchaseInfo():
 
     # Recuperar valores previos de los campos
     def recover_previous_values(self, purchase_id, doc_type):
+
+        self.print_info.configure(state='normal')
 
         # Recuperar boton de edicion
         self.edit_btn.configure(
