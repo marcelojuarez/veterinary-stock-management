@@ -72,6 +72,10 @@ class Database:
                     cuit TEXT UNIQUE,
                     domicilio TEXT,
                     telefono TEXT UNIQUE,
+                    cv TEXT,
+                    cuig TEXT,
+                    renspa TEXT,
+                    establecimiento TEXT,
                     condicion_iva TEXT DEFAULT 'Consumidor Final'
                 )
             ''')
