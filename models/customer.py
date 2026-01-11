@@ -45,14 +45,18 @@ class CustomerModel:
     def add_customer(self, customer_data):
         # Agregar nuevo cliente a la base de datos
         query = """
-            INSERT INTO clientes (nombre, cuit, domicilio, telefono)
-            VALUES(?, ?, ?, ?)
+            INSERT INTO clientes (nombre, cuit, domicilio, telefono, cv, cuig, renspa, establecimiento)
+            VALUES(?, ?, ?, ?, ?, ?, ?, ?)
         """
         params = [
             customer_data['nombre'].upper(),
             customer_data['cuit'],
             customer_data['domicilio'].upper(),
-            customer_data['telefono']
+            customer_data['telefono'],
+            customer_data.get('cv', ''),
+            customer_data.get('cuig', ''),
+            customer_data.get('renspa', ''),
+            customer_data.get('establecimiento', '').upper(),
         ]
         try:
             return db.execute_query(query, params)
@@ -160,15 +164,13 @@ class CustomerModel:
 
         return round(total_pending, 2)
 
-
-
     def get_customer_account_history(self, cliente_id):
         """
         Obtiene el historial completo de cuenta del cliente.
         """
         movements = []
         
-        # 1. VENTAS
+        # 1. VENTAS - Sin payment_method (no existe en tu tabla)
         sales_query = """
             SELECT 
                 s.id,
@@ -178,7 +180,8 @@ class CustomerModel:
                     THEN s.total_cerrado
                     ELSE COALESCE(SUM(si.quantity * st.price_with_iva), 0)
                 END AS monto,
-                s.estado
+                s.estado,
+                COALESCE(SUM(si.quantity), 0) AS cant_productos
             FROM sales s
             LEFT JOIN sale_items si ON si.sale_id = s.id
             LEFT JOIN stock st ON st.id = si.product_id
@@ -186,19 +189,36 @@ class CustomerModel:
             GROUP BY s.id
         """
         sales = self.db.fetch_all(sales_query, (cliente_id,))
-        
-        for sale_id, fecha, monto, estado in sales:
-            estado_txt = {"pending": "Pendiente", "partial": "Parcial", "paid": "Pagada"}.get(estado, estado)
-            movements.append({
-                "fecha": fecha,
-                "tipo": "VENTA",
-                "descripcion": f"Venta #{sale_id} ({estado_txt})",
-                "debe": round(float(monto), 2),
-                "haber": 0.0,
-                "ref_id": sale_id
-            })
-        
-        # 2. PAGOS
+
+        for sale_id, fecha, monto, estado, cant_prod in sales:
+            cant_prod = int(cant_prod) if cant_prod else 0
+            prod_txt = f"{cant_prod} {'producto' if cant_prod == 1 else 'productos'}"
+            monto = round(float(monto), 2)
+            
+            if estado == "paid":
+                # Venta pagada al contado - NO suma a deuda, solo informativo
+                movements.append({
+                    "fecha": fecha,
+                    "tipo": "CONTADO",
+                    "descripcion": f"Venta #{sale_id} · {prod_txt} · Contado",
+                    "debe": 0.0,      # NO suma a deuda
+                    "haber": 0.0,     # NO suma a pagos de cta cte
+                    "monto_ref": monto,  # Solo para mostrar en columna Contado
+                    "ref_id": sale_id
+                })
+            else:
+                estado_txt = "Pago parcial" if estado == "partial" else "Pendiente"
+                movements.append({
+                    "fecha": fecha,
+                    "tipo": "COMPRA",
+                    "descripcion": f"Venta #{sale_id} · {prod_txt} · {estado_txt}",
+                    "debe": monto,
+                    "haber": 0.0,
+                    "monto_ref": 0.0,
+                    "ref_id": sale_id
+                })
+                        
+        # 2. PAGOS - Excluir pagos de ventas al contado
         payments_query = """
             SELECT 
                 p.id,
@@ -208,18 +228,32 @@ class CustomerModel:
                 p.sale_id,
                 p.notes
             FROM payments p
+            LEFT JOIN sales s ON s.id = p.sale_id
             WHERE p.client_id = ?
+            AND (
+                p.sale_id IS NULL 
+                OR s.estado IN ('pending', 'partial')
+            )
         """
         payments = self.db.fetch_all(payments_query, (cliente_id,))
-        
+
         for pay_id, fecha, monto, method, sale_id, notes in payments:
-            method_txt = method or "Sin especificar"
+            method_map = {
+                "cash": "Efectivo",
+                "transfer": "Transferencia", 
+                "card": "Tarjeta",
+                "efectivo": "Efectivo",
+                "transferencia": "Transferencia"
+            }
+            method_txt = method_map.get(method.lower(), method.capitalize()) if method else "Efectivo"
+            
+            # Construir descripción clara
             if notes and "Global" in notes:
-                desc = f"Pago Global ({method_txt}) - Venta #{sale_id}"
+                desc = f"Pago a cuenta · {method_txt}"
             elif sale_id:
-                desc = f"Pago {method_txt} - Venta #{sale_id}"
+                desc = f"Pago Venta #{sale_id} · {method_txt}"
             else:
-                desc = f"Pago {method_txt}"
+                desc = f"Pago a cuenta · {method_txt}"
                 
             movements.append({
                 "fecha": fecha,
@@ -230,8 +264,7 @@ class CustomerModel:
                 "ref_id": pay_id
             })
         
-        # 3. CRÉDITOS - Solo los que NO son por sobrepago (AJUSTE)
-        # Los créditos por sobrepago ya están reflejados en el pago
+        # 3. CRÉDITOS (igual que antes)
         credits_query = """
             SELECT 
                 cc.id,
@@ -249,20 +282,23 @@ class CustomerModel:
         for credit_id, fecha, monto, reason, sale_id in credits:
             monto = float(monto)
             if monto > 0:
+                desc = f"Nota de crédito · {reason}" if reason else "Saldo a favor generado"
                 movements.append({
                     "fecha": fecha,
                     "tipo": "CRÉDITO",
-                    "descripcion": reason or "Saldo a favor",
+                    "descripcion": desc,
                     "debe": 0.0,
                     "haber": round(monto, 2),
                     "ref_id": credit_id
                 })
             else:
-                # Uso de crédito (monto negativo)
+                desc = f"Aplicación de saldo a favor"
+                if sale_id:
+                    desc += f" · Venta #{sale_id}"
                 movements.append({
                     "fecha": fecha,
                     "tipo": "USO CRÉDITO",
-                    "descripcion": reason or "Uso de saldo a favor",
+                    "descripcion": desc,
                     "debe": round(abs(monto), 2),
                     "haber": 0.0,
                     "ref_id": credit_id
