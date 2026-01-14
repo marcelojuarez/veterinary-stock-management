@@ -5,12 +5,15 @@ from views.view_helpers import show_warning, show_error, show_success
 import re
 
 class SupplierController():
-    def __init__(self, view, stock_controller):
-        self.model = view.model
+    def __init__(self):
+        self.view = None
+        self.model = None
+
+    def set_view(self, view):
         self.view = view
-        self.stock_model = StockModel()
-        self.stock_controller = stock_controller
-        self.stock_view = self.view.stock_view
+
+    def set_model(self, model):
+        self.model = model
 
     def add_new_supplier(self, window=None):
         """Guardar nuevo proveedor"""
@@ -151,6 +154,7 @@ class SupplierController():
     def refresh_supplier_table(self):
         """Refrescar la tabla de proveedores"""
         try:    
+            print('Se refresca la tabla')
             self.view.suppliers = self.model.core.get_all_suppliers()
             self.view.refresh_supplier_table(self.view.suppliers)
         except Exception as e:

@@ -1,12 +1,31 @@
 from views.view_helpers import show_error, show_warning, show_success, close_win
 from datetime import datetime
+from models.stock import StockModel
 
 class PurchaseController():
-    def __init__(self, model, view, info_view, form_view):
+    def __init__(self):
+        self.model = None
+        self.view = None
+        self.form_view = None
+        self.info_view = None
+        self.event_bus = None
+        self.stock_model = StockModel()
+
+    # setters
+    def set_model(self, model):
         self.model = model
+
+    def set_view(self, view):
         self.view = view
-        self.form_view = form_view
+
+    def set_info_view(self, info_view):
         self.info_view = info_view
+
+    def set_form_view(self, form_view):
+        self.form_view = form_view
+
+    def set_event_bus(self, event_bus):
+        self.event_bus = event_bus
 
     # Confirmar Compra
     def confirm_purchase(self, purchase_id):
@@ -27,14 +46,17 @@ class PurchaseController():
             else:
                 id = purchase_data[3]
 
-            self.model.purchase.load_products_and_set_initial_debt(purchase_id, id, doc_type, debt)
+            result = self.model.purchase.load_products_and_set_initial_debt(purchase_id, id, doc_type, debt)
 
-            # Refrescar lista con proveedor seleccionado o no
-            if self.view.supplier_var.get().strip() == "":
-                self.view.load_purchases(False)
-            
-            else:
-                self.view.load_purchases(True)
+            if result:
+                # Refrescar lista con proveedor seleccionado o no
+                if self.view.supplier_var.get().strip() == "":
+                    self.view.load_purchases(False)
+                
+                else:
+                    self.view.load_purchases(True)
+
+                self.event_bus.publish('refresh_table', None)
                 
         except ValueError as e:
             show_error(f'Error al confirmar la compra: {e}')
@@ -127,7 +149,76 @@ class PurchaseController():
         except:
             return False
         
-    #
+    def add_new_product(self, window=None):
+        """Guardar nuevo producto"""
+        try:
+            # Obtener datos del formulario
+            form_data = self.form_view.get_new_product_data()
+
+            # Validaciones
+            if not self.validate_new_product_data(form_data):
+                return
+
+            profit = float(form_data['Profit'])
+            cost_price = float(form_data['CostPrice'])
+            sale_price = float(form_data['SalePrice'])
+            price_w_iva = float(form_data['PriceWIva'])
+
+            # ciertos campos se setean primeramente con el valor 0(cero)
+            product_data = {
+                'Name': (form_data['Name']).upper(),
+                'Package': form_data['Package'],
+                'Profit': profit,
+                'CostPrice': cost_price,
+                'Iva': form_data['Iva'],
+                'Stock': int(form_data['Stock']),
+                'SalePrice': sale_price,
+                'PriceWIva': price_w_iva,
+            }
+ 
+            # Guardar en DB
+            self.model.purchase.add_product(product_data)
+
+            if window:
+                window.destroy()
+            
+            # Refrescar tabla
+            self.event_bus.publish('refresh_table', None)
+
+            products = self.stock_model.get_all_products()
+            self.form_view.products = [(p[0], p[1], p[2], p[10]) for p in products]
+
+            self.form_view.load_products()
+            
+            show_success("Producto registrado correctamente")
+            
+        except ValueError as e:
+            show_error(f"Error en los datos: {str(e)}")
+
+        except Exception as e:
+            show_error(f"Error al registrar producto: {str(e)}")
+        
+    def validate_new_product_data(self, form_data):
+        """Validar datos del formulario"""
+        required_fields = ['Name', 'Package', 'Profit', 'CostPrice', 'Stock']
+        
+        for field in required_fields:
+            if not form_data[field]:
+                self.view.show_warning("Por favor complete todos los campos")
+                return False
+        
+        # Validar tipos numéricos
+        try:
+            float(form_data['CostPrice'])
+            int(form_data['Stock'])
+        except ValueError:
+            self.view.show_warning("Los precios y cantidad deben ser números válidos")
+            return False
+    
+        return True
+
+    ## -- Agregar un nuevo item de compra -- ##
+
     def add_purchase_item(self, win, parent):
         try:
             item_data = self.form_view.get_purchase_item_data()
@@ -160,6 +251,9 @@ class PurchaseController():
             show_error(f'Error al cargar item de compra: {e}')
             return 
     
+    ## -- -- ##
+
+    ## -- Validar el formulario de un item de compra -- ##
     def validate_purchase_item_data(cls, data):
         required_fields = {
             'purchase_id' : 'Id Compra',
@@ -187,12 +281,17 @@ class PurchaseController():
     
         return True
 
+    ## -- -- ##
+
     @staticmethod    
     def is_int(n):
         try: int(n); return True
         except:
             return False
         
+
+    ## -- Eliminar un registro de compra -- ##    
+
     def delete_purchase(self, purchase_id, doc_type):
         
         purchase_data = self.model.purchase.get_purchase_by_id(purchase_id)

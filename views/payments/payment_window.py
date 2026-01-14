@@ -12,13 +12,17 @@ ctk.set_appearance_mode("light")  # "light" o "dark"
 ctk.set_default_color_theme("blue")  # "blue", "green", "dark-blue"
 
 class PaymentWindow():
-    def __init__(self, model, supplier_view, frame):
+    def __init__(self, model, frame, supplier_view, controller):
         self.model = model
         self.frame = frame
         self.supplier_view = supplier_view
 
         self.payment_form = PaymentForm(self, model, frame)
-        self.controller = PaymentController(self.payment_form, self, self.model)
+
+        self.controller = controller
+        self.controller.set_pay_view(self)
+        self.controller.set_form_view(self.payment_form)
+
         self.payment_form.set_controller(self.controller)
 
         self.payment_info = PaymentInfo(self.model)

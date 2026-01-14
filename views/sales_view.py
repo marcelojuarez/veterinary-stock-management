@@ -12,7 +12,7 @@ ctk.set_default_color_theme("blue")
 
 
 class SalesView:
-    def __init__(self, parent, controller=None):
+    def __init__(self, parent, controller):
         self.controller = controller
         self.frame = ctk.CTkFrame(parent, fg_color="#f0f0f0")
         self.stock_model = StockModel()

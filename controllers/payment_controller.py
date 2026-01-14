@@ -1,12 +1,20 @@
 import tkinter as tk
 from views.view_helpers import show_warning, show_error, close_win
 
-
 class PaymentController():
-    def __init__(self, view, pay_win, model):
+    def __init__(self):
+        self.model = None
+        self.form_view = None
+        self.pay_view = None
+
+    def set_model(self, model):
         self.model = model
-        self.view = view
-        self.pay_win = pay_win
+
+    def set_form_view(self, view):
+        self.form_view = view
+
+    def set_pay_view(self, pay_view):
+        self.pay_view = pay_view        
 
     """
     Permitir pagar el monto de una compra
@@ -17,7 +25,7 @@ class PaymentController():
 
         try:
 
-            payment_data = self.view.get_payment_data()
+            payment_data = self.form_view.get_payment_data()
             selected = supplier_var.get() # cuit proveedor
 
             if not selected:
@@ -39,7 +47,7 @@ class PaymentController():
                 
                 # Chequeo si quiere pagar de mas
                 if not self.validate_debt(amount, debt, False):
-                    self.view.amount_var.set(debt)
+                    self.form_view.amount_var.set(debt)
                     return
 
             else:
@@ -53,7 +61,7 @@ class PaymentController():
 
                 # Chequeo si quiere pagar de mas
                 if not self.validate_debt(amount, total_debt, True):
-                    self.view.amount_var.set(total_debt)
+                    self.form_view.amount_var.set(total_debt)
                     return
 
             data = {
@@ -72,8 +80,8 @@ class PaymentController():
             result = self.model.payment.register_payment(data, purchase_id)
             
             if result:
-                self.pay_win.load_payment_movement(data['Supplier_id'], selected)
-                self.pay_win.load_purchase_history(True)
+                self.pay_view.load_payment_movement(data['Supplier_id'], selected)
+                self.pay_view.load_purchase_history(True)
 
             close_win(win, parent)
 

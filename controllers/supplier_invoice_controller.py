@@ -2,11 +2,25 @@ from views.view_helpers import show_success, show_error, show_warning, close_win
 from datetime import datetime
 
 class SupplierInvoiceController():
-    def __init__(self, form_view, purchase_view, supplier_view):
+    def __init__(self):
+        self.form_view = None
+        self.purchase_view = None
+        self.model = None
+
+    def set_form_view(self, form_view):
         self.form_view = form_view
+
+    def set_purchase_view(self, purchase_view):
         self.purchase_view = purchase_view
-        self.supplier_view = supplier_view
-        self.model = supplier_view.model
+
+    def set_model(self, model):
+        self.model = model
+
+    def convert_string_to_date_formated(self, date):
+        # convierto el string a obj tipo date
+        date_formated = datetime.strptime(date, "%d/%m/%Y").date()
+        # formateo el obj
+        return date_formated.strftime("%Y-%m-%d")
 
     def add_new_invoice(self, win, parent):
 
@@ -14,14 +28,17 @@ class SupplierInvoiceController():
             data = self.form_view.get_invoice_form_data()
             supplier_data = self.model.core.find_supplier_by_cuit(data['supplier_cuit'])
             print(data)
+            
             if not self.validate_date(data):
                 return
+            
+            expiration_date = self.convert_string_to_date_formated(data['expiration_date'])
             
             invoice_params = {
                 'supplier_id': supplier_data[0],
                 'invoice_id': data['invoice_id'],
                 'invoice_type': data['invoice_type'],
-                'expiration_date': data['expiration_date'],
+                'expiration_date': expiration_date,
                 'state': data['state'],
                 'observations': data['observations'],
                 'subtotal': data['subtotal'],
@@ -38,18 +55,16 @@ class SupplierInvoiceController():
             purchase_params = {
                 'supplier_id': supplier_data[0],
                 'doc_type': "FACTURA",
-                'expiration_date': data['expiration_date'],
+                'expiration_date': expiration_date,
                 'state': data['state'],
                 'observations': data['observations'],
                 'pending': pending, 
                 'total': float(data['total']), 
             }
 
-            result = self.model.purchase.create_invoice_and_purchase(invoice_params, purchase_params)
+            self.model.purchase.create_invoice_and_purchase(invoice_params, purchase_params)
             self.purchase_view.load_purchases(True)
             close_win(win, parent, self.form_view.clear_invoice_form())
-            if result:
-                self.supplier_view.controller.refresh_supplier_table()
 
         except ValueError as e:
             show_error(f'Error en los datos: {e}')

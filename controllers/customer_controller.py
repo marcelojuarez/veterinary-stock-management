@@ -1,16 +1,21 @@
 from models.customer import CustomerModel
 from models.payment_model import PaymentModel
 from tkinter import messagebox
+from views.view_helpers import show_error, show_warning, show_success
 import re
 from utils.pdf_generator import generate_payment_receipt
 import os
 
 class CustomerController: 
-    def __init__(self, view):
-        self.view = view
+    def __init__(self):
+        self.view = None
         self.model = CustomerModel()
         self.payment_model = PaymentModel()
-        self.all_customers = []  
+        self.all_customers = []
+
+    def set_view(self, view):
+        self.view = view
+        # after set view
         self.load_customers()  
 
     def load_customers(self):
@@ -19,7 +24,7 @@ class CustomerController:
             self.all_customers = self.model.get_all_customers()
             self.view.refresh_customer_table(self.all_customers)
         except Exception as e:
-            self.view.show_error(f"Error al cargar clientes: {e}")
+            show_error(f"Error al cargar clientes: {e}")
 
     def refresh_customer_data(self):
         """Recargar desde DB (solo cuando hay cambios)"""
@@ -27,8 +32,7 @@ class CustomerController:
             self.all_customers = self.model.get_all_customers()
             self.view.refresh_customer_table(self.all_customers)
         except Exception as e:
-            self.view.show_error(f"Error al refrescar datos: {e}")
-
+            show_error(f"Error al refrescar datos: {e}")
 
     def search_customer(self, query):
         """Método existente - ahora usa filtrado en memoria"""
@@ -52,10 +56,10 @@ class CustomerController:
             return True
 
         except ValueError as e:
-            self.view.show_error(f"Error en los datos: {str(e)}")
+            show_error(f"Error en los datos: {str(e)}")
             return False
         except Exception as e:
-            self.view.show_error(f"Error al registrar el cliente: {str(e)}")
+            show_error(f"Error al registrar el cliente: {str(e)}")
             return False
 
     def delete_customer(self, customer_id):
@@ -67,10 +71,10 @@ class CustomerController:
         try:
             self.model.delete_customer(customer_id)
             self.refresh_customer_data()
-            self.view.show_success("Cliente eliminado correctamente.")
+            show_success("Cliente eliminado correctamente.")
             return True
         except Exception as e:
-            self.view.show_error(f"Error al eliminar el cliente: {str(e)}")
+            show_error(f"Error al eliminar el cliente: {str(e)}")
             return False
 
 
@@ -109,7 +113,7 @@ class CustomerController:
         required_fields = ['nombre', 'cuit', 'domicilio', 'telefono']
         for field in required_fields:
             if not data[field]:
-                self.view.show_warning(f'Por favor complete el campo {field}.')
+                show_warning(f'Por favor complete el campo {field}.')
                 return False 
         return True
 
@@ -117,7 +121,7 @@ class CustomerController:
         pattern = r'^\d{2}-\d{8}-\d$'
         
         if not re.fullmatch(pattern, cuit_field):
-            self.view.show_warning("Por favor coloque el CUIT correctamente. Formato: XX-XXXXXXXX-X")
+            show_warning("Por favor coloque el CUIT correctamente. Formato: XX-XXXXXXXX-X")
             return False
         
         return True
@@ -126,7 +130,7 @@ class CustomerController:
         pattern = r'^\+?\d{7,15}$'
         
         if not re.fullmatch(pattern, phone_field):
-            self.view.show_warning("Por favor coloque el teléfono correctamente. Debe contener entre 7 y 15 dígitos, puede incluir un '+' al inicio.")
+            show_warning("Por favor coloque el teléfono correctamente. Debe contener entre 7 y 15 dígitos, puede incluir un '+' al inicio.")
             return False
         
         return True
@@ -141,7 +145,7 @@ class CustomerController:
             total = self.model.get_total_debt(cliente_id)
             self.view.open_debt_window(cliente_id, cliente_nombre, debts, total)
         except Exception as e:
-            self.view.show_error(f"Error al obtener las deudas: {e}")
+            show_error(f"Error al obtener las deudas: {e}")
 
     def load_sale_items_for_debt(self, sale_id):
         """Carga el detalle de productos de una venta fiada en la vista"""
@@ -149,7 +153,7 @@ class CustomerController:
             items = self.model.get_sale_items(sale_id)
             self.view.update_debt_items_table(items)
         except Exception as e:
-            self.view.show_error(f"Error al obtener los productos de la venta: {e}")
+            show_error(f"Error al obtener los productos de la venta: {e}")
 
     def customer_has_debts(self, customer_id):
             """Obtengo la cantidad de deudas de un cliente"""
@@ -158,7 +162,7 @@ class CustomerController:
                 result = self.model.db.fetch_one(query,(customer_id,))
                 return result and result[0] > 0
             except Exception as e:
-                self.view.show_error(f"Error al obtener las deudas del cliente: {e}")
+                show_error(f"Error al obtener las deudas del cliente: {e}")
 
     def register_payment(self, sale_id, client_id, amount, method, window):
         try:
@@ -178,7 +182,7 @@ class CustomerController:
             self.view.update_debt_window(debts, total)
 
             window.destroy()
-            self.view.show_success("Pago registrado con éxito.")
+            show_success("Pago registrado con éxito.")
 
             # 6) PREGUNTA: ¿Desea generar comprobante?
             generar = messagebox.askyesno(
@@ -196,7 +200,7 @@ class CustomerController:
                     payments=self.payment_model.get_payments_for_sale(sale_id)
                 )
 
-                self.view.show_success("Comprobante generado con éxito.")
+                show_success("Comprobante generado con éxito.")
                 
                 # Abrir el PDF automáticamente (solo Windows)
                 try:
@@ -205,7 +209,7 @@ class CustomerController:
                     pass
 
         except Exception as e:
-            self.view.show_error(f"Error: {e}")
+            show_error(f"Error: {e}")
 
     def open_global_payment_window(self):
         import customtkinter as ctk 
@@ -213,7 +217,7 @@ class CustomerController:
 
         customer_id = self.view.get_selected_customer_id()
         if not customer_id:
-            self.view.show_warning("Selecciona un cliente primero.")
+            show_warning("Selecciona un cliente primero.")
             return
 
         # Crear ventana modal con estilo
@@ -270,22 +274,22 @@ class CustomerController:
             try:
                 val = entry_amount.get().strip()
                 if not val:
-                    self.view.show_warning("Ingrese un monto.")
+                    show_warning("Ingrese un monto.")
                     return
                 
                 amount = round(float(val), 2)
 
                 if amount <= 0:
-                    self.view.show_warning("El monto debe ser mayor a 0.")
+                    show_warning("El monto debe ser mayor a 0.")
                     return
 
             except ValueError:
-                self.view.show_error("Monto inválido. Ingrese solo números.")
+                show_error("Monto inválido. Ingrese solo números.")
                 return
 
             total_debt = round(float(self.model.get_total_debt(customer_id)), 2)
             if amount > total_debt:
-                self.view.show_warning(
+                show_warning(
                     f"El monto ingresado (${amount:.2f}) supera la deuda total del cliente (${total_debt:.2f})."
                 )
                 amount = total_debt
@@ -298,7 +302,7 @@ class CustomerController:
                 # Construir mensaje de resultado
                 msg = ("Pago registrado con éxito.")
                 
-                self.view.show_success(msg) 
+                show_success(msg) 
                 win.destroy()
                 
                 # 1. Actualizar tabla principal
@@ -333,7 +337,7 @@ class CustomerController:
                             pass
 
             except Exception as e:
-                self.view.show_error(f"Error al procesar el pago: {e}")
+                show_error(f"Error al procesar el pago: {e}")
 
         # Botones
         btn_frame = ctk.CTkFrame(win, fg_color="transparent")

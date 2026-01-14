@@ -10,7 +10,7 @@ class SupplierPurchase():
 
     def add_new_purchase(self, data, conn=None, commit=True):
         try:
-            date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            date = datetime.now().strftime("%Y-%m-%d")
             query = """
             INSERT INTO purchase (supplier_id, document_type, date, expiration_date, state, observations, pending, total) 
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
@@ -42,6 +42,17 @@ class SupplierPurchase():
         except ValueError as e:
             print(f'Error al obtener la compra: {e}')
             return None
+        
+    def get_purchase_by_date(self, date):
+        try:
+            query= """
+            SELECT * FROM purchase WHERE date = ?
+            """
+            return self.db.fetch_all(query, (date, ))
+
+        except ValueError as e:
+            print(f'Error al obtener la compra: {e}')
+            return None
 
     ## -- Devuelve todas las compras asociadas a un cuit -- ##
     def get_all_purchases(self, cuit=None):
@@ -64,6 +75,29 @@ class SupplierPurchase():
             cuit
         ]
         return self.db.fetch_all(query, params)
+    
+    ##  -- Nuevo Producto -- ##
+    def add_product(self, product_data):
+        date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        """Agregar un nuevo producto"""
+        query = """
+            INSERT INTO stock 
+            (name, pack, profit, cost_price, price, iva, price_with_iva, quantity, created_at, last_price_update) 
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """
+        params = (
+            product_data['Name'],
+            product_data['Package'],
+            product_data['Profit'],
+            product_data['CostPrice'],
+            product_data['SalePrice'],
+            product_data['Iva'],
+            product_data['PriceWIva'],
+            product_data['Stock'],
+            date,
+            date
+        )
+        return self.db.execute_query(query, params)
     
     ## -- Item de compra -- ##
     def add_purchase_item(self, params):
@@ -257,12 +291,12 @@ class SupplierPurchase():
                 'pack': item['pack'], # envase producto
                 'cost_price': item['cost_price'] - ((item['cost_price'] * item['discount']) / 100), # se aplica descuento
                 'iva': item['iva_rate'], # porcentaje de iva
-                'quantity': item['qty'] + p[11], # cantidad
+                'quantity': item['qty'] + p[10], # cantidad
                 'last_price_upd': date # fecha de ult. act de precio
             }
 
             # precio de venta
-            product_data['sale_price'] = product_data['cost_price'] * (1 + p[4] / 100) # se aplica rentabilidad
+            product_data['sale_price'] = product_data['cost_price'] * (1 + p[3] / 100) # se aplica rentabilidad
 
             # precio con iva
             if item['iva_rate'] == 21.0:
@@ -324,7 +358,7 @@ class SupplierPurchase():
             query = """
             UPDATE supplier_invoice
                 SET state = CASE
-                    WHEN ? <= 0 'PAGADA'
+                    WHEN ? <= 0 THEN 'PAGADA'
                     ELSE 'PENDIENTE'
                 END
             WHERE id = ?
@@ -388,7 +422,7 @@ class SupplierPurchase():
 
     ## -- Invoice -- ##
     def add_new_invoice(self, data, conn=None, commit=True):
-        date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        date = datetime.now().strftime("%Y-%m-%d")
         query = """
         INSERT INTO supplier_invoice(supplier_id, invoice_id, invoice_type, date, expiration_date, 
         total, subtotal, iva, discount, state, observations)
@@ -452,7 +486,7 @@ class SupplierPurchase():
     ## -- RECEIPT -- ##
 
     def add_new_receipt(self, data, conn=None, commit=True):
-        date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        date = datetime.now().strftime("%Y-%m-%d")
         query = """
         INSERT INTO supplier_receipt(supplier_id, receipt_id, date, expiration_date, observations,
         state, total)

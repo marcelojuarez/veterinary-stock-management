@@ -5,11 +5,11 @@ from controllers.supplier_invoice_controller import SupplierInvoiceController
 import datetime
 
 class SupplierInvoiceForm():
-    def __init__(self, view, frame, supplier_view):
+    def __init__(self, view, frame, invoice_controller):
         self.view = view
-        self.supplier_view = supplier_view
         self.frame = frame
-        self.controller = SupplierInvoiceController(self, self.view, self.supplier_view)
+        self.controller = invoice_controller
+        self.controller.set_form_view(self)
 
     def setup_variables(self, supplier_var):
         self.supplier_var = tk.StringVar()
@@ -146,6 +146,8 @@ class SupplierInvoiceForm():
             command=lambda: self.controller.add_new_invoice(self.invoice_win, parent)
         )
         save_btn.grid(row=0, column=0, padx=15)
+
+        self.invoice_win.bind("<Return>", lambda event: save_btn.invoke())
 
         cancel_btn = ctk.CTkButton(
             btn_frame,

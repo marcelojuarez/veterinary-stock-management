@@ -29,25 +29,6 @@ class StockModel:
         """
         return db.fetch_one(query, (product_id,))
         
-    def add_product(self, product_data):
-        """Agregar un nuevo producto"""
-        query = """
-            INSERT INTO stock 
-            (name, pack, profit, cost_price, price, iva, price_with_iva, quantity) 
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """
-        params = (
-            product_data['Name'],
-            product_data['Package'],
-            product_data['Profit'],
-            product_data['CostPrice'],
-            product_data['SalePrice'],
-            product_data['Iva'],
-            product_data['PriceWIva'],
-            product_data['Stock'],
-        )
-        return db.execute_query(query, params)
-        
     def update_product(self, product_id, product_data):
         """Actualizar un producto existente"""
         query = """

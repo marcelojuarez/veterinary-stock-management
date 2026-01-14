@@ -1,17 +1,25 @@
 import tkinter as tk
 import customtkinter as ctk
 from tkinter import ttk
-from controllers.auth_controller import validate_data
+
 from config.settings import settings
+from events import EventBus
+
 from views.stock_view import StockView
 from views.sales_view import SalesView
 from views.supplier_view import SupplierView
 from views.customers_view import CustomersView
+
+from controllers.auth_controller import validate_data
 from controllers.stock_controller import StockController
 from controllers.sales_controller import SalesController
-
 from controllers.supplier_controller import SupplierController
 from controllers.customer_controller import CustomerController
+from controllers.purchase_controller import PurchaseController
+from controllers.payment_controller import PaymentController
+from controllers.supplier_invoice_controller import SupplierInvoiceController
+from controllers.supplier_receipt_controller import SupplierReceiptController
+
 class App():
     def __init__(self):
         self.root = ctk.CTk()
@@ -29,6 +37,7 @@ class App():
         
     def setup_variables(self):
         self.user_var = tk.StringVar()
+
         self.pwd_var = tk.StringVar()
 
     def login_window(self):
@@ -86,11 +95,10 @@ class App():
             fg_color="#4CAF50", hover_color="#45a049")
         cancel_btn.grid(row=2, column=1)
 
-
     def load_system(self):
         if (validate_data(self.user_var.get(), self.pwd_var.get())):
                 
-            self.create_notebook()
+            self.create_views_and_controllers()
             self.root.after(100, self.load_initial_data) 
 
             self.root.deiconify()
@@ -98,35 +106,56 @@ class App():
 
             self.login_win.destroy() 
 
-    def create_notebook(self):
+    def create_views_and_controllers(self):
         self.notebook = ttk.Notebook(self.root)
         self.notebook.pack(fill='both', expand=True)
 
+        # Event bus 
+        event_bus = EventBus()
+        
+        # --- CONTROLLERS ---
+        self.stock_controller = StockController()
+        self.sales_controller = SalesController()
+        self.supplier_controller = SupplierController()
+        self.customer_controller = CustomerController()
+
+        self.purchase_controller = PurchaseController()
+        self.purchase_controller.set_event_bus(event_bus)
+
+        self.payment_controller = PaymentController()
+        self.invoice_controller = SupplierInvoiceController()
+        self.receipt_controller = SupplierReceiptController()
+
+        ## -- VIEWS -- ##
         # --- STOCK ---
-        self.stock_view = StockView(self.notebook)
-        self.stock_controller = StockController(self.stock_view, stock_view=self.stock_view)
-        self.stock_view.set_controller(self.stock_controller)
+        self.stock_view = StockView(self.notebook, controller=self.stock_controller)
+        self.stock_controller.set_view(self.stock_view)
+        self.stock_controller.set_event_bus(event_bus)
+
         self.stock_view.frame.pack(fill='both', expand=True)
         self.notebook.add(self.stock_view.frame, text='Inventario')
 
         # --- SALES ---
-        self.sales_controller = SalesController(None)
         self.sales_view = SalesView(self.notebook, controller=self.sales_controller)
-        self.sales_controller.sales_view = self.sales_view
+        self.sales_controller.set_view(self.sales_view)
+
         self.sales_view.frame.pack(fill='both', expand=True)
         self.notebook.add(self.sales_view.frame, text='Venta')
 
         # --- SUPPLIERS ---
-        self.supplier_view = SupplierView(self.notebook, stock_view=self.stock_view)
-        self.supplier_controller = SupplierController(self.supplier_view, stock_controller=self.stock_controller)
-        self.supplier_controller.view = self.supplier_view
-        self.supplier_view.set_controller(self.supplier_controller)
+        self.supplier_view = SupplierView(self.notebook,self.supplier_controller, self.purchase_controller, 
+            self.payment_controller, self.invoice_controller, self.receipt_controller)
+        
+        self.supplier_controller.set_view(self.supplier_view)
+        self.supplier_controller.set_model(self.supplier_view.model)
+
         self.supplier_view.frame.pack(fill='both', expand=True)
         self.notebook.add(self.supplier_view.frame, text='Proveedores')
 
         # --- CUSTOMERS ---
-        self.customers_view = CustomersView(self.notebook)  
-        self.customer_controller = CustomerController(self.customers_view)
+        self.customers_view = CustomersView(self.notebook, controller=self.customer_controller)  
+        self.customer_controller.set_view(self.customers_view)
+
         self.customers_view.attach_controller(self.customer_controller)
         self.customers_view.frame.pack(fill='both', expand=True)
         self.notebook.add(self.customers_view.frame, text='Clientes')
