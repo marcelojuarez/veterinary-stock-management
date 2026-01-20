@@ -166,11 +166,16 @@ class CustomerModel:
 
     def get_customer_account_history(self, cliente_id):
         """
-        Obtiene el historial completo de cuenta del cliente.
+        Historial de cuenta corriente - LÓGICA CLARA:
+        - Ventas aumentan la deuda (columna DEBE)
+        - Pagos disminuyen la deuda (columna HABER)
+        - Saldo: Cuánto debe el cliente (positivo) o tiene a favor (negativo)
         """
         movements = []
         
-        # 1. VENTAS - Sin payment_method (no existe en tu tabla)
+        # ================================================================
+        # PASO 1: VENTAS A CRÉDITO
+        # ================================================================
         sales_query = """
             SELECT 
                 s.id,
@@ -179,46 +184,44 @@ class CustomerModel:
                     WHEN s.estado = 'paid' AND s.total_cerrado IS NOT NULL 
                     THEN s.total_cerrado
                     ELSE COALESCE(SUM(si.quantity * st.price_with_iva), 0)
-                END AS monto,
+                END AS total,
                 s.estado,
-                COALESCE(SUM(si.quantity), 0) AS cant_productos
+                COUNT(si.id) AS cant_productos
             FROM sales s
             LEFT JOIN sale_items si ON si.sale_id = s.id
             LEFT JOIN stock st ON st.id = si.product_id
-            WHERE s.cliente_id = ?
+            WHERE s.cliente_id = ? 
+            AND s.estado IN ('pending', 'partial', 'paid')
             GROUP BY s.id
+            ORDER BY s.date, s.id
         """
         sales = self.db.fetch_all(sales_query, (cliente_id,))
-
-        for sale_id, fecha, monto, estado, cant_prod in sales:
+        
+        for sale_id, fecha, total, estado, cant_prod in sales:
+            total = round(float(total), 2)
             cant_prod = int(cant_prod) if cant_prod else 0
-            prod_txt = f"{cant_prod} {'producto' if cant_prod == 1 else 'productos'}"
-            monto = round(float(monto), 2)
             
-            if estado == "paid":
-                # Venta pagada al contado - NO suma a deuda, solo informativo
-                movements.append({
-                    "fecha": fecha,
-                    "tipo": "CONTADO",
-                    "descripcion": f"Venta #{sale_id} · {prod_txt} · Contado",
-                    "debe": 0.0,      # NO suma a deuda
-                    "haber": 0.0,     # NO suma a pagos de cta cte
-                    "monto_ref": monto,  # Solo para mostrar en columna Contado
-                    "ref_id": sale_id
-                })
-            else:
-                estado_txt = "Pago parcial" if estado == "partial" else "Pendiente"
-                movements.append({
-                    "fecha": fecha,
-                    "tipo": "COMPRA",
-                    "descripcion": f"Venta #{sale_id} · {prod_txt} · {estado_txt}",
-                    "debe": monto,
-                    "haber": 0.0,
-                    "monto_ref": 0.0,
-                    "ref_id": sale_id
-                })
-                        
-        # 2. PAGOS - Excluir pagos de ventas al contado
+            estado_map = {
+                "pending": "Pendiente",
+                "partial": "Pago parcial",
+                "paid": "Pagada"
+            }
+            estado_txt = estado_map.get(estado, estado)
+            
+            movements.append({
+                "fecha": fecha,
+                "tipo": "VENTA",
+                "descripcion": f"Venta #{sale_id} · {cant_prod} producto(s) · {estado_txt}",
+                "debe": total,
+                "haber": 0.0,
+                "saldo": 0.0,  # Se calcula después
+                "sale_id": sale_id,
+                "referencia": ""
+            })
+        
+        # ================================================================
+        # PASO 2: PAGOS
+        # ================================================================
         payments_query = """
             SELECT 
                 p.id,
@@ -228,111 +231,154 @@ class CustomerModel:
                 p.sale_id,
                 p.notes
             FROM payments p
-            LEFT JOIN sales s ON s.id = p.sale_id
             WHERE p.client_id = ?
-            AND (
-                p.sale_id IS NULL 
-                OR s.estado IN ('pending', 'partial')
-            )
+            ORDER BY p.date, p.id
         """
         payments = self.db.fetch_all(payments_query, (cliente_id,))
-
+        
+        method_map = {
+            "cash": "Efectivo",
+            "transfer": "Transferencia",
+            "card": "Tarjeta",
+            "efectivo": "Efectivo",
+            "transferencia": "Transferencia",
+            "mercadopago": "MercadoPago",
+            "saldo a favor": "Saldo a Favor",
+            "cheque": "Cheque",
+            "deposito": "Depósito",
+            "global": "Global"
+        }
+        
         for pay_id, fecha, monto, method, sale_id, notes in payments:
-            method_map = {
-                "cash": "Efectivo",
-                "transfer": "Transferencia", 
-                "card": "Tarjeta",
-                "efectivo": "Efectivo",
-                "transferencia": "Transferencia"
-            }
-            method_txt = method_map.get(method.lower(), method.capitalize()) if method else "Efectivo"
+            monto = round(float(monto), 2)
+            method_txt = method_map.get(method.lower(), method.capitalize() if method else "Efectivo")
             
-            # Construir descripción clara
-            if notes and "Global" in notes:
-                desc = f"Pago a cuenta · {method_txt}"
-            elif sale_id:
+            if sale_id:
                 desc = f"Pago Venta #{sale_id} · {method_txt}"
             else:
                 desc = f"Pago a cuenta · {method_txt}"
-                
+            
             movements.append({
                 "fecha": fecha,
                 "tipo": "PAGO",
                 "descripcion": desc,
                 "debe": 0.0,
-                "haber": round(float(monto), 2),
-                "ref_id": pay_id
+                "haber": monto,
+                "saldo": 0.0,  # Se calcula después
+                "sale_id": sale_id,
+                "referencia": notes or ""
             })
         
-        # 3. CRÉDITOS (igual que antes)
-        credits_query = """
-            SELECT 
-                cc.id,
-                cc.created_at,
-                cc.amount,
-                cc.reason,
-                cc.sale_id
-            FROM customer_credit cc
-            WHERE cc.client_id = ?
-            AND cc.reason NOT LIKE 'AJUSTE:%'
-            AND cc.reason NOT LIKE 'SALDO A FAVOR:%'
-        """
-        credits = self.db.fetch_all(credits_query, (cliente_id,))
+        # ================================================================
+        # PASO 3: NOTAS DE CRÉDITO (si existe la tabla)
+        # ================================================================
+        try:
+            table_check = "SELECT name FROM sqlite_master WHERE type='table' AND name='customer_credit'"
+            if self.db.fetch_one(table_check):
+                credits_query = """
+                    SELECT 
+                        id,
+                        created_at,
+                        amount,
+                        reason,
+                        sale_id
+                    FROM customer_credit
+                    WHERE client_id = ?
+                    ORDER BY created_at, id
+                """
+                credits = self.db.fetch_all(credits_query, (cliente_id,))
+                
+                for credit_id, fecha, monto, reason, sale_id in credits:
+                    monto = round(float(monto), 2)
+                    
+                    if monto > 0:
+                        desc = f"Nota de crédito"
+                        if reason:
+                            desc += f" · {reason}"
+                        
+                        movements.append({
+                            "fecha": fecha,
+                            "tipo": "CRÉDITO",
+                            "descripcion": desc,
+                            "debe": 0.0,
+                            "haber": monto,
+                            "saldo": 0.0,
+                            "sale_id": sale_id,
+                            "referencia": reason or ""
+                        })
+                    else:
+                        desc = f"Aplicación de saldo"
+                        if sale_id:
+                            desc += f" · Venta #{sale_id}"
+                        
+                        movements.append({
+                            "fecha": fecha,
+                            "tipo": "USO CRÉDITO",
+                            "descripcion": desc,
+                            "debe": abs(monto),
+                            "haber": 0.0,
+                            "saldo": 0.0,
+                            "sale_id": sale_id,
+                            "referencia": reason or ""
+                        })
+        except Exception as e:
+            print(f"Tabla customer_credit no disponible: {e}")
         
-        for credit_id, fecha, monto, reason, sale_id in credits:
-            monto = float(monto)
-            if monto > 0:
-                desc = f"Nota de crédito · {reason}" if reason else "Saldo a favor generado"
-                movements.append({
-                    "fecha": fecha,
-                    "tipo": "CRÉDITO",
-                    "descripcion": desc,
-                    "debe": 0.0,
-                    "haber": round(monto, 2),
-                    "ref_id": credit_id
-                })
-            else:
-                desc = f"Aplicación de saldo a favor"
-                if sale_id:
-                    desc += f" · Venta #{sale_id}"
-                movements.append({
-                    "fecha": fecha,
-                    "tipo": "USO CRÉDITO",
-                    "descripcion": desc,
-                    "debe": round(abs(monto), 2),
-                    "haber": 0.0,
-                    "ref_id": credit_id
-                })
+        # ================================================================
+        # PASO 4: ORDENAR CRONOLÓGICAMENTE
+        # ================================================================
+        movements.sort(key=lambda x: (x["fecha"], x.get("sale_id", 0)))
         
-        # Ordenar por fecha
-        movements.sort(key=lambda x: x["fecha"])
-        
-        # Calcular saldo acumulado
-        saldo = 0.0
+        # ================================================================
+        # PASO 5: CALCULAR SALDO ACUMULADO (DESPUÉS DE ORDENAR)
+        # ================================================================
+        saldo_acumulado = 0.0
         for mov in movements:
-            saldo += mov["debe"] - mov["haber"]
-            mov["saldo"] = round(saldo, 2)
+            # DEBE aumenta la deuda, HABER la disminuye
+            saldo_acumulado += mov["debe"] - mov["haber"]
+            mov["saldo"] = round(saldo_acumulado, 2)
         
-        return movements
-    
-    def get_customer_account_summary(self, cliente_id):
-        """Resumen de cuenta del cliente"""
-        movements = self.get_customer_account_history(cliente_id)
-        
+        # ================================================================
+        # PASO 6: RESUMEN
+        # ================================================================
         total_debe = sum(m["debe"] for m in movements)
         total_haber = sum(m["haber"] for m in movements)
-        saldo_final = total_debe - total_haber
-        
-        # Contar ventas
-        total_ventas = len([m for m in movements if m["tipo"] == "VENTA"])
-        ventas_pagadas = len([m for m in movements if m["tipo"] == "VENTA" and "Pagada" in m["descripcion"]])
-        
-        return {
-            "total_comprado": round(total_debe, 2),
-            "total_pagado": round(total_haber, 2),
-            "saldo_actual": round(saldo_final, 2),
-            "total_ventas": total_ventas,
-            "ventas_pagadas": ventas_pagadas,
-            "saldo_a_favor": round(abs(saldo_final), 2) if saldo_final < 0 else 0.0,
-            "deuda_pendiente": round(saldo_final, 2) if saldo_final > 0 else 0.0
+        saldo_final = round(saldo_acumulado, 2)
+
+        # Contar ventas correctamente - rastreando el último saldo de cada venta
+        ventas_saldo = {}  # {sale_id: último_saldo_registrado}
+
+        for mov in movements:
+            if mov["tipo"] == "VENTA":
+                # Inicializar con el saldo después de la venta
+                ventas_saldo[mov["sale_id"]] = mov["saldo"]
+            elif mov["tipo"] == "PAGO" and mov.get("sale_id"):
+                # Actualizar con el saldo después del pago
+                ventas_saldo[mov["sale_id"]] = mov["saldo"]
+
+        # Contar cuántas ventas tienen saldo final ≈ 0
+        ventas_totales = len([m for m in movements if m["tipo"] == "VENTA"])
+
+        # Una venta está pagada si su último saldo conocido es ≈ 0
+        # PERO necesitamos el saldo GLOBAL al final, no por venta individual
+        # Mejor: si el saldo final global es 0 y todas las ventas tienen pagos
+        ventas_con_pago = len(set(m.get("sale_id") for m in movements if m["tipo"] == "PAGO" and m.get("sale_id")))
+
+        # Si el saldo final es 0, todas las ventas están pagadas
+        if abs(saldo_final) < 0.01:
+            ventas_pagadas = ventas_totales
+        else:
+            # Contar cuántas ventas tienen al menos un pago completo
+            ventas_pagadas = ventas_con_pago
+
+        summary = {
+            'total_comprado': round(total_debe, 2),
+            'total_pagado': round(total_haber, 2),
+            'saldo_a_favor': abs(saldo_final) if saldo_final < 0 else 0.0,
+            'deuda_pendiente': saldo_final if saldo_final > 0 else 0.0,
+            'ventas_pagadas': ventas_pagadas,
+            'total_ventas': ventas_totales,
+            'ventas_texto': f"{ventas_pagadas}/{ventas_totales} pagadas"
         }
+
+        return movements, summary
