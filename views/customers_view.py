@@ -133,14 +133,18 @@ class CustomersView:
         )
 
         self.table = ttk.Treeview(table_frame, show="headings", height=12)
-        self.table["columns"] = ("ID", "Nombre", "CUIT", "Domicilio", "Teléfono")
+        self.table["columns"] = ("ID", "Nombre", "CUIT", "Domicilio", "Teléfono", "CV", "CUIG", "RENSPA", "Establecimiento")
 
         col_specs = {
-            "ID": {"width": 60, "stretch": False},
-            "Nombre": {"width": 250},
-            "CUIT": {"width": 150},
-            "Domicilio": {"width": 250},
-            "Teléfono": {"width": 150},
+            "ID": {"width": 50, "stretch": False},
+            "Nombre": {"width": 180},
+            "CUIT": {"width": 120},
+            "Domicilio": {"width": 150},
+            "Teléfono": {"width": 100},
+            "CV": {"width": 80},
+            "CUIG": {"width": 100},
+            "RENSPA": {"width": 100},
+            "Establecimiento": {"width": 120},
         }
 
         for col, spec in col_specs.items():
@@ -183,8 +187,8 @@ class CustomersView:
     # MODAL PARA AGREGAR CLIENTE
     # --------------------------------------------------------------------
     def open_add_customer_window(self):
-        width_win = 400
-        height_win = 400
+        width_win = 450
+        height_win = 550
 
         x_root = self.frame.winfo_x()
         y_root = self.frame.winfo_y()
@@ -205,6 +209,10 @@ class CustomersView:
         cuit_var = ctk.StringVar()
         home_var = ctk.StringVar()
         phone_var = ctk.StringVar()
+        cv_var = ctk.StringVar()
+        cuig_var = ctk.StringVar()
+        renspa_var = ctk.StringVar()
+        establecimiento_var = ctk.StringVar()
         
         card_frame = ctk.CTkFrame(
             win,
@@ -244,6 +252,14 @@ class CustomersView:
 
         add_field(3, "Teléfono: ",
                   ctk.CTkEntry(form_frame, textvariable=phone_var, width=200))
+        add_field(4, "CV: ",
+                    ctk.CTkEntry(form_frame, textvariable=cv_var, width=200))
+        add_field(5, "CUIG: ",
+                    ctk.CTkEntry(form_frame, textvariable=cuig_var, width=200))
+        add_field(6, "RENSPA: ",
+                    ctk.CTkEntry(form_frame, textvariable=renspa_var, width=200))
+        add_field(7, "Establecimiento: ",
+                    ctk.CTkEntry(form_frame, textvariable=establecimiento_var, width=200))
 
         btn_frame = ctk.CTkFrame(card_frame, fg_color="transparent")
         btn_frame.pack(pady=15)
@@ -253,7 +269,11 @@ class CustomersView:
                 "nombre": name_var.get(),
                 "cuit": cuit_var.get(),
                 "domicilio": home_var.get(),
-                "telefono": phone_var.get()
+                "telefono": phone_var.get(),
+                "cv": cv_var.get(),
+                "cuig": cuig_var.get(),
+                "renspa": renspa_var.get(),
+                "establecimiento": establecimiento_var.get()
             }
             if self.controller:
                 ok = self.controller.add_new_customer_window(data, win)
@@ -936,7 +956,7 @@ class CustomersView:
             font=("Segoe UI", 10, "bold")
         )
 
-        cols = ("Fecha", "Tipo", "Descripción", "Debe", "Haber", "Saldo")
+        cols = ("Fecha", "Tipo", "Descripción", "Compra", "Pago", "Deuda/Crédito")
         history_table = ttk.Treeview(
             table_frame,
             columns=cols,
@@ -945,7 +965,8 @@ class CustomersView:
             style="History.Treeview"
         )
 
-        col_widths = [140, 90, 300, 100, 100, 100]
+        
+        col_widths = [130, 80, 250, 95, 95, 95, 105]
         for col, w in zip(cols, col_widths):
             history_table.column(col, width=w, anchor="center" if col != "Descripción" else "w")
             history_table.heading(col, text=col, anchor="center")
@@ -955,27 +976,36 @@ class CustomersView:
         history_table.configure(yscrollcommand=scroll_y.set)
         scroll_y.pack(side="right", fill="y")
         history_table.pack(fill="both", expand=True)
-
+        # Insertar movimientos
         # Insertar movimientos
         for mov in movements:
             fecha_fmt = mov["fecha"][:16] if len(mov["fecha"]) > 16 else mov["fecha"]
+            
+            # Mostrar monto en columna DEBE (ventas)
             debe_txt = f"${mov['debe']:,.2f}" if mov["debe"] > 0 else ""
+            
+            # Mostrar monto en columna HABER (pagos)
             haber_txt = f"${mov['haber']:,.2f}" if mov["haber"] > 0 else ""
             
-            # Color del saldo
+            # Saldo con formato claro
             saldo = mov["saldo"]
-            if saldo < 0:
-                saldo_txt = f"-${abs(saldo):,.2f}"
+            if saldo > 0:
+                saldo_txt = f"${saldo:,.2f}"  # Debe
+                saldo_color = "red"
+            elif saldo < 0:
+                saldo_txt = f"-${abs(saldo):,.2f}"  # A favor
+                saldo_color = "green"
             else:
-                saldo_txt = f"${saldo:,.2f}"
+                saldo_txt = "$0.00"
+                saldo_color = "black"
 
             history_table.insert("", "end", values=(
                 fecha_fmt,
                 mov["tipo"],
                 mov["descripcion"],
-                debe_txt,
-                haber_txt,
-                saldo_txt
+                debe_txt,      # Compra
+                haber_txt,     # Pago
+                saldo_txt      # Deuda/Crédito
             ))
 
         # Colorear filas según tipo
@@ -985,12 +1015,15 @@ class CustomersView:
                 tipo = values[1]
                 if tipo == "VENTA":
                     history_table.item(item, tags=("venta",))
+                elif tipo == "CONTADO":
+                    history_table.item(item, tags=("contado",))
                 elif tipo == "PAGO":
                     history_table.item(item, tags=("pago",))
                 elif tipo == "CRÉDITO":
                     history_table.item(item, tags=("credito",))
 
         history_table.tag_configure("venta", background="#FFF3E0")
+        history_table.tag_configure("contado", background="#E3FCEF")
         history_table.tag_configure("pago", background="#E8F5E9")
         history_table.tag_configure("credito", background="#E3F2FD")
         tag_rows()
