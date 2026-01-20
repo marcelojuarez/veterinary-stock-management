@@ -467,8 +467,7 @@ class CustomerController:
     def show_account_history(self, cliente_id, cliente_nombre):
         """Muestra el historial completo de cuenta del cliente"""
         try:
-            movements = self.model.get_customer_account_history(cliente_id)
-            summary = self.model.get_customer_account_summary(cliente_id)
+            movements, summary = self.model.get_customer_account_history(cliente_id)
             self.view.open_account_history_window(cliente_id, cliente_nombre, movements, summary)
         except Exception as e:
             self.view.show_error(f"Error al obtener historial: {e}")
@@ -477,8 +476,8 @@ class CustomerController:
     def export_account_history_pdf(self, cliente_id, cliente_nombre):
         """Exporta el historial de cuenta a PDF"""
         try:
-            movements = self.model.get_customer_account_history(cliente_id)
-            summary = self.model.get_customer_account_summary(cliente_id)
+            movements, summary = self.model.get_customer_account_history(cliente_id)
+
             
             # Generar PDF (podés usar la misma lógica de tus otros PDFs)
             from utils.receipts.account_statement import generate_account_statement
