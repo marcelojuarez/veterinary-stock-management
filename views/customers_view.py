@@ -321,7 +321,6 @@ class CustomersView:
                 
             # Si no hay clientes, mostrar mensaje
             if not customers:
-                # Opcional: mostrar mensaje de "no resultados"
                 return
                 
             # Insertar clientes
@@ -331,13 +330,20 @@ class CustomersView:
                     vals = (
                         customer.get("id"), 
                         customer.get("nombre"), 
-                        customer.get("cuit"),
-                        customer.get("domicilio"), 
-                        customer.get("telefono")
+                        customer.get("cuit") or "-",
+                        customer.get("domicilio") or "-", 
+                        customer.get("telefono") or "-",
+                        customer.get("cv") or "-",
+                        customer.get("cuig") or "-",
+                        customer.get("renspa") or "-",
+                        customer.get("establecimiento") or "-"
                     )
                 else:
                     # Si viene como tupla desde filtro en memoria
-                    vals = customer
+                    vals = tuple(
+                        val if val and str(val).strip() else "-" 
+                        for val in customer
+                    )
                     
                 self.table.insert("", "end", values=vals)
                 
@@ -581,6 +587,10 @@ class CustomersView:
             # Actualizar label de total
             if hasattr(self, "debt_total_label") and self.debt_total_label.winfo_exists():
                 self.debt_total_label.configure(text=f"Total adeudado: ${total:.2f}")
+
+            if hasattr(self, "debt_items_table") and self.debt_items_table.winfo_exists():
+                for row in self.debt_items_table.get_children():
+                    self.debt_items_table.delete(row)
             
             if hasattr(self, "credit_label") and self.credit_label.winfo_exists():
                 self.credit_label.configure(text=f"Saldo a favor: ${credit:.2f}")
@@ -746,7 +756,7 @@ class CustomersView:
         method_menu = ctk.CTkComboBox(
             form_frame,
             variable=method_var,
-            values=["Efectivo", "Tarjeta", "Transferencia", "MercadoPago", "Otro"],
+            values=["Efectivo", "Tarjeta", "Transferencia", "Otro"],
             width=150
         )
         method_menu.grid(row=1, column=1, pady=10, padx=10)
@@ -977,8 +987,7 @@ class CustomersView:
         scroll_y.pack(side="right", fill="y")
         history_table.pack(fill="both", expand=True)
         # Insertar movimientos
-        # Insertar movimientos
-        for mov in movements:
+        for mov in reversed(movements):
             fecha_fmt = mov["fecha"][:16] if len(mov["fecha"]) > 16 else mov["fecha"]
             
             # Mostrar monto en columna DEBE (ventas)
@@ -1034,9 +1043,12 @@ class CustomersView:
         btn_frame = ctk.CTkFrame(win, fg_color="transparent")
         btn_frame.pack(pady=15)
 
+        # Determinar si se puede resetear (deuda = 0)
+        can_reset = summary['deuda_pendiente'] <= 0.01
+
         ctk.CTkButton(
             btn_frame,
-            text="Exportar a PDF",
+            text="📄 Exportar a PDF",
             width=150,
             height=40,
             fg_color="#009688",
@@ -1047,6 +1059,18 @@ class CustomersView:
 
         ctk.CTkButton(
             btn_frame,
+            text="🔄 Resetear Cuenta",
+            width=150,
+            height=40,
+            fg_color="#E91E63" if can_reset else "#BDBDBD",
+            hover_color="#C2185B" if can_reset else "#BDBDBD",
+            font=ctk.CTkFont(size=13, weight="bold"),
+            state="normal" if can_reset else "disabled",
+            command=lambda: self.controller.reset_customer_account(cliente_id, cliente_nombre, win) if self.controller else None
+        ).grid(row=0, column=1, padx=10)
+
+        ctk.CTkButton(
+            btn_frame,
             text="Cerrar",
             width=150,
             height=40,
@@ -1054,4 +1078,4 @@ class CustomersView:
             hover_color="#616161",
             font=ctk.CTkFont(size=13, weight="bold"),
             command=win.destroy
-        ).grid(row=0, column=1, padx=10)
+        ).grid(row=0, column=2, padx=10)

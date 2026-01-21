@@ -1,4 +1,5 @@
 from db.database import db 
+from datetime import datetime
 
 class PaymentModel:
     def __init__(self):
@@ -6,11 +7,12 @@ class PaymentModel:
 
     def create_payment(self, sale_id, client_id, amount, method=None, notes=None):
         """Registra un pago en la tabla payments."""
+        date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         query = """
-            INSERT INTO payments (sale_id, client_id, amount, method, notes)
-            VALUES (?, ?, ?, ?, ?)
+            INSERT INTO payments (sale_id, client_id, amount, method, notes, date)
+            VALUES (?, ?, ?, ?, ?, ?)
         """
-        return self.db.execute_query(query, (sale_id, client_id, amount, method, notes))
+        return self.db.execute_query(query, (sale_id, client_id, amount, method, notes, date))
     
     def get_sale_total_variable(self, sale_id) -> float:
         row = self.db.fetch_one(
@@ -132,9 +134,8 @@ class PaymentModel:
 
     def apply_global_payment(self, customer_id, amount):
         """
-        Aplica un pago global distribuido entre las deudas pendientes.
-        Orden: LIFO (según código original del usuario) -> De la más nueva a la más vieja? 
-        Nota: Usualmente es FIFO (ASC), pero respetamos el 'DESC' solicitado.
+        Aplica un pago global distribuido entre las deudas pendientes. 
+        Nota: Usualmente es FIFO (ASC)
         """
         # 1. Obtener deudas con saldo pendiente
         query = """
@@ -147,7 +148,7 @@ class PaymentModel:
             WHERE s.cliente_id = ? AND s.estado IN ('pending', 'partial')
             GROUP BY s.id
             HAVING (total_variable - paid) > 0.01
-            ORDER BY s.date DESC
+            ORDER BY s.date ASC
         """
         rows = self.db.fetch_all(query, (customer_id,))
         

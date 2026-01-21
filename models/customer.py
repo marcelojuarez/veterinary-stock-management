@@ -242,7 +242,6 @@ class CustomerModel:
             "card": "Tarjeta",
             "efectivo": "Efectivo",
             "transferencia": "Transferencia",
-            "mercadopago": "MercadoPago",
             "saldo a favor": "Saldo a Favor",
             "cheque": "Cheque",
             "deposito": "Depósito",

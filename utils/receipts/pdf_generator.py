@@ -504,7 +504,7 @@ def generate_global_payment_receipt(*, file_path, client_name, payment_amount, r
     # ================================================================
     draw_line_lr("Total Aplicado:", f"${result_data['used']:,.2f}", 10, 
                  bold_l=True, bold_r=True, extra_spacing=4)
-    draw_line_lr("Deuda Restante:", f"${result_data['still_owed']:,.2f}", 10, 
+    draw_line_lr("Deuda Restante (Cuenta corriente):", f"${result_data['still_owed']:,.2f}", 10, 
                  bold_l=True, bold_r=True, extra_spacing=4)
     
     # Saldo a favor si aplica

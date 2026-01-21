@@ -248,7 +248,7 @@ def generate_global_payment_ticket(
     # RESUMEN
     # ================================================================
     lr("Total Aplicado", f"${result_data['used']:,.2f}", 7.5, True, True)
-    lr("Deuda Restante", f"${result_data['still_owed']:,.2f}", 7.5, True, True)
+    lr("Deuda Restante (Cuenta corriente)", f"${result_data['still_owed']:,.2f}", 7.5, True, True)
     
     if result_data.get('credit_added', 0) > 0.01:
         lr("Saldo a Favor", f"${result_data['credit_added']:,.2f}", 7.5, True, True)

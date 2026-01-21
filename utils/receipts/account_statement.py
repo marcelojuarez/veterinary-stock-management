@@ -1,15 +1,17 @@
-from reportlab.lib.pagesizes import A4, letter
-from reportlab.lib.units import mm, inch
+from reportlab.lib.pagesizes import letter
+from reportlab.lib.units import mm
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.enums import TA_CENTER, TA_RIGHT, TA_LEFT
 from reportlab.lib import colors
 from datetime import datetime
 from utils.receipts.paths import estado_cuenta
-import os
 
 
-def generate_account_statement(cliente_nombre, movements, summary, commerce_name="Agroveterinaria El Fortín"):
+def generate_account_statement(cliente_info, movements, summary, commerce_name="Agroveterinaria El Fortín"):
+    """Genera un estado de cuenta en formato clásico de cuenta corriente"""
+    
+    cliente_nombre = cliente_info['nombre']
     filepath = estado_cuenta(cliente_nombre)
     
     doc = SimpleDocTemplate(
@@ -17,60 +19,64 @@ def generate_account_statement(cliente_nombre, movements, summary, commerce_name
         pagesize=letter,
         rightMargin=15*mm,
         leftMargin=15*mm,
-        topMargin=15*mm,
-        bottomMargin=15*mm
+        topMargin=12*mm,
+        bottomMargin=12*mm
     )
     
     styles = getSampleStyleSheet()
     
-    # Estilos profesionales en blanco y negro
+    # ================================================================
+    # ESTILOS
+    # ================================================================
+    
     title_style = ParagraphStyle(
         'Title',
         parent=styles['Heading1'],
-        fontSize=18,
+        fontSize=14,
         alignment=TA_CENTER,
-        spaceAfter=3*mm,
-        fontName='Helvetica-Bold'
-    )
-    
-    subtitle_style = ParagraphStyle(
-        'Subtitle',
-        parent=styles['Normal'],
-        fontSize=12,
-        alignment=TA_CENTER,
-        spaceAfter=8*mm,
-        fontName='Helvetica'
-    )
-    
-    header_style = ParagraphStyle(
-        'Header',
-        parent=styles['Normal'],
-        fontSize=11,
         fontName='Helvetica-Bold',
+        textColor=colors.black,
         spaceAfter=3*mm
     )
     
-    normal_style = ParagraphStyle(
-        'Normal',
+    label_style = ParagraphStyle(
+        'Label',
         parent=styles['Normal'],
-        fontSize=10,
-        fontName='Helvetica',
-        leading=12
+        fontSize=9,
+        fontName='Helvetica-Bold',
+        textColor=colors.black
     )
     
-    small_style = ParagraphStyle(
-        'Small',
+    value_style = ParagraphStyle(
+        'Value',
         parent=styles['Normal'],
-        fontSize=8,
+        fontSize=9,
         fontName='Helvetica',
-        textColor=colors.grey
+        textColor=colors.black
+    )
+    
+    table_header_style = ParagraphStyle(
+        'TableHeader',
+        parent=styles['Normal'],
+        fontSize=10,
+        fontName='Helvetica-Bold',
+        alignment=TA_CENTER,
+        textColor=colors.black
+    )
+    
+    table_data_style = ParagraphStyle(
+        'TableData',
+        parent=styles['Normal'],
+        fontSize=9,
+        fontName='Helvetica',
+        leading=11
     )
     
     footer_style = ParagraphStyle(
         'Footer',
         parent=styles['Normal'],
         fontSize=8,
-        fontName='Helvetica-Oblique',
+        fontName='Helvetica',
         alignment=TA_CENTER,
         textColor=colors.grey
     )
@@ -78,226 +84,242 @@ def generate_account_statement(cliente_nombre, movements, summary, commerce_name
     story = []
     
     # ================================================================
-    # ENCABEZADO
+    # TÍTULO PRINCIPAL
     # ================================================================
-    story.append(Paragraph(commerce_name.upper(), title_style))
-    story.append(Paragraph("Estado de Cuenta Corriente", subtitle_style))
     
-    # Información del cliente y fecha
-    fecha_actual = datetime.now().strftime("%d/%m/%Y")
-    hora_actual = datetime.now().strftime("%H:%M")
-    
-    cliente_info = [
-        [Paragraph("<b>Cliente:</b>", normal_style), Paragraph(cliente_nombre, normal_style)],
-        [Paragraph("<b>Fecha:</b>", normal_style), Paragraph(f"{fecha_actual} - {hora_actual}", normal_style)]
-    ]
-    
-    cliente_table = Table(cliente_info, colWidths=[30*mm, 150*mm])
-    cliente_table.setStyle(TableStyle([
-        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
-        ('TOPPADDING', (0, 0), (-1, -1), 2),
+    titulo = Table([[Paragraph("FICHA DE CUENTA CORRIENTE - CLIENTES", title_style)]], 
+                   colWidths=[180*mm])
+    titulo.setStyle(TableStyle([
+        ('BOX', (0, 0), (-1, -1), 2, colors.black),
+        ('BACKGROUND', (0, 0), (-1, -1), colors.white),
+        ('TOPPADDING', (0, 0), (-1, -1), 5),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
     ]))
     
-    story.append(cliente_table)
-    story.append(Spacer(1, 8*mm))
-    
-    # ================================================================
-    # RESUMEN DE CUENTA (como en la app)
-    # ================================================================
-    story.append(Paragraph("RESUMEN DE CUENTA", header_style))
+    story.append(titulo)
     story.append(Spacer(1, 3*mm))
     
-    resumen_data = [
-        # Encabezados
+    # ================================================================
+    # INFORMACIÓN DEL CLIENTE
+    # ================================================================
+    
+    fecha_actual = datetime.now().strftime("%d/%m/%Y")
+    
+    # Línea 1: Cliente y Crédito Acordado
+    linea1_data = [
         [
-            Paragraph("<b>Total Comprado</b>", normal_style),
-            Paragraph("<b>Total Pagado</b>", normal_style),
-            Paragraph("<b>Deuda Pendiente</b>", normal_style),
-            Paragraph("<b>Ventas</b>", normal_style)
-        ],
-        # Valores
-        [
-            Paragraph(f"<font size=13><b>${summary['total_comprado']:,.2f}</b></font>", normal_style),
-            Paragraph(f"<font size=13><b>${summary['total_pagado']:,.2f}</b></font>", normal_style),
-            Paragraph(f"<font size=13><b>${summary['deuda_pendiente']:,.2f}</b></font>", normal_style),
-            Paragraph(f"<font size=12><b>{summary['ventas_texto']}</b></font>", normal_style)
+            Paragraph(f"<b>CLIENTE:</b> {cliente_nombre}", label_style),
+            Paragraph(f"<b>Crédito Acordado: $</b> {summary['total_comprado']:,.2f}", label_style)
         ]
     ]
     
-    # Si hay saldo a favor, agregarlo
-    if summary['saldo_a_favor'] > 0:
-        resumen_data[0].append(Paragraph("<b>Saldo a Favor</b>", normal_style))
-        resumen_data[1].append(Paragraph(f"<font size=13><b>${summary['saldo_a_favor']:,.2f}</b></font>", normal_style))
-        col_widths = [42*mm, 42*mm, 42*mm, 35*mm, 35*mm]
-    else:
-        col_widths = [50*mm, 50*mm, 50*mm, 40*mm]
-    
-    resumen_table = Table(resumen_data, colWidths=col_widths)
-    resumen_table.setStyle(TableStyle([
-        # Bordes
+    linea1 = Table(linea1_data, colWidths=[110*mm, 70*mm])
+    linea1.setStyle(TableStyle([
         ('BOX', (0, 0), (-1, -1), 1.5, colors.black),
-        ('INNERGRID', (0, 0), (-1, -1), 0.5, colors.grey),
-        
-        # Encabezados con fondo gris claro
-        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#E8E8E8')),
-        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-        ('FONTSIZE', (0, 0), (-1, 0), 10),
-        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-        
-        # Valores
-        ('FONTSIZE', (0, 1), (-1, 1), 13),
-        ('FONTNAME', (0, 1), (-1, 1), 'Helvetica-Bold'),
-        
-        # Padding
-        ('TOPPADDING', (0, 0), (-1, -1), 8),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
-        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('INNERGRID', (0, 0), (-1, -1), 1, colors.black),
+        ('TOPPADDING', (0, 0), (-1, -1), 4),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+        ('LEFTPADDING', (0, 0), (-1, -1), 5),
     ]))
     
-    story.append(resumen_table)
-    story.append(Spacer(1, 10*mm))
+    story.append(linea1)
+    
+    # Línea 2: Domicilio
+    domicilio = cliente_info.get('domicilio', '') or '........................................................'
+    linea2_data = [
+        [Paragraph(f"<b>DOMICILIO:</b> {domicilio}", label_style)]
+    ]
+    
+    linea2 = Table(linea2_data, colWidths=[180*mm])
+    linea2.setStyle(TableStyle([
+        ('BOX', (0, 0), (-1, -1), 1.5, colors.black),
+        ('TOPPADDING', (0, 0), (-1, -1), 4),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+        ('LEFTPADDING', (0, 0), (-1, -1), 5),
+    ]))
+    
+    story.append(linea2)
+    
+    # Línea 3: Teléfono y CUIT
+    telefono = cliente_info.get('telefono', '') or '......................'
+    cuit = cliente_info.get('cuit', '') or '.......................'
+    
+    linea3_data = [
+        [
+            Paragraph(f"<b>Teléfono:</b> {telefono}", label_style),
+            Paragraph(f"<b>CUIT N°:</b> {cuit}", label_style)
+        ]
+    ]
+    
+    linea3 = Table(linea3_data, colWidths=[90*mm, 90*mm])
+    linea3.setStyle(TableStyle([
+        ('BOX', (0, 0), (-1, -1), 1.5, colors.black),
+        ('INNERGRID', (0, 0), (-1, -1), 1, colors.black),
+        ('TOPPADDING', (0, 0), (-1, -1), 4),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+        ('LEFTPADDING', (0, 0), (-1, -1), 5),
+    ]))
+    
+    story.append(linea3)
+    story.append(Spacer(1, 5*mm))
     
     # ================================================================
-    # HISTORIAL DE MOVIMIENTOS (exacto a la tabla de la app)
+    # TABLA DE MOVIMIENTOS
     # ================================================================
+    
+    # Encabezados
+    encabezados = [
+        Paragraph("<b>FECHA</b>", table_header_style),
+        Paragraph("<b>DETALLE</b>", table_header_style),
+        Paragraph("<b>DEBE</b>", table_header_style),
+        Paragraph("<b>HABER</b>", table_header_style),
+        Paragraph("<b>SALDO</b>", table_header_style)
+    ]
+    
+    table_data = [encabezados]
+    
+    # Agregar movimientos
     if movements:
-        story.append(Paragraph("HISTORIAL DE MOVIMIENTOS", header_style))
-        story.append(Spacer(1, 3*mm))
-        
-        # Encabezados (igual que en la app)
-        encabezados = [
-            Paragraph("<b>Fecha</b>", normal_style),
-            Paragraph("<b>Tipo</b>", normal_style),
-            Paragraph("<b>Descripción</b>", normal_style),
-            Paragraph("<b>Compra</b>", normal_style),
-            Paragraph("<b>Pago</b>", normal_style),
-            Paragraph("<b>Deuda/Crédito</b>", normal_style)
-        ]
-        
-        table_data = [encabezados]
-        
-        for mov in movements:
-            # Formatear fecha
-            fecha = mov["fecha"][:16] if len(str(mov["fecha"])) > 16 else str(mov["fecha"])
+        for mov in reversed(movements):
+            fecha = str(mov["fecha"])[:10]  # Solo fecha sin hora
             
-            # Descripción
-            descripcion = mov["descripcion"]
-            if len(descripcion) > 45:
-                descripcion = descripcion[:42] + "..."
+            # Descripción más corta
+            detalle = mov["descripcion"]
+            if len(detalle) > 45:
+                detalle = detalle[:42] + "..."
             
-            # Compra (solo si es venta)
-            compra = f"${mov['debe']:,.2f}" if mov["debe"] > 0 else ""
+            # Formatear montos
+            debe = f"${mov['debe']:,.2f}" if mov["debe"] > 0 else ""
+            haber = f"${mov['haber']:,.2f}" if mov["haber"] > 0 else ""
             
-            # Pago (solo si es pago)
-            pago = f"${mov['haber']:,.2f}" if mov["haber"] > 0 else ""
-            
-            # Saldo (exacto como en la app)
             saldo_val = mov["saldo"]
             if abs(saldo_val) < 0.01:
                 saldo = "$0.00"
             else:
-                saldo = f"${saldo_val:,.2f}"
+                saldo = f"${abs(saldo_val):,.2f}"
             
             table_data.append([
-                Paragraph(fecha, normal_style),
-                Paragraph(f"<b>{mov['tipo']}</b>", normal_style),
-                Paragraph(descripcion, normal_style),
-                Paragraph(compra, normal_style),
-                Paragraph(pago, normal_style),
-                Paragraph(saldo, normal_style)
+                Paragraph(fecha, table_data_style),
+                Paragraph(detalle, table_data_style),
+                Paragraph(debe, ParagraphStyle('Right', parent=table_data_style, 
+                                              alignment=TA_RIGHT)),
+                Paragraph(haber, ParagraphStyle('Right', parent=table_data_style, 
+                                               alignment=TA_RIGHT)),
+                Paragraph(saldo, ParagraphStyle('RightBold', parent=table_data_style, 
+                                               alignment=TA_RIGHT, fontName='Helvetica-Bold'))
             ])
-        
-        # Tabla de movimientos
-        movements_table = Table(
-            table_data,
-            colWidths=[32*mm, 20*mm, 62*mm, 25*mm, 25*mm, 28*mm],
-            repeatRows=1
-        )
-        
-        table_style = TableStyle([
-            # Encabezado con fondo gris oscuro
-            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#404040')),
-            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
-            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, 0), 10),
-            
-            # Contenido
-            ('FONTSIZE', (0, 1), (-1, -1), 9),
-            ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
-            
-            # Alineación
-            ('ALIGN', (0, 0), (1, -1), 'CENTER'),   # Fecha y Tipo
-            ('ALIGN', (2, 0), (2, -1), 'LEFT'),     # Descripción
-            ('ALIGN', (3, 0), (-1, -1), 'RIGHT'),   # Montos
-            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-            
-            # Bordes
-            ('BOX', (0, 0), (-1, -1), 1.5, colors.black),
-            ('LINEBELOW', (0, 0), (-1, 0), 2, colors.white),
-            ('INNERGRID', (0, 1), (-1, -1), 0.5, colors.HexColor('#D0D0D0')),
-            
-            # Padding
-            ('TOPPADDING', (0, 0), (-1, -1), 5),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
-            ('LEFTPADDING', (0, 0), (-1, -1), 4),
-            ('RIGHTPADDING', (0, 0), (-1, -1), 4),
+    
+    # Agregar filas vacías para completar la página (estilo formulario clásico)
+    filas_vacias = 12 - len(movements) if len(movements) < 12 else 0
+    for _ in range(filas_vacias):
+        table_data.append([
+            Paragraph("", table_data_style),
+            Paragraph("", table_data_style),
+            Paragraph("", table_data_style),
+            Paragraph("", table_data_style),
+            Paragraph("", table_data_style)
         ])
+    
+    # Crear tabla
+    movements_table = Table(
+        table_data,
+        colWidths=[25*mm, 75*mm, 25*mm, 25*mm, 30*mm],
+        repeatRows=1
+    )
+    
+    # Estilo minimalista blanco y negro
+    table_style = TableStyle([
+        # Encabezado
+        ('BACKGROUND', (0, 0), (-1, 0), colors.white),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
         
-        # Alternar filas (gris muy claro)
-        for i in range(1, len(table_data)):
-            if i % 2 == 0:
-                table_style.add('BACKGROUND', (0, i), (-1, i), colors.HexColor('#F5F5F5'))
+        # Bordes gruesos (estilo formulario)
+        ('BOX', (0, 0), (-1, -1), 2, colors.black),
+        ('INNERGRID', (0, 0), (-1, -1), 1, colors.black),
+        ('LINEBELOW', (0, 0), (-1, 0), 2, colors.black),
         
-        # Colorear filas según tipo (sutilmente)
-        row_idx = 1
-        for mov in movements:
-            if mov["tipo"] == "VENTA":
-                table_style.add('BACKGROUND', (0, row_idx), (-1, row_idx), colors.HexColor('#FFF8E1'))
-            elif mov["tipo"] == "PAGO":
-                table_style.add('BACKGROUND', (0, row_idx), (-1, row_idx), colors.HexColor('#E8F5E9'))
-            row_idx += 1
+        # Alineación
+        ('ALIGN', (0, 0), (0, -1), 'CENTER'),      # Fecha
+        ('ALIGN', (1, 0), (1, -1), 'LEFT'),        # Detalle
+        ('ALIGN', (2, 0), (-1, -1), 'RIGHT'),      # Montos
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
         
-        movements_table.setStyle(table_style)
-        story.append(movements_table)
-        
-        # Nota explicativa
-        story.append(Spacer(1, 5*mm))
-        nota = Paragraph(
-            "<i>Nota: La columna 'Deuda/Crédito' muestra el saldo acumulado después de cada movimiento. "
-            "Un saldo positivo indica deuda pendiente, un saldo negativo indica saldo a favor del cliente.</i>",
-            small_style
-        )
-        story.append(nota)
+        # Padding uniforme
+        ('TOPPADDING', (0, 0), (-1, -1), 4),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+        ('LEFTPADDING', (0, 0), (-1, -1), 4),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 4),
+    ])
+    
+    movements_table.setStyle(table_style)
+    story.append(movements_table)
     
     # ================================================================
-    # FIRMA Y PIE DE PÁGINA
+    # RESUMEN AL PIE
     # ================================================================
+    
+    story.append(Spacer(1, 5*mm))
+    
+    # Calcular deuda restante (considerando saldo a favor)
+    deuda_restante = summary['deuda_pendiente']
+    if summary.get('saldo_a_favor', 0) > 0:
+        deuda_restante = 0  # Si tiene saldo a favor, no debe nada
+    
+    resumen_data = [
+        [
+            Paragraph(f"<b>TOTAL DEBE:</b> ${summary['total_comprado']:,.2f}", label_style),
+            Paragraph(f"<b>TOTAL HABER:</b> ${summary['total_pagado']:,.2f}", label_style),
+            Paragraph(f"<b>DEUDA RESTANTE:</b> ${deuda_restante:,.2f}", 
+                     ParagraphStyle('Bold', parent=label_style, fontSize=11))
+        ]
+    ]
+    
+    resumen_table = Table(resumen_data, colWidths=[60*mm, 60*mm, 60*mm])
+    resumen_table.setStyle(TableStyle([
+        ('BOX', (0, 0), (-1, -1), 1.5, colors.black),
+        ('INNERGRID', (0, 0), (-1, -1), 1, colors.black),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('TOPPADDING', (0, 0), (-1, -1), 6),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+    ]))
+    
+    story.append(resumen_table)
+    
+    # ================================================================
+    # FIRMA
+    # ================================================================
+    
     story.append(Spacer(1, 15*mm))
     
-    # Línea de firma
-    firma_data = [["_" * 60]]
-    firma_table = Table(firma_data, colWidths=[150*mm])
+    firma_data = [
+        [Paragraph("_" * 58, ParagraphStyle('Line', fontSize=10))],
+        [Paragraph("<b>Firma y Aclaración del Cliente</b>", 
+                  ParagraphStyle('Firma', parent=label_style, alignment=TA_CENTER))]
+    ]
+    
+    firma_table = Table(firma_data, colWidths=[120*mm])
     firma_table.setStyle(TableStyle([
-        ('ALIGN', (0, 0), (0, 0), 'CENTER'),
-        ('FONTSIZE', (0, 0), (0, 0), 8),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('TOPPADDING', (0, 1), (-1, 1), 3),
     ]))
+    
     story.append(firma_table)
     
-    firma_texto = Paragraph("<b>Firma y Aclaración del Cliente</b>", normal_style)
-    firma_texto_table = Table([[firma_texto]], colWidths=[150*mm])
-    firma_texto_table.setStyle(TableStyle([
-        ('ALIGN', (0, 0), (0, 0), 'CENTER'),
-    ]))
-    story.append(firma_texto_table)
+    # ================================================================
+    # PIE DE PÁGINA
+    # ================================================================
     
-    # Pie de página
     story.append(Spacer(1, 10*mm))
     story.append(Paragraph(
-        f"Documento generado el {fecha_actual} a las {hora_actual} | {commerce_name}",
+        f"{commerce_name} | Fecha de emisión: {fecha_actual}",
         footer_style
     ))
     
-    # Construir PDF
+    # ================================================================
+    # CONSTRUIR PDF
+    # ================================================================
+    
     doc.build(story)
     return filepath

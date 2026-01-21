@@ -117,6 +117,10 @@ class CustomerController:
         self.view.cuit_var.set("")
         self.view.home_var.set("")
         self.view.phone_var.set("")
+        self.view.cv_var.set("")
+        self.view.cuig_var.set("")
+        self.view.renspa_var.set("")
+        self.view.establecimiento_var.set("")
 
     def __validate_customer_data(self, data):
         # Validar campos obligatorios 
@@ -478,12 +482,19 @@ class CustomerController:
         try:
             movements, summary = self.model.get_customer_account_history(cliente_id)
 
-            
+            cliente_data = self.model.find_customer_by_id(cliente_id)
+
+            cliente_info = {
+                "nombre": cliente_data[1] if cliente_data else "-",
+                "cuit": cliente_data[2] if cliente_data else "-",    
+                "domicilio": cliente_data[3] if cliente_data else "-",
+                "telefono": cliente_data[4] if cliente_data else "-",
+            }
             # Generar PDF (podés usar la misma lógica de tus otros PDFs)
             from utils.receipts.account_statement import generate_account_statement
             
             filepath = generate_account_statement(
-                cliente_nombre=cliente_nombre,
+                cliente_info=cliente_info,
                 movements=movements,
                 summary=summary
             )
@@ -618,3 +629,171 @@ class CustomerController:
             
         except Exception as e:
             self.view.show_error(f"Error al aplicar saldo a favor: {e}")
+        
+
+    def reset_customer_account(self, cliente_id, cliente_nombre, history_window=None):
+        """
+        Resetea la cuenta corriente del cliente:
+        1. Verifica que no tenga deudas
+        2. Genera PDF de respaldo
+        3. Elimina todas las ventas y pagos
+        4. Deja la cuenta limpia
+        """
+        try:
+            # Verificar que no tenga deudas
+            total_debt = self.model.get_total_debt(cliente_id)
+            credit = round(self.payment_model.get_customer_credit(cliente_id), 2)
+            net = round(max(0.0, total_debt - credit), 2)
+            
+            if net > 0.01:
+                self.view.show_error(
+                    f"No se puede resetear la cuenta.\n\n"
+                    f"El cliente tiene una deuda pendiente de ${net:.2f}\n"
+                    f"Debe saldar la cuenta antes de resetear."
+                )
+                return
+            
+            # Confirmar acción
+            confirm = messagebox.askyesno(
+                "⚠️ Advertencia",
+                f"¿Está seguro que desea RESETEAR la cuenta de {cliente_nombre}?\n\n"
+                f"Esta acción:\n"
+                f"- Generará un PDF de respaldo automáticamente\n"
+                f"- Eliminará TODAS las ventas pagadas\n"
+                f"- Eliminará TODOS los pagos registrados\n"
+                f"- Eliminará el saldo a favor (si existe)\n"
+                f"- Dejará la cuenta en CERO\n\n"
+                f"⚠️ Esta operación NO se puede deshacer.\n\n"
+                f"¿Continuar?"
+            )
+            
+            if not confirm:
+                return
+            
+            # ================================================================
+            # PASO 1: GENERAR PDF DE RESPALDO
+            # ================================================================
+            try:
+                movements, summary = self.model.get_customer_account_history(cliente_id)
+                
+                # Obtener datos del cliente
+                cliente_data = self.model.find_customer_by_id(cliente_id)
+                cliente_info = {
+                    'nombre': cliente_data[1] if cliente_data else cliente_nombre,
+                    'cuit': cliente_data[2] if cliente_data else '',
+                    'domicilio': cliente_data[3] if cliente_data else '',
+                    'telefono': cliente_data[4] if cliente_data else ''
+                }
+                
+                from utils.receipts.account_statement import generate_account_statement
+                from datetime import datetime
+                import os
+                
+                # Generar PDF
+                filepath = generate_account_statement(
+                    cliente_info=cliente_info,
+                    movements=movements,
+                    summary=summary
+                )
+                
+                # Renombrar para incluir "CIERRE" y timestamp
+                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                dir_path = os.path.dirname(filepath)
+                filename = os.path.basename(filepath)
+                name, ext = os.path.splitext(filename)
+                new_filepath = os.path.join(dir_path, f"{name}_CIERRE_{timestamp}{ext}")
+                
+                if os.path.exists(filepath):
+                    os.rename(filepath, new_filepath)
+                
+                # Abrir automáticamente
+                try:
+                    os.startfile(new_filepath)
+                except:
+                    pass
+                    
+            except Exception as e:
+                error_msg = f"Error al generar PDF de respaldo: {e}\n\n¿Desea continuar con el reset de todos modos?"
+                if not messagebox.askyesno("Error en PDF", error_msg):
+                    return
+            
+            # ================================================================
+            # PASO 2: ELIMINAR VENTAS PAGADAS Y SUS ITEMS
+            # ================================================================
+            # Primero obtener IDs de ventas a eliminar
+            query_get_sales = """
+                SELECT id FROM sales 
+                WHERE cliente_id = ? 
+                AND estado = 'paid'
+            """
+            sales_to_delete = self.model.db.fetch_all(query_get_sales, (cliente_id,))
+            
+            # Eliminar sale_items de esas ventas
+            for (sale_id,) in sales_to_delete:
+                query_delete_items = "DELETE FROM sale_items WHERE sale_id = ?"
+                self.model.db.execute_query(query_delete_items, (sale_id,))
+            
+            # Eliminar las ventas
+            query_delete_sales = """
+                DELETE FROM sales 
+                WHERE cliente_id = ? 
+                AND estado = 'paid'
+            """
+            self.model.db.execute_query(query_delete_sales, (cliente_id,))
+            
+            # ================================================================
+            # PASO 3: ELIMINAR PAGOS
+            # ================================================================
+            query_delete_payments = """
+                DELETE FROM payments 
+                WHERE client_id = ?
+            """
+            self.payment_model.db.execute_query(query_delete_payments, (cliente_id,))
+            
+            # ================================================================
+            # PASO 4: ELIMINAR CRÉDITOS (si existe la tabla)
+            # ================================================================
+            try:
+                query_delete_credits = """
+                    DELETE FROM customer_credit 
+                    WHERE client_id = ?
+                """
+                self.payment_model.db.execute_query(query_delete_credits, (cliente_id,))
+            except Exception as e:
+                print(f"Tabla customer_credit no existe o error: {e}")
+            
+            # ================================================================
+            # PASO 5: ACTUALIZAR UI
+            # ================================================================
+            
+            # Cerrar ventana de historial
+            if history_window and history_window.winfo_exists():
+                history_window.destroy()
+            
+            # Cerrar ventana de deudas si está abierta
+            if hasattr(self.view, 'debt_window') and self.view.debt_window.winfo_exists():
+                self.view.debt_window.destroy()
+            
+            # Actualizar tabla principal
+            self.refresh_customer_data()
+            
+            # Mostrar mensaje de éxito
+            try:
+                self.view.show_success(
+                    f"✅ Cuenta reseteada exitosamente\n\n"
+                    f"• PDF de respaldo generado\n"
+                    f"• Ventas pagadas eliminadas\n"
+                    f"• Pagos eliminados\n"
+                    f"• Cuenta de {cliente_nombre} limpia\n\n"
+                    f"Archivo guardado como:\n{os.path.basename(new_filepath)}"
+                )
+            except:
+                self.view.show_success(
+                    f"✅ Cuenta reseteada exitosamente\n\n"
+                    f"La cuenta de {cliente_nombre} ahora está limpia."
+                )
+            
+        except Exception as e:
+            self.view.show_error(f"Error al resetear cuenta: {e}")
+            import traceback
+            traceback.print_exc()
