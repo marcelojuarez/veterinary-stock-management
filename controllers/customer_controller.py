@@ -2,8 +2,16 @@ from models.customer import CustomerModel
 from models.payment_model import PaymentModel
 from tkinter import messagebox
 import re
-from utils.pdf_generator import generate_payment_receipt
+import customtkinter as ctk
+from datetime import datetime
 import os
+
+from utils.receipts.pdf_generator import generate_payment_receipt, generate_global_payment_receipt
+from utils.receipts.ticket_pos import generate_payment_ticket, generate_global_payment_ticket
+from utils.receipts.manager import generate_receipts_for_payment
+from utils.receipts.account_statement import generate_account_statement
+from utils.receipts.paths import a4_pago_global
+
 
 class CustomerController: 
     def __init__(self, view):
@@ -86,12 +94,18 @@ class CustomerController:
         # Filtrar en memoria
         filtered = []
         for customer in self.all_customers:
-            # customer estructura: (id, nombre, cuit, domicilio, telefono)
+            # customer estructura: (id, nombre, cuit, domicilio, telefono, cv, cuig, renspa, establecimiento)
             if (query in str(customer[0]).lower() or        # ID
                 query in customer[1].lower() or             # Nombre
                 query in customer[2].lower() or             # CUIT
                 query in customer[3].lower() or             # Domicilio
-                query in customer[4].lower()):              # Teléfono
+                query in customer[4].lower() or             # Teléfono
+                query in customer[5].lower() or             # CV
+                query in customer[6].lower() or             # CUIG
+                query in customer[7].lower() or             # RENSPA
+                query in customer[8].lower()                # Establecimiento
+                ):              
+
                 filtered.append(customer)
         
         self.view.refresh_customer_table(filtered)
@@ -103,6 +117,10 @@ class CustomerController:
         self.view.cuit_var.set("")
         self.view.home_var.set("")
         self.view.phone_var.set("")
+        self.view.cv_var.set("")
+        self.view.cuig_var.set("")
+        self.view.renspa_var.set("")
+        self.view.establecimiento_var.set("")
 
     def __validate_customer_data(self, data):
         # Validar campos obligatorios 
@@ -130,19 +148,68 @@ class CustomerController:
             return False
         
         return True
+    
     # --------------------------------------------------------------------
     # 💳 DEUDAS DE CLIENTES
     # --------------------------------------------------------------------
+
     def show_customer_debts(self, cliente_id, cliente_nombre):
         """Abre ventana con las deudas del cliente"""
         try:
             self.current_client_id = cliente_id
+
+            changes = self.reconcile_and_detect_changes(cliente_id)
+
             debts = self.model.get_customer_debts(cliente_id)
             total = self.model.get_total_debt(cliente_id)
-            self.view.open_debt_window(cliente_id, cliente_nombre, debts, total)
+            credit = round(self.payment_model.get_customer_credit(cliente_id), 2)
+
+            net = round(max(0.0, total - credit), 2)
+            self.view.open_debt_window(cliente_id, cliente_nombre, debts, total, credit, net)
+
+            if changes:
+                self.view.show_warning(
+                f"⚠️ Se detectaron cambios de precio en {len(changes)} venta(s):\n\n" +
+                "\n".join(changes)
+                )
         except Exception as e:
             self.view.show_error(f"Error al obtener las deudas: {e}")
 
+    def reconcile_and_detect_changes(self, cliente_id):
+        """Reconcilia ventas y detecta cambios de precio"""
+        changes = []
+        
+        # Obtener ventas pendientes/parciales
+        rows = self.payment_model.db.fetch_all(
+            """
+            SELECT s.id, s.estado
+            FROM sales s
+            WHERE s.cliente_id = ? AND s.estado IN ('pending', 'partial')
+            """,
+            (cliente_id,)
+        )
+        
+        for sale_id, estado_antes in rows:
+            total_antes = self.payment_model.get_sale_total_variable(sale_id)
+            paid = self.payment_model.get_sale_paid(sale_id)
+            
+            # Reconciliar esta venta
+            nuevo_estado = self.payment_model.reconcile_sale(sale_id)
+            
+            # Detectar si cambió a paid
+            if estado_antes != 'paid' and nuevo_estado == 'paid':
+                total_final = self.payment_model.get_sale_total(sale_id)
+                sobrepago = round(paid - total_final, 2)
+                
+                if sobrepago > 0.01:
+                    changes.append(
+                        f"✅ Venta #{sale_id} PAGADA - Saldo a favor: ${sobrepago:.2f}"
+                    )
+                else:
+                    changes.append(f"✅ Venta #{sale_id} quedó PAGADA por cambio de precio")
+        
+        return changes
+    
     def load_sale_items_for_debt(self, sale_id):
         """Carga el detalle de productos de una venta fiada en la vista"""
         try:
@@ -154,7 +221,12 @@ class CustomerController:
     def customer_has_debts(self, customer_id):
             """Obtengo la cantidad de deudas de un cliente"""
             try: 
-                query = "SELECT COUNT(*) FROM sales WHERE cliente_id = ? AND estado = 'fiada';"
+                query = """
+                    SELECT COUNT(*) 
+                    FROM sales 
+                    WHERE cliente_id = ? 
+                    AND estado IN ('pending', 'partial')
+                """
                 result = self.model.db.fetch_one(query,(customer_id,))
                 return result and result[0] > 0
             except Exception as e:
@@ -162,6 +234,10 @@ class CustomerController:
 
     def register_payment(self, sale_id, client_id, amount, method, window):
         try:
+            # 1) Estado ANTES (para saldo previo)
+            before = self.payment_model.get_sale_balance(sale_id)
+
+            # 2) Registrar pago
             self.payment_model.create_payment(
                 sale_id=sale_id,
                 client_id=client_id,
@@ -170,52 +246,60 @@ class CustomerController:
                 notes="Payment through UI"
             )
 
-            self.payment_model.update_sale_status(sale_id)
+            # 3) Actualizar estado y congelar si queda paid
+            status = self.payment_model.update_sale_status(sale_id,skip_credit_generation=True)
 
+            self.payment_model.reconcile_sale(sale_id)
+
+            # 4) Estado DESPUÉS (para saldo restante / total)
+            after = self.payment_model.get_sale_balance(sale_id)
+
+            # 5) Actualizar UI de deudas
             debts = self.model.get_customer_debts(client_id)
             total = self.model.get_total_debt(client_id)
-
-            self.view.update_debt_window(debts, total)
+            credit = round(self.payment_model.get_customer_credit(client_id), 2)
+            net = round(max(0.0, total - credit), 2)
+            self.view.update_debt_window(debts, total, credit, net)
 
             window.destroy()
             self.view.show_success("Pago registrado con éxito.")
 
-            # 6) PREGUNTA: ¿Desea generar comprobante?
-            generar = messagebox.askyesno(
-                "Generar Comprobante",
-                "¿Desea generar el comprobante de pago?"
+            # 6) Comprobante (siempre que el usuario quiera)
+            fmt = self.ask_receipt_format()
+            if not fmt:
+                return
+
+            client_name = self.model.find_customer_by_id(client_id)[1]
+            sale_items = self.model.get_sale_items(sale_id)
+
+            generate_receipts_for_payment(
+                mode="sale",
+                format=fmt,
+                client_name=client_name,
+                method=method,
+                amount=amount,
+                sale_id=int(sale_id),
+                sale_info=after,
+                payments=self.payment_model.get_payments_for_sale(sale_id),
+                sale_items=sale_items
             )
-
-            if generar:
-                receipt_path = generate_payment_receipt(
-                    client_name=self.model.find_customer_by_id(client_id)[1],
-                    sale_id=sale_id,
-                    payment_amount=amount,
-                    method=method,
-                    sale_info=self.payment_model.get_sale_balance(sale_id),
-                    payments=self.payment_model.get_payments_for_sale(sale_id)
-                )
-
-                self.view.show_success("Comprobante generado con éxito.")
-                
-                # Abrir el PDF automáticamente (solo Windows)
-                try:
-                    os.startfile(receipt_path)
-                except:
-                    pass
 
         except Exception as e:
             self.view.show_error(f"Error: {e}")
 
-    def open_global_payment_window(self):
-        import customtkinter as ctk 
-        from utils.pdf_generator import generate_global_payment_receipt
 
+    def open_global_payment_window(self):
         customer_id = self.view.get_selected_customer_id()
         if not customer_id:
             self.view.show_warning("Selecciona un cliente primero.")
             return
 
+        total_debt = round(float(self.model.get_total_debt(customer_id)), 2)
+
+        if total_debt == 0:
+            self.view.show_warning("El cliente no tiene deudas pendientes")
+            return
+        
         # Crear ventana modal con estilo
         win = ctk.CTkToplevel(self.view.frame)
         win.title("Pago Global a Cuenta")
@@ -283,7 +367,7 @@ class CustomerController:
                 self.view.show_error("Monto inválido. Ingrese solo números.")
                 return
 
-            total_debt = round(float(self.model.get_total_debt(customer_id)), 2)
+            
             if amount > total_debt:
                 self.view.show_warning(
                     f"El monto ingresado (${amount:.2f}) supera la deuda total del cliente (${total_debt:.2f})."
@@ -310,27 +394,38 @@ class CustomerController:
                 # Necesitamos volver a pedir los datos actualizados
                 debts = self.model.get_customer_debts(customer_id)
                 total = self.model.get_total_debt(customer_id)
-                self.view.update_debt_window(debts, total)
+                credit = round(self.payment_model.get_customer_credit(customer_id), 2)
+                net = round(max(0.0, total - credit), 2)
+                self.view.update_debt_window(debts, total, credit, net)
 
                 # 3. Generar comprobante
                 if result['used'] > 0:
-                    generar = messagebox.askyesno(
-                        "Comprobante", 
-                        "¿Desea generar un comprobante de este pago global?"
+                    fmt = self.ask_receipt_format()
+                    if not fmt:
+                        return
+
+                    client_name = "Cliente"
+                    for c in self.all_customers:
+                        if c[0] == customer_id:
+                            client_name = c[1]
+                            break
+
+                    sale_items = {}
+                    for sale_id, _ in result['updated_debts']:
+                        items = self.model.get_sale_items(sale_id)
+                        sale_items[sale_id] = items
+
+                    generate_receipts_for_payment(
+                        mode="global",
+                        format=fmt,
+                        client_name=client_name,
+                        method="Global",
+                        amount=amount,
+                        customer_id=customer_id,
+                        result_data=result,
+                        sale_items=sale_items
                     )
-                    if generar:
-                        # Obtener nombre del cliente
-                        client_name = "Cliente"
-                        for c in self.all_customers:
-                            if c[0] == customer_id:
-                                client_name = c[1]
-                                break
-                        
-                        path = generate_global_payment_receipt(client_name, amount, result)
-                        try:
-                            os.startfile(path)
-                        except:
-                            pass
+
 
             except Exception as e:
                 self.view.show_error(f"Error al procesar el pago: {e}")
@@ -359,3 +454,346 @@ class CustomerController:
             font=ctk.CTkFont(size=13, weight="bold"),
             command=win.destroy
         ).pack(side="left", padx=5, expand=True, fill="x")
+
+
+    def ask_receipt_format(self):
+        want_ticket = messagebox.askyesno("Formato", "¿Desea generar ticket (80mm)?")
+        want_a4 = messagebox.askyesno("Formato", "¿Desea generar A4 (extendido)?")
+
+        if want_ticket and want_a4:
+            return "both"
+        if want_ticket:
+            return "ticket"
+        if want_a4:
+            return "a4"
+        return None
+
+    def show_account_history(self, cliente_id, cliente_nombre):
+        """Muestra el historial completo de cuenta del cliente"""
+        try:
+            movements, summary = self.model.get_customer_account_history(cliente_id)
+            self.view.open_account_history_window(cliente_id, cliente_nombre, movements, summary)
+        except Exception as e:
+            self.view.show_error(f"Error al obtener historial: {e}")
+
+
+    def export_account_history_pdf(self, cliente_id, cliente_nombre):
+        """Exporta el historial de cuenta a PDF"""
+        try:
+            movements, summary = self.model.get_customer_account_history(cliente_id)
+
+            cliente_data = self.model.find_customer_by_id(cliente_id)
+
+            cliente_info = {
+                "nombre": cliente_data[1] if cliente_data else "-",
+                "cuit": cliente_data[2] if cliente_data else "-",    
+                "domicilio": cliente_data[3] if cliente_data else "-",
+                "telefono": cliente_data[4] if cliente_data else "-",
+            }
+            # Generar PDF (podés usar la misma lógica de tus otros PDFs)
+            from utils.receipts.account_statement import generate_account_statement
+            
+            filepath = generate_account_statement(
+                cliente_info=cliente_info,
+                movements=movements,
+                summary=summary
+            )
+            
+            self.view.show_success(f"PDF generado: {filepath}")
+            
+            # Abrir automáticamente
+            import os
+            try:
+                os.startfile(filepath)
+            except:
+                pass
+                
+        except Exception as e:
+            self.view.show_error(f"Error al exportar PDF: {e}")
+
+    def apply_credit_to_debts(self, customer_id, customer_name):
+        """Aplica el saldo a favor del cliente a sus deudas pendientes"""
+        try:
+            # Obtener crédito disponible
+            credit = round(self.payment_model.get_customer_credit(customer_id), 2)
+            
+            if credit <= 0:
+                self.view.show_warning("El cliente no tiene saldo a favor.")
+                return
+            
+            # Obtener deuda total
+            total_debt = round(float(self.model.get_total_debt(customer_id)), 2)
+            
+            if total_debt <= 0:
+                self.view.show_warning("El cliente no tiene deudas pendientes.")
+                return
+            
+            # Confirmar acción
+            amount_to_apply = min(credit, total_debt)
+            
+            confirm = messagebox.askyesno(
+                "Confirmar",
+                f"¿Aplicar ${amount_to_apply:.2f} del saldo a favor a las deudas pendientes?\n\n"
+                f"Saldo a favor disponible: ${credit:.2f}\n"
+                f"Deuda total: ${total_debt:.2f}"
+            )
+            
+            if not confirm:
+                return
+            
+            # 🔹 PASO 1: Descontar TODO el crédito que vamos a intentar usar
+            actual_used = self.payment_model.use_customer_credit(
+                client_id=customer_id,
+                amount=amount_to_apply,
+                reason="Aplicando a deudas pendientes"
+            )
+            
+            if actual_used <= 0:
+                self.view.show_error("No se pudo usar el crédito disponible.")
+                return
+            
+            # 🔹 PASO 2: Aplicar pagos manualmente
+            query = """
+                SELECT s.id,
+                    COALESCE(SUM(si.quantity * st.price_with_iva), 0) AS total_variable,
+                    COALESCE((SELECT SUM(p.amount) FROM payments p WHERE p.sale_id = s.id), 0) AS paid
+                FROM sales s
+                JOIN sale_items si ON si.sale_id = s.id
+                JOIN stock st ON st.id = si.product_id
+                WHERE s.cliente_id = ? AND s.estado IN ('pending', 'partial')
+                GROUP BY s.id
+                HAVING (total_variable - paid) > 0.01
+                ORDER BY s.date DESC
+            """
+            rows = self.payment_model.db.fetch_all(query, (customer_id,))
+            
+            remaining = actual_used
+            payments_applied = []
+
+            for row in rows:
+                if remaining <= 0.01:
+                    break
+
+                sale_id, total_variable, paid = row
+                balance = round(float(total_variable) - float(paid), 2)
+                pay_amount = round(min(remaining, balance), 2)
+                
+                if pay_amount > 0.01:
+                    # Registrar el pago
+                    self.payment_model.create_payment(
+                        sale_id=sale_id,
+                        client_id=customer_id,
+                        amount=pay_amount,
+                        method="Saldo a Favor",
+                        notes="Aplicación de crédito disponible"
+                    )
+                    
+                    # Actualizar estado de la venta
+                    self.payment_model.update_sale_status(sale_id, skip_credit_generation=True)
+                    
+                    remaining = round(remaining - pay_amount, 2)
+                    payments_applied.append((sale_id, pay_amount))
+            
+            # 🔹 PASO 3: Si sobra crédito, devolverlo
+            if remaining > 0.01:
+                self.payment_model.add_customer_credit(
+                    client_id=customer_id,
+                    amount=remaining,
+                    reason="Crédito no utilizado (sin deudas suficientes)",
+                    sale_id=None
+                )
+            
+            # Calcular cuánto se usó realmente
+            credit_used = actual_used - remaining
+            
+            # Obtener valores actualizados
+            new_credit = round(self.payment_model.get_customer_credit(customer_id), 2)
+            remaining_debt = round(float(self.model.get_total_debt(customer_id)), 2)
+
+            
+            # Actualizar la UI
+            self.refresh_customer_data()
+            self.current_client_id = customer_id
+            self.view.select_customer_in_table(customer_id)
+            
+            # Actualizar ventana de deudas
+            debts = self.model.get_customer_debts(customer_id)
+            net = round(max(0.0, remaining_debt - new_credit), 2)
+            self.view.update_debt_window(debts, remaining_debt, new_credit, net)
+            
+            self.view.show_success(
+                f"✅ Se aplicaron ${credit_used:.2f} del saldo a favor.\n"
+                f"Deuda restante: ${remaining_debt:.2f}\n"
+                f"Saldo a favor restante: ${new_credit:.2f}"
+            )
+            
+        except Exception as e:
+            self.view.show_error(f"Error al aplicar saldo a favor: {e}")
+        
+
+    def reset_customer_account(self, cliente_id, cliente_nombre, history_window=None):
+        """
+        Resetea la cuenta corriente del cliente:
+        1. Verifica que no tenga deudas
+        2. Genera PDF de respaldo
+        3. Elimina todas las ventas y pagos
+        4. Deja la cuenta limpia
+        """
+        try:
+            # Verificar que no tenga deudas
+            total_debt = self.model.get_total_debt(cliente_id)
+            credit = round(self.payment_model.get_customer_credit(cliente_id), 2)
+            net = round(max(0.0, total_debt - credit), 2)
+            
+            if net > 0.01:
+                self.view.show_error(
+                    f"No se puede resetear la cuenta.\n\n"
+                    f"El cliente tiene una deuda pendiente de ${net:.2f}\n"
+                    f"Debe saldar la cuenta antes de resetear."
+                )
+                return
+            
+            # Confirmar acción
+            confirm = messagebox.askyesno(
+                "⚠️ Advertencia",
+                f"¿Está seguro que desea RESETEAR la cuenta de {cliente_nombre}?\n\n"
+                f"Esta acción:\n"
+                f"- Generará un PDF de respaldo automáticamente\n"
+                f"- Eliminará TODAS las ventas pagadas\n"
+                f"- Eliminará TODOS los pagos registrados\n"
+                f"- Eliminará el saldo a favor (si existe)\n"
+                f"- Dejará la cuenta en CERO\n\n"
+                f"⚠️ Esta operación NO se puede deshacer.\n\n"
+                f"¿Continuar?"
+            )
+            
+            if not confirm:
+                return
+            
+            # ================================================================
+            # PASO 1: GENERAR PDF DE RESPALDO
+            # ================================================================
+            try:
+                movements, summary = self.model.get_customer_account_history(cliente_id)
+                
+                # Obtener datos del cliente
+                cliente_data = self.model.find_customer_by_id(cliente_id)
+                cliente_info = {
+                    'nombre': cliente_data[1] if cliente_data else cliente_nombre,
+                    'cuit': cliente_data[2] if cliente_data else '',
+                    'domicilio': cliente_data[3] if cliente_data else '',
+                    'telefono': cliente_data[4] if cliente_data else ''
+                }
+                
+                from utils.receipts.account_statement import generate_account_statement
+                from datetime import datetime
+                import os
+                
+                # Generar PDF
+                filepath = generate_account_statement(
+                    cliente_info=cliente_info,
+                    movements=movements,
+                    summary=summary
+                )
+                
+                # Renombrar para incluir "CIERRE" y timestamp
+                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                dir_path = os.path.dirname(filepath)
+                filename = os.path.basename(filepath)
+                name, ext = os.path.splitext(filename)
+                new_filepath = os.path.join(dir_path, f"{name}_CIERRE_{timestamp}{ext}")
+                
+                if os.path.exists(filepath):
+                    os.rename(filepath, new_filepath)
+                
+                # Abrir automáticamente
+                try:
+                    os.startfile(new_filepath)
+                except:
+                    pass
+                    
+            except Exception as e:
+                error_msg = f"Error al generar PDF de respaldo: {e}\n\n¿Desea continuar con el reset de todos modos?"
+                if not messagebox.askyesno("Error en PDF", error_msg):
+                    return
+            
+            # ================================================================
+            # PASO 2: ELIMINAR VENTAS PAGADAS Y SUS ITEMS
+            # ================================================================
+            # Primero obtener IDs de ventas a eliminar
+            query_get_sales = """
+                SELECT id FROM sales 
+                WHERE cliente_id = ? 
+                AND estado = 'paid'
+            """
+            sales_to_delete = self.model.db.fetch_all(query_get_sales, (cliente_id,))
+            
+            # Eliminar sale_items de esas ventas
+            for (sale_id,) in sales_to_delete:
+                query_delete_items = "DELETE FROM sale_items WHERE sale_id = ?"
+                self.model.db.execute_query(query_delete_items, (sale_id,))
+            
+            # Eliminar las ventas
+            query_delete_sales = """
+                DELETE FROM sales 
+                WHERE cliente_id = ? 
+                AND estado = 'paid'
+            """
+            self.model.db.execute_query(query_delete_sales, (cliente_id,))
+            
+            # ================================================================
+            # PASO 3: ELIMINAR PAGOS
+            # ================================================================
+            query_delete_payments = """
+                DELETE FROM payments 
+                WHERE client_id = ?
+            """
+            self.payment_model.db.execute_query(query_delete_payments, (cliente_id,))
+            
+            # ================================================================
+            # PASO 4: ELIMINAR CRÉDITOS (si existe la tabla)
+            # ================================================================
+            try:
+                query_delete_credits = """
+                    DELETE FROM customer_credit 
+                    WHERE client_id = ?
+                """
+                self.payment_model.db.execute_query(query_delete_credits, (cliente_id,))
+            except Exception as e:
+                print(f"Tabla customer_credit no existe o error: {e}")
+            
+            # ================================================================
+            # PASO 5: ACTUALIZAR UI
+            # ================================================================
+            
+            # Cerrar ventana de historial
+            if history_window and history_window.winfo_exists():
+                history_window.destroy()
+            
+            # Cerrar ventana de deudas si está abierta
+            if hasattr(self.view, 'debt_window') and self.view.debt_window.winfo_exists():
+                self.view.debt_window.destroy()
+            
+            # Actualizar tabla principal
+            self.refresh_customer_data()
+            
+            # Mostrar mensaje de éxito
+            try:
+                self.view.show_success(
+                    f"✅ Cuenta reseteada exitosamente\n\n"
+                    f"• PDF de respaldo generado\n"
+                    f"• Ventas pagadas eliminadas\n"
+                    f"• Pagos eliminados\n"
+                    f"• Cuenta de {cliente_nombre} limpia\n\n"
+                    f"Archivo guardado como:\n{os.path.basename(new_filepath)}"
+                )
+            except:
+                self.view.show_success(
+                    f"✅ Cuenta reseteada exitosamente\n\n"
+                    f"La cuenta de {cliente_nombre} ahora está limpia."
+                )
+            
+        except Exception as e:
+            self.view.show_error(f"Error al resetear cuenta: {e}")
+            import traceback
+            traceback.print_exc()

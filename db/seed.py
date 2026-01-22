@@ -2,8 +2,8 @@ import sys, os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import sqlite3
-from datetime import datetime
-from random import choice, randint
+from datetime import datetime, timedelta
+from random import choice, randint, uniform
 from models.user import User
 from models.supplier.__init__ import SupplierModel
 from models.security import gen_password, validate_password
@@ -229,11 +229,171 @@ def seed_client():
 
     print("Usuarios cargados.")
 
+# Códigos de provincia reales de SENASA para RENSPA y CUIG
+CODIGOS_PROVINCIA = {
+    "Buenos Aires": "06",
+    "Catamarca": "10",
+    "Chaco": "22",
+    "Chubut": "26",
+    "Córdoba": "14",
+    "Corrientes": "18",
+    "Entre Ríos": "30",
+    "Formosa": "34",
+    "Jujuy": "38",
+    "La Pampa": "42",
+    "La Rioja": "46",
+    "Mendoza": "50",
+    "Misiones": "54",
+    "Neuquén": "58",
+    "Río Negro": "62",
+    "Salta": "66",
+    "San Juan": "70",
+    "San Luis": "74",
+    "Santa Cruz": "78",
+    "Santa Fe": "82",
+    "Santiago del Estero": "86",
+    "Tierra del Fuego": "94",
+    "Tucumán": "90"
+}
+
+# Códigos de departamento reales de Córdoba (para ejemplo más realista)
+DEPARTAMENTOS_CORDOBA = {
+    "Capital": "014",
+    "Colón": "021",
+    "Cruz del Eje": "028",
+    "General Roca": "035",
+    "General San Martín": "042",
+    "Ischilín": "049",
+    "Juárez Celman": "056",
+    "Marcos Juárez": "063",
+    "Minas": "070",
+    "Pocho": "077",
+    "Punilla": "084",
+    "Río Cuarto": "091",
+    "Río Primero": "098",
+    "Río Seco": "105",
+    "Río Segundo": "112",
+    "San Alberto": "119",
+    "San Javier": "126",
+    "San Justo": "133",
+    "Santa María": "140",
+    "Sobremonte": "147",
+    "Tercero Arriba": "154",
+    "Totoral": "161",
+    "Tulumba": "168",
+    "Unión": "175",
+    "Calamuchita": "007"
+}
+
+# Nombres de establecimientos ganaderos reales/típicos
+NOMBRES_ESTABLECIMIENTOS = [
+    "La Esperanza", "San José", "Santa Rosa", "El Porvenir", "La Aurora",
+    "Los Alamos", "El Trebol", "La Fortuna", "San Antonio", "El Carmen",
+    "La Paz", "Los Nogales", "El Paraíso", "Santa María", "San Francisco",
+    "La Primavera", "El Progreso", "Los Sauces", "La Victoria", "San Miguel",
+    "El Refugio", "Las Margaritas", "San Pedro", "La Cautiva", "El Mangrullo",
+    "Los Quebrachos", "La Pampa", "San Martín", "El Rodeo", "Las Acacias",
+    "La Constancia", "El Lucero", "Los Talas", "San Carlos", "La Unión",
+    "El Diamante", "Las Rosas", "San Ignacio", "La Granja", "El Sauce",
+    "Los Cardos", "La Blanqueada", "San Lorenzo", "El Monte", "Las Lomas",
+    "La Estación", "El Recreo", "Los Algarrobos", "San Ramón", "La Legua",
+    "El Talar", "Las Delicias", "San Felipe", "La Herradura", "El Bagual",
+    "Los Molles", "La Querencia", "San Cayetano", "El Chañar", "Las Tunas"
+]
+
+# Tipos de actividad ganadera
+ACTIVIDADES_GANADERAS = [
+    "Cría", "Recría", "Engorde", "Ciclo Completo", "Tambo", "Cabaña",
+    "Feedlot", "Invernada", "Cría y Recría"
+]
+
+
+def generar_cuig(provincia="Córdoba"):
+    """
+    Genera un CUIG (Clave Única de Identificación Ganadera) con formato real.
+    Formato: XX-XXX-XXXXX-X (Provincia-Departamento-Número-Dígito verificador)
+    Ejemplo real: 14-091-12345-7
+    """
+    cod_provincia = CODIGOS_PROVINCIA.get(provincia, "14")  # Default Córdoba
+    
+    if provincia == "Córdoba":
+        cod_departamento = choice(list(DEPARTAMENTOS_CORDOBA.values()))
+    else:
+        cod_departamento = f"{randint(1, 200):03d}"
+    
+    numero = f"{randint(1, 99999):05d}"
+    digito_verificador = randint(0, 9)
+    
+    return f"{cod_provincia}-{cod_departamento}-{numero}-{digito_verificador}"
+
+
+def generar_renspa(provincia="Córdoba"):
+    """
+    Genera un RENSPA (Registro Nacional Sanitario de Productores Agropecuarios) con formato real.
+    Formato: XX.XXX.X.XXXXX/XX (Provincia.Departamento.Actividad.Número/Año)
+    Ejemplo real: 14.091.0.00123/24
+    """
+    cod_provincia = CODIGOS_PROVINCIA.get(provincia, "14")
+    
+    if provincia == "Córdoba":
+        cod_departamento = choice(list(DEPARTAMENTOS_CORDOBA.values()))
+    else:
+        cod_departamento = f"{randint(1, 200):03d}"
+    
+    # Tipo de actividad (0=Bovinos, 1=Porcinos, 2=Ovinos, 3=Caprinos, 4=Equinos, 5=Avícola)
+    tipo_actividad = randint(0, 5)
+    
+    numero = f"{randint(1, 99999):05d}"
+    
+    # Año de inscripción (últimos 2 dígitos)
+    anio = randint(10, 25)  # Entre 2010 y 2025
+    
+    return f"{cod_provincia}.{cod_departamento}.{tipo_actividad}.{numero}/{anio:02d}"
+
+
+def generar_cv():
+    """
+    Genera una CV (Clave de Vinculación) con formato real.
+    La CV es un número de 8 dígitos asignado por SENASA.
+    Ejemplo real: 12345678
+    """
+    return f"{randint(10000000, 99999999)}"
+
+
+def generar_establecimiento():
+    """
+    Genera un nombre de establecimiento ganadero realista.
+    Puede incluir número de potrero o lote.
+    """
+    nombre_base = choice(NOMBRES_ESTABLECIMIENTOS)
+    
+    # 30% de probabilidad de agregar número de lote/potrero
+    if randint(1, 100) <= 30:
+        return f"{nombre_base} - Lote {randint(1, 20)}"
+    
+    # 20% de probabilidad de agregar actividad
+    if randint(1, 100) <= 20:
+        actividad = choice(ACTIVIDADES_GANADERAS)
+        return f"{nombre_base} ({actividad})"
+    
+    return nombre_base
+
 def seed_clients():
+    """
+    ACTUALIZADO: Genera clientes con datos agropecuarios reales
+    (CV, CUIG, RENSPA, Establecimiento)
+    """
+    
     # Nombres de clientes variados
     nombres_veterinarias = [
         "Veterinaria", "Clínica", "AgroVet", "Pet Shop", "Hospital Veterinario",
         "Centro Veterinario", "Consultorio", "Animal Care", "Mundo Mascota"
+    ]
+    
+    # Nombres específicos para productores agropecuarios
+    nombres_agropecuarios = [
+        "Estancia", "Cabaña", "Tambo", "Campo", "Agropecuaria", "Ganadera",
+        "Hacienda", "Establecimiento", "Granja", "Feedlot"
     ]
     
     complementos = [
@@ -266,150 +426,277 @@ def seed_clients():
     
     condiciones_iva = ["Responsable Inscripto", "Monotributo", "Consumidor Final"]
     
+    # Provincias para variar los códigos RENSPA/CUIG
+    provincias = ["Córdoba", "Buenos Aires", "Santa Fe", "La Pampa", "Entre Ríos"]
+    
     clientes = [
-        {"nombre": "Consumidor Final", "cuit": "", "domicilio": "", "telefono": "", "condicion_iva": "Consumidor Final"}
+        {
+            "nombre": "Consumidor Final", 
+            "cuit": "", 
+            "domicilio": "", 
+            "telefono": "", 
+            "condicion_iva": "Consumidor Final",
+            "cv": "",
+            "cuig": "",
+            "renspa": "",
+            "establecimiento": ""
+        }
     ]
     
-    # Generar 100 clientes empresas (veterinarias, pet shops, etc.)
-    for i in range(100):
-        nombre_negocio = f"{choice(nombres_veterinarias)} {choice(complementos)}"
+    # =========================================================================
+    # TIPO 1: Productores agropecuarios (60 clientes) - TIENEN TODOS LOS DATOS
+    # =========================================================================
+    print("  📋 Generando productores agropecuarios...")
+    for i in range(60):
+        provincia = choice(provincias)
         
-        # Generar CUIT (30 o 33 para empresas)
-        tipo_cuit = choice(["30", "33"])
-        num_cuit = f"{randint(10000000, 99999999)}"
+        # Nombre del establecimiento/productor
+        if randint(1, 100) <= 50:
+            # Nombre de empresa agropecuaria
+            nombre = f"{choice(nombres_agropecuarios)} {choice(complementos)}"
+            tipo_cuit = choice(["30", "33"])
+        else:
+            # Nombre de persona física (productor)
+            nombre = f"{choice(nombres_personas)} {choice(apellidos)}"
+            tipo_cuit = choice(["20", "23", "27"])
+        
+        # Generar CUIT
+        if tipo_cuit in ["30", "33"]:
+            num_cuit = f"{randint(10000000, 99999999)}"
+        else:
+            num_cuit = f"{randint(20000000, 45000000)}"
         digito = randint(0, 9)
         cuit = f"{tipo_cuit}-{num_cuit}-{digito}"
         
-        # Generar dirección
-        calle = choice(calles)
-        numero = randint(100, 2500)
+        # Dirección (rutas para productores)
+        if randint(1, 100) <= 70:
+            calle = choice(["Ruta 36", "Ruta 8", "Ruta 30", "Ruta 158", "Ruta A005", "Ruta Provincial 10"])
+            numero = f"Km {randint(1, 150)}"
+        else:
+            calle = choice(calles)
+            numero = str(randint(100, 2500))
         domicilio = f"{calle} {numero}"
         
-        # Generar teléfono
         telefono = f"358{randint(4000000, 4999999)}"
-        
-        # Condición IVA (sin Consumidor Final para empresas)
         condicion = choice(["Responsable Inscripto", "Monotributo"])
         
-        clientes.append({
-            "nombre": nombre_negocio,
-            "cuit": cuit,
-            "domicilio": domicilio,
-            "telefono": telefono,
-            "condicion_iva": condicion
-        })
-    
-    # Generar 50 clientes personas físicas
-    for i in range(50):
-        nombre = f"{choice(nombres_personas)} {choice(apellidos)}"
-        
-        # Generar CUIT persona física (20, 23, 24, 27)
-        tipo_cuit = choice(["20", "23", "24", "27"])
-        dni = randint(20000000, 45000000)
-        digito = randint(0, 9)
-        cuit = f"{tipo_cuit}-{dni}-{digito}"
-        
-        # Dirección
-        calle = choice(calles)
-        numero = randint(100, 2500)
-        domicilio = f"{calle} {numero}"
-        
-        # Teléfono
-        telefono = f"358{randint(4000000, 4999999)}"
-        
-        # Condición IVA
-        condicion = choice(condiciones_iva)
+        # DATOS AGROPECUARIOS COMPLETOS
+        cv = generar_cv()
+        cuig = generar_cuig(provincia)
+        renspa = generar_renspa(provincia)
+        establecimiento = generar_establecimiento()
         
         clientes.append({
             "nombre": nombre,
             "cuit": cuit,
             "domicilio": domicilio,
             "telefono": telefono,
-            "condicion_iva": condicion
+            "condicion_iva": condicion,
+            "cv": cv,
+            "cuig": cuig,
+            "renspa": renspa,
+            "establecimiento": establecimiento
         })
     
+    # =========================================================================
+    # TIPO 2: Veterinarias/Pet Shops (50 clientes) - DATOS PARCIALES
+    # =========================================================================
+    print("  🏥 Generando veterinarias y pet shops...")
+    for i in range(50):
+        nombre_negocio = f"{choice(nombres_veterinarias)} {choice(complementos)}"
+        
+        tipo_cuit = choice(["30", "33"])
+        num_cuit = f"{randint(10000000, 99999999)}"
+        digito = randint(0, 9)
+        cuit = f"{tipo_cuit}-{num_cuit}-{digito}"
+        
+        calle = choice(calles)
+        numero = randint(100, 2500)
+        domicilio = f"{calle} {numero}"
+        
+        telefono = f"358{randint(4000000, 4999999)}"
+        condicion = choice(["Responsable Inscripto", "Monotributo"])
+        
+        # Las veterinarias pueden tener algunos datos agropecuarios (si atienden ganado)
+        if randint(1, 100) <= 30:  # 30% tiene datos agropecuarios
+            cv = generar_cv()
+            cuig = ""  # No suelen tener CUIG
+            renspa = generar_renspa("Córdoba") if randint(1, 100) <= 50 else ""
+            establecimiento = ""
+        else:
+            cv = ""
+            cuig = ""
+            renspa = ""
+            establecimiento = ""
+        
+        clientes.append({
+            "nombre": nombre_negocio,
+            "cuit": cuit,
+            "domicilio": domicilio,
+            "telefono": telefono,
+            "condicion_iva": condicion,
+            "cv": cv,
+            "cuig": cuig,
+            "renspa": renspa,
+            "establecimiento": establecimiento
+        })
+    
+    # =========================================================================
+    # TIPO 3: Personas físicas particulares (40 clientes) - SIN DATOS AGROPECUARIOS
+    # =========================================================================
+    print("  👤 Generando clientes particulares...")
+    for i in range(40):
+        nombre = f"{choice(nombres_personas)} {choice(apellidos)}"
+        
+        tipo_cuit = choice(["20", "23", "24", "27"])
+        dni = randint(20000000, 45000000)
+        digito = randint(0, 9)
+        cuit = f"{tipo_cuit}-{dni}-{digito}"
+        
+        calle = choice(calles)
+        numero = randint(100, 2500)
+        domicilio = f"{calle} {numero}"
+        
+        telefono = f"358{randint(4000000, 4999999)}"
+        condicion = choice(condiciones_iva)
+        
+        # Particulares no tienen datos agropecuarios
+        clientes.append({
+            "nombre": nombre,
+            "cuit": cuit,
+            "domicilio": domicilio,
+            "telefono": telefono,
+            "condicion_iva": condicion,
+            "cv": "",
+            "cuig": "",
+            "renspa": "",
+            "establecimiento": ""
+        })
+    
+    # =========================================================================
+    # INSERTAR EN BASE DE DATOS
+    # =========================================================================
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
     
+    insertados = 0
     for c in clientes:
         try:
             cursor.execute("""
-                INSERT INTO clientes (nombre, cuit, domicilio, telefono, condicion_iva)
-                VALUES (?, ?, ?, ?, ?)
-            """, (c['nombre'], c['cuit'], c['domicilio'], c['telefono'], c['condicion_iva']))
+                INSERT INTO clientes (nombre, cuit, domicilio, telefono, condicion_iva, cv, cuig, renspa, establecimiento)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (
+                c['nombre'], 
+                c['cuit'], 
+                c['domicilio'], 
+                c['telefono'], 
+                c['condicion_iva'],
+                c['cv'],
+                c['cuig'],
+                c['renspa'],
+                c['establecimiento']
+            ))
+            insertados += 1
         except sqlite3.IntegrityError:
-            # Si hay duplicado de CUIT, saltear
             continue
     
     conn.commit()
     conn.close()
-    print(f"✅ Seed completado: {len(clientes)} clientes insertados correctamente")
 
-def seed_sales_with_fiados():
-    ventas = [
-        {"cliente_id": 1, "total": 15000, "estado": "fiada"},
-        {"cliente_id": 2, "total": 8200, "estado": "fiada"},
-        {"cliente_id": 3, "total": 12500, "estado": "pagada"},
-        {"cliente_id": 4, "total": 5600, "estado": "fiada"}
-    ]
-
-    conn = sqlite3.connect(DB_PATH)
-    cursor = conn.cursor()
-
-    for v in ventas:
-        cursor.execute("""
-            INSERT INTO sales (date, total, cliente_id, estado)
-            VALUES (datetime('now'), ?, ?, ?)
-        """, (v['total'], v['cliente_id'], v['estado']))
-
-    conn.commit()
-    conn.close()
-    print("💰 Seed completado: ventas con estado 'fiada' y 'pagada'")
 
 def seed_sales_with_products():
-    """Crea ventas con productos y deudas (fiadas)"""
+    """
+    MEJORADO: Crea ventas con productos usando estados correctos
+    Estados: 'paid', 'pending', 'partial'
+    """
     conn = sqlite3.connect(DB_PATH)
     cur = conn.cursor()
 
     # Obtener clientes y productos
-    clientes = cur.execute("SELECT id FROM clientes").fetchall()
+    clientes = cur.execute("SELECT id FROM clientes WHERE id > 1").fetchall()  # Excluir Consumidor Final
     productos = cur.execute("SELECT id, price_with_iva FROM stock").fetchall()
+    
     if not clientes or not productos:
         print("⚠️ Debes ejecutar seed_clients() y seed_stock() primero.")
+        conn.close()
         return
 
-    ventas = [
-        {"cliente_id": clientes[0][0], "estado": "fiada"},
-        {"cliente_id": clientes[1][0], "estado": "fiada"},
-        {"cliente_id": clientes[2][0], "estado": "pagada"},
-        {"cliente_id": clientes[3][0], "estado": "fiada"},
+    # Generar ventas variadas con diferentes estados
+    ventas_config = [
+        # Ventas PAGADAS (50% de las ventas)
+        *[{"cliente_id": choice(clientes)[0], "estado": "paid", "fecha_dias_atras": randint(1, 30)} for _ in range(20)],
+        
+        # Ventas PENDIENTES sin pagos (30% de las ventas)
+        *[{"cliente_id": choice(clientes)[0], "estado": "pending", "fecha_dias_atras": randint(5, 20)} for _ in range(12)],
+        
+        # Ventas con PAGO PARCIAL (20% de las ventas)
+        *[{"cliente_id": choice(clientes)[0], "estado": "partial", "fecha_dias_atras": randint(3, 15)} for _ in range(8)],
     ]
 
-    for venta in ventas:
-        total = 0
+    print(f"📦 Creando {len(ventas_config)} ventas con productos...")
+
+    for idx, venta in enumerate(ventas_config, 1):
+        # Calcular fecha de la venta
+        fecha_venta = datetime.now() - timedelta(days=venta["fecha_dias_atras"])
+        fecha_str = fecha_venta.strftime("%Y-%m-%d %H:%M:%S")
+        
+        # Insertar venta inicial con total 0
         cur.execute("""
             INSERT INTO sales (date, total, cliente_id, estado)
             VALUES (?, 0, ?, ?)
-        """, (datetime.now().strftime("%Y-%m-%d %H:%M:%S"), venta["cliente_id"], venta["estado"]))
+        """, (fecha_str, venta["cliente_id"], venta["estado"]))
         sale_id = cur.lastrowid
 
-        # Insertar productos aleatorios
-        for _ in range(randint(2, 4)):
+        # Agregar productos aleatorios
+        total_venta = 0
+        num_productos = randint(2, 5)
+        
+        for _ in range(num_productos):
             prod_id, price = choice(productos)
-            cantidad = randint(1, 3)
+            cantidad = randint(1, 4)
             subtotal = round(price * cantidad, 2)
-            total += subtotal
+            total_venta += subtotal
+            
             cur.execute("""
                 INSERT INTO sale_items (sale_id, product_id, quantity, price, subtotal)
                 VALUES (?, ?, ?, ?, ?)
             """, (sale_id, prod_id, cantidad, price, subtotal))
 
         # Actualizar total de la venta
-        cur.execute("UPDATE sales SET total = ? WHERE id = ?", (round(total, 2), sale_id))
+        total_venta = round(total_venta, 2)
+        cur.execute("UPDATE sales SET total = ? WHERE id = ?", (total_venta, sale_id))
+
+        # 🔹 CREAR PAGOS según el estado
+        if venta["estado"] == "paid":
+            # Venta pagada: pago completo
+            cur.execute("""
+                INSERT INTO payments (sale_id, client_id, amount, date, method, notes)
+                VALUES (?, ?, ?, ?, ?, ?)
+            """, (sale_id, venta["cliente_id"], total_venta, fecha_str, 
+                  choice(["Efectivo", "Transferencia", "Tarjeta"]), "Pago completo"))
+        
+        elif venta["estado"] == "partial":
+            # Venta parcial: pago entre 30% y 70% del total
+            monto_pagado = round(total_venta * uniform(0.3, 0.7), 2)
+            fecha_pago = fecha_venta + timedelta(days=randint(1, 3))
+            
+            cur.execute("""
+                INSERT INTO payments (sale_id, client_id, amount, date, method, notes)
+                VALUES (?, ?, ?, ?, ?, ?)
+            """, (sale_id, venta["cliente_id"], monto_pagado, 
+                  fecha_pago.strftime("%Y-%m-%d %H:%M:%S"),
+                  choice(["Efectivo", "Transferencia"]), "Pago parcial"))
+
+        # Para 'pending' no creamos pagos
+        
+        if idx % 10 == 0:
+            print(f"  ✓ {idx}/{len(ventas_config)} ventas creadas...")
 
     conn.commit()
     conn.close()
-    print("✅ Ventas con productos fiadas y pagadas creadas correctamente.")
+    
+    print("✅ Ventas con productos creadas correctamente.")
+    print(f"   📊 Estados: paid (50%), pending (30%), partial (20%)")
 
 def seed_suppliers():
     # Nombres base para proveedores
@@ -504,7 +791,6 @@ if __name__ == "__main__":
     seed_client()
     seed_clients()
     seed_stock()
-    seed_sales_with_fiados()
     seed_sales_with_products()
     
     print("-" * 50)

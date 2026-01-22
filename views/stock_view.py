@@ -52,6 +52,10 @@ class StockView():
     
     def create_widgets(self):
         """Crear todos los widgets de la vista"""
+        self.frame.grid_columnconfigure(0, weight=1)
+        self.frame.grid_rowconfigure(0, weight=0)
+        self.frame.grid_rowconfigure(1, weight=1)
+        self.frame.grid_rowconfigure(2, weight=0)
         self.create_find_frame()
         self.create_tree_frame()
         self.create_buttons_frame()
@@ -59,10 +63,11 @@ class StockView():
     def create_buttons_frame(self):
         """Crear frame para botones de stock"""
         manage_frame = ctk.CTkFrame(self.frame)
-        manage_frame.grid(row=2, column=0, sticky='w', padx=10, pady=20)
+        manage_frame.grid(row=2, column=0, padx=10, pady=20, sticky="ew")
+        manage_frame.grid_columnconfigure((0, 1, 2, 3), weight=1)
 
-        W = 280
-        H = 35
+        W = 250
+        H = 40
         btn_color = "#009688"
         btn_hover = "#00796B"
 
@@ -113,7 +118,7 @@ class StockView():
         new_btn.grid(row=1, column=0, padx=10, pady=10)
         delete_btn.grid(row=1, column=1, padx=10, pady=10)
         update_btn.grid(row=1, column=2, padx=10, pady=10)
-        bulk_update_btn.grid(row=1, column=4, padx=10, pady=10)
+        bulk_update_btn.grid(row=1, column=3, padx=10, pady=10)
     
     def create_find_frame(self):
         """Crear frame para formulario de producto"""
@@ -160,6 +165,8 @@ class StockView():
         """Crear frame para tabla de stock"""
         tree_frame = ctk.CTkFrame(self.frame)
         tree_frame.grid(row=1, column=0, padx=10, pady=10, sticky='nsew')
+        tree_frame.grid_columnconfigure(0, weight=1)
+        tree_frame.grid_rowconfigure(1,weight=1)
 
         # Título de la tabla
         table_title = ctk.CTkLabel(
@@ -172,6 +179,8 @@ class StockView():
         # Frame interno para la tabla y scrollbar
         table_container = tk.Frame(tree_frame, bg="white")
         table_container.grid(row=1, column=0, padx=15, pady=(0, 15), sticky='nsew')
+        table_container.grid_columnconfigure(0, weight=1)
+        table_container.grid_rowconfigure(0, weight=1)
 
         # Configurar el estilo del Treeview para que se vea más moderno
         style = ttk.Style()
@@ -194,7 +203,8 @@ class StockView():
                  background=[('selected', '#0078d4')])
 
         # Treeview
-        self.stock_tree = ttk.Treeview(table_container, show="headings", height=15)
+        self.stock_tree = ttk.Treeview(table_container, show="headings", height=20)
+        self.stock_tree.grid(row=0, column=0, sticky="nsew")
 
         # Scrollbar vertical con estilo
         scrollbar = ttk.Scrollbar(table_container, orient='vertical', command=self.stock_tree.yview)
@@ -210,14 +220,14 @@ class StockView():
 
         # Definición de columnas
         self.stock_tree.column("Id", anchor=tk.W, width=60, stretch=False)
-        self.stock_tree.column("SupplierCuit", anchor=tk.W, width=150, stretch=False)
-        self.stock_tree.column("Name", anchor=tk.W, width=250, stretch=False)
-        self.stock_tree.column("Package", anchor=tk.W, width=120, stretch=False)
+        self.stock_tree.column("SupplierCuit", anchor=tk.W, width=150, stretch=True)
+        self.stock_tree.column("Name", anchor=tk.W, width=250, stretch=True)
+        self.stock_tree.column("Package", anchor=tk.W, width=120, stretch=True)
         self.stock_tree.column("Profit", anchor=tk.CENTER, width=80, stretch=False)
         self.stock_tree.column("CostPrice", anchor=tk.E, width=100, stretch=False)
         self.stock_tree.column("SalePrice", anchor=tk.E, width=100, stretch=False)
         self.stock_tree.column("Iva", anchor=tk.CENTER, width=60, stretch=False)
-        self.stock_tree.column("SalePriceWithIva", anchor=tk.E, width=120, stretch=False)
+        self.stock_tree.column("SalePriceWithIva", anchor=tk.E, width=120, stretch=True)
         self.stock_tree.column("ValidityDate", anchor=tk.CENTER, width=120, stretch=False)
         self.stock_tree.column("LastPriceUpdate", anchor=tk.CENTER, width=120, stretch=False)
         self.stock_tree.column("Stock", anchor=tk.CENTER, width=80, stretch=False)

@@ -52,7 +52,7 @@ class SalesView:
     # --------------------------------------------------------------------
     def create_header(self):
         header = ctk.CTkFrame(self.frame)
-        header.grid(row=0, column=0, columnspan=2, sticky="ew", padx=10, pady=(10, 5))
+        header.grid(row=0, column=0, columnspan=2, sticky="w", padx=10, pady=(10, 5))
 
         title = ctk.CTkLabel(header, text="🧾 Gestión de Ventas",
                              font=ctk.CTkFont(size=17, weight="bold"))
@@ -153,7 +153,7 @@ class SalesView:
             ("🗑️ Eliminar producto", "#009688", "#00796B", self.delete_selected_product),
             ("🧹 Limpiar", "#009688", "#00796B", self.clear_sale)
         ]
-
+        footer.columnconfigure((0, 1, 2, 3), weight=1)
         for i, (text, color, hover, cmd) in enumerate(buttons):
             ctk.CTkButton(
                 footer,
@@ -215,9 +215,19 @@ class SalesView:
 
     def open_today_sales_window(self, rows):
         """Ventana con tabla para mostrar ventas del día"""
+        width_win = 700
+        height_win = 600
+
+        x_root = self.frame.winfo_x()
+        y_root = self.frame.winfo_y()
+        width_root = self.frame.winfo_width()
+        height_root = self.frame.winfo_height()
+
+        x = x_root + (width_root // 2) - (width_win // 2)
+        y = y_root + (height_root // 2) - (height_win // 2)
         win = ctk.CTkToplevel(self.frame)
         win.title("Ventas del día")
-        win.geometry("700x600")
+        win.geometry(f"{width_win}x{height_win}+{x}+{y}")
         win.transient(self.frame)
         win.grab_set()
 

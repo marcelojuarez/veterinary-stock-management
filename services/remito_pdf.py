@@ -4,6 +4,7 @@ from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib import colors
 from reportlab.lib.units import mm
 import os
+from utils.receipts.paths import remito_path
 from datetime import datetime
 from config.settings import COMPANY_CONFIG
 
@@ -54,8 +55,8 @@ class RemitoPDF:
         ))
 
     def generate_remito(self, number, customer, items):
-        os.makedirs("comprobantes/remitos", exist_ok=True)
-        filename = f"comprobantes/remitos/REM-{number}.pdf"
+        customer_name = customer[1] if isinstance(customer, (tuple, list)) else customer.get("nombre", "Cliente")
+        filename = remito_path(customer_name, number)
 
         doc = SimpleDocTemplate(
             filename, 
