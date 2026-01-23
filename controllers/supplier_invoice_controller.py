@@ -1,5 +1,6 @@
 from views.view_helpers import show_success, show_error, show_warning, close_win
 from datetime import datetime
+from decimal import Decimal, ROUND_HALF_UP
 
 class SupplierInvoiceController():
     def __init__(self):
@@ -33,7 +34,8 @@ class SupplierInvoiceController():
                 return
             
             expiration_date = self.convert_string_to_date_formated(data['expiration_date'])
-            
+            total = Decimal(data['total']).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+
             invoice_params = {
                 'supplier_id': supplier_data[0],
                 'invoice_id': data['invoice_id'],
@@ -44,13 +46,13 @@ class SupplierInvoiceController():
                 'subtotal': data['subtotal'],
                 'iva': data['iva'],
                 'discount': data['discount'],
-                'total': float(data['total'])
+                'total': total
             }
 
             if data['state'] == 'PAGADA':
                 pending = 0
             else:
-                pending = float(data['total'])
+                pending = Decimal(data['total']).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
 
             purchase_params = {
                 'supplier_id': supplier_data[0],
@@ -59,7 +61,7 @@ class SupplierInvoiceController():
                 'state': data['state'],
                 'observations': data['observations'],
                 'pending': pending, 
-                'total': float(data['total']), 
+                'total': total
             }
 
             self.model.purchase.create_invoice_and_purchase(invoice_params, purchase_params)
@@ -94,11 +96,11 @@ class SupplierInvoiceController():
             show_error('Por favor coloque la fecha en formato dd/mm/yyyy')
             return False
         
-        if not cls._is_float(data['subtotal']):
+        if not cls._is_decimal(data['subtotal']):
             show_error('Por favor el monto subtotal debe ser un valor numerico')
             return False
         
-        if not cls._is_float(data['total']):
+        if not cls._is_decimal(data['total']):
             show_error('Por favor el monto total debe ser un valor numerico')
             return False
         
@@ -113,6 +115,6 @@ class SupplierInvoiceController():
             return False
 
     @staticmethod
-    def _is_float(value):
-        try: float(value); return True
+    def _is_decimal(value):
+        try: Decimal(value); return True
         except: return False

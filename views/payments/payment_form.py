@@ -1,6 +1,7 @@
 import tkinter as tk
 import customtkinter as ctk
-from controllers.payment_controller import PaymentController
+from decimal import Decimal, ROUND_HALF_UP
+
 from views.view_helpers import close_win, show_warning
 
 class PaymentForm:
@@ -45,13 +46,14 @@ class PaymentForm:
         self.controller = controller
         print(f"DEBUG: Controller asignado correctamente: {self.controller}")
 
+    ## -- Formulario de pago -- ##
     def add_payment_win(self, parent, supplier_cuit, purchase_id=None, amount=None):
 
         if supplier_cuit == '':
             show_warning('Por favor selecciona un Proveedor')
             return
 
-        if float(self.pay_win.debt_var.get()) <= 0:
+        if Decimal(self.pay_win.debt_var.get()) <= 0:
             show_warning(f'Atención. No se registra Deuda al proveedor: {supplier_cuit}')
             return
 
@@ -164,7 +166,6 @@ class PaymentForm:
         self.dynamic_frame.columnconfigure(1, weight=1)
 
     ## -- Renderiza distintos campos segun el metodo de pago -- ##
-
     def render_dynamic_fields(self, parent):
         method = self.method_var.get()
 
@@ -247,6 +248,7 @@ class PaymentForm:
             self.add_pay_win.geometry("380x400")
             self.render_buttons(parent, 6)
 
+    ## -- Renderiza botones de accion -- ##
     def render_buttons(self, parent, row_num):
         # Botones
         button_frame = ctk.CTkFrame(self.dynamic_frame, fg_color="transparent")
@@ -260,12 +262,12 @@ class PaymentForm:
             fg_color="#757575", hover_color="#616161", command= lambda: close_win(self.add_pay_win, parent))
         cancel_button.grid(row=0, column=1, padx=15, pady=15) 
 
+    ## -- Elimina campos dinamicos -- ##
     def clear_dynamic_frame(self):
         for widget in self.dynamic_frame.winfo_children():
             widget.destroy()
 
-    ## -- -- ##
-    
+    ## -- Se obtienen datos del formulario de pago -- ##
     def get_payment_data(self):
         """Obtener datos del formulario de pago"""
         return {

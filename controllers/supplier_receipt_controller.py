@@ -1,5 +1,6 @@
-from views.view_helpers import close_win, show_warning, show_error
 from datetime import datetime
+from decimal import Decimal, ROUND_HALF_UP
+from views.view_helpers import close_win, show_warning, show_error
 
 class SupplierReceiptController():
     def __init__(self):
@@ -33,19 +34,21 @@ class SupplierReceiptController():
             
             expiration_date = self.convert_string_to_date_formated(data['expiration_date'])
 
+            total = Decimal(data['total']).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+
             receipt_params = {
                 'supplier_id': supplier_data[0],
                 'receipt_id': data['receipt_id'],
                 'expiration_date': expiration_date,
                 'observations': data['observations'],
                 'state': data['state'],
-                'total': float(data['total']), 
+                'total': total
             }
 
             if data['state'] == 'PAGADA':
                 pending = 0
             else:
-                pending = float(data['total'])
+                pending = Decimal(data['total']).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
 
             purchase_params = {
                 'supplier_id': supplier_data[0],
@@ -54,7 +57,7 @@ class SupplierReceiptController():
                 'state': data['state'],
                 'observations': data['observations'],
                 'pending' : pending, 
-                'total': float(data['total']), 
+                'total': total, 
             }
 
             self.model.purchase.create_receipt_and_purchase(receipt_params, purchase_params)
@@ -84,7 +87,7 @@ class SupplierReceiptController():
             show_error('Por favor coloque la fecha en formato dd/mm/yyyy')
             return False
         
-        if not cls._is_float(data['total']):
+        if not cls._is_decimal(data['total']):
             show_error('Por favor el monto total debe ser un valor numerico')
             return False
         
@@ -99,6 +102,6 @@ class SupplierReceiptController():
             return False
 
     @staticmethod
-    def _is_float(value):
-        try: float(value); return True
+    def _is_decimal(value):
+        try: Decimal(value); return True
         except: return False

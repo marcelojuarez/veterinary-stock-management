@@ -12,10 +12,9 @@ ctk.set_appearance_mode("light")  # "light" o "dark"
 ctk.set_default_color_theme("blue")  # "blue", "green", "dark-blue"
 
 class PaymentWindow():
-    def __init__(self, model, frame, supplier_view, controller):
+    def __init__(self, model, frame, controller):
         self.model = model
         self.frame = frame
-        self.supplier_view = supplier_view
 
         self.payment_form = PaymentForm(self, model, frame)
 
@@ -113,7 +112,7 @@ class PaymentWindow():
         payment_notebook.add(self.set_purchase_tree(payment_notebook), text='Registros de Compra')
 
         # frame inferior (botones y cantidad)
-        buttons_frame = ctk.CTkFrame(win)
+        buttons_frame = ctk.CTkFrame(win, corner_radius=20)
         buttons_frame.grid(row=4, column=0, columnspan=2, sticky="ew", pady=10)
         for i in range(5):
             buttons_frame.grid_columnconfigure(i, weight=1)
@@ -184,9 +183,11 @@ class PaymentWindow():
 
         self.load_purchase_history(False)
     
+    ## -- Limpiar el campo de supplier-- ##
     def clear_supplier_field(self):
         self.supplier_var.set('')
 
+    ## -- Configura la tabla de movimientos -- ##
     def set_movement_tree(self, win):
         # frame para movimientos
         movement_frame = ctk.CTkFrame(win)
@@ -209,6 +210,7 @@ class PaymentWindow():
         
         return movement_frame
 
+    ## -- Configura la tabla de compras -- ##
     def set_purchase_tree(self, notebook):
         purchase_frame = ctk.CTkFrame(notebook)
         purchase_frame.pack(fill='both', expand=True)
@@ -230,7 +232,6 @@ class PaymentWindow():
         return purchase_frame
 
     ## -- Info de Pago -- ##
-
     def open_payment_info(self, parent):
         try:
             selected = self.movement_tree.selection()
@@ -246,8 +247,6 @@ class PaymentWindow():
         except ValueError as e:
             print(f'Error al seleccionar el registro de pago: {e}')
             return
-
-    ## -- -- ##
 
     ## -- Pago de una compra -- ##
     def pay_for_a_purchase(self, parent):
@@ -278,7 +277,6 @@ class PaymentWindow():
             show_warning(f'Error en la seleccion de la compra: {e}')
 
     ## -- Seleccion de un proveedor -- ##
-
     def on_click(self, win, parent):
         selected = self.supplier_tree.selection()
 
@@ -299,9 +297,7 @@ class PaymentWindow():
         except ValueError as e:
             show_warning(f'Error en la seleccion del proveedor: {e}')
 
-    ## -- -- ##
-
-    ## --  Funcion para cargar movimientos -- ##
+    ## --  Carga de tabla de movimientos -- ##
     def load_payment_movement(self, supplier_id=None, supplier_cuit=None):
         if supplier_id is None and supplier_cuit is None:
             supplier_cuit = self.supplier_var.get()
@@ -336,8 +332,6 @@ class PaymentWindow():
             )
             
         self.movement_tree.tag_configure('orow', background="white", foreground='black')     
-
-    ## -- -- ##    
 
     ## -- Funcion para cargar compras -- ##
     def load_purchase_history(self, filter):
@@ -375,14 +369,12 @@ class PaymentWindow():
                     p[5],
                     p[6],
                     p[7],
-                    locale.format_string("%.2f", p[9], grouping=True),
+                    p[9],
                 ),
                 tag="orow"
             )  
-    ## -- -- ##
 
     ## -- Busqueda -- ##
-
     def list_of_supplier(self, parent):
         win = ctk.CTkToplevel(parent)
         win.title("Lista de proveedores")
@@ -515,4 +507,3 @@ class PaymentWindow():
 
         self.supplier_tree.tag_configure('orow', background="white", foreground='black')
 
-    ## --  -- ##

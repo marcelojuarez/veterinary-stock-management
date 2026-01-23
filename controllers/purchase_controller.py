@@ -1,12 +1,16 @@
-from views.view_helpers import show_error, show_warning, show_success, close_win
 from datetime import datetime
 from models.stock import StockModel
+from views.view_helpers import show_error, show_warning, show_success, close_win
+from decimal import Decimal
+from utils.utils import normalize_decimal
 
 class PurchaseController():
     def __init__(self):
         self.model = None
         self.view = None
         self.form_view = None
+        self.new_p_form = None # new_product_form
+        self.new_p_i_form = None # new_purchase_form
         self.info_view = None
         self.event_bus = None
         self.stock_model = StockModel()
@@ -24,6 +28,12 @@ class PurchaseController():
     def set_form_view(self, form_view):
         self.form_view = form_view
 
+    def set_new_p_form(self, new_p_form):
+        self.new_p_form = new_p_form
+
+    def set_new_p_i_form(self, new_p_i_form):
+        self.new_p_i_form = new_p_i_form
+
     def set_event_bus(self, event_bus):
         self.event_bus = event_bus
 
@@ -38,6 +48,7 @@ class PurchaseController():
             # Se establece compra como pendiente y deuda proveedor
             debt = self.model.purchase.get_sum_of_items(purchase_id)[0]
             print(f'Suma de totales: {debt}')
+            print(f'tipo de initial_debt: {type(debt)}')
             purchase_data = self.model.purchase.get_purchase_by_id(purchase_id)
 
             doc_type = purchase_data[2]
@@ -153,16 +164,18 @@ class PurchaseController():
         """Guardar nuevo producto"""
         try:
             # Obtener datos del formulario
-            form_data = self.form_view.get_new_product_data()
+            form_data = self.new_p_form.get_new_product_data()
+
+            print(f'form_data\n: {form_data}')
 
             # Validaciones
             if not self.validate_new_product_data(form_data):
                 return
 
-            profit = float(form_data['Profit'])
-            cost_price = float(form_data['CostPrice'])
-            sale_price = float(form_data['SalePrice'])
-            price_w_iva = float(form_data['PriceWIva'])
+            profit = normalize_decimal(form_data['Profit'])
+            cost_price = normalize_decimal(form_data['CostPrice'])
+            sale_price = normalize_decimal(form_data['SalePrice'])
+            price_w_iva = normalize_decimal(form_data['PriceWIva'])
 
             # ciertos campos se setean primeramente con el valor 0(cero)
             product_data = {
@@ -196,102 +209,165 @@ class PurchaseController():
             show_error(f"Error en los datos: {str(e)}")
 
         except Exception as e:
-            show_error(f"Error al registrar producto: {str(e)}")
+            show_error(f"{str(e)}")
         
     def validate_new_product_data(self, form_data):
         """Validar datos del formulario"""
-        required_fields = ['Name', 'Package', 'Profit', 'CostPrice', 'Stock']
+        required_fields = {
+            'Name': 'Nombre Artículo', 
+            'Package': 'Envase', 
+            'CostPrice': 'Precio Costo', 
+            'Profit': 'Rentabilidad', 
+            'Stock': 'Stock'
+        }
         
-        for field in required_fields:
+        for field, lbl in required_fields.items():
             if not form_data[field]:
-                self.view.show_warning("Por favor complete todos los campos")
+                show_warning(f'Por favor complete el campo "{lbl}"')
                 return False
         
-        # Validar tipos numéricos
+        # Validar Tipos Numéricos
+        ## Precio de costo
         try:
-            float(form_data['CostPrice'])
+            normalize_decimal(form_data['CostPrice'])
+        except Exception:
+            show_warning("Error. Formato incorrecto en precio costo")
+            return False
+        
+        if normalize_decimal(form_data['CostPrice']) <= normalize_decimal(0.00):
+            show_error('Error. El precio de costo no puede ser un valor Negativo o (0)')
+            return False
+        
+        ## Rentabilidad
+        try:
+            normalize_decimal(form_data['Profit'])
+        except Exception:
+            show_warning("Error. Formato incorrecto en Rentabilidad")
+            return False
+        
+        if normalize_decimal(form_data['Profit']) < normalize_decimal(0.00):
+            show_error('Error.La rentabilidad no puede ser un valor Negativo')
+            return False
+
+        ## Stock
+        try:
             int(form_data['Stock'])
         except ValueError:
-            self.view.show_warning("Los precios y cantidad deben ser números válidos")
+            show_warning("Error. Formato incorrecto en stock")
             return False
-    
+
         return True
 
     ## -- Agregar un nuevo item de compra -- ##
-
     def add_purchase_item(self, win, parent):
         try:
-            item_data = self.form_view.get_purchase_item_data()
+            item_data = self.new_p_i_form.get_purchase_item_data()
+            print(item_data)
 
             if not self.validate_purchase_item_data(item_data):
                 return
 
-            # Convertir los valores a los tipos correctos
-            item_data = [
-                int(item_data['purchase_id']),
-                int(item_data['product_id']),
-                item_data['product_name'],
-                item_data['pack'],
-                int(item_data['qty']),
-                float(item_data['cost']),
-                float(item_data['iva_rate']),
-                float(item_data['discount']),
-                float(item_data['discount_amount']),
-                float(item_data['subtotal']),
-                float(item_data['iva_amount']),
-                float(item_data['total']),
+            # Convertir los valores a los tipos correctos            
+            purchase_id = int(item_data['Purchase_id'])
+            product_id = int(item_data['Product_id'])
+            product_name = item_data['Product_name']
+            pack = item_data['Pack']
+            qty = int(item_data['Qty'])
+            cost = normalize_decimal(item_data['Cost'])
+            iva_rate = normalize_decimal(item_data['Iva_rate'])
+            discount = normalize_decimal(item_data['Discount'])
+            discount_amount = normalize_decimal(item_data['Discount_amount'])
+            subtotal = normalize_decimal(item_data['Subtotal'])
+            iva_amount = normalize_decimal(item_data['Iva_amount'])
+            total = normalize_decimal(item_data['Total'])
+            
+            item_data_clean = [
+                purchase_id,
+                product_id,
+                product_name,
+                pack,
+                qty,
+                str(cost),
+                str(iva_rate),
+                str(discount),
+                str(discount_amount),
+                str(subtotal),
+                str(iva_amount),
+                str(total)
             ]
 
             # Se agrega item a la compra
-            self.model.purchase.add_purchase_item(item_data)
+            self.model.purchase.add_purchase_item(item_data_clean)
             show_success('Item agregado con exito')
             close_win(win, parent)   
 
         except ValueError as e:
             show_error(f'Error al cargar item de compra: {e}')
             return 
-    
-    ## -- -- ##
 
     ## -- Validar el formulario de un item de compra -- ##
-    def validate_purchase_item_data(cls, data):
+    def validate_purchase_item_data(cls, form_data):
         required_fields = {
-            'purchase_id' : 'Id Compra',
-            'product_id': 'Id Producto',
-            'product_name': 'Nombre Producto',
-            'pack': 'Envase',
-            'qty': 'Stock',
-            'cost': 'Precio de Costo',
-            'iva_rate': 'Porcentaje de Iva',
-            'discount': 'Descuento',
-            'discount_amount': 'Monto Descuento',
-            'subtotal': 'SubTotal',
-            'iva_amount': 'Monto Iva',
-            'total': 'Total'
+            'Purchase_id' : 'Id Compra',
+            'Product_id': 'Id Producto',
+            'Product_name': 'Nombre Producto',
+            'Pack': 'Envase',
+            'Qty': 'Stock',
+            'Cost': 'Precio de Costo',
+            'Iva_rate': 'Porcentaje de Iva',
+            'Discount': 'Descuento',
+            'Discount_amount': 'Monto Descuento',
+            'Subtotal': 'SubTotal',
+            'Iva_amount': 'Monto Iva',
+            'Total': 'Total'
         }
 
         for field, lbl in required_fields.items():
-            if not data[field]:
-                show_error(f'Campo Incompleto: "{lbl}"')
+            if not form_data[field]:
+                show_error(f'Por favor complete el campo "{lbl}"')
                 return False
+            
+        # Validar Tipos Numéricos
+        ## Precio de costo
+        try:
+            normalize_decimal(form_data['Cost'])
+        except Exception:
+            show_warning("Error. Formato incorrecto en precio costo")
+            return False
+        
+        if normalize_decimal(form_data['Cost']) <= normalize_decimal(0.00):
+            show_error('Error. El precio de costo no puede ser un valor Negativo o (0)')
+            return False
+        
+        ## Descuento
+        try:
+            normalize_decimal(form_data['Discount'])
+        except Exception:
+            show_warning("Error. Formato incorrecto en Descuento")
+            return False
+        
+        if normalize_decimal(form_data['Discount']) < normalize_decimal(0.00) \
+        or normalize_decimal(form_data['Discount']) > normalize_decimal(99.00):
+            show_error('Error. El porcentaje de descuento debe rondar entre 0 y 99 %')
+            return False
 
-        if not cls.is_int(data['qty']):
+        if not cls.is_int(form_data['Qty']):
             show_error(f'Error. El stock debe ser un valor Entero')
+            return False
+        
+        if int(form_data['Qty']) <= 0:
+            show_error(f'Error. El stock debe ser mayor a Cero(0)')
             return False
     
         return True
-
-    ## -- -- ##
 
     @staticmethod    
     def is_int(n):
         try: int(n); return True
         except:
             return False
-        
 
     ## -- Eliminar un registro de compra -- ##    
-
     def delete_purchase(self, purchase_id, doc_type):
         
         purchase_data = self.model.purchase.get_purchase_by_id(purchase_id)

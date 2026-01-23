@@ -108,7 +108,7 @@ class SupplierInvoiceForm():
         add_field(5, "Estado:", 
                 ctk.CTkEntry(form_frame, textvariable=self.state_var, width=250, state="readonly"))
         
-        add_field(6, "IVA:",
+        add_field(6, "Monto IVA:",
                 ctk.CTkEntry(form_frame, textvariable=self.iva_var, state='readonly', width=250))
         
         add_field(7, "Descuento:", 

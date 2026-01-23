@@ -28,18 +28,16 @@ class PurchaseWindow():
         self.invoice_form = SupplierInvoiceForm(self, frame, invoice_controller)
         self.receipt_form = SupplierReceiptForm(self, frame, receipt_controller)
 
-        self.purchase_info = PurchaseInfo(self.model)
-        self.purchase_form = PurchaseForm(self.model)
-
         # Set controller
         self.controller = controller
         self.controller.set_view(self)
+
+        self.purchase_info = PurchaseInfo(self.model, self.controller)
+        self.purchase_form = PurchaseForm(self.model, self.controller)
+
         self.controller.set_info_view(self.purchase_info)
         self.controller.set_form_view(self.purchase_form)
 
-        self.purchase_info.set_controller(self.controller)
-        self.purchase_form.set_controller(self.controller)
-    
     def open_purchase_window(self, parent):
 
         btn_color = "#009688"
@@ -263,10 +261,7 @@ class PurchaseWindow():
             print(f'Error al obtener la compra: {e}')
             return
 
-    ## -- -- ##
-
     ## -- Ventana para agregar productos a una compra -- ##
-
     def open_add_item_win(self, parent):
         try:
             selected = self.purchase_tree.selection()
@@ -286,11 +281,8 @@ class PurchaseWindow():
         except ValueError as e:
             print(f'Error al obtener la compra: {e}')
             return
-    
-    ## -- -- ##
 
     ## -- Tipo de comprobante -- ##
-
     def open_doc_type(self, parent):
         """Ventana para elegir un tipo de comprobante"""
 
@@ -365,9 +357,7 @@ class PurchaseWindow():
         )
         other_btn.pack(pady=10)
 
-    ## -- -- ##
-
-    ## Info de la compra ##
+    ## -- Info de la compra -- ##
     def open_purchase_info(self, parent):
         try:
             selected = self.purchase_tree.selection()
@@ -382,8 +372,6 @@ class PurchaseWindow():
 
         except ValueError as e:
             print(f'Error al obtener la compra: {e}')
-
-    ## -- -- ##
 
     def handle_selection(self, doc_type, parent):
         """Función que se ejecuta al presionar cualquiera de los botones."""
@@ -400,7 +388,6 @@ class PurchaseWindow():
         self.doc_type_win.destroy()
 
     ## -- Supplier Selection -- ##
-
     def list_of_supplier(self, parent):
         win = ctk.CTkToplevel(parent)
         win.title("Lista de proveedores")
@@ -540,8 +527,6 @@ class PurchaseWindow():
             values = self.supplier_tree.item(iid, "values")
             self.supplier_var.set(values[0])
             self.search_var.set(values[0])
-            # win.after(800, lambda: close_win(win, parent))
-            # parent.after(700, lambda: )
 
             def action():
                 if parent.winfo_exists():
@@ -573,27 +558,12 @@ class PurchaseWindow():
 
     # -- -- #
 
-    def add_invoice_to_purchase(self):
-        self.invoice_form.open_invoice_form()
-
-    def add_sup_doc(self, parent, supplier_cuit, doc_type):
-        if doc_type == "REMITO":
-            print(doc_type)
-            self.receipt_form.open_receipt_form(parent, supplier_cuit)
-        elif doc_type == "FACTURA":
-            print(doc_type)
-            self.invoice_form.open_invoice_form(parent, supplier_cuit)
-        else:
-            print("no se que es")
-
-    ## --  Load Purchases Function -- ## 
+    ## -- Cargar tabla de compras -- ## 
     def load_purchases(self, filter):
-
         if filter:
             selected_supplier = self.supplier_var.get()
 
             if not selected_supplier:
-                messagebox.showwarning("Atención", "Primero selecciona un proveedor.")
                 return
             
             purchases = self.model.purchase.get_all_purchases(selected_supplier)
@@ -618,7 +588,7 @@ class PurchaseWindow():
                     p[5],
                     p[6],
                     p[7],
-                    locale.format_string("%.2f", p[9], grouping=True),
+                    p[9],
                 ),
                 tag="orow"
             )

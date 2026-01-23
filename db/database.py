@@ -51,11 +51,11 @@ class Database:
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 name TEXT NOT NULL,
                 pack TEXT NOT NULL,
-                profit REAL NOT NULL,
-                cost_price REAL NOT NULL,
-                price REAL NOT NULL,
-                iva REAL NOT NULL,
-                price_with_iva REAL NOT NULL,
+                profit TEXT NOT NULL,
+                cost_price TEXT NOT NULL,
+                price TEXT NOT NULL,
+                iva TEXT NOT NULL,
+                price_with_iva TEXT NOT NULL,
                 quantity INTEGER NOT NULL,
                 created_at TEXT DEFAULT CURRENT_DATE,
                 last_price_update TEXT DEFAULT CURRENT_DATE,
@@ -96,7 +96,7 @@ class Database:
                     
                     receipt_number TEXT, -- recibo que te entrega el proveedor                           
 
-                    amount REAL NOT NULL,     
+                    amount TEXT NOT NULL,     
                     method TEXT,        -- EFECTIVO, TRANSFERENCIA, CHEQUE, MERCADO PAGO                                                        
                     observation TEXT,
 
@@ -116,6 +116,19 @@ class Database:
                 );
             ''')
 
+            # Tabla que vincula pagos con compras
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS purchase_payment(
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    purchase_id INTEGER NOT NULL,
+                    payment_id INTEGER NOT NULL,
+                    amount_applied TEXT NOT NULL,
+                    applied_at TEXT DEFAULT CURRENT_DATE,
+                    FOREIGN KEY (purchase_id) REFERENCES purchase(id),
+                    FOREIGN KEY (payment_id) REFERENCES supplier_payment(id)
+                );
+            ''')
+
             # Tabla de compras 
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS purchase (
@@ -128,8 +141,8 @@ class Database:
                     expiration_date TEXT NULL,
                     state TEXT,
                     observations TEXT,
-                    pending REAL,
-                    total REAL,
+                    pending TEXT NOT NULL,
+                    total TEXT NOT NULL,
                     FOREIGN KEY (supplier_id) REFERENCES supplier(id),
                     FOREIGN KEY (receipt_id) REFERENCES supplier_receipt(id), 
                     FOREIGN KEY (invoice_id) REFERENCES supplier_invoice(id)
@@ -145,14 +158,14 @@ class Database:
                     pack TEXT NOT NULL,
 
                     quantity INTEGER NOT NULL,
-                    cost_price REAL NOT NULL,
-                    iva_rate REAL NOT NULL,
-                    discount REAL DEFAULT 0,
-                    discount_amount REAL DEFAULT 0,
+                    cost_price TEXT NOT NULL,
+                    iva_rate TEXT NOT NULL,
+                    discount TEXT NOT NULL,
+                    discount_amount TEXT NOT NULL,
 
-                    subtotal REAL NOT NULL,
-                    iva_amount REAL NOT NULL,
-                    total REAL NOT NULL,
+                    subtotal TEXT NOT NULL,
+                    iva_amount TEXT NOT NULL,
+                    total TEXT NOT NULL,
 
                     FOREIGN KEY (purchase_id) REFERENCES purchase(id) ON DELETE CASCADE,
                     FOREIGN KEY (product_id) REFERENCES stock(id)
@@ -168,7 +181,7 @@ class Database:
                     supplier_id INTEGER,
                            
                     -- Datos de la factura
-                    invoice_id TEXT UNIQUE,
+                    invoice_id TEXT,
                     invoice_type TEXT,
                     
                     -- Fechas
@@ -176,10 +189,10 @@ class Database:
                     expiration_date TEXT CURRENT_DATE,
 
                     -- Montos     
-                    total REAL,
-                    subtotal REAL,
-                    iva REAL,
-                    discount REAL,
+                    total TEXT NOT NULL,
+                    subtotal TEXT NOT NULL,
+                    iva TEXT NOT NULL,
+                    discount TEXT NOT NULL,
                     
                     -- Otros
                     state TEXT,
@@ -198,21 +211,8 @@ class Database:
                     expiration_date TEXT,
                     observations TEXT,
                     state TEXT,
-                    total REAL,
+                    total TEXT NOT NULL,
                     FOREIGN KEY (supplier_id) REFERENCES supplier(id)
-                );
-            ''')
-
-            # Tabla que vincula pagos con compras
-            cursor.execute('''
-                CREATE TABLE IF NOT EXISTS purchase_payment(
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    purchase_id INTEGER NOT NULL,
-                    payment_id INTEGER NOT NULL,
-                    amount_applied REAL NOT NULL,
-                    applied_at TEXT DEFAULT CURRENT_DATE,
-                    FOREIGN KEY (purchase_id) REFERENCES purchase(id),
-                    FOREIGN KEY (payment_id) REFERENCES supplier_payment(id)
                 );
             ''')
 

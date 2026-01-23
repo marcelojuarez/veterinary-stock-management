@@ -20,6 +20,7 @@ class SupplierView():
 
         self.controller = controller
         self.purchase_controller = purchase_controller
+        print(f'purchase s: {self.purchase_controller}')
 
         self.payment_controller = payment_controller
         
@@ -34,7 +35,7 @@ class SupplierView():
         self.purchase_controller.set_model(self.model)
         self.payment_controller.set_model(self.model)
 
-        self.payment_window = PaymentWindow(self.model, self.frame, self, self.payment_controller)
+        self.payment_window = PaymentWindow(self.model, self.frame, self.payment_controller)
         self.purchase_window = PurchaseWindow(self.model, self.frame, self.purchase_controller, 
                                               self.invoice_controller, self.receipt_controller)
 

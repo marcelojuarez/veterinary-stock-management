@@ -2,16 +2,16 @@ import customtkinter as ctk
 import tkinter as tk 
 from tksheet import Sheet
 
-from views.view_helpers import close_win, show_error, ask_confirmation, show_warning
+#from services.purchase_detail import PurchaseDetail
+from views.view_helpers import close_win, show_error, ask_confirmation, show_warning, show_success
 
 class PurchaseInfo():
-    def __init__(self, model, controller=None):
+    def __init__(self, model, controller):
         self.model = model
         self.controller = controller
-    
-    def set_controller(self, controller):
-        self.controller = controller
+        #self.purchase_detail = PurchaseDetail(self.model)
 
+    ## -- Ventana de informacion de la compra -- ##
     def show_purchase_info(self, parent, values):
         try:
             purchase_info = ctk.CTkToplevel(parent)
@@ -150,11 +150,11 @@ class PurchaseInfo():
                         'obs': tk.StringVar(value=invoice_data[11]),
                         'date': tk.StringVar(value=invoice_data[4]),
                         'expiration': tk.StringVar(value=invoice_data[5]),
-                        'iva': tk.StringVar(value=str(invoice_data[8])),
+                        'iva': tk.StringVar(value=invoice_data[8]),
                         'state': tk.StringVar(value=invoice_data[10]),
-                        'discount': tk.StringVar(value=str(invoice_data[9])),
-                        'subtotal': tk.StringVar(value=str(invoice_data[7])),
-                        'total': tk.StringVar(value=str(invoice_data[6]))
+                        'discount': tk.StringVar(value=invoice_data[9]),
+                        'subtotal': tk.StringVar(value=invoice_data[7]),
+                        'total': tk.StringVar(value=invoice_data[6])
                     }
 
                 if self.invoice_vars['state'].get() != "BORRADOR":
@@ -206,7 +206,7 @@ class PurchaseInfo():
                 exp_date_entry.grid(row=4, column=1, sticky="w", padx=15, pady=6)
 
                 # IVA
-                ctk.CTkLabel(info_frame, text="IVA: ", font=ctk.CTkFont(size=13, weight="bold")
+                ctk.CTkLabel(info_frame, text="Monto IVA: ", font=ctk.CTkFont(size=13, weight="bold")
                 ).grid(row=5, column=0, sticky="w", padx=15, pady=6)
 
                 ctk.CTkEntry(
@@ -318,7 +318,7 @@ class PurchaseInfo():
                 fg_color="#0B9E97",
                 hover_color="#087E78",
                 font=ctk.CTkFont(size=13, weight="bold"),
-                command= None
+                #command= lambda: self.gen_purchase_detail_pdf(purchase_id)
             )
             self.print_info.grid(row=0, column=2, padx=10)
 
@@ -352,7 +352,16 @@ class PurchaseInfo():
         except ValueError as e:
             print(f'Error{e}')
 
-    # Confirmar Compra
+    ## -- Generar purchase detail como pdf -- ##
+    def gen_purchase_detail_pdf(self, purchase_id):
+        try:
+            #self.purchase_detail.generate_purchase_detail(purchase_id)
+            show_success(f'Detalle de compra generado con exito')
+        except ValueError as e:
+            print(f'Error: {e}')
+
+
+    ## -- Confirmar Compra -- ##
     def confirm_purchase(self, win, parent, purchase_id):
 
         # confirmar compra
@@ -366,7 +375,7 @@ class PurchaseInfo():
             print('no aca')
             return
 
-    # Editar campos de los documentos asociados a la compra
+    ## --  Editar campos de los documentos asociados a la compra -- ##
     def edit(self, purchase_id, doc_type):
         show_warning('Datos editables')
 
@@ -394,7 +403,7 @@ class PurchaseInfo():
 
         self.customizable_wid[0].focus()
 
-    # Guardar compra
+    ## -- Guardar compra -- ##
     def save(self, purchase_id, doc_type):
         result = self.controller.update_doc_info(purchase_id, doc_type)
 
@@ -418,7 +427,7 @@ class PurchaseInfo():
 
             self.print_info.configure(state='normal')
 
-    # Guardar valores anteriores de campos
+    ## --  Guardar valores anteriores de campos -- ##
     def save_previous_values(self, doc_type):
 
         if doc_type == 'REMITO':
@@ -439,7 +448,7 @@ class PurchaseInfo():
         for value in self.custom_wid_values:
             print(value)
 
-    # Recuperar valores previos de los campos
+    ## --  Recuperar valores previos de los campos -- ##
     def recover_previous_values(self, purchase_id, doc_type):
 
         self.print_info.configure(state='normal')
@@ -470,7 +479,7 @@ class PurchaseInfo():
             w.configure(state='readonly')
 
 
-    # Obtener datos del recibo
+    ## --  Obtener datos del recibo -- ##
     def get_receipt_data(self):
         return {
             'receipt_id': self.receipt_vars['number'].get().strip(),
@@ -478,7 +487,7 @@ class PurchaseInfo():
             'obs': self.receipt_vars['obs'].get().strip()
         }
 
-    # Obtener datos de la factura
+    ## -- Obtener datos de la factura -- ##
     def get_invoice_data(self):
         return {
             'invoice_id': self.invoice_vars['number'].get().strip(),

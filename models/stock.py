@@ -59,10 +59,10 @@ class StockModel:
         query = "DELETE FROM stock WHERE id = ?"
         return db.execute_query(query, (product_id,))
 
-    def update_quantity(self, product_id, new_quantity):
+    def update_quantity(self, product_id, quantity, conn=None, commit=True):
         """Actualizar solo la cantidad de un producto"""
-        query = "UPDATE stock SET quantity = ? WHERE id = ?"
-        return db.execute_query(query, (new_quantity, product_id))
+        query = "UPDATE stock SET quantity = quantity + ? WHERE id = ?"
+        return db.execute_query(query, (quantity, product_id), conn=conn, commit=commit)
         
     def reduce_quantity(self, product_id, quantity_to_reduce):
         """Reducir la cantidad de un producto (para ventas)"""

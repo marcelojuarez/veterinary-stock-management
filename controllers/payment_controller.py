@@ -1,4 +1,4 @@
-import tkinter as tk
+from decimal import Decimal, ROUND_HALF_UP
 from views.view_helpers import show_warning, show_error, close_win
 
 class PaymentController():
@@ -36,14 +36,14 @@ class PaymentController():
             if not self.validate_data(payment_data):
                 return 
             
-            amount = float(payment_data['amount'])
+            amount = Decimal(payment_data['amount']).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
 
             if purchase_id is not None:
                 # Datos de la compra
                 purchase = self.model.purchase.get_purchase_by_id(purchase_id.get())
                 
                 # Deuda actual de la compra
-                debt = purchase[9]
+                debt = Decimal(purchase[9]).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
                 
                 # Chequeo si quiere pagar de mas
                 if not self.validate_debt(amount, debt, False):
@@ -58,10 +58,11 @@ class PaymentController():
                     print(p)
 
                 total_debt = self.model.purchase.get_debt_of_supplier(selected)[0]
+                total_debt_formated = Decimal(total_debt).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
 
                 # Chequeo si quiere pagar de mas
-                if not self.validate_debt(amount, total_debt, True):
-                    self.form_view.amount_var.set(total_debt)
+                if not self.validate_debt(amount, total_debt_formated, True):
+                    self.form_view.amount_var.set(str(total_debt_formated))
                     return
 
             data = {
@@ -87,9 +88,6 @@ class PaymentController():
 
         except Exception as e:
             show_error(f"Error al registrar pago: {e}")
-
-    def purchase_pay_management(self, purchase_id):
-        pass
     
     @classmethod
     def validate_data(cls, data):
@@ -107,7 +105,7 @@ class PaymentController():
                  return False
 
         # validacion del monto
-        if not cls._is_float(data['amount']):
+        if not cls._is_decimal(data['amount']):
             show_warning('Monto invalido')
             return False
 
@@ -142,7 +140,7 @@ class PaymentController():
 
         return True
 
-
+    ## -- Valida el monto de pago -- ##
     def validate_debt(self, amount, debt, total_debt):
         if total_debt:
             msg = 'La deuda Total es:'
@@ -159,8 +157,8 @@ class PaymentController():
         return True
 
     @staticmethod
-    def _is_float(value):
-        try: float(value); return True
+    def _is_decimal(value):
+        try: Decimal(value); return True
         except: return False
 
     @staticmethod

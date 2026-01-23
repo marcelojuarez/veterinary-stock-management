@@ -2,12 +2,14 @@
 
 from datetime import datetime
 from models.stock import StockModel
+from decimal import Decimal, ROUND_HALF_UP
 
 class SupplierPurchase():
     def __init__(self, db):
         self.db = db
         self.stock_model = StockModel()
 
+    ## Nueva compra
     def add_new_purchase(self, data, conn=None, commit=True):
         try:
             date = datetime.now().strftime("%Y-%m-%d")
@@ -23,14 +25,15 @@ class SupplierPurchase():
                 data['expiration_date'],
                 data['state'],
                 data['observations'],
-                data['pending'],
-                data['total']
+                str(data['pending']),
+                str(data['total'])
             ]
 
             return self.db.execute_query(query, params, conn=conn, commit=commit)
         except ValueError as e:
             print(f'Error al cargar la compra: {e}')
 
+    ## Obtener compra por id
     def get_purchase_by_id(self, purchase_id):
         try:
             query= """
@@ -42,7 +45,8 @@ class SupplierPurchase():
         except ValueError as e:
             print(f'Error al obtener la compra: {e}')
             return None
-        
+
+    ## Obtener compra por fecha 
     def get_purchase_by_date(self, date):
         try:
             query= """
@@ -54,7 +58,7 @@ class SupplierPurchase():
             print(f'Error al obtener la compra: {e}')
             return None
 
-    ## -- Devuelve todas las compras asociadas a un cuit -- ##
+    ## Devuelve todas las compras asociadas a un cuit 
     def get_all_purchases(self, cuit=None):
 
         query = """
@@ -76,7 +80,7 @@ class SupplierPurchase():
         ]
         return self.db.fetch_all(query, params)
     
-    ##  -- Nuevo Producto -- ##
+    ## Nuevo Producto
     def add_product(self, product_data):
         date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         """Agregar un nuevo producto"""
@@ -88,18 +92,18 @@ class SupplierPurchase():
         params = (
             product_data['Name'],
             product_data['Package'],
-            product_data['Profit'],
-            product_data['CostPrice'],
-            product_data['SalePrice'],
-            product_data['Iva'],
-            product_data['PriceWIva'],
+            str(product_data['Profit']),
+            str(product_data['CostPrice']),
+            str(product_data['SalePrice']),
+            str(product_data['Iva']),
+            str(product_data['PriceWIva']),
             product_data['Stock'],
             date,
             date
         )
         return self.db.execute_query(query, params)
     
-    ## -- Item de compra -- ##
+    ## Nuevo Item de compra
     def add_purchase_item(self, params):
         query = """
             INSERT INTO purchase_item (purchase_id, product_id, product_name, pack, quantity, cost_price, iva_rate, 
@@ -130,6 +134,14 @@ class SupplierPurchase():
 
         return self.db.fetch_one(query, (purchase_id, ))
     
+    def get_iva_amount_of_p_items(self, purchase_id):
+        query = """
+        SELECT SUM(iva_amount)
+        FROM purchase_item
+        WHERE purchase_id = ?
+        """
+        return self.db.fetch_one(query, (purchase_id, ))
+
     ## -- Obtener todos los productos de un proveedor a traves de las compras
     def get_all_products_by_supplier_id(self, supplier_id):
         query = """
@@ -227,15 +239,15 @@ class SupplierPurchase():
             items = self.get_purchase_items(purchase_id)
 
             for i in items:
-
+                
                 i_data = {
                     'id': i[0],
                     'name': i[1],
                     'pack': i[2],
                     'qty': i[3],
-                    'cost_price': i[4],
-                    'iva_rate': i[5],
-                    'discount': i[6],
+                    'cost_price': Decimal(i[4]),
+                    'iva_rate': Decimal(i[5]),
+                    'discount': Decimal(i[6]),
                 }
 
                 print(f'Producto desde purchase: \n {i_data}')
@@ -248,7 +260,6 @@ class SupplierPurchase():
                     p_data['sale_price'],
                     p_data['iva'],
                     p_data['price_with_iva'],
-                    p_data['quantity'],
                     p_data['last_price_upd'],
                     p_data['id']
                 ]
@@ -262,17 +273,35 @@ class SupplierPurchase():
                     price = ?,
                     iva = ?,
                     price_with_iva = ?,
-                    quantity = ?,
                     last_price_update = ?
                 WHERE id = ?
                 """
 
                 self.db.execute_query(query, params, conn=conn, commit=False)
 
+                self.stock_model.update_quantity(i_data['id'], i_data['qty'], conn=conn, commit=False)
+
+            if doc_type == 'FACTURA':
+                
+                iva_amount = self.get_iva_amount_of_p_items(purchase_id)[0]
+                print(f'Monto iva: {iva_amount}')
+
+                query = """
+                UPDATE supplier_invoice
+                SET iva = ?
+                WHERE id = ?
+                """
+                params = [
+                    iva_amount,
+                    id
+                ]
+                self.db.execute_query(query, (params), conn=conn, commit=False)
+
             conn.commit()
             return True
 
         except Exception as e:
+            conn.rollback()
             print(f'Ocurrio un error: {e}')
             return False
 
@@ -285,26 +314,37 @@ class SupplierPurchase():
 
             print(f'Producto desde stock \n {p}')
 
-            product_data = {
-                'id': item['id'], # id producto
-                'name': item['name'], # nombre producto
-                'pack': item['pack'], # envase producto
-                'cost_price': item['cost_price'] - ((item['cost_price'] * item['discount']) / 100), # se aplica descuento
-                'iva': item['iva_rate'], # porcentaje de iva
-                'quantity': item['qty'] + p[10], # cantidad
-                'last_price_upd': date # fecha de ult. act de precio
-            }
+            # recupero los datos y transformo a decimal
+            id =  item['id'] # id producto
+            name = item['name'] # nombre producto
+            pack = item['pack'] # envase producto
+            discount_amount = Decimal((item['cost_price'] * item['discount']) / 100).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP) # monto descuento
+            cost_price = Decimal(item['cost_price'] - discount_amount).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP) # se aplica descuento
+            iva = item['iva_rate'] # porcentaje de iva
+            last_price_upd = date # fecha de ult. act de precio
 
-            # precio de venta
-            product_data['sale_price'] = product_data['cost_price'] * (1 + p[3] / 100) # se aplica rentabilidad
+            profit = Decimal(1 + Decimal(p[3]) / 100)
+
+            sale_price = Decimal(cost_price * profit).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
 
             # precio con iva
-            if item['iva_rate'] == 21.0:
-                product_data['price_with_iva'] = round(product_data['sale_price'] * 1.21, 2)
-            elif item['iva_rate'] == 10.5:
-                product_data['price_with_iva'] = round(product_data['sale_price'] * 1.105, 2)
+            if iva == 21.0:
+                price_with_iva = Decimal(sale_price * Decimal(1.21)).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+            elif iva == 10.5:
+                price_with_iva = Decimal(sale_price * Decimal(1.105)).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
             else:
-                product_data['price_with_iva'] = product_data['sale_price']
+                price_with_iva = sale_price
+
+            product_data = {
+                'id': id, # id producto
+                'name': name, # nombre producto
+                'pack': pack, # envase producto
+                'cost_price': str(cost_price),
+                'iva': str(iva), # porcentaje de iva
+                'sale_price': str(sale_price),
+                'price_with_iva': str(price_with_iva),
+                'last_price_upd': last_price_upd # fecha de ult. act de precio
+            }
 
             print(f'Precio de producto stock act \n :{product_data}')
 
@@ -320,12 +360,11 @@ class SupplierPurchase():
     ## -- Setear saldo pendiente de la compra-- ##
     def set_new_debt_purchase(self, purchase_id, id, doc_type, new_debt, conn=None, commit=True):
 
-        new_debt = round(new_debt, 2)
-
         print(f'new_debt: {new_debt}')
+        print(f'tipo new_debt: {type(new_debt)}')
 
-        if new_debt <= 0:
-            new_debt = 0
+        if new_debt <= Decimal("0.00"):
+            new_debt = Decimal("0.00")
 
         query = """
         UPDATE purchase
@@ -338,12 +377,11 @@ class SupplierPurchase():
         WHERE id = ?
         """
 
-        params = (new_debt, new_debt, purchase_id)
+        params = (str(new_debt), new_debt, purchase_id)
 
         self.db.execute_query(query, params, conn=conn, commit=commit)
 
         # Si quedó pagada, actualizar comprobante
-
         if doc_type == "REMITO":
             query = """
             UPDATE supplier_receipt
@@ -391,7 +429,6 @@ class SupplierPurchase():
 
         return self.db.execute_query(query, params, conn=conn, commit=commit)
     
-
     ## -- Debt -- ##
     def get_debt_of_supplier(self, cuit):
         query = """
@@ -418,8 +455,6 @@ class SupplierPurchase():
         self.db.execute_query(query, params, conn=conn, commit=commit)
         return date
 
-    ## -- -- ##
-
     ## -- Invoice -- ##
     def add_new_invoice(self, data, conn=None, commit=True):
         date = datetime.now().strftime("%Y-%m-%d")
@@ -434,10 +469,10 @@ class SupplierPurchase():
             data['invoice_type'],
             date,
             data['expiration_date'],
-            data['total'],
-            data['subtotal'],
-            data['iva'],
-            data['discount'],
+            str(data['total']),
+            str(data['subtotal']),
+            str(data['iva']),
+            str(data['discount']),
             data['state'],
             data['observations'],
         ]
@@ -484,7 +519,6 @@ class SupplierPurchase():
         self.db.execute_query(query, (invoice_id, ), conn=conn, commit=commit)
 
     ## -- RECEIPT -- ##
-
     def add_new_receipt(self, data, conn=None, commit=True):
         date = datetime.now().strftime("%Y-%m-%d")
         query = """
@@ -499,7 +533,7 @@ class SupplierPurchase():
             data['expiration_date'],
             data['observations'],
             data['state'],
-            data['total'], 
+            str(data['total']), 
         ]
 
         return self.db.execute_query(query, params, conn=conn, commit=commit)
