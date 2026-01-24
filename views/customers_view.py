@@ -1057,13 +1057,16 @@ class CustomersView:
             command=lambda: self.controller.export_account_history_pdf(cliente_id, cliente_nombre) if self.controller else None
         ).grid(row=0, column=0, padx=10)
 
+        # Cambiar el botón Reset en open_account_history_window:
+
         ctk.CTkButton(
             btn_frame,
             text="🔄 Resetear Cuenta",
             width=150,
             height=40,
-            fg_color="#E91E63" if can_reset else "#BDBDBD",
-            hover_color="#C2185B" if can_reset else "#BDBDBD",
+            fg_color="#E91E63" if can_reset else "#9E9E9E",  # Gris más oscuro
+            hover_color="#C2185B" if can_reset else "#9E9E9E",
+            text_color="white" if can_reset else "#E0E0E0",  # Texto más claro cuando deshabilitado
             font=ctk.CTkFont(size=13, weight="bold"),
             state="normal" if can_reset else "disabled",
             command=lambda: self.controller.reset_customer_account(cliente_id, cliente_nombre, win) if self.controller else None

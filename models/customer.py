@@ -164,17 +164,38 @@ class CustomerModel:
 
         return round(total_pending, 2)
 
+    def _is_cash_sale(self, sale_id, fecha_venta):
+        """
+        Determina si una venta fue de CONTADO.
+        
+        Es CONTADO únicamente si:
+        - Estado es 'paid' Y no tiene NINGÚN pago registrado en la tabla payments
+        (significa que se pagó en el momento de crear la venta)
+        
+        Si tiene aunque sea UN pago registrado, es CRÉDITO (se muestra en historial)
+        """
+        payments_query = """
+            SELECT COUNT(*) 
+            FROM payments 
+            WHERE sale_id = ?
+        """
+        result = self.db.fetch_one(payments_query, (sale_id,))
+        
+        # Es CONTADO solo si NO tiene pagos registrados
+        # Si tiene pagos (parciales o totales), es CRÉDITO y debe mostrarse
+        return result is None or result[0] == 0
+
     def get_customer_account_history(self, cliente_id):
         """
-        Historial de cuenta corriente - LÓGICA CLARA:
-        - Ventas aumentan la deuda (columna DEBE)
-        - Pagos disminuyen la deuda (columna HABER)
-        - Saldo: Cuánto debe el cliente (positivo) o tiene a favor (negativo)
+        Historial de cuenta corriente:
+        - Ventas de CONTADO NO aparecen (se omiten completamente)
+        - Solo ventas a CRÉDITO aparecen en el historial
         """
         movements = []
+        contado_sales = set()  # IDs de ventas de contado a excluir
         
         # ================================================================
-        # PASO 1: VENTAS A CRÉDITO
+        # PASO 1: OBTENER TODAS LAS VENTAS Y DETECTAR CUÁLES SON CONTADO
         # ================================================================
         sales_query = """
             SELECT 
@@ -197,7 +218,19 @@ class CustomerModel:
         """
         sales = self.db.fetch_all(sales_query, (cliente_id,))
         
+        # Identificar ventas de contado
+        for sale_id, fecha_venta, total, estado, cant_prod in sales:
+            if estado == 'paid' and self._is_cash_sale(sale_id, fecha_venta):
+                contado_sales.add(sale_id)
+        
+        # ================================================================
+        # PASO 2: REGISTRAR SOLO VENTAS A CRÉDITO (omitir contado)
+        # ================================================================
         for sale_id, fecha, total, estado, cant_prod in sales:
+            # OMITIR ventas de contado
+            if sale_id in contado_sales:
+                continue
+                
             total = round(float(total), 2)
             cant_prod = int(cant_prod) if cant_prod else 0
             
@@ -214,13 +247,13 @@ class CustomerModel:
                 "descripcion": f"Venta #{sale_id} · {cant_prod} producto(s) · {estado_txt}",
                 "debe": total,
                 "haber": 0.0,
-                "saldo": 0.0,  # Se calcula después
+                "saldo": 0.0,
                 "sale_id": sale_id,
                 "referencia": ""
             })
         
         # ================================================================
-        # PASO 2: PAGOS
+        # PASO 3: PAGOS (solo de ventas a crédito)
         # ================================================================
         payments_query = """
             SELECT 
@@ -249,8 +282,12 @@ class CustomerModel:
         }
         
         for pay_id, fecha, monto, method, sale_id, notes in payments:
+            # OMITIR pagos de ventas de contado
+            if sale_id in contado_sales:
+                continue
+                
             monto = round(float(monto), 2)
-            method_txt = method_map.get(method.lower(), method.capitalize() if method else "Efectivo")
+            method_txt = method_map.get(method.lower() if method else "", method.capitalize() if method else "Efectivo")
             
             if sale_id:
                 desc = f"Pago Venta #{sale_id} · {method_txt}"
@@ -263,13 +300,13 @@ class CustomerModel:
                 "descripcion": desc,
                 "debe": 0.0,
                 "haber": monto,
-                "saldo": 0.0,  # Se calcula después
+                "saldo": 0.0,
                 "sale_id": sale_id,
                 "referencia": notes or ""
             })
         
         # ================================================================
-        # PASO 3: NOTAS DE CRÉDITO (si existe la tabla)
+        # PASO 4: NOTAS DE CRÉDITO (si existe la tabla)
         # ================================================================
         try:
             table_check = "SELECT name FROM sqlite_master WHERE type='table' AND name='customer_credit'"
@@ -324,51 +361,38 @@ class CustomerModel:
             print(f"Tabla customer_credit no disponible: {e}")
         
         # ================================================================
-        # PASO 4: ORDENAR CRONOLÓGICAMENTE
+        # PASO 5: ORDENAR CRONOLÓGICAMENTE
         # ================================================================
-        movements.sort(key=lambda x: (x["fecha"], x.get("sale_id", 0)))
+        movements.sort(key=lambda x: (x["fecha"], x.get("sale_id", 0) or 0))
         
         # ================================================================
-        # PASO 5: CALCULAR SALDO ACUMULADO (DESPUÉS DE ORDENAR)
+        # PASO 6: CALCULAR SALDO ACUMULADO
         # ================================================================
         saldo_acumulado = 0.0
         for mov in movements:
-            # DEBE aumenta la deuda, HABER la disminuye
             saldo_acumulado += mov["debe"] - mov["haber"]
             mov["saldo"] = round(saldo_acumulado, 2)
         
         # ================================================================
-        # PASO 6: RESUMEN
+        # PASO 7: RESUMEN (solo cuenta ventas a crédito)
         # ================================================================
         total_debe = sum(m["debe"] for m in movements)
         total_haber = sum(m["haber"] for m in movements)
         saldo_final = round(saldo_acumulado, 2)
 
-        # Contar ventas correctamente - rastreando el último saldo de cada venta
-        ventas_saldo = {}  # {sale_id: último_saldo_registrado}
-
-        for mov in movements:
-            if mov["tipo"] == "VENTA":
-                # Inicializar con el saldo después de la venta
-                ventas_saldo[mov["sale_id"]] = mov["saldo"]
-            elif mov["tipo"] == "PAGO" and mov.get("sale_id"):
-                # Actualizar con el saldo después del pago
-                ventas_saldo[mov["sale_id"]] = mov["saldo"]
-
-        # Contar cuántas ventas tienen saldo final ≈ 0
         ventas_totales = len([m for m in movements if m["tipo"] == "VENTA"])
-
-        # Una venta está pagada si su último saldo conocido es ≈ 0
-        # PERO necesitamos el saldo GLOBAL al final, no por venta individual
-        # Mejor: si el saldo final global es 0 y todas las ventas tienen pagos
-        ventas_con_pago = len(set(m.get("sale_id") for m in movements if m["tipo"] == "PAGO" and m.get("sale_id")))
-
-        # Si el saldo final es 0, todas las ventas están pagadas
-        if abs(saldo_final) < 0.01:
-            ventas_pagadas = ventas_totales
-        else:
-            # Contar cuántas ventas tienen al menos un pago completo
-            ventas_pagadas = ventas_con_pago
+        
+        # Contar ventas pagadas
+        ventas_credito_pagadas = 0
+        for m in movements:
+            if m["tipo"] == "VENTA":
+                sale_id = m["sale_id"]
+                check = "SELECT estado FROM sales WHERE id = ?"
+                result = self.db.fetch_one(check, (sale_id,))
+                if result and result[0] == 'paid':
+                    ventas_credito_pagadas += 1
+        
+        ventas_pagadas = ventas_credito_pagadas
 
         summary = {
             'total_comprado': round(total_debe, 2),
