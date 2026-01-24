@@ -296,10 +296,26 @@ class PurchaseController():
                 str(total)
             ]
 
+            purchase_data = self.model.purchase.get_purchase_by_id(purchase_id)
+
+            doc_type = purchase_data[2]
+            if doc_type == "REMITO":
+                doc_id = purchase_data[4]
+            else:
+                doc_id = purchase_data[3]
+
+            print(f'doc_id: {doc_id}')
+
             # Se agrega item a la compra
-            self.model.purchase.add_purchase_item(item_data_clean)
-            show_success('Item agregado con exito')
-            close_win(win, parent)   
+            ok = self.model.purchase.add_purchase_item(item_data_clean)
+            if ok:
+                ok = self.model.purchase.recalc_doc_values(purchase_id, doc_type, doc_id)
+                if ok:
+                    show_success('Item agregado con exito')
+                    close_win(win, parent) 
+            else:
+                show_error('Ocurrio un error')
+  
 
         except ValueError as e:
             show_error(f'Error al cargar item de compra: {e}')

@@ -1,4 +1,4 @@
-from decimal import Decimal, ROUND_HALF_UP
+from utils.utils import normalize_decimal
 from views.view_helpers import show_warning, show_error, close_win
 
 class PaymentController():
@@ -36,14 +36,14 @@ class PaymentController():
             if not self.validate_data(payment_data):
                 return 
             
-            amount = Decimal(payment_data['amount']).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+            amount = normalize_decimal(payment_data['amount'])
 
             if purchase_id is not None:
                 # Datos de la compra
                 purchase = self.model.purchase.get_purchase_by_id(purchase_id.get())
                 
                 # Deuda actual de la compra
-                debt = Decimal(purchase[9]).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+                debt = normalize_decimal(purchase[9])
                 
                 # Chequeo si quiere pagar de mas
                 if not self.validate_debt(amount, debt, False):
@@ -58,7 +58,7 @@ class PaymentController():
                     print(p)
 
                 total_debt = self.model.purchase.get_debt_of_supplier(selected)[0]
-                total_debt_formated = Decimal(total_debt).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+                total_debt_formated = normalize_decimal(total_debt)
 
                 # Chequeo si quiere pagar de mas
                 if not self.validate_debt(amount, total_debt_formated, True):
@@ -158,7 +158,7 @@ class PaymentController():
 
     @staticmethod
     def _is_decimal(value):
-        try: Decimal(value); return True
+        try: normalize_decimal(value); return True
         except: return False
 
     @staticmethod

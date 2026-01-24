@@ -3,6 +3,7 @@
 from datetime import datetime
 from models.stock import StockModel
 from decimal import Decimal, ROUND_HALF_UP
+from utils.utils import normalize_decimal
 
 class SupplierPurchase():
     def __init__(self, db):
@@ -105,13 +106,78 @@ class SupplierPurchase():
     
     ## Nuevo Item de compra
     def add_purchase_item(self, params):
-        query = """
-            INSERT INTO purchase_item (purchase_id, product_id, product_name, pack, quantity, cost_price, iva_rate, 
-            discount, discount_amount, subtotal, iva_amount, total) 
-            VALUES (?, ?, ? ,?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """
+        try:   
+            
+            conn = self.db.get_connection()
 
-        self.db.execute_query(query, params)
+            # Iniciar transacción
+            conn.execute("BEGIN")
+
+            query = """
+                INSERT INTO purchase_item (purchase_id, product_id, product_name, pack, quantity,
+                cost_price, iva_rate,discount, discount_amount, subtotal, iva_amount, total) 
+                VALUES (?, ?, ? ,?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """
+
+            self.db.execute_query(query, params, conn=conn, commit=False)
+
+            conn.commit()
+            return True
+        
+        except Exception as e:
+            conn.rollback()
+            print(f'Hubo un error {e}')
+            return False
+        
+        finally:
+            conn.close()
+            
+    def recalc_doc_values(self, purchase_id, doc_type, doc_id):
+        try:          
+            conn = self.db.get_connection()
+
+            # Iniciar transacción
+            conn.execute("BEGIN")
+
+            if doc_type == 'FACTURA':
+                ## factura ##
+
+                ## monto_iva
+                iva_amount = normalize_decimal(self.get_iva_amount_of_p_items(purchase_id)[0])
+                print(f'Monto iva: {iva_amount}')
+
+                query = """ UPDATE supplier_invoice SET iva = ? WHERE id = ? """
+
+                self.db.execute_query(query, (str(iva_amount), doc_id), conn=conn, commit=False)
+
+                ## subtotal
+                subtotal = normalize_decimal(self.get_sum_of_items(purchase_id)[0])
+
+                query = """ UPDATE supplier_invoice SET subtotal = ?, total = ?  WHERE id = ? """
+
+                self.db.execute_query(query, (str(subtotal), str(subtotal), doc_id), conn=conn, commit=False)
+
+
+            else:
+                ## remito
+                total = normalize_decimal(self.get_sum_of_items(purchase_id)[0])
+                print(f'total: {total}')
+
+                query = """ UPDATE supplier_receipt SET total = ? WHERE id = ? """
+
+                self.db.execute_query(query, (str(total), doc_id), conn=conn, commit=False)
+        
+            conn.commit()
+            return True
+        
+        except Exception as e:
+            conn.rollback()
+            print(f'Hubo un error {e}')
+            return False
+        
+        finally:
+            conn.close()
+
     
     ## -- Obtener items de compra -- ##
     def get_purchase_items(self, purchase_id):
@@ -280,22 +346,6 @@ class SupplierPurchase():
                 self.db.execute_query(query, params, conn=conn, commit=False)
 
                 self.stock_model.update_quantity(i_data['id'], i_data['qty'], conn=conn, commit=False)
-
-            if doc_type == 'FACTURA':
-                
-                iva_amount = self.get_iva_amount_of_p_items(purchase_id)[0]
-                print(f'Monto iva: {iva_amount}')
-
-                query = """
-                UPDATE supplier_invoice
-                SET iva = ?
-                WHERE id = ?
-                """
-                params = [
-                    iva_amount,
-                    id
-                ]
-                self.db.execute_query(query, (params), conn=conn, commit=False)
 
             conn.commit()
             return True

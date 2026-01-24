@@ -3,7 +3,7 @@ import tkinter as tk
 import customtkinter as ctk
 from datetime import datetime
 
-from tkinter import ttk, messagebox
+from tkinter import ttk
 
 from .purchase_info import PurchaseInfo
 from .purchase_form import PurchaseForm
@@ -555,8 +555,6 @@ class PurchaseWindow():
             )
 
         self.supplier_tree.tag_configure('orow', background="white", foreground='black') 
-
-    # -- -- #
 
     ## -- Cargar tabla de compras -- ## 
     def load_purchases(self, filter):
