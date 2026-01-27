@@ -12,9 +12,8 @@ class StockController:
 
         self.all_products = []
         self.payment_model = PaymentModel()
-        if self.stock_view:
-            self.event_bus = event_bus
-            self.event_bus.subscribe('refresh_stock_table', self.refresh_stock_table)
+        self.event_bus = event_bus
+        self.event_bus.subscribe('refresh_stock_table', self.refresh_stock_table)
 
         if self.view:
             self.load_products()
