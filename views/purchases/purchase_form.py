@@ -5,20 +5,15 @@ import customtkinter as ctk
 from views.view_helpers import show_warning, show_error, close_win, ask_confirmation
 from .new_product_form import NewProductForm
 from .new_purchase_item_form import NewPurchaseItemForm
-from models.stock import StockModel
 
 class PurchaseForm():
-    def __init__(self, model, controller):
+    def __init__(self, model, stock_model, controller):
         self.model = model
-        self.stock_model = StockModel()
         self.controller = controller
-
-        products = self.stock_model.get_all_products()
-        self.products = [(p[0], p[1], p[2], p[10]) for p in products]
 
         self.find_entry = tk.StringVar()
         self.new_product_form = NewProductForm(self.controller)
-        self.new_purchase_i_form = NewPurchaseItemForm(self.controller, self.stock_model)
+        self.new_purchase_i_form = NewPurchaseItemForm(self.controller, stock_model)
         self.controller.set_new_p_form(self.new_product_form)
         self.controller.set_new_p_i_form(self.new_purchase_i_form)
 
@@ -201,7 +196,7 @@ class PurchaseForm():
 
         # Filtro de lista de productos
         filtered = [
-            p for p in self.products
+            p for p in self.controller.products
             if query in str(p[0]) or query in p[1].lower()
         ]
 
@@ -216,7 +211,7 @@ class PurchaseForm():
             self.product_tree.delete(item)
 
         # cargo los productos
-        for p in self.products:
+        for p in self.controller.products:
             self.product_tree.insert(
                 parent='', index='end', iid=p[0],
                 values=p,
@@ -224,3 +219,4 @@ class PurchaseForm():
             )
 
         self.product_tree.tag_configure('orow', background="white", foreground='black')   
+    

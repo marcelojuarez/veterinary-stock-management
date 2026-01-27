@@ -5,15 +5,23 @@ from decimal import Decimal
 from utils.utils import normalize_decimal
 
 class PurchaseController():
-    def __init__(self):
+    def __init__(self, event_bus):
         self.model = None
+        self.stock_model = StockModel()
         self.view = None
         self.form_view = None
         self.new_p_form = None # new_product_form
         self.new_p_i_form = None # new_purchase_form
         self.info_view = None
-        self.event_bus = None
-        self.stock_model = StockModel()
+        self.event_bus = event_bus
+
+        self.event_bus.subscribe(
+            'refresh_products_on_p_win',
+            self.refresh_products_on_p_win
+        )
+        
+        products = self.stock_model.get_all_products()
+        self.products = [(p[0], p[1], p[2], p[10]) for p in products]
 
     # setters
     def set_model(self, model):
@@ -34,8 +42,9 @@ class PurchaseController():
     def set_new_p_i_form(self, new_p_i_form):
         self.new_p_i_form = new_p_i_form
 
-    def set_event_bus(self, event_bus):
-        self.event_bus = event_bus
+    def refresh_products_on_p_win(self):
+        products = self.stock_model.get_all_products()
+        self.products = [(p[0], p[1], p[2], p[10]) for p in products]
 
     # Confirmar Compra
     def confirm_purchase(self, purchase_id):
@@ -67,7 +76,7 @@ class PurchaseController():
                 else:
                     self.view.load_purchases(True)
 
-                self.event_bus.publish('refresh_table', None)
+                self.event_bus.publish('refresh_stock_table', None)
                 
         except ValueError as e:
             show_error(f'Error al confirmar la compra: {e}')
@@ -194,14 +203,13 @@ class PurchaseController():
 
             if window:
                 window.destroy()
-            
-            # Refrescar tabla
-            self.event_bus.publish('refresh_table', None)
-
+        
             products = self.stock_model.get_all_products()
-            self.form_view.products = [(p[0], p[1], p[2], p[10]) for p in products]
+            self.products = [(p[0], p[1], p[2], p[10]) for p in products]
 
+            # Refrescar tabla
             self.form_view.load_products()
+            self.event_bus.publish('refresh_stock_table', None)
             
             show_success("Producto registrado correctamente")
             

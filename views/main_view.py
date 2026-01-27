@@ -114,13 +114,14 @@ class App():
         event_bus = EventBus()
         
         # --- CONTROLLERS ---
-        self.stock_controller = StockController()
+        self.stock_controller = StockController(event_bus)
         self.sales_controller = SalesController()
         self.supplier_controller = SupplierController()
         self.customer_controller = CustomerController()
 
-        self.purchase_controller = PurchaseController()
-        self.purchase_controller.set_event_bus(event_bus)
+        self.purchase_controller = PurchaseController(event_bus)
+
+        print(f'metodos: {event_bus._subscribers}')
 
         self.payment_controller = PaymentController()
         self.invoice_controller = SupplierInvoiceController()
@@ -130,7 +131,6 @@ class App():
         # --- STOCK ---
         self.stock_view = StockView(self.notebook, controller=self.stock_controller)
         self.stock_controller.set_view(self.stock_view)
-        self.stock_controller.set_event_bus(event_bus)
 
         self.stock_view.frame.pack(fill='both', expand=True)
         self.notebook.add(self.stock_view.frame, text='Inventario')

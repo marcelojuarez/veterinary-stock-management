@@ -3,26 +3,22 @@ from models.supplier import SupplierModel
 from tkinter import messagebox
 
 class StockController:
-    def __init__(self):
+    def __init__(self, event_bus):
         self.view = None
 
         self.stock_model = StockModel()  
         self.supplier_mdl = SupplierModel()
 
         self.all_products = []
-        self.event_bus = None
+        self.event_bus = event_bus
+        self.event_bus.subscribe('refresh_stock_table', self.refresh_stock_table)
 
         if self.view:
             self.load_products()
 
     # Setters
     def set_view(self, view):
-        self.view = view
-
-    def set_event_bus(self, event_bus):
-        self.event_bus = event_bus
-
-        self.event_bus.subscribe('refresh_table', self.refresh_stock_table)
+        self.view = view        
 
     def load_products(self):
         """Carga inicial (una sola vez)"""
@@ -46,6 +42,7 @@ class StockController:
             
             # Refrescar tabla
             self.refresh_stock_table()
+            self.event_bus.publish('refresh_products_on_p_win', None)
             
             self.view.show_success("Producto eliminado correctamente")
             

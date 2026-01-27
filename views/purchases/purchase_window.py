@@ -13,7 +13,7 @@ from views.supplier_doc.supplier_invoice_form import SupplierInvoiceForm
 from views.supplier_doc.supplier_receipt_form import SupplierReceiptForm
 
 class PurchaseWindow():
-    def __init__(self, model, frame, controller, invoice_controller, receipt_controller):
+    def __init__(self, model, stock_model, frame, controller, invoice_controller, receipt_controller):
         self.model = model
         self.frame = frame
         
@@ -33,7 +33,7 @@ class PurchaseWindow():
         self.controller.set_view(self)
 
         self.purchase_info = PurchaseInfo(self.model, self.controller)
-        self.purchase_form = PurchaseForm(self.model, self.controller)
+        self.purchase_form = PurchaseForm(self.model, stock_model, self.controller)
 
         self.controller.set_info_view(self.purchase_info)
         self.controller.set_form_view(self.purchase_form)

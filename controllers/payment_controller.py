@@ -106,7 +106,11 @@ class PaymentController():
 
         # validacion del monto
         if not cls._is_decimal(data['amount']):
-            show_warning('Monto invalido')
+            show_error('Error. Monto invalido')
+            return False
+        
+        if normalize_decimal(data['amount']) <= normalize_decimal('0.00'):
+            show_error('Error. El monto debe ser un valor positivo')
             return False
 
         # validacion segun el metodo de pago

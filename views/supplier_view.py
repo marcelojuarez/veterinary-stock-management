@@ -36,7 +36,7 @@ class SupplierView():
         self.payment_controller.set_model(self.model)
 
         self.payment_window = PaymentWindow(self.model, self.frame, self.payment_controller)
-        self.purchase_window = PurchaseWindow(self.model, self.frame, self.purchase_controller, 
+        self.purchase_window = PurchaseWindow(self.model, self.stock_model, self.frame, self.purchase_controller, 
                                               self.invoice_controller, self.receipt_controller)
 
         self.create_widgets()

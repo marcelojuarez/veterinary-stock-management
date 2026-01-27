@@ -427,7 +427,7 @@ class SupplierPurchase():
         WHERE id = ?
         """
 
-        params = (str(new_debt), new_debt, purchase_id)
+        params = (str(new_debt), str(new_debt), purchase_id)
 
         self.db.execute_query(query, params, conn=conn, commit=commit)
 
@@ -452,7 +452,7 @@ class SupplierPurchase():
             WHERE id = ?
             """
 
-        params = (new_debt, id)
+        params = (str(new_debt), id)
         self.db.execute_query(query, params, conn=conn, commit=commit)
     
     ## -- Vincular comprobante con compra -- ##
