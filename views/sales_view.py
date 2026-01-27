@@ -12,7 +12,7 @@ ctk.set_default_color_theme("blue")
 
 
 class SalesView:
-    def __init__(self, parent, controller=None):
+    def __init__(self, parent, controller):
         self.controller = controller
         self.frame = ctk.CTkFrame(parent, fg_color="#f0f0f0")
         self.stock_model = StockModel()
@@ -336,7 +336,7 @@ class SalesView:
         """Cargar productos disponibles y guardar en caché"""
         try:
             products = self.stock_model.get_all_products()
-            self.all_products = [p for p in products if p[11] > 0]  # Solo productos con stock
+            self.all_products = [p for p in products if p[10] > 0]  # Solo productos con stock
             
             # Mostrar todos los productos inicialmente
             self.refresh_product_tree(self.all_products)
@@ -349,7 +349,7 @@ class SalesView:
         self.product_tree.delete(*self.product_tree.get_children())
         
         for p in products:
-            (pid, _, name, _, _, _, _, 
+            (pid, name, _, _, _, _, 
             _, price_with_iva, _, _, qty) = p
             
             if qty > 0:  # Solo mostrar productos con stock

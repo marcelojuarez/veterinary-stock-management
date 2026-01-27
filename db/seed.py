@@ -185,28 +185,19 @@ def seed_stock():
     # Obtener proveedores para asignar aleatoriamente
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
-    proveedores = cursor.execute("SELECT cuit FROM supplier").fetchall()
-    
-    if not proveedores:
-        print("⚠️ No hay proveedores. Ejecuta seed_suppliers() primero.")
-        conn.close()
-        return
-    
-    cuits_proveedores = [p[0] for p in proveedores]
     
     # Insertar productos asignando proveedores al azar
     for p in productos_base:
-        cuit_supplier = choice(cuits_proveedores)
         quantity = randint(5, 50)  # Cantidad aleatoria entre 5 y 50
         sale_price = round(p['cost_price'] * (1 + p['profit']/100), 2)
         price_with_iva = round(sale_price * (1 + p['iva']/100), 2)
         
         cursor.execute("""
-            INSERT OR REPLACE INTO stock 
-            (cuit_supplier, name, pack, profit, cost_price, price, iva, price_with_iva, quantity, created_at, last_price_update)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT OR REPLACE INTO stock
+            (name, pack, profit, cost_price, price, iva, price_with_iva, quantity, created_at, last_price_update)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, (
-            cuit_supplier, p['name'], p['pack'], p['profit'], p['cost_price'], 
+            p['name'], p['pack'], p['profit'], p['cost_price'], 
             sale_price, p['iva'], price_with_iva, quantity, 
             datetime.now().strftime("%Y-%m-%d"), datetime.now().strftime("%Y-%m-%d")
         ))
@@ -789,9 +780,10 @@ if __name__ == "__main__":
     
     seed_suppliers()
     seed_client()
-    seed_clients()
+    # seed_clients()
     seed_stock()
-    seed_sales_with_products()
+    # seed_sales_with_fiados()
+    # seed_sales_with_products()
     
     print("-" * 50)
     print("✅ ¡Seed completado exitosamente!")

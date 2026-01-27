@@ -7,7 +7,7 @@ class StockModel:
     def get_all_products(self):
         """Obtener todos los productos del stock"""
         query = """
-            SELECT id, cuit_supplier, name, pack, profit, cost_price, price, iva, 
+            SELECT id, name, pack, profit, cost_price, price, iva, 
                    price_with_iva, created_at, last_price_update, quantity
             FROM stock 
             ORDER BY name
@@ -22,38 +22,12 @@ class StockModel:
     def get_product_by_id(self, product_id):
         """Obtener un producto por su ID"""
         query = """
-            SELECT id, cuit_supplier, name, pack, profit, cost_price, price, iva, 
+            SELECT id, name, pack, profit, cost_price, price, iva, 
                    price_with_iva, created_at, last_price_update, quantity
             FROM stock 
             WHERE id = ?
         """
         return db.fetch_one(query, (product_id,))
-    
-    def get_all_products_by_cuit(self, supplier_cuit):
-        query = """
-            SELECT * FROM stock where cuit_supplier = ?
-        """
-        return db.fetch_all(query, (supplier_cuit,))
-        
-    def add_product(self, product_data):
-        """Agregar un nuevo producto"""
-        query = """
-            INSERT INTO stock 
-            (cuit_supplier, name, pack, profit, cost_price, price, iva, price_with_iva, quantity) 
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """
-        params = (
-            product_data['Cuit_supplier'],
-            product_data['Name'],
-            product_data['Package'],
-            product_data['Profit'],
-            product_data['CostPrice'],
-            product_data['SalePrice'],
-            product_data['Iva'],
-            product_data['PriceWIva'],
-            product_data['Stock'],
-        )
-        return db.execute_query(query, params)
         
     def update_product(self, product_id, product_data):
         """Actualizar un producto existente"""
@@ -85,10 +59,10 @@ class StockModel:
         query = "DELETE FROM stock WHERE id = ?"
         return db.execute_query(query, (product_id,))
 
-    def update_quantity(self, product_id, new_quantity):
+    def update_quantity(self, product_id, quantity, conn=None, commit=True):
         """Actualizar solo la cantidad de un producto"""
-        query = "UPDATE stock SET quantity = ? WHERE id = ?"
-        return db.execute_query(query, (new_quantity, product_id))
+        query = "UPDATE stock SET quantity = quantity + ? WHERE id = ?"
+        return db.execute_query(query, (quantity, product_id), conn=conn, commit=commit)
         
     def reduce_quantity(self, product_id, quantity_to_reduce):
         """Reducir la cantidad de un producto (para ventas)"""
@@ -109,7 +83,7 @@ class StockModel:
     def search_products(self, search_term):
         """Buscar productos por nombre, ID o envase"""
         query = """
-            SELECT id, cuit_supplier, name, pack, profit, cost_price, price, iva, 
+            SELECT id, name, pack, profit, cost_price, price, iva, 
                    price_with_iva, created_at, last_price_update, quantity
             FROM stock 
             WHERE name LIKE ? OR id LIKE ? OR pack LIKE ?
@@ -123,7 +97,7 @@ class StockModel:
         try: 
             with self.db.cursor() as cursor:
                 cursor.execute(
-                    "SELECT id, cuit_supplier, name, pack, quantity FROM stock WHERE quantity < ? ORDER BY quantity", 
+                    "SELECT id, name, pack, quantity FROM stock WHERE quantity < ? ORDER BY quantity", 
                     (threshold,)
                 )
                 return cursor.fetchall()

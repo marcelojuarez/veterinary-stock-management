@@ -7,13 +7,15 @@ from controllers.invoice_controller import InvoiceController
 from services.remito_pdf import RemitoPDF
 
 class SalesController:
-    def __init__(self, sales_view):
-        self.sales_view = sales_view
+    def __init__(self):
+        self.sales_view = None
         self.stock_model = StockModel()
         self.sales_model = SalesModel()
         self.customer_model = CustomerModel()
         self.remito_model = RemitoModel()
 
+    def set_view(self, view):
+        self.sales_view = view
 
     def search_product_for_sale(self, search_term: str):
         """Buscar productos para la SalesView y llenar la tabla de disponibles"""

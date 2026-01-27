@@ -13,26 +13,38 @@ ctk.set_appearance_mode("light")  # "light" o "dark"
 ctk.set_default_color_theme("blue")  # "blue", "green", "dark-blue"
 
 class SupplierView():
-    def __init__(self, parent,  stock_view, controller=None):
-        self.controller = controller
+    def __init__(self, parent, controller, purchase_controller, payment_controller, invoice_controller, receipt_controller):
+
         self.model = SupplierModel()
         self.stock_model = StockModel()
-        self.stock_view = stock_view
+
+        self.controller = controller
+        self.purchase_controller = purchase_controller
+        print(f'purchase s: {self.purchase_controller}')
+
+        self.payment_controller = payment_controller
+        
+        self.invoice_controller = invoice_controller
+        self.invoice_controller.set_model(self.model)
+        
+        self.receipt_controller = receipt_controller
+        self.receipt_controller.set_model(self.model)
+
         self.frame = ctk.CTkFrame(parent, fg_color="#f0f0f0")
-        self.payment_window = PaymentWindow(self.model, self, self.frame)
-        self.purchase_window = PurchaseWindow(self.model, self.frame, self)
+
+        self.purchase_controller.set_model(self.model)
+        self.payment_controller.set_model(self.model)
+
+        self.payment_window = PaymentWindow(self.model, self.frame, self.payment_controller)
+        self.purchase_window = PurchaseWindow(self.model, self.stock_model, self.frame, self.purchase_controller, 
+                                              self.invoice_controller, self.receipt_controller)
+
         self.create_widgets()
         # proveedores en memoria
         self.suppliers = self.model.core.get_all_suppliers()
-        
+
         self.sort_column = None
         self.sort_reverse = False
-
-    def set_controller(self, controller):
-        """Asignar controller después de la inicialización"""
-        print(f"DEBUG: Asignando controller: {controller}")
-        self.controller = controller
-        print(f"DEBUG: Controller asignado correctamente: {self.controller}")
 
     def setup_supplier_variables(self):
         # variables proveedor
@@ -159,9 +171,16 @@ class SupplierView():
 
     def create_buttons_frame(self):
         """ Crear frame para botones de supplier"""
+        manage_frame = ctk.CTkFrame(
+            self.frame,
+            fg_color="#FFFFFF",
+            border_color="#313131",
+            border_width=1,
+            corner_radius=18
+        )
+        manage_frame.grid(row=2, column= 0,padx=[10, 20], pady=20, ipadx=[6], sticky='nsew')
 
-        manage_frame = ctk.CTkFrame(self.frame)
-        manage_frame.grid(row=2, column= 0,padx=[10, 20], pady=20, ipadx=[6])
+        manage_frame.columnconfigure((0, 1, 2, 3, 4), weight=1)
         
         W = 240
         H = 35
@@ -222,11 +241,11 @@ class SupplierView():
             command=lambda: self.purchase_window.open_purchase_window(self.frame)
         )
         
-        info_btn.grid(row= 0, column=0, padx=5, pady=5)
-        delete_btn.grid(row= 0, column=1, padx=5, pady=5)
-        add_btn.grid(row= 0, column=2, padx=5, pady=5)
-        payment_btn.grid(row= 0, column=3, padx=5, pady=5)
-        purchase_btn.grid(row=0, column=4, padx=5, pady=5)
+        info_btn.grid(row= 0, column=0, padx=10, pady=5)
+        delete_btn.grid(row= 0, column=1, padx=10, pady=5)
+        add_btn.grid(row= 0, column=2, padx=10, pady=5)
+        payment_btn.grid(row= 0, column=3, padx=10, pady=5)
+        purchase_btn.grid(row=0, column=4, padx=10, pady=5)
 
     def open_add_window(self, parent):
         self.setup_supplier_variables()
@@ -273,7 +292,7 @@ class SupplierView():
         )
         title_label.pack(pady=20)
 
-                # contenedor del formulario
+        # contenedor del formulario
         form_frame = ctk.CTkFrame(card_frame, fg_color="white")
         form_frame.pack(pady=5, padx=10, fill="x")
 
@@ -337,8 +356,6 @@ class SupplierView():
     def open_info_window(self, supplier, debt, parent):
         self.frame.update_idletasks()  # calcula la posicion antes de renderizar ventana
 
-        print(supplier)
-
         info_win = ctk.CTkToplevel(self.frame)
         info_win.title(f'Proveedor: {supplier[2]} -- {supplier[1]}')
         info_win.transient(parent)
@@ -365,8 +382,8 @@ class SupplierView():
         info_win.grid_columnconfigure(1, weight=1)
 
         # --- Tksheet con productos ---
-        products = self.stock_model.get_all_products_by_cuit(supplier[2])
-        products = [(p[0], p[2], p[3], p[9]) for p in products]
+        products = self.model.purchase.get_all_products_by_supplier_id(supplier_id=supplier[0])
+        products = [(p[0], p[1], p[2], p[5]) for p in products]
 
         sheet = Sheet(info_win)
         sheet.grid(row=0, column=0, sticky="nsew", padx=10, pady=(10, 0))
@@ -521,108 +538,6 @@ class SupplierView():
             command=lambda: close_win(win, parent)
         )
         close_win_btn.grid(row=0, column=4, padx=5, pady=10)
-
-
-    def open_add_product_window(self, supplier_cuit, parent=None):
-        self.setup_product_variables()
-
-        if self.purchase_supplier_var.get() == "":
-            show_warning("Por favor seleccione un proveedor")
-            return
-        
-        """Ventana para agregar nuevo producto con CustomTkinter"""
-        add_win = ctk.CTkToplevel(parent if parent else self.frame)
-        add_win.title("Agregar nuevo artículo")
-        
-        # Hacer que la ventana sea modal
-        add_win.transient(parent)
-        add_win.grab_set()
-        
-        # Centrar la ventana
-        add_win.geometry("400x600+{}+{}".format(
-            add_win.winfo_screenwidth()//2 - 200,
-            add_win.winfo_screenheight()//2 - 250
-        ))
-        
-        # Título
-        title_label = ctk.CTkLabel(
-            add_win,
-            text="Nuevo Artículo",
-            font=ctk.CTkFont(size=18, weight="bold")
-        )
-        title_label.grid(row=0, column=0, columnspan=2, pady=(20, 20))
-        
-        # Campos del formulario
-        fields = [
-            ("Código:", self.stock_view.id_var),
-            ("Cuit Proveedor:", self.stock_view.cuit_supplier),
-            ("Nombre Artículo:", self.stock_view.name_var),
-            ("Precio Costo:", self.stock_view.price_var),
-            ("% Rentabilidad:", self.stock_view.profit_var),
-            ("Cantidad de Artículos:", self.stock_view.qnt_var)
-        ]
-
-        print(f"Que es supplier cuit?: {supplier_cuit}")
-        self.stock_view.cuit_supplier.set(supplier_cuit)
-        print(f"Que es supplier cuit?: { self.stock_view.cuit_supplier.get()}")
-
-
-        for i, (label_text, var) in enumerate(fields, start=0):
-            label = ctk.CTkLabel(add_win, text=label_text, font=ctk.CTkFont(size=12))
-            label.grid(row=i+1, column=0, padx=20, pady=10, sticky="w")
-            
-            entry = ctk.CTkEntry(
-                add_win,
-                textvariable=var,
-                width=200,
-                height=35,
-                font=ctk.CTkFont(size=12)
-            )
-            entry.grid(row=i+1, column=1, padx=20, pady=10)
-
-        # Combobox para Envase
-        pack_label = ctk.CTkLabel(add_win, text="Envase:", font=ctk.CTkFont(size=12))
-        pack_label.grid(row=7, column=0, padx=20, pady=10, sticky="w")
-        
-        pack_combo = ctk.CTkComboBox(
-            add_win,
-            values=["UNIDAD", "CAJA", "FRASCO", "AMPOLLA", "SOBRE", "OTRO"],
-            variable=self.stock_view.pack_var,
-            width=200,
-            height=35,
-            font=ctk.CTkFont(size=12),
-            state="readonly"
-        )
-        pack_combo.set("UNIDAD")
-        pack_combo.grid(row=7, column=1, padx=20, pady=10)
-
-        # Combobox para IVA
-        iva_label = ctk.CTkLabel(add_win, text="% Iva:", font=ctk.CTkFont(size=12))
-        iva_label.grid(row=8, column=0, padx=20, pady=10, sticky="w")
-        
-        iva_combo = ctk.CTkComboBox(
-            add_win,
-            values=["21%", "10.5%", "0%"],
-            variable=self.stock_view.iva_var,
-            width=200,
-            height=35,
-            font=ctk.CTkFont(size=12),
-            state="readonly"
-        )
-        iva_combo.set("21%")
-        iva_combo.grid(row=8, column=1, padx=20, pady=10)
-
-        # Botones
-        button_frame = ctk.CTkFrame(add_win, fg_color="transparent")
-        button_frame.grid(row=9, column=0, columnspan=2, pady=30)
-
-        add_button = ctk.CTkButton(button_frame, text="Agregar", width=120, height=35, font=ctk.CTkFont(size=12, weight="bold"),
-            fg_color="#4CAF50", hover_color="#45a049", command=lambda: self.controller.add_supplier_product())
-        add_button.grid(row=0, column=0, padx=10)
-
-        cancel_button = ctk.CTkButton(button_frame, text="Cancelar", width=120, height=35, font=ctk.CTkFont(size=12, weight="bold"),
-            fg_color="#757575", hover_color="#616161", command=add_win.destroy)
-        cancel_button.grid(row=0, column=1, padx=10)
 
     def on_key_release(self, event):
         # Cancela búsquedas previas si el usuario sigue escribiendo

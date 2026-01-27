@@ -49,14 +49,13 @@ class Database:
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS stock (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                cuit_supplier TEXT,
                 name TEXT NOT NULL,
                 pack TEXT NOT NULL,
-                profit REAL NOT NULL,
-                cost_price REAL NOT NULL,
-                price REAL NOT NULL,
-                iva REAL NOT NULL,
-                price_with_iva REAL NOT NULL,
+                profit TEXT NOT NULL,
+                cost_price TEXT NOT NULL,
+                price TEXT NOT NULL,
+                iva TEXT NOT NULL,
+                price_with_iva TEXT NOT NULL,
                 quantity INTEGER NOT NULL,
                 created_at TEXT DEFAULT CURRENT_DATE,
                 last_price_update TEXT DEFAULT CURRENT_DATE,
@@ -101,7 +100,7 @@ class Database:
                     
                     receipt_number TEXT, -- recibo que te entrega el proveedor                           
 
-                    amount REAL NOT NULL,     
+                    amount TEXT NOT NULL,     
                     method TEXT,        -- EFECTIVO, TRANSFERENCIA, CHEQUE, MERCADO PAGO                                                        
                     observation TEXT,
 
@@ -121,20 +120,33 @@ class Database:
                 );
             ''')
 
+            # Tabla que vincula pagos con compras
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS purchase_payment(
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    purchase_id INTEGER NOT NULL,
+                    payment_id INTEGER NOT NULL,
+                    amount_applied TEXT NOT NULL,
+                    applied_at TEXT DEFAULT CURRENT_DATE,
+                    FOREIGN KEY (purchase_id) REFERENCES purchase(id),
+                    FOREIGN KEY (payment_id) REFERENCES supplier_payment(id)
+                );
+            ''')
+
             # Tabla de compras 
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS purchase (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     supplier_id INTEGER,
                     document_type TEXT,
-                    invoice_id TEXT NULL,
-                    receipt_id TEXT NULL,
+                    invoice_id INTEGER NULL,
+                    receipt_id INTEGER NULL,
                     date TEXT DEFAULT CURRENT_DATE,
                     expiration_date TEXT NULL,
                     state TEXT,
                     observations TEXT,
-                    pending REAL,
-                    total REAL,
+                    pending TEXT NOT NULL,
+                    total TEXT NOT NULL,
                     FOREIGN KEY (supplier_id) REFERENCES supplier(id),
                     FOREIGN KEY (receipt_id) REFERENCES supplier_receipt(id), 
                     FOREIGN KEY (invoice_id) REFERENCES supplier_invoice(id)
@@ -146,22 +158,23 @@ class Database:
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     purchase_id INTEGER NOT NULL,
                     product_id INTEGER NOT NULL,
+                    product_name TEXT NOT NULL,
+                    pack TEXT NOT NULL,
 
-                    quantity REAL NOT NULL,
-                    unit_cost REAL NOT NULL,
-                    iva_rate REAL NOT NULL,
-                    discount REAL DEFAULT 0,
+                    quantity INTEGER NOT NULL,
+                    cost_price TEXT NOT NULL,
+                    iva_rate TEXT NOT NULL,
+                    discount TEXT NOT NULL,
+                    discount_amount TEXT NOT NULL,
 
-                    subtotal REAL NOT NULL,
-                    iva_amount REAL NOT NULL,
-                    total REAL NOT NULL,
+                    subtotal TEXT NOT NULL,
+                    iva_amount TEXT NOT NULL,
+                    total TEXT NOT NULL,
 
-                    FOREIGN KEY (purchase_id) REFERENCES purchase(id),
+                    FOREIGN KEY (purchase_id) REFERENCES purchase(id) ON DELETE CASCADE,
                     FOREIGN KEY (product_id) REFERENCES stock(id)
                 );
             ''')
-            
-
 
             # Tabla facturas asociada a un proveedor
             cursor.execute(''' 
@@ -172,22 +185,21 @@ class Database:
                     supplier_id INTEGER,
                            
                     -- Datos de la factura
-                    invoice_id TEXT UNIQUE,
+                    invoice_id TEXT,
                     invoice_type TEXT,
-                    point_of_sale INTEGER,
                     
                     -- Fechas
                     date TEXT CURRENT_DATE,
                     expiration_date TEXT CURRENT_DATE,
 
                     -- Montos     
-                    total REAL,
-                    subtotal REAL,
-                    iva REAL,
-                    discount REAL,
+                    total TEXT NOT NULL,
+                    subtotal TEXT NOT NULL,
+                    iva TEXT NOT NULL,
+                    discount TEXT NOT NULL,
                     
                     -- Otros
-                    state TEXT DEFAULT 'PENDIENTE',
+                    state TEXT,
                     observations TEXT,
                            
                     FOREIGN KEY (supplier_id) REFERENCES supplier (id)
@@ -202,22 +214,9 @@ class Database:
                     date TEXT CURRENT_DATE,
                     expiration_date TEXT,
                     observations TEXT,
-                    state TEXT DEFAULT 'PENDIENTE',
-                    total REAL,
+                    state TEXT,
+                    total TEXT NOT NULL,
                     FOREIGN KEY (supplier_id) REFERENCES supplier(id)
-                );
-            ''')
-
-            # Tabla que vincula pagos con compras
-            cursor.execute('''
-                CREATE TABLE IF NOT EXISTS purchase_payment(
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    purchase_id INTEGER NOT NULL,
-                    payment_id INTEGER NOT NULL,
-                    amount_applied REAL NOT NULL,
-                    applied_at TEXT DEFAULT CURRENT_DATE,
-                    FOREIGN KEY (purchase_id) REFERENCES purchase(id),
-                    FOREIGN KEY (payment_id) REFERENCES supplier_payment(id)
                 );
             ''')
 

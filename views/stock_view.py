@@ -10,7 +10,7 @@ ctk.set_appearance_mode("light")  # "light" o "dark"
 ctk.set_default_color_theme("blue")  # "blue", "green", "dark-blue"
 
 class StockView():
-    def __init__(self, parent, controller=None):
+    def __init__(self, parent, controller):
         self.controller = controller
         # Usar CTkFrame en lugar de tk.Frame
         self.frame = ctk.CTkFrame(parent, fg_color="#f0f0f0")
@@ -23,33 +23,7 @@ class StockView():
 
         self.sort_column = None
         self.sort_reverse = False
-        
-    def set_controller(self, controller):
-        """Asignar controller después de la inicialización"""
-        self.controller = controller
-        
-    def setup_variables(self):
-        """Configurar variables del formulario"""
-        self.cuit_supplier = tk.StringVar()
-        self.name_var = tk.StringVar()
-        self.pack_var = tk.StringVar()
-        self.profit_var = tk.StringVar()
-        self.price_var = tk.StringVar()
-        self.iva_var = tk.StringVar()
-        self.stock_var = tk.StringVar()
-        self.qnt_var = tk.StringVar()
-        
-        self.form_vars = [
-            self.cuit_supplier,
-            self.name_var,
-            self.pack_var,
-            self.profit_var,
-            self.price_var,
-            self.iva_var,
-            self.qnt_var,
-        ]
 
-    
     def create_widgets(self):
         """Crear todos los widgets de la vista"""
         self.frame.grid_columnconfigure(0, weight=1)
@@ -79,7 +53,7 @@ class StockView():
             font=ctk.CTkFont(size=12, weight="bold"),
             fg_color=btn_color,
             hover_color=btn_hover,
-            command=lambda: self.open_add_window(manage_frame)
+            #command=lambda: self.open_add_window(manage_frame)
         )
         
         update_btn = ctk.CTkButton(
@@ -157,7 +131,7 @@ class StockView():
             font=ctk.CTkFont(size=15, weight="bold"),
             fg_color=btn_color,
             hover_color=btn_hover,
-            command=lambda: show_warning("Ingrese un NOMBRE, CUIT o ENVASE para buscar un Producto")
+            command=lambda: show_warning("Ingrese un NOMBRE, o ENVASE para buscar un Producto")
         )
         find_btn.grid(row=0, column=2, padx=15, pady=15)
 
@@ -212,7 +186,7 @@ class StockView():
         self.stock_tree.configure(yscrollcommand=scrollbar.set)
 
         self.stock_tree['columns'] = (
-            "Id", "SupplierCuit","Name", "Package", "Profit", "CostPrice", "SalePrice",
+            "Id", "Name", "Package", "Profit", "CostPrice", "SalePrice",
             "Iva", "SalePriceWithIva", "ValidityDate", "LastPriceUpdate", "Stock"
         )
 
@@ -220,23 +194,20 @@ class StockView():
 
         # Definición de columnas
         self.stock_tree.column("Id", anchor=tk.W, width=60, stretch=False)
-        self.stock_tree.column("SupplierCuit", anchor=tk.W, width=150, stretch=True)
-        self.stock_tree.column("Name", anchor=tk.W, width=250, stretch=True)
-        self.stock_tree.column("Package", anchor=tk.W, width=120, stretch=True)
+        self.stock_tree.column("Name", anchor=tk.W, width=250, stretch=False)
+        self.stock_tree.column("Package", anchor=tk.W, width=120, stretch=False)
         self.stock_tree.column("Profit", anchor=tk.CENTER, width=80, stretch=False)
         self.stock_tree.column("CostPrice", anchor=tk.E, width=100, stretch=False)
         self.stock_tree.column("SalePrice", anchor=tk.E, width=100, stretch=False)
         self.stock_tree.column("Iva", anchor=tk.CENTER, width=60, stretch=False)
-        self.stock_tree.column("SalePriceWithIva", anchor=tk.E, width=120, stretch=True)
-        self.stock_tree.column("ValidityDate", anchor=tk.CENTER, width=120, stretch=False)
-        self.stock_tree.column("LastPriceUpdate", anchor=tk.CENTER, width=120, stretch=False)
+        self.stock_tree.column("SalePriceWithIva", anchor=tk.E, width=120, stretch=False)
+        self.stock_tree.column("ValidityDate", anchor=tk.CENTER, width=160, stretch=False)
+        self.stock_tree.column("LastPriceUpdate", anchor=tk.CENTER, width=160, stretch=False)
         self.stock_tree.column("Stock", anchor=tk.CENTER, width=80, stretch=False)
 
         # Encabezados
         self.stock_tree.heading("Id", text="Cód. ↕", anchor=tk.W,
                                 command=lambda: self.sort_tree("Id"))
-        self.stock_tree.heading("SupplierCuit", text="Cuit Proveedor ↕", anchor=tk.W,
-                                command=lambda: self.sort_tree("SupplierCuit"))
         self.stock_tree.heading("Name", text="Nombre Artículo ↕", anchor=tk.W,
                                 command=lambda: self.sort_tree("Name"))
         self.stock_tree.heading("Package", text="Envase ↕", anchor=tk.W,
@@ -270,98 +241,6 @@ class StockView():
         self.stock_tree.tag_configure("medium_stock", background="#fff3e0") # naranja muy suave
 
         self.stock_tree.grid(row=0, column=0, sticky="nsew")
-
-    def open_add_window(self, parent):
-        """Ventana para agregar nuevo producto con CustomTkinter"""
-        add_win = ctk.CTkToplevel(self.frame)
-        add_win.title("Agregar nuevo artículo")
-
-        # se configuran las string vars
-        self.setup_variables()
-        
-        # Hacer que la ventana sea modal
-        add_win.transient(self.frame)
-        add_win.grab_set()
-        
-        # Centrar la ventana
-        add_win.geometry("400x535+{}+{}".format(
-            add_win.winfo_screenwidth()//2 - 200,
-            add_win.winfo_screenheight()//2 - 250
-        ))
-        
-        # Título
-        title_label = ctk.CTkLabel(
-            add_win,
-            text="Nuevo Artículo",
-            font=ctk.CTkFont(size=18, weight="bold")
-        )
-        title_label.grid(row=0, column=0, columnspan=2, pady=(20, 20))
-        
-        # Campos del formulario
-        fields = [
-            ("Cuit Proveedor:", self.cuit_supplier),
-            ("Nombre Artículo:", self.name_var),
-            ("Precio Costo:", self.price_var),
-            ("% Rentabilidad:", self.profit_var),
-            ("Cantidad de Artículos:", self.qnt_var)
-        ]
-
-        for i, (label_text, var) in enumerate(fields, start=0):
-            label = ctk.CTkLabel(add_win, text=label_text, font=ctk.CTkFont(size=12))
-            label.grid(row=i+1, column=0, padx=20, pady=10, sticky="w")
-            
-            entry = ctk.CTkEntry(
-                add_win,
-                textvariable=var,
-                width=200,
-                height=35,
-                font=ctk.CTkFont(size=12)
-            )
-            entry.grid(row=i+1, column=1, padx=20, pady=10)
-
-        # Combobox para Envase
-        pack_label = ctk.CTkLabel(add_win, text="Envase:", font=ctk.CTkFont(size=12))
-        pack_label.grid(row=7, column=0, padx=20, pady=10, sticky="w")
-        
-        pack_combo = ctk.CTkComboBox(
-            add_win,
-            values=["UNIDAD", "CAJA", "FRASCO", "AMPOLLA", "SOBRE", "OTRO"],
-            variable=self.pack_var,
-            width=200,
-            height=35,
-            font=ctk.CTkFont(size=12),
-            state="readonly"
-        )
-        pack_combo.set("UNIDAD")
-        pack_combo.grid(row=7, column=1, padx=20, pady=10)
-
-        # Combobox para IVA
-        iva_label = ctk.CTkLabel(add_win, text="% Iva:", font=ctk.CTkFont(size=12))
-        iva_label.grid(row=8, column=0, padx=20, pady=10, sticky="w")
-        
-        iva_combo = ctk.CTkComboBox(
-            add_win,
-            values=["21%", "10.5%", "0%"],
-            variable=self.iva_var,
-            width=200,
-            height=35,
-            font=ctk.CTkFont(size=12),
-            state="readonly"
-        )
-        iva_combo.set("21%")
-        iva_combo.grid(row=8, column=1, padx=20, pady=10)
-
-        # Botones
-        button_frame = ctk.CTkFrame(add_win, fg_color="transparent")
-        button_frame.grid(row=9, column=0, columnspan=2, pady=30)
-
-        add_button = ctk.CTkButton(button_frame, text="Agregar", width=120, height=35, font=ctk.CTkFont(size=12, weight="bold"),
-            fg_color="#4CAF50", hover_color="#45a049", command=lambda: self.controller.add_new_product(add_win))
-        add_button.grid(row=0, column=0, padx=10)
-
-        cancel_button = ctk.CTkButton(button_frame, text="Cancelar", width=120, height=35, font=ctk.CTkFont(size=12, weight="bold"),
-            fg_color="#757575", hover_color="#616161", command=lambda: close_win(add_win, parent, self.clear_form_fields))
-        cancel_button.grid(row=0, column=1, padx=10)
 
     def open_update_price_window(self):
         """Abrir ventana para actualizar precio de producto seleccionado con CustomTkinter"""
@@ -692,18 +571,6 @@ class StockView():
         self.pack_var.set("UNIDAD")
         self.iva_var.set("21%")
 
-    def get_form_data(self):
-        """Obtener datos del formulario"""
-        return {
-            'Cuit_supplier': self.cuit_supplier.get().strip(),
-            'Name': self.name_var.get().strip(),
-            'Package': self.pack_var.get().strip(),
-            'Profit': self.profit_var.get().strip(),
-            'CostPrice': self.price_var.get().strip(),
-            'Iva': self.iva_var.get().strip(),
-            'Stock': self.qnt_var.get().strip(),
-        }
-
     def get_find_data(self):
         """Obtener datos del formulario"""
         return {
@@ -848,7 +715,7 @@ class StockView():
             self.stock_tree.delete(item)
         
         for product in products:  
-            (id, cuit_supplier, name, pack, profit, cost_price, price, 
+            (id, name, pack, profit, cost_price, price, 
             iva, price_with_iva, created_at, last_price_update, quantity) = product
 
             # Decidir el tag según stock
@@ -862,14 +729,13 @@ class StockView():
             # Insertar en la Treeview
             self.stock_tree.insert(
                 "", "end", 
-                values=(id, cuit_supplier, name, pack, profit, cost_price, price, iva, price_with_iva, 
+                values=(id, name, pack, profit, cost_price, price, iva, price_with_iva, 
                         created_at, last_price_update, quantity), 
                 tags=(tag,)
             )
 
         if self.sort_column:
             self.sort_tree(self.sort_column)
-
 
     def show_success(self, message):
         """Mostrar mensaje de éxito"""
@@ -946,7 +812,6 @@ class StockView():
         
         column_texts = {
             "Id": "Cód.",
-            "SupplierCuit": "Cuit Proveedor",
             "Name": "Nombre Artículo",
             "Package": "Envase",
             "Profit": "% Rent.",

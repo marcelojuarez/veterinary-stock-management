@@ -1,25 +1,42 @@
-import customtkinter as ctk
-import tkinter as tk
-from tkinter import ttk, messagebox
 import locale
+import tkinter as tk
+import customtkinter as ctk
+from datetime import datetime
 
-from views.view_helpers import close_win, show_warning, show_error
+from tkinter import ttk
+
 from .purchase_info import PurchaseInfo
 from .purchase_form import PurchaseForm
+from controllers.purchase_filter_controller import PurchaseFilterController
+from views.view_helpers import close_win, show_warning, show_error
 from views.supplier_doc.supplier_invoice_form import SupplierInvoiceForm
 from views.supplier_doc.supplier_receipt_form import SupplierReceiptForm
 
 class PurchaseWindow():
-    def __init__(self, model, frame, supplier_view):
+    def __init__(self, model, stock_model, frame, controller, invoice_controller, receipt_controller):
         self.model = model
         self.frame = frame
-        self.supplier_view = supplier_view
+        
+        self.purchase_filter = PurchaseFilterController(self.model)
 
-        self.invoice_form = SupplierInvoiceForm(self, frame, self.supplier_view)
-        self.receipt_form = SupplierReceiptForm(self, frame, self.supplier_view)
+        self.invoice_controller = invoice_controller
+        self.invoice_controller.set_purchase_view(self)
+        
+        self.receipt_controller = receipt_controller
+        self.receipt_controller.set_purchase_view(self)
 
-        self.purchase_info = PurchaseInfo(self.model)
-        self.purchase_form = PurchaseForm(self.model)
+        self.invoice_form = SupplierInvoiceForm(self, frame, invoice_controller)
+        self.receipt_form = SupplierReceiptForm(self, frame, receipt_controller)
+
+        # Set controller
+        self.controller = controller
+        self.controller.set_view(self)
+
+        self.purchase_info = PurchaseInfo(self.model, self.controller)
+        self.purchase_form = PurchaseForm(self.model, stock_model, self.controller)
+
+        self.controller.set_info_view(self.purchase_info)
+        self.controller.set_form_view(self.purchase_form)
 
     def open_purchase_window(self, parent):
 
@@ -27,6 +44,8 @@ class PurchaseWindow():
         btn_hover = "#00796B"
 
         self.supplier_var = tk.StringVar()
+        self.date_var = tk.StringVar()
+
         self.suppliers = self.model.core.get_all_suppliers()
 
         win = ctk.CTkToplevel(self.frame)
@@ -48,7 +67,7 @@ class PurchaseWindow():
         width_root = parent.winfo_width()
         height_root = parent.winfo_height()
 
-        x = x_root + (width_root // 2) - (width_win // 2)
+        x = x_root + (width_root // 2) - (width_win // 2) 
         y = y_root + (height_root // 2) - (height_win // 2)
 
         win.geometry(f"{width_win}x{height_win}+{x}+{y}")
@@ -61,35 +80,59 @@ class PurchaseWindow():
         win.grid_columnconfigure(0, weight=1)
         win.grid_columnconfigure(1, weight=1)  
 
-        select_supplier_frame = ctk.CTkFrame(win,fg_color="#f0f0f0")
-        select_supplier_frame.grid(row=1, column=0)
+        select_supplier_frame = ctk.CTkFrame(win, fg_color="#f0f0f0")
+        select_supplier_frame.grid(row=1, column=0, columnspan=2, padx=5, pady=(10, 5), ipady=8, sticky="ew")
+
+        # Configuración de grilla
+        select_supplier_frame.grid_columnconfigure(0, weight=0)
+        select_supplier_frame.grid_columnconfigure(1, weight=0)
+        select_supplier_frame.grid_columnconfigure(2, weight=1)
+        select_supplier_frame.grid_columnconfigure(3, weight=0)
 
         select_supplier_btn = ctk.CTkButton(
             select_supplier_frame,
-            width=120,
-            text="Seleccionar Proveedor:",
+            width=150,
+            text="Seleccionar Proveedor",
             fg_color=btn_color,
             hover_color=btn_hover,
             font=ctk.CTkFont(size=13, weight="bold"),
             command=lambda: self.list_of_supplier(win)
         )
-        select_supplier_btn.grid(row=0, column=0, padx=(0,10), pady=(15, 5), sticky="e")
+        select_supplier_btn.grid(row=0, column=0, padx=(10, 5), pady=6, sticky="w")
 
         select_supplier_entry = ctk.CTkEntry(
             select_supplier_frame,
             textvariable=self.supplier_var,
-            font=ctk.CTkFont(size=12),
+            font=ctk.CTkFont(size=13)
         )
-        select_supplier_entry.grid(row=0, column=1, pady=(15, 5), sticky="e")
+        select_supplier_entry.grid(row=0, column=1, padx=5, pady=6, sticky="w")
 
         refresh_purchase_list_btn = ctk.CTkButton(
             select_supplier_frame,
-            width=120,
-            text="Refrescar Lista de Compras",
+            width=150,
+            text="Refrescar",
             font=ctk.CTkFont(size=13, weight="bold"),
-            command=lambda:self.load_purchases(False)
+            command=lambda: self.load_purchases(False)
         )
-        refresh_purchase_list_btn.grid(row=0, column=2, padx=(20,10), pady=(15, 5), sticky="e")
+        refresh_purchase_list_btn.grid(row=0, column=2, padx=(5, 10), pady=6)
+
+        filter_for_date_btn = ctk.CTkButton(
+            select_supplier_frame,
+            width=150,
+            text="Filtrar por Fecha",
+            fg_color=btn_color,
+            hover_color=btn_hover,
+            font=ctk.CTkFont(size=13, weight="bold"),
+            command=lambda: self.purchase_filter.filter_by_date(self.date_var.get())
+        )
+        filter_for_date_btn.grid(row=0, column=3, padx=(10, 5), pady=6, sticky="w")
+
+        date_entry = ctk.CTkEntry(
+            select_supplier_frame,
+            textvariable=self.date_var,
+            font=ctk.CTkFont(size=13),
+        )
+        date_entry.grid(row=0, column=4, padx=5, pady=6, sticky="w")
 
         # frame para productos
         product_frame = ctk.CTkFrame(win)
@@ -112,13 +155,25 @@ class PurchaseWindow():
         self.purchase_tree.configure(yscroll=scroll.set)
         scroll.pack(side="right", fill="y")
 
+        # set treeview on purchase filter controller
+        self.purchase_filter.set_treeview(self.purchase_tree)
+
         # --- Frame inferior (botones y cantidad) ---
-        buttons_frame = ctk.CTkFrame(win)
-        buttons_frame.grid(row=4, column=0, columnspan=2, sticky="ew", pady=10)
+        buttons_frame = ctk.CTkFrame(
+            win,
+            fg_color="#FFFFFF",
+            border_color="#000000",
+            border_width=1,
+            corner_radius=18
+        )
+        buttons_frame.grid(
+            row=4, column=0, columnspan=2,
+            padx=12, pady=12, sticky="ew"
+        )
         for i in range(5):
             buttons_frame.grid_columnconfigure(i, weight=1)
 
-        # boton Registrar Compra
+        # boton Registrar Comprapo
         confirm_btn = ctk.CTkButton(
             buttons_frame,
             text="Registrar Nueva Compra",
@@ -147,14 +202,27 @@ class PurchaseWindow():
         update_stock_btn = ctk.CTkButton(
             buttons_frame,
             text="Detalle de Compra",
-            fg_color="#0B5D94",
-            hover_color="#2980B9",
+            fg_color="#2980B9",
+            hover_color="#0B5D94",
             height=40,
             width=90,            
             font=ctk.CTkFont(size=14, weight="bold"),
             command=lambda: self.open_purchase_info(win)
         )
         update_stock_btn.grid(row=0, column=2, padx=5, pady=10)
+
+        # boton para ver el detalle de una compra
+        delete_purchase_btn = ctk.CTkButton(
+            buttons_frame,
+            text="Eliminar Registro de Compra",
+            fg_color="#2980B9",
+            hover_color="#0B5D94",
+            height=40,
+            width=90,            
+            font=ctk.CTkFont(size=14, weight="bold"),
+            command=self.delete_purchase
+        )
+        delete_purchase_btn.grid(row=0, column=3, padx=(5,15), pady=10)
 
         # boton Cerrar
         close_win_btn = ctk.CTkButton(
@@ -171,24 +239,50 @@ class PurchaseWindow():
 
         self.load_purchases(False)
 
+    ## -- Eliminar un registro de compra (BORRADOR) -- ##
+    def delete_purchase(self):
+        try:
+            selected = self.purchase_tree.selection()
+            if not selected:
+                show_error('Por favor seleccione un Registro de Compra')
+                return 
+            
+            iid = selected[0]
+            values = self.purchase_tree.item(iid, "values")
+
+            print(values)
+            if values[5] != 'BORRADOR':
+                show_error('Error. No puede eliminar una compra ya confirmada.') 
+                return
+            
+            self.controller.delete_purchase(purchase_id=values[0], doc_type=values[2])
+
+        except ValueError as e:
+            print(f'Error al obtener la compra: {e}')
+            return
+
+    ## -- Ventana para agregar productos a una compra -- ##
     def open_add_item_win(self, parent):
         try:
             selected = self.purchase_tree.selection()
             if not selected:
-                show_error('Por favor Seleccione un Registro de Compra')
+                show_error('Por favor seleccione un Registro de Compra')
                 return 
 
-            print(selected)
             iid = selected[0]
             values = self.purchase_tree.item(iid, "values")
+
+            if values[5] != 'BORRADOR':
+                show_warning('Error, no puede agregar productos a una factura ya confirmada')
+                return
+
             self.purchase_form.show_actual_products(parent, values)
 
         except ValueError as e:
             print(f'Error al obtener la compra: {e}')
-
+            return
 
     ## -- Tipo de comprobante -- ##
-
     def open_doc_type(self, parent):
         """Ventana para elegir un tipo de comprobante"""
 
@@ -223,7 +317,7 @@ class PurchaseWindow():
         # Fondo gris
         self.doc_type_win.configure(fg_color="#e0e0e0")
 
-        # --- Card centrado ---
+        # --- s centrado ---
         card_frame = ctk.CTkFrame(
             self.doc_type_win,
             fg_color="white",
@@ -263,17 +357,14 @@ class PurchaseWindow():
         )
         other_btn.pack(pady=10)
 
-    ## -- -- ##
-
-    ## Info de la compra ##
+    ## -- Info de la compra -- ##
     def open_purchase_info(self, parent):
         try:
             selected = self.purchase_tree.selection()
             if not selected:
-                show_error('Por favor Seleccione un Registro de Compra')
+                show_error('Por favor seleccione un Registro de Compra')
                 return 
 
-            print(selected)
             iid = selected[0]
             values = self.purchase_tree.item(iid, "values")
 
@@ -281,8 +372,6 @@ class PurchaseWindow():
 
         except ValueError as e:
             print(f'Error al obtener la compra: {e}')
-
-    ## -- -- ##
 
     def handle_selection(self, doc_type, parent):
         """Función que se ejecuta al presionar cualquiera de los botones."""
@@ -299,13 +388,26 @@ class PurchaseWindow():
         self.doc_type_win.destroy()
 
     ## -- Supplier Selection -- ##
-
     def list_of_supplier(self, parent):
         win = ctk.CTkToplevel(parent)
         win.title("Lista de proveedores")
-        win.geometry("500x400")
-        win.grab_set()
+
+        width_win = 500
+        height_win = 400
+
         win.transient(parent)
+        win.grab_set()
+
+        # centrar ventana
+        x_root = self.frame.winfo_x() 
+        y_root = self.frame.winfo_y()
+        width_root = self.frame.winfo_width()
+        height_root = self.frame.winfo_height()        
+
+        x = x_root + (width_root // 2) - (width_win // 2)
+        y = y_root + (height_root // 2) - (height_win // 2)
+
+        win.geometry(f"{width_win}x{height_win}+{x}+{y}")
 
         win.rowconfigure(0, weight=1)
         win.rowconfigure(1, weight=3)
@@ -338,6 +440,7 @@ class PurchaseWindow():
             placeholder_text="Ingrese nombre del proveedor..."
         )
         self.find_entry.grid(row=0, column=1, padx=5)
+        self.find_entry.focus()
 
         self.find_entry.bind("<KeyRelease>", self.on_key_release)
         self.search_after_id = None
@@ -424,8 +527,16 @@ class PurchaseWindow():
             values = self.supplier_tree.item(iid, "values")
             self.supplier_var.set(values[0])
             self.search_var.set(values[0])
-            win.after(800, lambda: close_win(win, parent))
-            parent.after(700, lambda: self.load_purchases(True))
+
+            def action():
+                if parent.winfo_exists():
+                    self.load_purchases(True)
+
+                if win.winfo_exists():
+                    close_win(win, parent)
+
+            win.after(500, action)
+
         except ValueError as e:
             show_warning(f'Error en la seleccion del proveedor: {e}')
 
@@ -445,35 +556,19 @@ class PurchaseWindow():
 
         self.supplier_tree.tag_configure('orow', background="white", foreground='black') 
 
-    # -- -- #
-
-    def add_invoice_to_purchase(self):
-        self.invoice_form.open_invoice_form()
-
-    def add_sup_doc(self, parent, supplier_cuit, doc_type):
-        if doc_type == "REMITO":
-            print(doc_type)
-            self.receipt_form.open_receipt_form(parent, supplier_cuit)
-        elif doc_type == "FACTURA":
-            print(doc_type)
-            self.invoice_form.open_invoice_form(parent, supplier_cuit)
-        else:
-            print("no se que es")
-
-    ## --  Load Purchases Function -- ## 
+    ## -- Cargar tabla de compras -- ## 
     def load_purchases(self, filter):
-
         if filter:
             selected_supplier = self.supplier_var.get()
 
             if not selected_supplier:
-                messagebox.showwarning("Atención", "Primero selecciona un proveedor.")
                 return
             
             purchases = self.model.purchase.get_all_purchases(selected_supplier)
 
         else:
             self.supplier_var.set('')
+            self.date_var.set('')
             purchases = self.model.purchase.get_all_purchases()
 
         # Limpiar tabla
@@ -491,7 +586,7 @@ class PurchaseWindow():
                     p[5],
                     p[6],
                     p[7],
-                    locale.format_string("%.2f", p[9], grouping=True),
+                    p[9],
                 ),
                 tag="orow"
             )

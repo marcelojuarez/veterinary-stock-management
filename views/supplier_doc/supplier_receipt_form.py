@@ -5,11 +5,11 @@ from controllers.supplier_receipt_controller import SupplierReceiptController
 import datetime
 
 class SupplierReceiptForm():
-    def __init__(self, view, frame, supplier_view):
+    def __init__(self, view, frame, receipt_controller):
         self.view = view
-        self.supplier_view = supplier_view
         self.frame = frame
-        self.controller = SupplierReceiptController(self, self.view, self.supplier_view)
+        self.controller = receipt_controller
+        self.controller.set_form_view(self)
 
     def setup_variables(self, supplier_var):
         self.supplier_var = tk.StringVar()
@@ -35,9 +35,7 @@ class SupplierReceiptForm():
 
         self.receipt_win = ctk.CTkToplevel(self.frame)
         self.receipt_win.title("Registrar nuevo Remito")
-        self.receipt_win.geometry("500x520")
-        self.receipt_win.transient(parent)
-        self.receipt_win.grab_set()
+        self.receipt_win.withdraw()
         self.receipt_win.protocol("WM_DELETE_WINDOW",
                                 lambda: close_win(self.receipt_win, parent))
 
@@ -95,14 +93,15 @@ class SupplierReceiptForm():
         
         # Estado
         add_field(4, "Estado:",
-                ctk.CTkComboBox(form_frame, values=["PENDIENTE", "PAGADA", "CANCELADA"], variable=self.state_var, width=250))
+                ctk.CTkEntry(form_frame, textvariable=self.state_var, width=250))
 
         # Total
         add_field(5, "Total:",
-                ctk.CTkEntry(form_frame, textvariable=self.total_var, width=250))
+                ctk.CTkEntry(form_frame, textvariable=self.total_var, width=250, state='readonly'))
         
         self.expiration_var.set(formated_act_date)
-        self.state_var.set("PENDIENTE")
+        self.state_var.set("BORRADOR")
+        self.total_var.set("0")
 
         # --- Botones inferior ---
         button_frame = ctk.CTkFrame(card_frame, fg_color="white")
@@ -120,6 +119,8 @@ class SupplierReceiptForm():
         )
         save_btn.grid(row=0, column=0, padx=15)
 
+        self.receipt_win.bind("<Return>", lambda event: save_btn.invoke())
+
         cancel_btn = ctk.CTkButton(
             button_frame,
             text="Cancelar",
@@ -131,6 +132,24 @@ class SupplierReceiptForm():
             command=lambda: close_win(self.receipt_win, parent, self.clear_receipt_form)
         )
         cancel_btn.grid(row=0, column=1, padx=15)
+
+        # centrar ventana
+        
+        width_win = 500
+        height_win = 520
+
+        x_root = parent.winfo_x() 
+        y_root = parent.winfo_y()
+        width_root = parent.winfo_width()
+        height_root = parent.winfo_height()
+
+        x = x_root + (width_root // 2) - (width_win // 2)
+        y = y_root + (height_root // 2) - (height_win // 2)
+
+        self.receipt_win.geometry(f"{width_win}x{height_win}+{x}+{200}")
+        self.receipt_win.deiconify()
+        self.receipt_win.transient(parent)
+        self.receipt_win.grab_set()
 
     def clear_receipt_form(self):
         """Limpiar formulario de factura"""

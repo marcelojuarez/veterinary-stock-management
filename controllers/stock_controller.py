@@ -4,79 +4,29 @@ from tkinter import messagebox
 from db.database import db
 from models.payment_model import PaymentModel
 class StockController:
-    def __init__(self, view, stock_view=None):
-        self.view = view
-        self.stock_model = StockModel()
-        self.stock_view = stock_view   
+    def __init__(self, event_bus):
+        self.view = None
+
+        self.stock_model = StockModel()  
         self.supplier_mdl = SupplierModel()
+
         self.all_products = []
         self.payment_model = PaymentModel()
         if self.stock_view:
+            self.event_bus = event_bus
+            self.event_bus.subscribe('refresh_stock_table', self.refresh_stock_table)
+
+        if self.view:
             self.load_products()
+
+    # Setters
+    def set_view(self, view):
+        self.view = view        
 
     def load_products(self):
         """Carga inicial (una sola vez)"""
         self.all_products = self.stock_model.get_all_products()
-        self.stock_view.refresh_stock_table(self.all_products)
-
-    def add_new_product(self, window=None):
-        """Guardar nuevo producto"""
-        try:
-            # Obtener datos del formulario
-            form_data = self.view.get_form_data()
-
-            print(form_data)
-
-            print(f'Supplier cuit tiene {form_data['Cuit_supplier']}')
-
-            # Validaciones
-            if not self._validate_form_data(form_data):
-                return
-
-            if not self._validate_product_id(form_data['Id']):
-                self.view.show_warning("Código del producto inválido. Debe tener 4 dígitos.")
-                return
-
-            cost_price = float(form_data['CostPrice'])
-            profit = float(form_data['Profit'])
-            
-            sale_price = cost_price * (1 + profit / 100)
-
-            product_data = {
-                'Cuit_supplier': form_data['Cuit_supplier'],
-                'Name': (form_data['Name']).upper(),
-                'Package': form_data['Package'],
-                'Profit': profit,
-                'CostPrice': cost_price,
-                'SalePrice': round(sale_price, 2),
-                'Iva': form_data['Iva'],
-                'Stock': int(form_data['Stock']),
-            }
-
-            if form_data['Iva'] == "21%":
-                product_data['PriceWIva'] = round(product_data['SalePrice'] * 1.21, 2)
-            elif form_data['Iva'] == "10.5%":
-                product_data['PriceWIva'] = round(product_data['SalePrice'] * 1.105, 2)
-            else:
-                product_data['PriceWIva'] = product_data['SalePrice']
-
-            # Guardar en DB
-            self.stock_model.add_product(product_data)
-
-            if window:
-                window.destroy()
-            
-            # Refrescar tabla
-            self.refresh_stock_table()
-            
-            self.view.show_success("Producto registrado correctamente")
-            
-        except ValueError as e:
-            self.view.show_error(f"Error en los datos: {str(e)}")
-
-        except Exception as e:
-            self.view.show_error(f"Error al registrar producto: {str(e)}")
-
+        self.view.refresh_stock_table(self.all_products)
 
     def delete_product(self):
         """Eliminar producto seleccionado"""
@@ -95,6 +45,7 @@ class StockController:
             
             # Refrescar tabla
             self.refresh_stock_table()
+            self.event_bus.publish('refresh_products_on_p_win', None)
             
             self.view.show_success("Producto eliminado correctamente")
             
@@ -148,7 +99,6 @@ class StockController:
             # Mapeo de nombres de columnas a nombres de BD
             field_mapping = {
                 'Name': 'name',
-                'Cuit_supplier': 'cuit_supplier',
                 'Package': 'pack',
                 'Profit': 'profit', 
                 'Price': 'price',
@@ -218,7 +168,6 @@ class StockController:
 
         complete_product_data = {
             'Name': product_data['Name'],
-            'Cuit_supplier': product_data['Cuit_supplier'],
             'Package': product_data['Package'],
             'Profit': new_profit,
             'CostPrice': new_cost,
@@ -280,7 +229,6 @@ class StockController:
             # No bloqueamos la actualización de precio si falla la reconciliación
 
 
-
     def show_all_products(self):
         self.refresh_stock_table()
         self.view.show_success("Mostrando todos los artículos del inventario")
@@ -288,38 +236,9 @@ class StockController:
     def refresh_stock_table(self):
         """Refrescar tabla de stock"""
         try:
+            print('Se Refresca la tabla')
             products = self.stock_model.get_all_products()
             self.all_products = products
             self.view.refresh_stock_table(products)
         except Exception as e:
             self.view.show_error(f"Error al refrescar tabla: {str(e)}")
-    
-    def _validate_form_data(self, form_data):
-        """Validar datos del formulario"""
-        required_fields = ['Id', 'Cuit_supplier', 'Name', 'Package', 'Profit', 'CostPrice', 'Stock']
-        
-        for field in required_fields:
-            if not form_data[field]:
-                self.view.show_warning("Por favor complete todos los campos")
-                return False
-        
-        # Validar tipos numéricos
-        try:
-            float(form_data['CostPrice'])
-            int(form_data['Stock'])
-        except ValueError:
-            self.view.show_warning("Los precios y cantidad deben ser números válidos")
-            return False
-    
-        return True
-    
-    def _validate_product_id(self, product_id):
-        """Validar formato del ID del producto"""
-        product = self.stock_model.get_product_by_id(product_id)
-        if product:
-            self.view.show_error("Error al registrar el producto: Código en uso")        
-        if len(product_id) != 4:
-            return False
-        
-        # Verificar que todos sean dígitos
-        return product_id.isdigit()

@@ -1,12 +1,20 @@
-import tkinter as tk
+from utils.utils import normalize_decimal
 from views.view_helpers import show_warning, show_error, close_win
 
-
 class PaymentController():
-    def __init__(self, view, pay_win, model):
+    def __init__(self):
+        self.model = None
+        self.form_view = None
+        self.pay_view = None
+
+    def set_model(self, model):
         self.model = model
-        self.view = view
-        self.pay_win = pay_win
+
+    def set_form_view(self, view):
+        self.form_view = view
+
+    def set_pay_view(self, pay_view):
+        self.pay_view = pay_view        
 
     """
     Permitir pagar el monto de una compra
@@ -17,7 +25,7 @@ class PaymentController():
 
         try:
 
-            payment_data = self.view.get_payment_data()
+            payment_data = self.form_view.get_payment_data()
             selected = supplier_var.get() # cuit proveedor
 
             if not selected:
@@ -28,18 +36,18 @@ class PaymentController():
             if not self.validate_data(payment_data):
                 return 
             
-            amount = float(payment_data['amount'])
+            amount = normalize_decimal(payment_data['amount'])
 
             if purchase_id is not None:
                 # Datos de la compra
                 purchase = self.model.purchase.get_purchase_by_id(purchase_id.get())
                 
                 # Deuda actual de la compra
-                debt = purchase[9]
+                debt = normalize_decimal(purchase[9])
                 
                 # Chequeo si quiere pagar de mas
                 if not self.validate_debt(amount, debt, False):
-                    self.view.amount_var.set(debt)
+                    self.form_view.amount_var.set(debt)
                     return
 
             else:
@@ -50,10 +58,11 @@ class PaymentController():
                     print(p)
 
                 total_debt = self.model.purchase.get_debt_of_supplier(selected)[0]
+                total_debt_formated = normalize_decimal(total_debt)
 
                 # Chequeo si quiere pagar de mas
-                if not self.validate_debt(amount, total_debt, True):
-                    self.view.amount_var.set(total_debt)
+                if not self.validate_debt(amount, total_debt_formated, True):
+                    self.form_view.amount_var.set(str(total_debt_formated))
                     return
 
             data = {
@@ -72,16 +81,13 @@ class PaymentController():
             result = self.model.payment.register_payment(data, purchase_id)
             
             if result:
-                self.pay_win.load_payment_movement(data['Supplier_id'], selected)
-                self.pay_win.load_purchase_history(True)
+                self.pay_view.load_payment_movement(data['Supplier_id'], selected)
+                self.pay_view.load_purchase_history(True)
 
             close_win(win, parent)
 
         except Exception as e:
             show_error(f"Error al registrar pago: {e}")
-
-    def purchase_pay_management(self, purchase_id):
-        pass
     
     @classmethod
     def validate_data(cls, data):
@@ -99,8 +105,12 @@ class PaymentController():
                  return False
 
         # validacion del monto
-        if not cls._is_float(data['amount']):
-            show_warning('Monto invalido')
+        if not cls._is_decimal(data['amount']):
+            show_error('Error. Monto invalido')
+            return False
+        
+        if normalize_decimal(data['amount']) <= normalize_decimal('0.00'):
+            show_error('Error. El monto debe ser un valor positivo')
             return False
 
         # validacion segun el metodo de pago
@@ -134,7 +144,7 @@ class PaymentController():
 
         return True
 
-
+    ## -- Valida el monto de pago -- ##
     def validate_debt(self, amount, debt, total_debt):
         if total_debt:
             msg = 'La deuda Total es:'
@@ -151,8 +161,8 @@ class PaymentController():
         return True
 
     @staticmethod
-    def _is_float(value):
-        try: float(value); return True
+    def _is_decimal(value):
+        try: normalize_decimal(value); return True
         except: return False
 
     @staticmethod

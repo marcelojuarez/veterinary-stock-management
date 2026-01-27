@@ -6,8 +6,8 @@ ctk.set_default_color_theme("blue")
 
 
 class CustomersView:
-    def __init__(self, parent):
-        self.controller = None
+    def __init__(self, parent, controller):
+        self.controller = controller
         self.frame = ctk.CTkFrame(parent, fg_color="#f0f0f0")
 
         # Variables principales

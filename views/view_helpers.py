@@ -1,11 +1,11 @@
 import tkinter as tk
 from tkinter import messagebox
 
-def close_win( win, parent, clear_callback=None):
+def close_win( win, parent, callback=None):
     """Cierra la ventana y devuelve el foco al padre"""
     try:
-        if clear_callback:
-            clear_callback()
+        if callback:
+            callback()
 
         win.destroy()
         parent.after(50, lambda: parent.focus_force())
