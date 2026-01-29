@@ -104,27 +104,17 @@ class CustomerController:
                 query in customer[2].lower() or             # CUIT
                 query in customer[3].lower() or             # Domicilio
                 query in customer[4].lower() or             # Teléfono
-                query in customer[5].lower() or             # CV
-                query in customer[6].lower() or             # CUIG
-                query in customer[7].lower() or             # RENSPA
-                query in customer[8].lower()                # Establecimiento
+                query in customer[5].lower() or             # Condicion IVA
+                query in customer[6].lower() or             # CV
+                query in customer[7].lower() or             # CUIG
+                query in customer[8].lower() or             # RENSPA
+                query in customer[9].lower()                # Establecimiento
                 ):              
 
                 filtered.append(customer)
         
         self.view.refresh_customer_table(filtered)
 
-    
-    def clear_form(self):
-        """Limpiar formulario de la vista"""
-        self.view.name_var.set("")
-        self.view.cuit_var.set("")
-        self.view.home_var.set("")
-        self.view.phone_var.set("")
-        self.view.cv_var.set("")
-        self.view.cuig_var.set("")
-        self.view.renspa_var.set("")
-        self.view.establecimiento_var.set("")
 
     def __validate_customer_data(self, data):
         # Validar campos obligatorios 
