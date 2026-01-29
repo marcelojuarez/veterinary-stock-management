@@ -133,7 +133,7 @@ class CustomersView:
         )
 
         self.table = ttk.Treeview(table_frame, show="headings", height=12)
-        self.table["columns"] = ("ID", "Nombre", "CUIT", "Domicilio", "Teléfono", "CV", "CUIG", "RENSPA", "Establecimiento")
+        self.table["columns"] = ("ID", "Nombre", "CUIT", "Domicilio", "Teléfono", "Condición IVA", "CV", "CUIG", "RENSPA", "Establecimiento")
 
         col_specs = {
             "ID": {"width": 50, "stretch": False},
@@ -141,6 +141,7 @@ class CustomersView:
             "CUIT": {"width": 120},
             "Domicilio": {"width": 150},
             "Teléfono": {"width": 100},
+            "Condición IVA": {"width": 100},
             "CV": {"width": 80},
             "CUIG": {"width": 100},
             "RENSPA": {"width": 100},
@@ -188,7 +189,7 @@ class CustomersView:
     # --------------------------------------------------------------------
     def open_add_customer_window(self):
         width_win = 450
-        height_win = 550
+        height_win = 580
 
         x_root = self.frame.winfo_x()
         y_root = self.frame.winfo_y()
@@ -209,6 +210,7 @@ class CustomersView:
         cuit_var = ctk.StringVar()
         home_var = ctk.StringVar()
         phone_var = ctk.StringVar()
+        iva_cond_var = ctk.StringVar()
         cv_var = ctk.StringVar()
         cuig_var = ctk.StringVar()
         renspa_var = ctk.StringVar()
@@ -252,13 +254,22 @@ class CustomersView:
 
         add_field(3, "Teléfono: ",
                   ctk.CTkEntry(form_frame, textvariable=phone_var, width=200))
-        add_field(4, "CV: ",
+        
+        add_field(4, "Condicion IVA: ",
+                  ctk.CTkComboBox(form_frame, values=['Consumidor Final', 'R. Inscripto', 'Exento', 'Monotributista'], variable=iva_cond_var, width=200))
+        
+        iva_cond_var.set('Consumidor Final')
+        
+        add_field(5, "CV: ",
                     ctk.CTkEntry(form_frame, textvariable=cv_var, width=200))
-        add_field(5, "CUIG: ",
+        
+        add_field(6, "CUIG: ",
                     ctk.CTkEntry(form_frame, textvariable=cuig_var, width=200))
-        add_field(6, "RENSPA: ",
+        
+        add_field(7, "RENSPA: ",
                     ctk.CTkEntry(form_frame, textvariable=renspa_var, width=200))
-        add_field(7, "Establecimiento: ",
+        
+        add_field(8, "Establecimiento: ",
                     ctk.CTkEntry(form_frame, textvariable=establecimiento_var, width=200))
 
         btn_frame = ctk.CTkFrame(card_frame, fg_color="transparent")
@@ -270,6 +281,7 @@ class CustomersView:
                 "cuit": cuit_var.get(),
                 "domicilio": home_var.get(),
                 "telefono": phone_var.get(),
+                "condicion_iva": iva_cond_var.get(),
                 "cv": cv_var.get(),
                 "cuig": cuig_var.get(),
                 "renspa": renspa_var.get(),
@@ -292,6 +304,8 @@ class CustomersView:
             command=save_and_close
         )
         save_btn.grid(row=0, column=0, padx=15)
+
+        win.bind("<Return>", lambda event: save_btn.invoke())
 
         cancel_btn = ctk.CTkButton(
             btn_frame,
@@ -333,6 +347,7 @@ class CustomersView:
                         customer.get("cuit") or "-",
                         customer.get("domicilio") or "-", 
                         customer.get("telefono") or "-",
+                        customer.get("condicion_iva") or "-",
                         customer.get("cv") or "-",
                         customer.get("cuig") or "-",
                         customer.get("renspa") or "-",
@@ -566,7 +581,6 @@ class CustomersView:
             self.controller.load_sale_items_for_debt(sale_id)
 
         self.debt_table.bind("<<TreeviewSelect>>", on_select_debt)
-
 
 
     def update_debt_window(self, debts, total, credit=0.0, net=0.0):

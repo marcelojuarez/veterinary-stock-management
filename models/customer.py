@@ -45,14 +45,15 @@ class CustomerModel:
     def add_customer(self, customer_data):
         # Agregar nuevo cliente a la base de datos
         query = """
-            INSERT INTO clientes (nombre, cuit, domicilio, telefono, cv, cuig, renspa, establecimiento)
-            VALUES(?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO clientes (nombre, cuit, domicilio, telefono, condicion_iva, cv, cuig, renspa, establecimiento)
+            VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)
         """
         params = [
             customer_data['nombre'].upper(),
             customer_data['cuit'],
             customer_data['domicilio'].upper(),
             customer_data['telefono'],
+            customer_data['condicion_iva'],
             customer_data.get('cv', ''),
             customer_data.get('cuig', ''),
             customer_data.get('renspa', ''),

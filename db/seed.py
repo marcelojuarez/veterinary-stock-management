@@ -415,7 +415,7 @@ def seed_clients():
         "Ruta 36", "Ruta A005", "Ruta 8", "Ruta 30", "Ruta 158"
     ]
     
-    condiciones_iva = ["Responsable Inscripto", "Monotributo", "Consumidor Final"]
+    condiciones_iva = ["Consumidor Final", "R. Inscripto", "Exento", "Monotributista"]
     
     # Provincias para variar los códigos RENSPA/CUIG
     provincias = ["Córdoba", "Buenos Aires", "Santa Fe", "La Pampa", "Entre Ríos"]
@@ -469,7 +469,7 @@ def seed_clients():
         domicilio = f"{calle} {numero}"
         
         telefono = f"358{randint(4000000, 4999999)}"
-        condicion = choice(["Responsable Inscripto", "Monotributo"])
+        condicion = choice(condiciones_iva)
         
         # DATOS AGROPECUARIOS COMPLETOS
         cv = generar_cv()
@@ -780,7 +780,7 @@ if __name__ == "__main__":
     
     seed_suppliers()
     seed_client()
-    # seed_clients()
+    seed_clients()
     seed_stock()
     # seed_sales_with_fiados()
     # seed_sales_with_products()
