@@ -194,8 +194,8 @@ class StockView():
 
         # Definición de columnas
         self.stock_tree.column("Id", anchor=tk.W, width=60, stretch=False)
-        self.stock_tree.column("Name", anchor=tk.W, width=250, stretch=False)
-        self.stock_tree.column("Package", anchor=tk.W, width=120, stretch=False)
+        self.stock_tree.column("Name", anchor=tk.W, width=250, stretch=True)
+        self.stock_tree.column("Package", anchor=tk.W, width=120, stretch=True)
         self.stock_tree.column("Profit", anchor=tk.CENTER, width=80, stretch=False)
         self.stock_tree.column("CostPrice", anchor=tk.E, width=100, stretch=False)
         self.stock_tree.column("SalePrice", anchor=tk.E, width=100, stretch=False)
