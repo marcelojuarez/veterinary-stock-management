@@ -116,7 +116,7 @@ class SalesController:
         filtered_products = []
         
         for product in self.sales_view.all_products:
-            (pid, cuit_supplier, name, pack, profit, cost, price, 
+            (pid, name, pack, profit, cost, price, 
             iva, price_with_iva, created_at, last_update, qty) = product
             
             # Buscar en: ID, nombre y envase

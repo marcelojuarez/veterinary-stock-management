@@ -84,7 +84,7 @@ class StockController:
 
         filtered = [
             product for product in self.all_products
-            if search_text in str(product[2]).lower()  # name
+            if search_text in str(product[1]).lower()  # name
             or search_text in str(product[0]).lower()  # id
             or search_text in str(product[3]).lower()  # pack
         ]
