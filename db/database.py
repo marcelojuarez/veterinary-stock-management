@@ -272,6 +272,7 @@ class Database:
                     quantity INTEGER NOT NULL,
                     price REAL NOT NULL,
                     subtotal REAL NOT NULL,
+                    observations TEXT,
                     FOREIGN KEY(sale_id) REFERENCES sales(id) ON DELETE CASCADE,
                     FOREIGN KEY(product_id) REFERENCES stock(id)
                 );

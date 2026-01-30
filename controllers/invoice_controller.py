@@ -11,20 +11,32 @@ class InvoiceController:
         """Crear la factura + PDF"""
 
         subtotal = 0
-        for (_, _, q, p) in items:
+
+        # Calcular subtotal
+        for item in items:
+            if len(item) == 5:
+                _, _, q, p, _ = item  # Sin paréntesis extra
+            else:
+                _, _, q, p = item  # Sin paréntesis extra
+            
             subtotal += (p / 1.21) * q
 
         subtotal = round(subtotal, 2)
         iva = round(subtotal * 0.21, 2)
         total = round(subtotal + iva, 2)
-
+ 
         # Crear factura
         invoice_id, number = self.invoice_model.create_invoice(
             customer_id, subtotal, iva, total
         )
 
         # Crear ítems
-        for product_id, _, quantity, price in items:
+        for item in items:
+            if len(item) == 5:
+                product_id, _, quantity, price, _ = item
+            else:
+                product_id, _, quantity, price = item
+
             sub = round(quantity * price, 2)
             self.invoice_model.add_invoice_item(
                 invoice_id, product_id, quantity, price, sub

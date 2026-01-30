@@ -627,10 +627,32 @@ class CustomersView:
             for row in self.debt_items_table.get_children():
                 self.debt_items_table.delete(row)
 
-            for i in items:
-                self.debt_items_table.insert("", "end", values=i)
+            for item in items:
+                # Manejar items con 4 o 5 elementos (con o sin observaciones)
+                if len(item) == 5:
+                    name, quantity, price, subtotal, observations = item
+                    
+                    # Si tiene observaciones, mostrarlas
+                    if observations and observations.strip():
+                        display_name = f"{name}\n  → {observations[:50]}..." if len(observations) > 50 else f"{name}\n  → {observations}"
+                    else:
+                        display_name = name
+                else:
+                    # Compatibilidad con consulta antigua (sin observaciones)
+                    name, quantity, price, subtotal = item
+                    display_name = name
+                print(price)
+                print(subtotal)
+                # Insertar en la tabla
+                self.debt_items_table.insert("", "end", values=(
+                    display_name,
+                    quantity,
+                    f"${float(price):.2f}",
+                    f"${float(subtotal):.2f}"
+                ))
 
         except Exception as e:
+            print(f"Error mostrando items: {e}")
             messagebox.showerror("Error", f"No se pudieron mostrar los productos: {e}")
 
     def open_payment_window(self, sale_id, client_id, client_name):

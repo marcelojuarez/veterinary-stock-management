@@ -198,8 +198,27 @@ class InvoiceInternalPDFService:
         # ===============================
 
         table_data = [["Descripción", "Cant.", "P. Unit.", "Subtotal"]]
-        for _, name, q, price in items:
-            table_data.append([name, q, f"${price:.2f}", f"${q*price:.2f}"])
+        
+        # MODIFICADO: Manejar items con 4 o 5 elementos
+        for item in items:
+            if len(item) == 5:
+                # Item con observaciones (honorario)
+                _, name, q, price, observations = item
+                # Crear descripción completa con observaciones
+                full_description = f"{name}\n{observations}"
+                description_para = Paragraph(full_description, self.styles["NormalSmall"])
+            else:
+                # Item normal (producto)
+                _, name, q, price = item
+                description_para = Paragraph(name, self.styles["NormalSmall"])
+            
+            subtotal_item = q * price
+            table_data.append([
+                description_para,  # Usar Paragraph para permitir texto multilínea
+                str(q),
+                f"${price:.2f}",
+                f"${subtotal_item:.2f}"
+            ])
 
         table = Table(table_data, colWidths=[90*mm, 20*mm, 30*mm, 30*mm])
 
@@ -211,9 +230,11 @@ class InvoiceInternalPDFService:
             ("ALIGN", (2, 1), (2, -1), "RIGHT"),
             ("ALIGN", (3, 1), (3, -1), "RIGHT"),
             ("GRID", (0,0), (-1,-1), 0.5, colors.grey),
-            ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+            ("VALIGN", (0, 0), (-1, -1), "TOP"),  # Cambiado de MIDDLE a TOP
             ("LEFTPADDING", (0,0), (-1,-1), 4),
             ("RIGHTPADDING", (0,0), (-1,-1), 4),
+            ("TOPPADDING", (0,1), (-1,-1), 6),      # Más padding para items
+            ("BOTTOMPADDING", (0,1), (-1,-1), 6),
         ])
         
         table.setStyle(table_style)

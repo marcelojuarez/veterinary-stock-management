@@ -89,7 +89,7 @@ class SupplierView():
         self.find_entry.grid(row=0, column=1, padx=10, pady=15)
         self.find_entry.bind("<KeyRelease>", self.on_key_release)
         self.search_after_id = None
-
+        '''
         find_btn = ctk.CTkButton(
             find_frame,
             text="!",
@@ -102,6 +102,7 @@ class SupplierView():
         )
 
         find_btn.grid(row=0, column=2, padx=5, pady=5)
+        '''
 
     def create_tree_frame(self):
         """ Crea el frame para la tabla de Proveedores"""
@@ -158,7 +159,7 @@ class SupplierView():
         self.supplier_tree.column("Email", anchor=tk.W, width=200, stretch=False)
         self.supplier_tree.column("Ultima actualizacion deuda", anchor=tk.W, width=200, stretch=False)
 
-        self.supplier_tree.heading('Id', text='ID ↕')
+        self.supplier_tree.heading('Id', text='Cód ↕')
         self.supplier_tree.heading('Nombre', text='Nombre↕')
         self.supplier_tree.heading('Cuit', text='Cuit ↕')
         self.supplier_tree.heading('Domicilio', text='Domicilio ↕')

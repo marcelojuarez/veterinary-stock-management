@@ -66,26 +66,36 @@ class SalesController:
                 self.sales_view.show_warning(f"Solo hay {stock} unidades disponibles.")
                 return False
 
-            # Buscar si ya existe en la venta
+            # Buscar si ya existe en la venta - FIX: Manejar items con 4 o 5 elementos
             existing_item = None
-            for i, (pid, _, qty, p) in enumerate(self.sales_view.items_in_sale):
-                if pid == product_id:
+            for i, item in enumerate(self.sales_view.items_in_sale):
+                # El ID siempre está en la posición 0
+                if item[0] == product_id:
                     existing_item = i
                     break
 
             if existing_item is not None:
                 # Ya existe: sumar cantidad
-                current_qty = self.sales_view.items_in_sale[existing_item][2]
+                current_item = self.sales_view.items_in_sale[existing_item]
+                current_qty = current_item[2]  # La cantidad siempre está en posición 2
                 new_qty = current_qty + quantity
+                
                 if new_qty > stock:
                     self.sales_view.show_warning("Stock insuficiente.")
                     return False
 
-                self.sales_view.items_in_sale[existing_item] = (product_id, name, new_qty, price)
+                # Actualizar manteniendo la estructura original (4 o 5 elementos)
+                if len(current_item) == 5:  # Tiene observaciones (honorario)
+                    self.sales_view.items_in_sale[existing_item] = (
+                        product_id, name, new_qty, price, current_item[4]
+                    )
+                else:  # Producto normal
+                    self.sales_view.items_in_sale[existing_item] = (
+                        product_id, name, new_qty, price
+                    )
             else:
-                # Nuevo producto
+                # Nuevo producto (siempre 4 elementos, sin observaciones)
                 self.sales_view.items_in_sale.append((product_id, name, quantity, price))
-                print(self.sales_view.items_in_sale)
 
             return True
 
@@ -137,7 +147,13 @@ class SalesController:
                 self.sales_view.show_warning("No hay productos en la venta.")
                 return
 
-            total = sum(q * p for _, _, q, p in items)
+            total = 0
+            for item in self.sales_view.items_in_sale:
+                if len(item) == 5:  # Tiene observaciones (honorarios)
+                    _, _, qty, price, _ = item
+                else:  # Producto normal
+                    _, _, qty, price = item
+                total += qty * price
 
             cliente_nombre = self.sales_view.client_var.get()
             cliente_id = self.customer_model.get_client_id_by_name(cliente_nombre)
@@ -155,7 +171,7 @@ class SalesController:
 
             self.sales_view.show_success(f"Venta registrada.\nFactura creada: {pdf}")
             self.sales_view.last_sale_id = sale_id
-            self.ask_remito(f"¿Desea generar remito?")
+            # self.ask_remito(f"¿Desea generar remito?")
             self.sales_view.clear_sale()
             self.sales_view.load_available_products()
 

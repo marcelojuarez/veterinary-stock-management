@@ -123,6 +123,7 @@ class StockView():
         find_entry.grid(row=0, column=1, padx=10, pady=15)
         find_entry.bind("<KeyRelease>", lambda event: self.controller.find_product_live(self.find_var.get()))
         
+        '''
         find_btn = ctk.CTkButton(
             find_frame,
             text="!",
@@ -134,6 +135,7 @@ class StockView():
             command=lambda: show_warning("Ingrese un NOMBRE, o ENVASE para buscar un Producto")
         )
         find_btn.grid(row=0, column=2, padx=15, pady=15)
+        '''
 
     def create_tree_frame(self):
         """Crear frame para tabla de stock"""

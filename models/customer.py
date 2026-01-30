@@ -134,7 +134,14 @@ class CustomerModel:
             CASE 
                 WHEN s.estado = 'paid' AND s.total_cerrado IS NOT NULL 
                 THEN s.total_cerrado
-                ELSE COALESCE(SUM(si.quantity * st.price_with_iva), 0)
+                ELSE COALESCE(SUM(
+                    si.quantity * 
+                    CASE 
+                        WHEN st.name = 'HONORARIOS' 
+                        THEN si.price
+                        ELSE st.price_with_iva
+                    END
+                ), 0)
             END AS total,
             COALESCE((SELECT SUM(p.amount) FROM payments p WHERE p.sale_id = s.id), 0) AS pagado,
             s.estado
@@ -162,11 +169,25 @@ class CustomerModel:
             formatted.append((sale_id, date, total, pagado, saldo, estado_es))
 
         return formatted
-
+    
     def get_sale_items(self, sale_id):
         """Detalle de productos vendidos en una venta fiada"""
         query = """
-            SELECT st.name, si.quantity, st.price_with_iva, (si.quantity * st.price_with_iva) AS subtotal
+            SELECT 
+                st.name, 
+                si.quantity, 
+                CASE 
+                    WHEN st.name = 'HONORARIOS' 
+                    THEN si.price
+                    ELSE st.price_with_iva
+                END AS precio,
+                si.quantity * 
+                CASE 
+                    WHEN st.name = 'HONORARIOS' 
+                    THEN si.price
+                    ELSE st.price_with_iva
+                END AS subtotal,
+                si.observations
             FROM sale_items si
             JOIN stock st ON st.id = si.product_id
             WHERE si.sale_id = ?
@@ -183,13 +204,20 @@ class CustomerModel:
         query = """
             SELECT 
                 s.id,
-                COALESCE(SUM(si.quantity * st.price_with_iva), 0) AS total_variable,
+                COALESCE(SUM(
+                    si.quantity * 
+                    CASE 
+                        WHEN st.name = 'HONORARIOS' 
+                        THEN si.price
+                        ELSE st.price_with_iva
+                    END
+                ), 0) AS total_variable,
                 COALESCE((SELECT SUM(p.amount) FROM payments p WHERE p.sale_id = s.id), 0) AS pagado
-                FROM sales s
-                JOIN sale_items si ON si.sale_id = s.id
-                JOIN stock st ON st.id = si.product_id
-                WHERE s.cliente_id = ? AND s.estado IN ('pending', 'partial')
-                GROUP BY s.id
+            FROM sales s
+            JOIN sale_items si ON si.sale_id = s.id
+            JOIN stock st ON st.id = si.product_id
+            WHERE s.cliente_id = ? AND s.estado IN ('pending', 'partial')
+            GROUP BY s.id
         """
 
         rows = self.db.fetch_all(query, (cliente_id,))
@@ -242,7 +270,14 @@ class CustomerModel:
                 CASE 
                     WHEN s.estado = 'paid' AND s.total_cerrado IS NOT NULL 
                     THEN s.total_cerrado
-                    ELSE COALESCE(SUM(si.quantity * st.price_with_iva), 0)
+                    ELSE COALESCE(SUM(
+                        si.quantity * 
+                        CASE 
+                            WHEN st.name = 'HONORARIOS' 
+                            THEN si.price
+                            ELSE st.price_with_iva
+                        END
+                    ), 0)
                 END AS total,
                 s.estado,
                 COUNT(si.id) AS cant_productos

@@ -92,26 +92,40 @@ class SalesView:
         selector_frame.grid(row=1, column=0, rowspan=2, padx=10, pady=10, sticky="nsew")
 
         label = ctk.CTkLabel(selector_frame, text="📦 Productos disponibles",
-                             font=ctk.CTkFont(size=15, weight="bold"))
+                            font=ctk.CTkFont(size=15, weight="bold"))
         label.pack(pady=(10, 5))
 
         self.product_tree = ttk.Treeview(selector_frame, show="headings", height=12)
-        self.product_tree["columns"] = ("Cod.", "Nombre", "P. Venta", "Stock")
+        self.product_tree["columns"] = ("Cód.", "Nombre", "P. Venta", "Stock")
 
-        for col, w in zip(self.product_tree["columns"], [80, 300, 100, 80]):
-            self.product_tree.column(col, width=w, anchor="center")
+        for col, w in zip(self.product_tree["columns"], [20, 400, 100, 40]):
+            self.product_tree.column(col, width=w)
             self.product_tree.heading(col, text=col)
 
         self.product_tree.pack(padx=10, pady=10, fill="both", expand=True)
 
+        # Frame para botones (para que queden uno al lado del otro)
+        button_frame = ctk.CTkFrame(selector_frame, fg_color="transparent")
+        button_frame.pack(pady=(5, 10))
+
         add_btn = ctk.CTkButton(
-            selector_frame,
+            button_frame,
             text="➕ Agregar producto",
             width=180, height=35,
             fg_color="#4CAF50", hover_color="#45a049",
             command=lambda: self.add_selected_product()
         )
-        add_btn.pack(pady=(5, 10))
+        add_btn.grid(row=0, column=0, padx=5)
+
+        # NUEVO: Botón de honorarios
+        honorarios_btn = ctk.CTkButton(
+            button_frame,
+            text="💼 Agregar Honorarios",
+            width=180, height=35,
+            fg_color="#2196F3", hover_color="#1976D2",
+            command=self.add_honorarios
+        )
+        honorarios_btn.grid(row=0, column=1, padx=5)
 
     def create_sales_table(self):
         table_frame = ctk.CTkFrame(self.frame)
@@ -122,7 +136,7 @@ class SalesView:
         label.pack(pady=(10, 5))
 
         self.sale_tree = ttk.Treeview(table_frame, show="headings", height=10)
-        self.sale_tree["columns"] = ("Cod.", "Nombre", "Cant.", "Precio Unit.", "Subtotal")
+        self.sale_tree["columns"] = ("Cód.", "Nombre", "Cant.", "Precio Unit.", "Subtotal")
 
         for col, w in zip(self.sale_tree["columns"], [80, 300, 80, 100, 120]):
             self.sale_tree.column(col, width=w, anchor="center")
@@ -149,7 +163,7 @@ class SalesView:
         buttons = [
             # CAMBIAR el comando de "Procesar venta":
             ("💰 Procesar venta", "#009688", "#00796B", self.process_sale_with_confirmation),
-            ("🧾 Generar remito", "#009688", "#00796B", lambda: self.generate_delivery_note()),
+            #("🧾 Generar remito", "#009688", "#00796B", lambda: self.generate_delivery_note()),
             ("🗑️ Eliminar producto", "#009688", "#00796B", self.delete_selected_product),
             ("🧹 Limpiar", "#009688", "#00796B", self.clear_sale)
         ]
@@ -296,23 +310,56 @@ class SalesView:
 
     def refresh_sale_table(self):
         self.sale_tree.delete(*self.sale_tree.get_children())
-        for pid, name, qty, price in self.items_in_sale:
+        
+        for item in self.items_in_sale:
+            # Puede tener 4 o 5 elementos (con o sin observaciones)
+            if len(item) == 5:
+                pid, name, qty, price, observations = item
+                # Mostrar nombre con preview de observaciones
+                display_name = f"{name} - {observations[:40]}..." if len(observations) > 40 else f"{name} - {observations}"
+            else:
+                pid, name, qty, price = item
+                display_name = name if name else self._get_product_name(pid)
+            
             subtotal = round(price * qty, 2)
-            name = next((self.product_tree.item(r)["values"][1] for r in self.product_tree.get_children() if self.product_tree.item(r)["values"][0] == pid), "")
-            self.sale_tree.insert("", "end", values=(pid, name, qty, price, subtotal))
+            self.sale_tree.insert("", "end", values=(pid, display_name, qty, price, subtotal))
+
+    def _get_product_name(self, pid):
+        """Helper para obtener nombre del producto por ID"""
+        for item in self.product_tree.get_children():
+            values = self.product_tree.item(item)["values"]
+            if values[0] == pid:
+                return values[1]
+        return "Producto desconocido"
 
     def update_total(self):
-        total = sum(q * p for _, _, q, p in self.items_in_sale)
+        """Calcular total manejando items con y sin observaciones"""
+        total = 0
+        for item in self.items_in_sale:
+            if len(item) == 5:  # Tiene observaciones (honorarios)
+                _, _, qty, price, _ = item
+            else:  # Producto normal
+                _, _, qty, price = item
+            total += qty * price
+        
         self.total_var.set(f"TOTAL: ${total:.2f}")
 
     def clear_sale(self):
+        if not self.last_sale_id:
+            if not self.ask_confirmation("¿Eliminar todos los artículos agregados?"):
+                return
+
         self.sale_tree.delete(*self.sale_tree.get_children())
         self.items_in_sale.clear()
         self.total_var.set("TOTAL: $0.00")
 
     def delete_selected_product(self):
         try:
+            
             selected_item = self.sale_tree.selection()[0]
+            if not self.ask_confirmation("¿Eliminar artículo?"):
+                return
+            
             pid = self.sale_tree.item(selected_item)["values"][0]
             self.sale_tree.delete(selected_item)
             self.items_in_sale = [
@@ -469,17 +516,23 @@ class SalesView:
             preview_tree.column(col, width=w, anchor="center")
             preview_tree.heading(col, text=col)
         
-        # Agregar productos
+        # Agregar productos (dentro del método show_sale_confirmation)
         total = 0
-        for pid, name, qty, price in self.items_in_sale:
-            # Obtener nombre del producto
-            product_name = name
-            if not product_name:
-                for item in self.product_tree.get_children():
-                    values = self.product_tree.item(item)["values"]
-                    if values[0] == pid:
-                        product_name = values[1]
-                        break
+        for item in self.items_in_sale:
+            # Manejar items con y sin observaciones
+            if len(item) == 5:
+                pid, name, qty, price, observations = item
+                product_name = f"{name}\n({observations[:50]}...)" if len(observations) > 50 else f"{name}\n({observations})"
+                print(price)
+            else:
+                pid, name, qty, price = item
+                product_name = name
+                if not product_name:
+                    for tree_item in self.product_tree.get_children():
+                        values = self.product_tree.item(tree_item)["values"]
+                        if values[0] == pid:
+                            product_name = values[1]
+                            break
             
             subtotal = round(price * qty, 2)
             total += subtotal
@@ -498,7 +551,7 @@ class SalesView:
         totals_frame.pack(padx=15, pady=5, fill="x")  # Reducido padding
         
         # Cantidad total de items
-        total_items = sum(qty for _, _, qty, _ in self.items_in_sale)
+        total_items = sum(item[2] for item in self.items_in_sale)
         
         ctk.CTkLabel(
             totals_frame,
@@ -713,8 +766,161 @@ class SalesView:
         except Exception as e:
             self.show_error(f"No se pudieron cargar los datos del cliente: {e}")
 
+    def add_honorarios(self):
+        """Abrir diálogo para agregar honorarios"""
+        # Buscar el ID del producto honorarios
+        honorarios_id = self.stock_model.get_honorarios_id()
+        
+        if not honorarios_id:
+            self.show_error("No se encontró el producto 'HONORARIOS' en el stock.\n\nPor favor, contacte al administrador.")
+            return
+        
+        self.show_honorarios_dialog(honorarios_id)
+
+    def show_honorarios_dialog(self, honorarios_id):
+        """Diálogo para ingresar detalles de honorarios"""
+        dialog = ctk.CTkToplevel(self.frame)
+        dialog.title("Agregar Honorarios")
+        
+        # Centrar ventana
+        dialog.update_idletasks()
+        x = (dialog.winfo_screenwidth() // 2) - 250
+        y = (dialog.winfo_screenheight() // 2) - 200
+        dialog.geometry(f"500x400+{x}+{y}")
+        
+        dialog.transient(self.frame)
+        dialog.grab_set()
+        dialog.resizable(False, False)
+        
+        # Título
+        ctk.CTkLabel(
+            dialog, 
+            text="💼 Honorarios Profesionales",
+            font=ctk.CTkFont(size=18, weight="bold")
+        ).pack(pady=(15, 10))
+        
+        # Frame de contenido
+        content_frame = ctk.CTkFrame(dialog, fg_color="#f5f5f5")
+        content_frame.pack(padx=20, pady=10, fill="both", expand=True)
+        
+        # Monto
+        ctk.CTkLabel(
+            content_frame, 
+            text="Monto del servicio:",
+            font=ctk.CTkFont(size=13, weight="bold")
+        ).pack(pady=(15, 5), anchor="w", padx=15)
+        
+        price_frame = ctk.CTkFrame(content_frame, fg_color="transparent")
+        price_frame.pack(pady=5, padx=15, fill="x")
+        
+        ctk.CTkLabel(
+            price_frame,
+            text="$",
+            font=ctk.CTkFont(size=14, weight="bold")
+        ).pack(side="left", padx=(0, 5))
+        
+        price_var = tk.StringVar()
+        price_entry = ctk.CTkEntry(
+            price_frame,
+            textvariable=price_var,
+            width=150,
+            height=35,
+            font=ctk.CTkFont(size=13)
+        )
+        price_entry.pack(side="left")
+        price_entry.focus()
+        
+        # Descripción del servicio
+        ctk.CTkLabel(
+            content_frame,
+            text="Descripción del servicio prestado:",
+            font=ctk.CTkFont(size=13, weight="bold")
+        ).pack(pady=(15, 5), anchor="w", padx=15)
+        
+        obs_text = tk.Text(
+            content_frame,
+            height=8,
+            width=50,
+            font=("Arial", 10),
+            wrap="word"
+        )
+        obs_text.pack(padx=15, pady=5)
+        
+        # Texto placeholder
+        placeholder = """Ejemplo:
+            Vacunación antiaftosa
+            150 cabezas de ganado
+            Campo La Esperanza - Lote 5
+            Fecha: 28/01/2026"""
+        
+        obs_text.insert("1.0", placeholder)
+        obs_text.config(fg="gray")
+        
+        # Limpiar placeholder al hacer clic
+        def clear_placeholder(event):
+            if obs_text.get("1.0", tk.END).strip() == placeholder.strip():
+                obs_text.delete("1.0", tk.END)
+                obs_text.config(fg="white")
+        
+        obs_text.bind("<FocusIn>", clear_placeholder)
+        
+        def confirm_honorarios():
+            try:
+                price = float(price_var.get())  # Este es el precio que el usuario ingresa
+                observations = obs_text.get("1.0", tk.END).strip()
+                
+                if price <= 0:
+                    messagebox.showwarning("Error", "El monto debe ser mayor a 0")
+                    return
+                
+                # Agregar honorario a la venta
+                self.items_in_sale.append((
+                    honorarios_id, 
+                    'HONORARIOS', 
+                    1,
+                    price,           # ← Este precio debe ser > 0
+                    observations
+                ))
+                
+                self.refresh_sale_table()
+                self.update_total()
+                self.show_success("Honorarios agregados correctamente")
+                dialog.destroy()
+                
+            except ValueError as e:
+                messagebox.showerror("Error", f"Ingrese un monto válido (solo números) {e}")
+        
+        # Botones
+        button_frame = ctk.CTkFrame(dialog, fg_color="transparent")
+        button_frame.pack(pady=15)
+        
+        ctk.CTkButton(
+            button_frame,
+            text="✓ Agregar",
+            width=150,
+            height=40,
+            font=ctk.CTkFont(size=13, weight="bold"),
+            fg_color="#4CAF50",
+            hover_color="#45a049",
+            command=confirm_honorarios
+        ).grid(row=0, column=0, padx=10)
+        
+        ctk.CTkButton(
+            button_frame,
+            text="✗ Cancelar",
+            width=150,
+            height=40,
+            font=ctk.CTkFont(size=13, weight="bold"),
+            fg_color="#757575",
+            hover_color="#616161",
+            command=dialog.destroy
+        ).grid(row=0, column=1, padx=10)
+
 
     # Utilidades
     def show_success(self, msg): messagebox.showinfo("Éxito", msg)
     def show_error(self, msg): messagebox.showerror("Error", msg)
     def show_warning(self, msg): messagebox.showwarning("Advertencia", msg)
+    def ask_confirmation(self, message):
+        """Preguntar confirmación al usuario"""
+        return messagebox.askquestion("Confirmación", message) == 'yes'

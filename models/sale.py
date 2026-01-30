@@ -18,21 +18,32 @@ class SalesModel:
 
             sale_id = cursor.lastrowid
 
-            for product_id, _, quantity, price in items:
+            for item in items:
+                if len(item) == 5:
+                    product_id, name, quantity, price, observations = item
+                else:
+                    product_id, name, quantity, price = item
+                    observations = None
+                
+                # IMPORTANTE: El precio aquí debe ser el precio CON IVA
                 subtotal = round(price * quantity, 2)
+                print(price)
                 cursor.execute("""
-                    INSERT INTO sale_items (sale_id, product_id, quantity, price, subtotal)
-                    VALUES (?, ?, ?, ?, ?)
-                """, (sale_id, product_id, quantity, price, subtotal))
+                    INSERT INTO sale_items (sale_id, product_id, quantity, price, subtotal, observations)
+                    VALUES (?, ?, ?, ?, ?, ?)
+                """, (sale_id, product_id, quantity, price, subtotal, observations))
 
-                cursor.execute("""
-                    UPDATE stock SET quantity = quantity - ?
-                    WHERE id = ?
-                """, (quantity, product_id))
+                cursor.execute("SELECT name FROM stock WHERE id = ?", (product_id,))
+                row = cursor.fetchone()
+                
+                if row and row[0] != 'HONORARIOS':
+                    cursor.execute("""
+                        UPDATE stock SET quantity = quantity - ?
+                        WHERE id = ?
+                    """, (quantity, product_id))
 
             conn.commit()
             return sale_id
-
     def get_today_sales(self):
         query = """
             SELECT s.id, s.date, s.total,

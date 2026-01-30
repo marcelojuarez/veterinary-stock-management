@@ -137,3 +137,9 @@ class StockModel:
         params = (multiplier, multiplier, multiplier, multiplier, multiplier, date)
         
         return db.execute_query(query, params)
+    
+    def get_honorarios_id(self):
+        """Obtener el ID del producto honorarios"""
+        query = "SELECT id FROM stock WHERE name = 'HONORARIOS'"
+        row = db.fetch_one(query)
+        return row[0] if row else None
