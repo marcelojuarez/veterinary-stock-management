@@ -5,6 +5,7 @@ from .payment_form import PaymentForm
 from .payment_info import PaymentInfo
 from controllers.payment_controller import PaymentController
 from views.view_helpers import close_win, show_warning, show_error
+from utils.utils import iso_to_traditional
 import locale
 
 # Configurar tema y colores
@@ -20,7 +21,7 @@ class PaymentWindow():
 
         self.controller = controller
         self.controller.set_pay_view(self)
-        self.controller.set_form_view(self.payment_form)
+        self.controller.set_form_view(self.payment_form) 
 
         self.payment_form.set_controller(self.controller)
 
@@ -216,7 +217,7 @@ class PaymentWindow():
         purchase_frame.pack(fill='both', expand=True)
 
         self.purchase_tree = ttk.Treeview(purchase_frame, show="headings", height=8)
-        self.purchase_tree["columns"] = ("ID", "Cuit Proveedor", "Tipo Comprobante", "Fecha", "Fecha Venc.", "Estado", "Saldo Pendiente")
+        self.purchase_tree["columns"] = ("ID", "Cuit Proveedor", "Tipo Comprobante", "Fecha", "Fecha Venc.", "Estado", "Saldo Pendiente", "Total")
         for col in self.purchase_tree["columns"]:
             self.purchase_tree.heading(col, text=col.capitalize())
             if col == "ID":
@@ -363,13 +364,14 @@ class PaymentWindow():
             self.purchase_tree.insert(
                 parent="", index="end", iid=p[0],
                 values=(
-                    p[0],
-                    p[1],
-                    p[2],
-                    p[5],
-                    p[6],
-                    p[7],
-                    p[9],
+                    p[0], # id
+                    p[1], # cuit
+                    p[2], # comprobante
+                    iso_to_traditional(p[5]), # fecha
+                    iso_to_traditional(p[6]), # fecha venc
+                    p[7], # estado
+                    p[9], # saldo pend
+                    p[10] # total
                 ),
                 tag="orow"
             )  

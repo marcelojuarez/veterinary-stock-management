@@ -37,8 +37,10 @@ class App():
         
     def setup_variables(self):
         self.user_var = tk.StringVar()
-
+        self.user_var.set('admin')
+        
         self.pwd_var = tk.StringVar()
+        self.pwd_var.set('admin')
 
     def login_window(self):
         self.login_win = ctk.CTkToplevel(self.root)
@@ -120,8 +122,6 @@ class App():
         self.customer_controller = CustomerController()
 
         self.purchase_controller = PurchaseController(event_bus)
-
-        print(f'metodos: {event_bus._subscribers}')
 
         self.payment_controller = PaymentController()
         self.invoice_controller = SupplierInvoiceController()

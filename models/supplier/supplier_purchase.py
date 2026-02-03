@@ -2,15 +2,19 @@
 
 from datetime import datetime
 from models.stock import StockModel
+from .supplier_invoice import SupplierInvoice
+from .supplier_receipt import SupplierReceipt
 from decimal import Decimal, ROUND_HALF_UP
-from utils.utils import normalize_decimal
+from utils.utils import normalize_decimal, traditional_to_iso
 
 class SupplierPurchase():
     def __init__(self, db):
         self.db = db
         self.stock_model = StockModel()
+        self.supplier_invoice = SupplierInvoice(db)
+        self.supplier_receipt = SupplierReceipt(db)
 
-    ## Nueva compra
+    ## -- Agregar nueva compra -- ##
     def add_new_purchase(self, data, conn=None, commit=True):
         try:
             date = datetime.now().strftime("%Y-%m-%d")
@@ -34,7 +38,7 @@ class SupplierPurchase():
         except ValueError as e:
             print(f'Error al cargar la compra: {e}')
 
-    ## Obtener compra por id
+    ## -- Obtener compra por ID -- ##
     def get_purchase_by_id(self, purchase_id):
         try:
             query= """
@@ -47,43 +51,63 @@ class SupplierPurchase():
             print(f'Error al obtener la compra: {e}')
             return None
 
-    ## Obtener compra por fecha 
-    def get_purchase_by_date(self, date):
+    ## Obtener compra por fecha ##
+    def get_purchases_by_date(self, date, cuit=None):
         try:
-            query= """
-            SELECT * FROM purchase WHERE date = ?
-            """
-            return self.db.fetch_all(query, (date, ))
+            query = """
+                SELECT purchase.id, supplier.cuit, purchase.document_type, purchase.invoice_id, purchase.receipt_id , purchase.date, 
+                purchase.expiration_date, purchase.state, purchase.observations, purchase.pending, purchase.total
+                FROM purchase
+                JOIN supplier ON purchase.supplier_id = supplier.id
+                WHERE purchase.date = ?
+                    AND (? IS NULL OR supplier.cuit = ?) 
+                ORDER BY 
+                CASE 
+                    WHEN purchase.state = 'PENDIENTE' THEN 0 
+                    ELSE 1 
+                END,
+                purchase.expiration_date
+            """ 
+            params = [
+                date,
+                cuit,
+                cuit
+            ]
+            return self.db.fetch_all(query, params)
 
         except ValueError as e:
-            print(f'Error al obtener la compra: {e}')
+            print(f'Error al obtener las compras: {e}')
             return None
 
-    ## Devuelve todas las compras asociadas a un cuit 
+    ## -- Devuelve todas las compras asociadas a un CUIT -- ##
     def get_all_purchases(self, cuit=None):
-
-        query = """
-            SELECT purchase.id, supplier.cuit, purchase.document_type, purchase.invoice_id, purchase.receipt_id , purchase.date, 
-            purchase.expiration_date, purchase.state, purchase.observations, purchase.pending, purchase.total
-            FROM purchase
-            JOIN supplier ON purchase.supplier_id = supplier.id
-            WHERE (? IS NULL OR supplier.cuit = ?) 
-            ORDER BY 
-            CASE 
-                WHEN purchase.state = 'PENDIENTE' THEN 0 
-                ELSE 1 
-            END,
-            purchase.expiration_date
-        """ 
-        params = [
-            cuit,
-            cuit
-        ]
-        return self.db.fetch_all(query, params)
+        try:
+            query = """
+                SELECT purchase.id, supplier.cuit, purchase.document_type, purchase.invoice_id, purchase.receipt_id , purchase.date, 
+                purchase.expiration_date, purchase.state, purchase.observations, purchase.pending, purchase.total
+                FROM purchase
+                JOIN supplier ON purchase.supplier_id = supplier.id
+                WHERE (? IS NULL OR supplier.cuit = ?) 
+                ORDER BY 
+                CASE 
+                    WHEN purchase.state = 'PENDIENTE' THEN 0 
+                    ELSE 1 
+                END,
+                purchase.expiration_date
+            """ 
+            params = [
+                cuit,
+                cuit
+            ]
+            return self.db.fetch_all(query, params)
+        
+        except ValueError as e:
+            print(f'Error al obtener las compras: {e}')
+            return None
     
-    ## Nuevo Producto
+    ## -- Agregar nuevo Producto -- ##
     def add_product(self, product_data):
-        date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        date = datetime.now().strftime("%Y-%m-%d")
         """Agregar un nuevo producto"""
         query = """
             INSERT INTO stock 
@@ -104,79 +128,86 @@ class SupplierPurchase():
         )
         return self.db.execute_query(query, params)
     
-    ## Nuevo Item de compra
-    def add_purchase_item(self, params):
-        try:   
-            
+    ##  Transaccion que maneja la adicion de un item y hace sus respectivos calculos
+    def handle_add_p_item(self, params, purchase_id, doc_type, doc_id):
+        try:
             conn = self.db.get_connection()
 
-            # Iniciar transacción
             conn.execute("BEGIN")
 
-            query = """
-                INSERT INTO purchase_item (purchase_id, product_id, product_name, pack, quantity,
-                cost_price, iva_rate,discount, discount_amount, subtotal, iva_amount, total) 
-                VALUES (?, ?, ? ,?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """
-
-            self.db.execute_query(query, params, conn=conn, commit=False)
+            self.add_purchase_item(params, conn=conn, commit=False)
+            self.recalc_doc_values(purchase_id, doc_type, doc_id, conn=conn, commit=False)
 
             conn.commit()
             return True
-        
+
         except Exception as e:
             conn.rollback()
             print(f'Hubo un error {e}')
             return False
         
         finally:
-            conn.close()
-            
-    def recalc_doc_values(self, purchase_id, doc_type, doc_id):
-        try:          
-            conn = self.db.get_connection()
+            conn.close() 
 
-            # Iniciar transacción
-            conn.execute("BEGIN")
+    
+    ## -- Agregar nuevo Item de compra -- ##
+    def add_purchase_item(self, params, conn=None, commit=True):
 
-            if doc_type == 'FACTURA':
-                ## factura ##
+        query = """
+            INSERT INTO purchase_item (purchase_id, product_id, product_name, pack, quantity,
+            cost_price, iva_rate,discount, discount_amount, subtotal, iva_amount, total) 
+            VALUES (?, ?, ? ,?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """
 
-                ## monto_iva
-                iva_amount = normalize_decimal(self.get_iva_amount_of_p_items(purchase_id)[0])
-                print(f'Monto iva: {iva_amount}')
+        self.db.execute_query(query, params, conn=conn, commit=commit)
+       
+    ## -- Recalcular los valores del doc asociado a la compra -- ##
+    def recalc_doc_values(self, purchase_id, doc_type, doc_id, conn=None, commit=True):
 
-                query = """ UPDATE supplier_invoice SET iva = ? WHERE id = ? """
+        if doc_type == 'FACTURA':
+            ## factura ##
 
-                self.db.execute_query(query, (str(iva_amount), doc_id), conn=conn, commit=False)
-
-                ## subtotal
-                subtotal = normalize_decimal(self.get_sum_of_items(purchase_id)[0])
-
-                query = """ UPDATE supplier_invoice SET subtotal = ?, total = ?  WHERE id = ? """
-
-                self.db.execute_query(query, (str(subtotal), str(subtotal), doc_id), conn=conn, commit=False)
-
-
+            ## monto_iva
+            iva_amount = self.get_iva_amount_of_p_items(purchase_id, conn=conn)[0]
+            if iva_amount is None:
+                r_iva_amount = normalize_decimal('0.00')
             else:
-                ## remito
-                total = normalize_decimal(self.get_sum_of_items(purchase_id)[0])
-                print(f'total: {total}')
+                r_iva_amount = normalize_decimal(iva_amount)
+            print(f'Monto iva: {r_iva_amount}')
 
-                query = """ UPDATE supplier_receipt SET total = ? WHERE id = ? """
+            query = """ UPDATE supplier_invoice SET iva = ? WHERE id = ? """
 
-                self.db.execute_query(query, (str(total), doc_id), conn=conn, commit=False)
-        
-            conn.commit()
-            return True
-        
-        except Exception as e:
-            conn.rollback()
-            print(f'Hubo un error {e}')
-            return False
-        
-        finally:
-            conn.close()
+            self.db.execute_query(query, (str(r_iva_amount), doc_id), conn=conn, commit=commit)
+
+            ## subtotal
+            subtotal = self.get_subtotal_of_items(purchase_id, conn=conn)[0]
+            if subtotal is None:
+                r_subtotal = normalize_decimal('0.00')
+            else:
+                r_subtotal = normalize_decimal(subtotal)
+
+            total = self.get_total_of_items(purchase_id, conn=conn)[0]
+            if total is None:
+                r_total = normalize_decimal('0.00')
+            else:
+                r_total = normalize_decimal(total)
+            
+            query = """ UPDATE supplier_invoice SET subtotal = ?, total = ?  WHERE id = ? """
+
+            self.db.execute_query(query, (str(r_subtotal), str(r_total), doc_id), conn=conn, commit=commit)
+
+        else:
+            ## remito
+            total = self.get_total_of_items(purchase_id, conn=conn)[0]
+            if total is None:
+                rounded_total = normalize_decimal('0.00')
+            else:
+                rounded_total = normalize_decimal(total)
+            print(f'Total: {total}')
+
+            query = """ UPDATE supplier_receipt SET total = ? WHERE id = ? """
+
+            self.db.execute_query(query, (str(rounded_total), doc_id), conn=conn, commit=commit)
 
     
     ## -- Obtener items de compra -- ##
@@ -190,23 +221,33 @@ class SupplierPurchase():
 
         return self.db.fetch_all(query, (purchase_id, ))
 
-    ##  -- Obtener suma de los items para generar deuda -- ##
-    def get_sum_of_items(self, purchase_id):
+    ##  -- Obtener subtotal de items -- ##
+    def get_subtotal_of_items(self, purchase_id, conn=None):
+        query = """
+        SELECT SUM(subtotal)
+        FROM purchase_item
+        WHERE purchase_id = ?
+        """
+        return self.db.fetch_one(query, (purchase_id, ), conn=conn)
+    
+    ##  -- Obtener total de items -- ##
+    def get_total_of_items(self, purchase_id, conn=None):
         query = """
         SELECT SUM(total)
         FROM purchase_item
         WHERE purchase_id = ?
         """ 
 
-        return self.db.fetch_one(query, (purchase_id, ))
+        return self.db.fetch_one(query, (purchase_id, ), conn=conn)
     
-    def get_iva_amount_of_p_items(self, purchase_id):
+    ## -- Obtener suma de iva de items -- ##
+    def get_iva_amount_of_p_items(self, purchase_id, conn=None):
         query = """
         SELECT SUM(iva_amount)
         FROM purchase_item
         WHERE purchase_id = ?
         """
-        return self.db.fetch_one(query, (purchase_id, ))
+        return self.db.fetch_one(query, (purchase_id, ), conn=conn)
 
     ## -- Obtener todos los productos de un proveedor a traves de las compras
     def get_all_products_by_supplier_id(self, supplier_id):
@@ -227,7 +268,6 @@ class SupplierPurchase():
         """
         
         return self.db.fetch_all(query, (supplier_id, ))
-
 
     ## -- Devuelve todas las compras con deuda pendiente asociadas a un cuit -- ##
     def get_all_purchases_without_paying(self, cuit=None):
@@ -254,7 +294,6 @@ class SupplierPurchase():
         return self.db.fetch_all(query, params)
     
     def set_initial_debt_purchase(self, purchase_id, id, doc_type, initial_debt, conn=None, commit=True):
-        initial_debt = round(initial_debt, 2)
 
         query = """
         UPDATE purchase
@@ -265,8 +304,7 @@ class SupplierPurchase():
         WHERE id = ?
         """
 
-        params = (initial_debt, initial_debt, purchase_id)
-
+        params = (str(initial_debt), str(initial_debt), purchase_id)
         self.db.execute_query(query, params, conn=conn, commit=commit)
 
         # Si quedó pagada, actualizar comprobante
@@ -288,10 +326,11 @@ class SupplierPurchase():
             WHERE id = ?
             """
 
-        params = (initial_debt, id)
+        params = (str(initial_debt), id)
         self.db.execute_query(query, params, conn=conn, commit=commit)       
 
     ## -- Carga los items de la compra en stock y setea la nueva deuda del proveedor -- ## 
+
     def load_products_and_set_initial_debt(self, purchase_id, id, doc_type, debt):
         try:
             conn = self.db.get_connection()
@@ -358,30 +397,29 @@ class SupplierPurchase():
         finally:
             conn.close()
 
+    ## -- Prepara cada item de compra para agregarlo a stock -- ##
     def prepare_item_to_add_to_stock(self, item):
-            date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            date = datetime.now().strftime("%Y-%m-%d")
             p = self.stock_model.get_product_by_id(item['id']) # recupero producto desde stock
-
-            print(f'Producto desde stock \n {p}')
 
             # recupero los datos y transformo a decimal
             id =  item['id'] # id producto
             name = item['name'] # nombre producto
             pack = item['pack'] # envase producto
-            discount_amount = Decimal((item['cost_price'] * item['discount']) / 100).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP) # monto descuento
-            cost_price = Decimal(item['cost_price'] - discount_amount).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP) # se aplica descuento
+            discount_amount = normalize_decimal((item['cost_price'] * item['discount']) / 100) # monto descuento
+            cost_price = normalize_decimal(item['cost_price'] - discount_amount)# se aplica descuento
             iva = item['iva_rate'] # porcentaje de iva
             last_price_upd = date # fecha de ult. act de precio
 
             profit = Decimal(1 + Decimal(p[3]) / 100)
 
-            sale_price = Decimal(cost_price * profit).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+            sale_price = normalize_decimal(cost_price * profit)
 
             # precio con iva
             if iva == 21.0:
-                price_with_iva = Decimal(sale_price * Decimal(1.21)).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+                price_with_iva = normalize_decimal(sale_price * Decimal(1.21))
             elif iva == 10.5:
-                price_with_iva = Decimal(sale_price * Decimal(1.105)).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+                price_with_iva = normalize_decimal(sale_price * Decimal(1.105))
             else:
                 price_with_iva = sale_price
 
@@ -396,16 +434,7 @@ class SupplierPurchase():
                 'last_price_upd': last_price_upd # fecha de ult. act de precio
             }
 
-            print(f'Precio de producto stock act \n :{product_data}')
-
             return product_data
-    
-    def delete_purchase(self, purchase_id, conn=None, commit=True):
-        query = """
-        DELETE FROM purchase WHERE id = ?
-        """
-
-        self.db.execute_query(query, (purchase_id, ), conn=conn, commit=commit)
 
     ## -- Setear saldo pendiente de la compra-- ##
     def set_new_debt_purchase(self, purchase_id, id, doc_type, new_debt, conn=None, commit=True):
@@ -413,21 +442,19 @@ class SupplierPurchase():
         print(f'new_debt: {new_debt}')
         print(f'tipo new_debt: {type(new_debt)}')
 
-        if new_debt <= Decimal("0.00"):
-            new_debt = Decimal("0.00")
+        new_debt = normalize_decimal(new_debt)
+
+        state = 'PAGADA' if new_debt <= Decimal(0.00) else 'PENDIENTE'
 
         query = """
         UPDATE purchase
         SET
             pending = ?,
-            state = CASE
-                WHEN ? <= 0 THEN 'PAGADA'
-                ELSE 'PENDIENTE'
-            END
+            state = ?
         WHERE id = ?
         """
 
-        params = (str(new_debt), str(new_debt), purchase_id)
+        params = (str(new_debt), state, purchase_id)
 
         self.db.execute_query(query, params, conn=conn, commit=commit)
 
@@ -435,24 +462,17 @@ class SupplierPurchase():
         if doc_type == "REMITO":
             query = """
             UPDATE supplier_receipt
-            SET 
-                state = CASE 
-                    WHEN ? <= 0 THEN 'PAGADA'
-                    ELSE 'PENDIENTE'
-                END
+            SET state = ?
             WHERE id = ?
             """
         else:
             query = """
             UPDATE supplier_invoice
-                SET state = CASE
-                    WHEN ? <= 0 THEN 'PAGADA'
-                    ELSE 'PENDIENTE'
-                END
+            SET state = ?
             WHERE id = ?
             """
 
-        params = (str(new_debt), id)
+        params = (state, id)
         self.db.execute_query(query, params, conn=conn, commit=commit)
     
     ## -- Vincular comprobante con compra -- ##
@@ -490,6 +510,7 @@ class SupplierPurchase():
         return self.db.fetch_one(query, (cuit, ))
     
     def update_last_debt_update(self, supplier_id, conn=None, commit=True):
+        print('Se ejecuta esta funcion')
         date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         """Actualizar Saldo deuda a un proveedor"""
         query = """
@@ -505,126 +526,6 @@ class SupplierPurchase():
         self.db.execute_query(query, params, conn=conn, commit=commit)
         return date
 
-    ## -- Invoice -- ##
-    def add_new_invoice(self, data, conn=None, commit=True):
-        date = datetime.now().strftime("%Y-%m-%d")
-        query = """
-        INSERT INTO supplier_invoice(supplier_id, invoice_id, invoice_type, date, expiration_date, 
-        total, subtotal, iva, discount, state, observations)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """
-        params =[
-            data['supplier_id'],
-            data['invoice_id'],
-            data['invoice_type'],
-            date,
-            data['expiration_date'],
-            str(data['total']),
-            str(data['subtotal']),
-            str(data['iva']),
-            str(data['discount']),
-            data['state'],
-            data['observations'],
-        ]
-
-        return self.db.execute_query(query, params, conn=conn, commit=commit)
-
-    def get_invoice_data(self, invoice_id):
-        query = """
-        SELECT * FROM supplier_invoice
-        WHERE id = ? 
-        """
-
-        return self.db.fetch_one(query, (invoice_id, ))
-        
-    def update_invoice_info(self, invoice_id, data, conn=None, commit=True):
-        date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        query = """
-        UPDATE supplier_invoice
-        SET 
-            invoice_id = ?,
-            invoice_type = ?,
-            observations = ?,
-            date = ?,
-            expiration_date = ?
-        WHERE id = ?
-        """
-
-        params = [
-            data['invoice_id'],
-            data['invoice_type'], 
-            data['obs'],
-            date,
-            data['expiration'],
-            invoice_id
-        ]
-
-        self.db.execute_query(query, params, conn=conn, commit=commit)
-
-    def delete_invoice(self, invoice_id, conn=None, commit=True):
-        query = """
-        DELETE FROM supplier_invoice WHERE id = ?
-        """
-
-        self.db.execute_query(query, (invoice_id, ), conn=conn, commit=commit)
-
-    ## -- RECEIPT -- ##
-    def add_new_receipt(self, data, conn=None, commit=True):
-        date = datetime.now().strftime("%Y-%m-%d")
-        query = """
-        INSERT INTO supplier_receipt(supplier_id, receipt_id, date, expiration_date, observations,
-        state, total)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
-        """
-        params = [
-            data['supplier_id'],
-            data['receipt_id'],
-            date,
-            data['expiration_date'],
-            data['observations'],
-            data['state'],
-            str(data['total']), 
-        ]
-
-        return self.db.execute_query(query, params, conn=conn, commit=commit)
-    
-    def get_receipt_data(self, receipt_id):
-        query = """
-        SELECT * FROM supplier_receipt
-        WHERE id = ? 
-        """
-
-        return self.db.fetch_one(query, (receipt_id, ))
-    
-    def update_receipt_info(self, receipt_id, data, conn=None, commit=True):
-        date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        query = """
-        UPDATE supplier_receipt
-        SET 
-            receipt_id = ?,
-            date = ?,
-            expiration_date = ?,
-            observations = ?
-        WHERE id = ?
-        """
-
-        params = [
-            data['receipt_id'],            
-            date,
-            data['expiration'],
-            data['obs'],
-            receipt_id
-        ]
-
-        self.db.execute_query(query, params, conn=conn, commit=False)
-
-    def delete_receipt(self, receipt_id, conn=None, commit=True):
-        query = """
-        DELETE FROM supplier_receipt WHERE id = ?
-        """
-
-        self.db.execute_query(query, (receipt_id, ), conn=conn, commit=commit)
-
     ## TRANSACCIONES ##
 
     ## Eliminar un registro de compra junto con su informacion asociada
@@ -635,12 +536,16 @@ class SupplierPurchase():
             # Iniciar transacción
             conn.execute("BEGIN")
 
-            self.delete_purchase(purchase_id, conn=conn, commit=False)
+            query = """
+            DELETE FROM purchase WHERE id = ?
+            """
+
+            self.db.execute_query(query, (purchase_id, ), conn=conn, commit=False)
 
             if doc_type == 'REMITO':
-                self.delete_receipt(doc_id, conn=conn, commit=False)
+                self.supplier_receipt.delete_receipt(doc_id, conn=conn, commit=False)
             else:
-                self.delete_invoice(doc_id, conn=conn, commit=False)
+                self.supplier_invoice.delete_invoice(doc_id, conn=conn, commit=False)
 
             conn.commit()
             return True
@@ -650,14 +555,42 @@ class SupplierPurchase():
             return False
         finally:
             conn.close()
-    ## Transaccion para 
+
+    ##  Transaccion que maneja la eliminacion de un item y hace sus respectivos calculos
+    def handle_delete_purchase_item(self, purchase_id, product_id, doc_type, doc_id):
+        try:
+            conn = self.db.get_connection()
+
+            conn.execute("BEGIN")
+
+            self.delete_purchase_item(purchase_id, product_id, conn=conn, commit=False)
+            self.recalc_doc_values(purchase_id, doc_type, doc_id, conn=conn, commit=False)
+
+            conn.commit()
+            return True
+        
+        except ValueError as e:
+            conn.rollback()
+            return False
+        
+        finally:
+            conn.close()
+
+    # Elimina un purchase item
+    def delete_purchase_item(self, purchase_id, product_id, conn=None, commit=True):
+        query = """
+        DELETE FROM purchase_item 
+        WHERE purchase_id = ? AND product_id = ?
+        """
+
+        self.db.execute_query(query, (purchase_id, product_id), conn=conn, commit=commit)
 
     ## Transaccion para actualizar informacion de la compra y su doc asociado
     def update_purchase(self, purchase_id, doc_id, data, doc_type):
 
         try:
             conn = self.db.get_connection()
-            date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            date = datetime.now().strftime("%Y-%m-%d")
 
             # Iniciar transacción
             conn.execute("BEGIN")
@@ -671,7 +604,7 @@ class SupplierPurchase():
             """
             params = [
                 date,
-                data['expiration'],
+                traditional_to_iso(data['expiration']),
                 purchase_id
             ]
             
@@ -679,10 +612,10 @@ class SupplierPurchase():
 
             # Si es remito
             if doc_type == 'REMITO':
-                self.update_receipt_info(doc_id, data, conn=conn, commit=False)
+                self.supplier_receipt.update_receipt_info(doc_id, data, conn=conn, commit=False)
 
             else:
-                self.update_invoice_info(doc_id, data, conn=conn, commit=False)
+                self.supplier_invoice.update_invoice_info(doc_id, data, conn=conn, commit=False)
 
             conn.commit()
             return True
@@ -694,7 +627,6 @@ class SupplierPurchase():
         finally:
             conn.close()
 
-
     ## -- Transaccion para agregar venta y recibo -- ##
     def create_receipt_and_purchase(self, receipt_params, purchase_params):
         try:
@@ -703,15 +635,10 @@ class SupplierPurchase():
             # Iniciar transacción
             conn.execute("BEGIN")
 
-            receipt_id = self.add_new_receipt(receipt_params, conn, commit=False)
+            receipt_id = self.supplier_receipt.add_new_receipt(receipt_params, conn, commit=False)
             purchase_id = self.add_new_purchase(purchase_params, conn, commit=False)
 
-            print(f"receipt_id: {receipt_id}")
-            print(f"purchase_id: {purchase_id}")
-
             self.set_doc_on_purchase(purchase_id, receipt_id, "REMITO", conn, commit=False)
-
-            self.update_last_debt_update(purchase_params['supplier_id'], conn, commit=False)
 
             conn.commit()
 
@@ -732,15 +659,14 @@ class SupplierPurchase():
             # Iniciar transacción
             conn.execute("BEGIN")
 
-            invoice_id = self.add_new_invoice(invoice_params, conn, commit=False)
+            invoice_id = self.supplier_invoice.add_new_invoice(invoice_params, conn, commit=False)
             purchase_id = self.add_new_purchase(purchase_params, conn, commit=False)
 
             self.set_doc_on_purchase(purchase_id, invoice_id, "FACTURA", conn, commit=False)
 
-            self.update_last_debt_update(purchase_params['supplier_id'], conn, commit=False)
-
             conn.commit()
-
+            return True 
+        
         except Exception as e:
             conn.rollback()
             print(f'Hubo un error {e}')
@@ -748,4 +674,4 @@ class SupplierPurchase():
         
         finally:
             conn.close() 
-            return True    
+   

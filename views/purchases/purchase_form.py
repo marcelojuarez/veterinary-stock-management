@@ -107,20 +107,23 @@ class PurchaseForm():
         )
         add_btn_frame.columnconfigure(0, weight=1)
 
-        # Ejemplo botones
-        ctk.CTkButton(
+        new_p_btn = ctk.CTkButton(
             add_btn_frame,
             text="Nuevo Producto",
             font=ctk.CTkFont(size=12, weight='bold'),
             command=lambda:self.new_product_form.open_add_window(product_win)
-        ).grid(row=0, column=0, pady=5, padx=10, sticky="ew")
+        )
+        new_p_btn.grid(row=0, column=0, pady=5, padx=10, sticky="ew")
 
-        ctk.CTkButton(
+        select_btn = ctk.CTkButton(
             add_btn_frame,
             text="Seleccionar",
             font=ctk.CTkFont(size=12, weight='bold'),
             command= lambda: self.select_product(purchase_id=purchase_values[0], parent=product_win)
-        ).grid(row=1, column=0, pady=5, padx=10, sticky="ew")
+        )
+        select_btn.grid(row=1, column=0, pady=5, padx=10, sticky="ew")
+
+        product_win.bind('<Return>', lambda event: select_btn.invoke())        
 
         mng_btn_frame = ctk.CTkFrame(main_frame)
         mng_btn_frame.grid(

@@ -7,6 +7,7 @@ from tkinter import ttk
 
 from .purchase_info import PurchaseInfo
 from .purchase_form import PurchaseForm
+from utils.utils import iso_to_traditional
 from controllers.purchase_filter_controller import PurchaseFilterController
 from views.view_helpers import close_win, show_warning, show_error
 from views.supplier_doc.supplier_invoice_form import SupplierInvoiceForm
@@ -44,6 +45,7 @@ class PurchaseWindow():
         btn_hover = "#00796B"
 
         self.supplier_var = tk.StringVar()
+        self.purchase_filter.set_supplier_var(self.supplier_var)
         self.date_var = tk.StringVar()
 
         self.suppliers = self.model.core.get_all_suppliers()
@@ -141,7 +143,7 @@ class PurchaseWindow():
         # tree view de productos
         self.purchase_tree = ttk.Treeview(product_frame, show="headings", height=8)
         self.purchase_tree["columns"] = ("Id", "Cuit Proveedor", "Tipo Comprobante", "Fecha", "Fecha Venc.", "Estado", 
-                                        "Saldo pendiente")
+                                        "Saldo pendiente", "Total")
         for col in self.purchase_tree["columns"]:
             self.purchase_tree.heading(col, text=col.capitalize())
             if col == "Id":
@@ -580,13 +582,14 @@ class PurchaseWindow():
             self.purchase_tree.insert(
                 parent="", index="end", iid=p[0],
                 values=(
-                    p[0],
-                    p[1],
-                    p[2],
-                    p[5],
-                    p[6],
-                    p[7],
-                    p[9],
+                    p[0], # id
+                    p[1], # cuit
+                    p[2], # comprobante
+                    iso_to_traditional(p[5]), # fecha
+                    iso_to_traditional(p[6]), # fecha venc
+                    p[7], # estado
+                    p[9], # saldo pend
+                    p[10] # total
                 ),
                 tag="orow"
             )

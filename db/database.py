@@ -345,25 +345,58 @@ class Database:
             
         return cursor.lastrowid
     
-    def fetch_all(self, query, params=None):
-        """Ejecutar una consulta que devuelve múltiples resultados"""
-        with self.get_connection() as conn:
-            cursor = conn.cursor()
-            if params:
-                cursor.execute(query, params)
-            else:
-                cursor.execute(query)
-            return cursor.fetchall()
+    def fetch_all(self, query, params=None, conn=None):
+        """
+        Ejecutar una consulta que devuelve múltiples resultados
+
+        - Si conn es None → abre su propia conexión (modo normal)
+        - Si conn se pasa → usa esa conexión (modo transacción)
+        - si commit=True hace commit si la conexión es propia
+        """
+        own_conn = False
+        if conn is None:
+            conn = self.get_connection()
+            own_conn = True
+
+        cursor = conn.cursor()
+        if params:
+            cursor.execute(query, params)
+        else:
+            cursor.execute(query)
+
+        rows = cursor.fetchall()
+
+        if own_conn:
+            conn.close()
+        
+        return rows
+        
     
-    def fetch_one(self, query, params=None):
-        """Ejecutar una consulta que devuelve un resultado"""
-        with self.get_connection() as conn:
-            cursor = conn.cursor()
-            if params:
-                cursor.execute(query, params)
-            else:
-                cursor.execute(query)
-            return cursor.fetchone()
+    def fetch_one(self, query, params=None, conn=None):
+        """
+        Ejecutar una consulta que devuelve un resultado
+
+        - Si conn es None → abre su propia conexión (modo normal)
+        - Si conn se pasa → usa esa conexión (modo transacción)
+        - si commit=True hace commit si la conexión es propia
+        """
+        own_conn = False
+        if conn is None:
+            conn = self.get_connection()
+            own_conn = True
+
+        cursor = conn.cursor()
+        if params:
+            cursor.execute(query, params)
+        else:
+            cursor.execute(query)
+        
+        row = cursor.fetchone()
+
+        if own_conn:
+            conn.close()
+
+        return row
 
 
 db = Database('db/stock.db')

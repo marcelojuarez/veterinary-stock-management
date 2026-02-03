@@ -1,6 +1,6 @@
 from datetime import datetime
-from decimal import Decimal, ROUND_HALF_UP
-from views.view_helpers import close_win, show_warning, show_error
+from utils.utils import normalize_decimal, traditional_to_iso
+from views.view_helpers import close_win, show_error
 
 class SupplierReceiptController():
     def __init__(self):
@@ -20,21 +20,20 @@ class SupplierReceiptController():
     def convert_string_to_date_formated(self, date):
         # convierto el string a obj tipo date
         date_formated = datetime.strptime(date, "%d/%m/%Y").date()
-        # formateo el obj
+        # formateo el obj a un string nuevamente
         return date_formated.strftime("%Y-%m-%d")
 
     def add_new_receipt(self, win, parent):
         try:
             data = self.form_view.get_receipt_form_data()
             supplier_data = self.model.core.find_supplier_by_cuit(data['supplier_cuit'])
-            print(data)
 
             if not self.validate_date(data):
                 return
             
-            expiration_date = self.convert_string_to_date_formated(data['expiration_date'])
+            expiration_date = traditional_to_iso(data['expiration_date'])
 
-            total = Decimal(data['total']).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+            total = normalize_decimal(data['total'])
 
             receipt_params = {
                 'supplier_id': supplier_data[0],
@@ -45,18 +44,13 @@ class SupplierReceiptController():
                 'total': total
             }
 
-            if data['state'] == 'PAGADA':
-                pending = 0
-            else:
-                pending = Decimal(data['total']).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
-
             purchase_params = {
                 'supplier_id': supplier_data[0],
                 'doc_type': "REMITO",
                 'expiration_date': expiration_date,
                 'state': data['state'],
                 'observations': data['observations'],
-                'pending' : pending, 
+                'pending' : total, 
                 'total': total, 
             }
 
@@ -87,10 +81,6 @@ class SupplierReceiptController():
             show_error('Por favor coloque la fecha en formato dd/mm/yyyy')
             return False
         
-        if not cls._is_decimal(data['total']):
-            show_error('Por favor el monto total debe ser un valor numerico')
-            return False
-        
         return True
 
     @staticmethod    
@@ -101,7 +91,3 @@ class SupplierReceiptController():
         except:
             return False
 
-    @staticmethod
-    def _is_decimal(value):
-        try: Decimal(value); return True
-        except: return False

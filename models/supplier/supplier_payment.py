@@ -63,7 +63,7 @@ class SupplierPayment():
 
     ## -- Agrega una relacion entre un pago y una compra -- ##
     def add_purchase_payment_relation(self, data, conn=None, commit=True):
-        date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        date = datetime.now().strftime("%Y-%m-%d")
         query = """
         INSERT INTO purchase_payment (purchase_id, payment_id, amount_applied, applied_at)
         VALUES (?, ?, ?, ?)
@@ -99,7 +99,7 @@ class SupplierPayment():
             # Iniciar transacción
             conn.execute("BEGIN")
 
-            date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            date = datetime.now().strftime("%Y-%m-%d")
             
             # registra un pago
             query = """

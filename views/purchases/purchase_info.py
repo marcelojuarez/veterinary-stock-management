@@ -4,11 +4,13 @@ from tksheet import Sheet
 
 #from services.purchase_detail import PurchaseDetail
 from views.view_helpers import close_win, show_error, ask_confirmation, show_warning, show_success
+from utils.utils import iso_to_traditional
 
 class PurchaseInfo():
     def __init__(self, model, controller):
         self.model = model
         self.controller = controller
+        self.doc_type = tk.StringVar()
         #self.purchase_detail = PurchaseDetail(self.model)
 
     ## -- Ventana de informacion de la compra -- ##
@@ -50,32 +52,33 @@ class PurchaseInfo():
             self.confirm_btn.pack(side='right', anchor='w', padx=5)
 
             info_frame = ctk.CTkFrame(main_frame, corner_radius=10, fg_color="white")
-            info_frame.pack(fill="x", padx=10, pady=(0, 20))
+            info_frame.pack(fill="x", padx=10, pady=(0, 20)) 
 
             info_frame.columnconfigure(0, weight=1)
             info_frame.columnconfigure(1, weight=2)
 
-            purchase_id = values[0]
-            purchase_data = self.model.purchase.get_purchase_by_id(purchase_id)
+            self.purchase_id = values[0]
+            purchase_data = self.model.purchase.get_purchase_by_id(self.purchase_id)
             
             doc_type = purchase_data[2]
 
             if doc_type == "REMITO":
-                width_win = 650
+                width_win = 750
                 height_win = 750
 
-                # Widgets para informacion del remito
-                receipt_data = self.model.purchase.get_receipt_data(purchase_data[4])
+                self.doc_type.set('receipt')
 
                 self.receipt_vars = {
-                    'number': tk.StringVar(value=receipt_data[2]),
-                    'date': tk.StringVar(value=receipt_data[3]),
-                    'expiration': tk.StringVar(value=receipt_data[4]),
-                    'obs': tk.StringVar(value=receipt_data[5]),
-                    'state': tk.StringVar(value=receipt_data[6]),
-                    'total': tk.StringVar(value=receipt_data[7])
+                    'number': tk.StringVar(),
+                    'date': tk.StringVar(),
+                    'expiration': tk.StringVar(),
+                    'obs': tk.StringVar(),
+                    'state': tk.StringVar(),
+                    'total': tk.StringVar()
                 }
                 
+                self.load_data(purchase_data[4])
+
                 if self.receipt_vars['state'].get() != "BORRADOR":
                     self.confirm_btn.configure(state=tk.DISABLED)
 
@@ -138,24 +141,25 @@ class PurchaseInfo():
                 )
 
             elif doc_type == "FACTURA":
-                width_win = 650
+                width_win = 750
                 height_win = 900
 
-                # Widgets para informacion de la factura
-                invoice_data = self.model.purchase.get_invoice_data(purchase_data[3])
+                self.doc_type.set('invoice')
 
                 self.invoice_vars = {
-                        'number': tk.StringVar(value=invoice_data[2]),
-                        'type': tk.StringVar(value=invoice_data[3]),
-                        'obs': tk.StringVar(value=invoice_data[11]),
-                        'date': tk.StringVar(value=invoice_data[4]),
-                        'expiration': tk.StringVar(value=invoice_data[5]),
-                        'iva': tk.StringVar(value=invoice_data[8]),
-                        'state': tk.StringVar(value=invoice_data[10]),
-                        'discount': tk.StringVar(value=invoice_data[9]),
-                        'subtotal': tk.StringVar(value=invoice_data[7]),
-                        'total': tk.StringVar(value=invoice_data[6])
+                        'number': tk.StringVar(),
+                        'type': tk.StringVar(),
+                        'obs': tk.StringVar(),
+                        'date': tk.StringVar(),
+                        'expiration': tk.StringVar(),
+                        'iva': tk.StringVar(),
+                        'state': tk.StringVar(),
+                        'discount': tk.StringVar(),
+                        'subtotal': tk.StringVar(),
+                        'total': tk.StringVar()
                     }
+                
+                self.load_data(purchase_data[3])
 
                 if self.invoice_vars['state'].get() != "BORRADOR":
                     self.confirm_btn.configure(state=tk.DISABLED)
@@ -214,7 +218,7 @@ class PurchaseInfo():
                 ).grid(row=5, column=1, sticky="w", padx=15, pady=6)
 
                 # DESCUENTO
-                ctk.CTkLabel(info_frame, text="Descuento: ", font=ctk.CTkFont(size=13, weight="bold")
+                ctk.CTkLabel(info_frame, text="Descuento %: ", font=ctk.CTkFont(size=13, weight="bold")
                 ).grid(row=6, column=0, sticky="w", padx=15, pady=6)
 
                 ctk.CTkEntry(
@@ -260,26 +264,25 @@ class PurchaseInfo():
             table_frame = ctk.CTkFrame(main_frame, corner_radius=10)
             table_frame.pack(fill="both", expand=True, padx=10, pady=5)
 
-            data = self.model.purchase.get_purchase_items(purchase_id=values[0])
-            print(f'Purchase items: {data}')
-            headers = ["Id", "Nombre", "Envase", "Cantidad", "Precio Unidad", "Porc. Iva", "Descuento", 
+            headers = ["Id", "Nombre", "Envase", "Cantidad", "Precio Unidad", "Iva %", "Descuento %", 
                        "Monto Descuento", "Subtotal", "Monto Iva", "Total"]
 
-            sheet = Sheet(
+            self.sheet = Sheet(
                 table_frame,
-                data=data,
                 headers=headers,
                 show_x_scrollbar=True,
                 show_y_scrollbar=True
             )
-            sheet.enable_bindings((
+            self.sheet.enable_bindings((
                 "single_select",
-                "row_select",
                 "column_width_resize",
                 "double_click_column_resize",
             ))
-            sheet.set_column_widths([50, 220, 100, 80, 100, 100, 100, 150, 100, 100, 100])
-            sheet.pack(fill="both", expand=True, padx=5, pady=5)
+
+            self.sheet.set_options(row_select=True)
+            self.sheet.pack(fill="both", expand=True, padx=5, pady=5)
+
+            self.load_data_into_the_sheet()
 
             btn_frame = ctk.CTkFrame(main_frame, height=50, fg_color="white")
             btn_frame.pack(fill='x', padx=10, pady=5)
@@ -297,7 +300,7 @@ class PurchaseInfo():
                 font=ctk.CTkFont(size=13, weight="bold"),
                 width=120,
                 state='disabled',
-                command= lambda: self.save(values[0], values[2])
+                command=lambda: self.save(values[0], values[2])
             )
             self.save_btn.grid(row=0, column=0, padx=10)
 
@@ -308,9 +311,20 @@ class PurchaseInfo():
                 hover_color="#0B5D94",
                 font=ctk.CTkFont(size=13, weight="bold"),
                 width=120,
-                command= lambda: self.edit(values[0], values[2])
+                command=lambda: self.edit(values[0], values[2])
             )
             self.edit_btn.grid(row=0, column=1, padx=10)
+
+            self.del_item_btn = ctk.CTkButton(
+                btn_frame,
+                text="Eliminar Item",
+                fg_color="#2980B9",
+                hover_color="#0B5D94",
+                font=ctk.CTkFont(size=13, weight="bold"),
+                width=120,
+                command=self.handle_delete_purchase_item
+            )
+            self.del_item_btn.grid(row=0, column=2, padx=10)
 
             self.print_info = ctk.CTkButton(
                 btn_frame,
@@ -320,7 +334,7 @@ class PurchaseInfo():
                 font=ctk.CTkFont(size=13, weight="bold"),
                 #command= lambda: self.gen_purchase_detail_pdf(purchase_id)
             )
-            self.print_info.grid(row=0, column=2, padx=10)
+            self.print_info.grid(row=0, column=3, padx=10)
 
             close_btn = ctk.CTkButton(
                 btn_frame,
@@ -331,7 +345,7 @@ class PurchaseInfo():
                 width=120,
                 command=lambda: close_win(purchase_info, parent, parent.focus_force)
             )
-            close_btn.grid(row=0, column=3, padx=10)
+            close_btn.grid(row=0, column=4, padx=10)
 
             x_root = parent.winfo_x()
             y_root = parent.winfo_y()
@@ -352,6 +366,42 @@ class PurchaseInfo():
         except ValueError as e:
             print(f'Error{e}')
 
+    ## -- Carga campos con informacion -- ##
+    def load_data(self, doc_id):
+        if self.doc_type.get().strip() == 'receipt':
+            # Widgets para informacion del remito
+            receipt_data = self.model.purchase.supplier_receipt.get_receipt_data(doc_id)
+
+            self.receipt_vars['number'].set(receipt_data[2])
+            self.receipt_vars['date'].set(iso_to_traditional(receipt_data[3]))
+            self.receipt_vars['expiration'].set(iso_to_traditional(receipt_data[4]))
+            self.receipt_vars['obs'].set(receipt_data[5])
+            self.receipt_vars['state'].set(receipt_data[6])
+            self.receipt_vars['total'].set(receipt_data[7])
+
+        else:
+            # Widgets para informacion de la factura
+            invoice_data = self.model.purchase.supplier_invoice.get_invoice_data(doc_id)
+
+            self.invoice_vars['number'].set(invoice_data[2])
+            self.invoice_vars['type'].set(invoice_data[3])
+            self.invoice_vars['obs'].set(invoice_data[11])
+            self.invoice_vars['date'].set(invoice_data[4])
+            self.invoice_vars['expiration'].set(invoice_data[5])
+            self.invoice_vars['iva'].set(invoice_data[8])
+            self.invoice_vars['state'].set(invoice_data[10])
+            self.invoice_vars['discount'].set(invoice_data[9])
+            self.invoice_vars['subtotal'].set(invoice_data[7])
+            self.invoice_vars['total'].set(invoice_data[6])
+
+    ## -- Carga tabla con informacion -- ##
+    def load_data_into_the_sheet(self):
+        data = self.model.purchase.get_purchase_items(self.purchase_id)
+        print(f'Purchase items: {data}')
+
+        self.sheet.set_sheet_data(data)
+        self.sheet.set_column_widths([60, 260, 120, 80, 100, 100, 100, 150, 100, 100, 100])
+
     ## -- Generar purchase detail como pdf -- ##
     def gen_purchase_detail_pdf(self, purchase_id):
         try:
@@ -360,6 +410,37 @@ class PurchaseInfo():
         except ValueError as e:
             print(f'Error: {e}')
 
+    ## -- Manejo para eliminar un item de compra-- ##
+    def handle_delete_purchase_item(self):
+        try: 
+            selected_cells = list(self.sheet.get_selected_cells())
+
+            if not selected_cells:
+                show_error('Por favor seleccione un item de compra')
+                return
+
+            string_error = 'Error. No se pueden eliminar items de una compra ya confirmada'
+
+            if self.doc_type.get().strip() == 'receipt':
+                state = self.receipt_vars['state'].get()
+                if state != 'BORRADOR': 
+                    show_error(f'{string_error}') 
+                    return
+            else:
+                state = self.invoice_vars['state'].get()
+                if state != 'BORRADOR': 
+                    show_error(f'{string_error}') 
+                    return
+
+            row_num = selected_cells[0][0]
+
+            row_data = self.sheet.get_row_data(row_num)
+            p_id = row_data[0]
+
+            self.controller.delete_purchase_item(self.purchase_id, p_id)
+
+        except ValueError as e:
+            print(f'Error: {e}') 
 
     ## -- Confirmar Compra -- ##
     def confirm_purchase(self, win, parent, purchase_id):
@@ -403,7 +484,7 @@ class PurchaseInfo():
 
         self.customizable_wid[0].focus()
 
-    ## -- Guardar compra -- ##
+    ## -- Guardar datos editados de compra -- ##
     def save(self, purchase_id, doc_type):
         result = self.controller.update_doc_info(purchase_id, doc_type)
 
@@ -477,7 +558,6 @@ class PurchaseInfo():
         
         for w in self.customizable_wid:
             w.configure(state='readonly')
-
 
     ## --  Obtener datos del recibo -- ##
     def get_receipt_data(self):

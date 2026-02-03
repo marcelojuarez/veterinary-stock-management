@@ -55,9 +55,7 @@ class PurchaseController():
                 return 
 
             # Se establece compra como pendiente y deuda proveedor
-            debt = self.model.purchase.get_sum_of_items(purchase_id)[0]
-            print(f'Suma de totales: {debt}')
-            print(f'tipo de initial_debt: {type(debt)}')
+            debt = normalize_decimal(self.model.purchase.get_total_of_items(purchase_id)[0])
             purchase_data = self.model.purchase.get_purchase_by_id(purchase_id)
 
             doc_type = purchase_data[2]
@@ -107,6 +105,7 @@ class PurchaseController():
                     return                
 
                 invoice_id = purchase_data[3]
+                
 
                 result = self.model.purchase.update_purchase(purchase_id, invoice_id, data, doc_type)
 
@@ -270,7 +269,6 @@ class PurchaseController():
     def add_purchase_item(self, win, parent):
         try:
             item_data = self.new_p_i_form.get_purchase_item_data()
-            print(item_data)
 
             if not self.validate_purchase_item_data(item_data):
                 return
@@ -312,19 +310,15 @@ class PurchaseController():
             else:
                 doc_id = purchase_data[3]
 
-            print(f'doc_id: {doc_id}')
-
             # Se agrega item a la compra
-            ok = self.model.purchase.add_purchase_item(item_data_clean)
+            ok = self.model.purchase.handle_add_p_item(item_data_clean, purchase_id, doc_type, doc_id)
             if ok:
-                ok = self.model.purchase.recalc_doc_values(purchase_id, doc_type, doc_id)
-                if ok:
-                    show_success('Item agregado con exito')
-                    close_win(win, parent) 
+                show_success('Item agregado con exito')
+                close_win(win, parent)
+                 
             else:
                 show_error('Ocurrio un error')
   
-
         except ValueError as e:
             show_error(f'Error al cargar item de compra: {e}')
             return 
@@ -345,6 +339,14 @@ class PurchaseController():
             'Iva_amount': 'Monto Iva',
             'Total': 'Total'
         }
+
+        if not cls.is_int(form_data['Qty']):
+            show_error(f'Error. El stock debe ser un valor Entero')
+            return False
+        
+        if int(form_data['Qty']) <= 0:
+            show_error(f'Error. El stock debe ser mayor a Cero(0)')
+            return False
 
         for field, lbl in required_fields.items():
             if not form_data[field]:
@@ -373,14 +375,6 @@ class PurchaseController():
         if normalize_decimal(form_data['Discount']) < normalize_decimal(0.00) \
         or normalize_decimal(form_data['Discount']) > normalize_decimal(99.00):
             show_error('Error. El porcentaje de descuento debe rondar entre 0 y 99 %')
-            return False
-
-        if not cls.is_int(form_data['Qty']):
-            show_error(f'Error. El stock debe ser un valor Entero')
-            return False
-        
-        if int(form_data['Qty']) <= 0:
-            show_error(f'Error. El stock debe ser mayor a Cero(0)')
             return False
     
         return True
@@ -414,3 +408,25 @@ class PurchaseController():
                 self.view.load_purchases(True)
 
             show_success('Compra eliminada con exito.')
+
+    def delete_purchase_item(self, purchase_id, product_id):
+        try:
+            
+            purchase_data = self.model.purchase.get_purchase_by_id(purchase_id)
+
+            doc_type = purchase_data[2]
+            if doc_type == "REMITO":
+                doc_id = purchase_data[4]
+            else:
+                doc_id = purchase_data[3]
+
+            result = self.model.purchase.handle_delete_purchase_item(purchase_id, product_id, doc_type, doc_id)
+            if result:
+                ## actualizar tabla y labels
+                self.info_view.load_data(doc_id)
+                self.info_view.load_data_into_the_sheet()
+                
+
+        except ValueError as e:
+            show_error(f'Error al eliminar item de compra: {e}')
+            return 

@@ -123,10 +123,10 @@ class SupplierInvoiceForm():
         self.invoice_type_var.set("-")
         self.expiration_var.set(formated_act_date)
         self.state_var.set("BORRADOR")
-        self.iva_var.set("0")
+        self.iva_var.set("0.00")
         self.discount_var.set("0")
-        self.subtotal_var.set("0")
-        self.total_var.set("0")
+        self.subtotal_var.set("0.00")
+        self.total_var.set("0.00")
 
         btn_frame = ctk.CTkFrame(card_frame, fg_color="white")
         btn_frame.pack(pady=20)
