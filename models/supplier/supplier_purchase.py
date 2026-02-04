@@ -104,7 +104,47 @@ class SupplierPurchase():
         except ValueError as e:
             print(f'Error al obtener las compras: {e}')
             return None
+        
+    ## -- Devuelve todas las compras confirmadas asociadas a un CUIT -- ##
+    def get_all_confirmed_purchases(self, cuit=None):
+        try:
+            query = """
+                SELECT purchase.id, supplier.cuit, purchase.document_type, purchase.invoice_id, purchase.receipt_id , purchase.date, 
+                purchase.expiration_date, purchase.state, purchase.observations, purchase.pending, purchase.total
+                FROM purchase
+                JOIN supplier ON purchase.supplier_id = supplier.id
+                WHERE (? IS NULL OR supplier.cuit = ?) AND purchase.state != 'BORRADOR'
+                ORDER BY 
+                CASE 
+                    WHEN purchase.state = 'PENDIENTE' THEN 0 
+                    ELSE 1 
+                END,
+                purchase.expiration_date
+            """ 
+            params = [
+                cuit,
+                cuit
+            ]
+            return self.db.fetch_all(query, params)
+        
+        except ValueError as e:
+            print(f'Error al obtener las compras: {e}')
+            return None
     
+    def get_product_on_purchase(self, purchase_id, product_id):
+        try:
+            query = """
+            SELECT * FROM purchase_item
+            WHERE purchase_id = ? AND product_id = ?
+            """
+            params = [purchase_id, product_id]
+
+            return self.db.fetch_one(query, params)
+        
+        except ValueError as e:
+            print(f'Error al obtener producto: {e}')
+            return None
+
     ## -- Agregar nuevo Producto -- ##
     def add_product(self, product_data):
         date = datetime.now().strftime("%Y-%m-%d")
@@ -203,13 +243,13 @@ class SupplierPurchase():
                 rounded_total = normalize_decimal('0.00')
             else:
                 rounded_total = normalize_decimal(total)
-            print(f'Total: {total}')
+
+            print(f'Total: {rounded_total}')
 
             query = """ UPDATE supplier_receipt SET total = ? WHERE id = ? """
 
             self.db.execute_query(query, (str(rounded_total), doc_id), conn=conn, commit=commit)
 
-    
     ## -- Obtener items de compra -- ##
     def get_purchase_items(self, purchase_id):
         query = """
@@ -549,10 +589,12 @@ class SupplierPurchase():
 
             conn.commit()
             return True
+        
         except Exception as e:
             conn.rollback()
             print(f'Hubo un error {e}')
             return False
+        
         finally:
             conn.close()
 
@@ -624,6 +666,7 @@ class SupplierPurchase():
             conn.rollback()
             print(f'Hubo un error {e}')
             return False
+        
         finally:
             conn.close()
 
@@ -641,7 +684,8 @@ class SupplierPurchase():
             self.set_doc_on_purchase(purchase_id, receipt_id, "REMITO", conn, commit=False)
 
             conn.commit()
-
+            return True
+        
         except Exception as e:
             conn.rollback()
             print(f'Hubo un error {e}')
@@ -649,7 +693,7 @@ class SupplierPurchase():
         
         finally:
             conn.close()
-            return True
+
 
     ## -- Transaccion para agregar venta y factura -- ##
     def create_invoice_and_purchase(self, invoice_params, purchase_params):

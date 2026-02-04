@@ -68,7 +68,6 @@ class SupplierReceiptController():
         required_files = {
             'receipt_id': 'Numero de Recibo',
             'expiration_date': 'Fecha de vencimiento',
-            'observations': 'Observaciones',
             'total': 'Total'
         }
         

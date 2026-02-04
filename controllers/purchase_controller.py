@@ -129,7 +129,6 @@ class PurchaseController():
             required_files = {
                 'receipt_id': 'Numero de Remito',
                 'expiration': 'Fecha de Vencimiento',
-                'obs': 'Observaciones'
             }
 
             for field, label in required_files.items():
@@ -145,7 +144,6 @@ class PurchaseController():
             required_files = {
                 'invoice_id': 'Numero de Factura',
                 'invoice_type': 'Tipo de Factura',
-                'obs': 'Observaciones',
                 'expiration': 'Fecha de Vencimiento' 
             }
 
@@ -276,6 +274,10 @@ class PurchaseController():
             # Convertir los valores a los tipos correctos            
             purchase_id = int(item_data['Purchase_id'])
             product_id = int(item_data['Product_id'])
+
+            if self.exists_product_on_purchase(win, parent, purchase_id, product_id):
+                return
+
             product_name = item_data['Product_name']
             pack = item_data['Pack']
             qty = int(item_data['Qty'])
@@ -311,8 +313,9 @@ class PurchaseController():
                 doc_id = purchase_data[3]
 
             # Se agrega item a la compra
-            ok = self.model.purchase.handle_add_p_item(item_data_clean, purchase_id, doc_type, doc_id)
-            if ok:
+            result = self.model.purchase.handle_add_p_item(item_data_clean, purchase_id, doc_type, doc_id)
+            print(f'result: {result}')
+            if result:
                 show_success('Item agregado con exito')
                 close_win(win, parent)
                  
@@ -384,6 +387,20 @@ class PurchaseController():
         try: int(n); return True
         except:
             return False
+        
+    ## -- Verifica si el producto ya fue incluido en la compra -- ##
+    def exists_product_on_purchase(self, win, parent, purchase_id, product_id):
+        result = self.model.purchase.get_product_on_purchase(purchase_id, product_id)
+        print(f'result: {result}')
+        if result is None:
+            return False
+        
+        else:
+            show_error('Error. El producto ya esta incluido en la compra. \n' \
+                       'Para cualquier modificacion Agregar nuevamente.')
+            
+            close_win(win, parent)
+            return True
 
     ## -- Eliminar un registro de compra -- ##    
     def delete_purchase(self, purchase_id, doc_type):
@@ -409,6 +426,7 @@ class PurchaseController():
 
             show_success('Compra eliminada con exito.')
 
+    ## -- Elimina un item de compra -- ##
     def delete_purchase_item(self, purchase_id, product_id):
         try:
             
@@ -422,9 +440,13 @@ class PurchaseController():
 
             result = self.model.purchase.handle_delete_purchase_item(purchase_id, product_id, doc_type, doc_id)
             if result:
+                show_success('Item eliminado con exito')
                 ## actualizar tabla y labels
                 self.info_view.load_data(doc_id)
                 self.info_view.load_data_into_the_sheet()
+
+            else:
+                show_error('Ocurrio un error')
                 
 
         except ValueError as e:

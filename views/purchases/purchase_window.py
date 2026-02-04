@@ -150,6 +150,12 @@ class PurchaseWindow():
                 self.purchase_tree.column(col, width=60, anchor="center")
             else:
                 self.purchase_tree.column(col, width=150, anchor="center")
+
+        # Tags para colores de filas
+        self.purchase_tree.tag_configure('orow',background="#FFFFFF")
+        self.purchase_tree.tag_configure('purchase_draft', background="#ffebee")
+        self.purchase_tree.tag_configure('purchase_paid', background="#fff3e0")
+
         self.purchase_tree.pack(side="left", fill="both", expand=True)
 
         #  scrollbar 
@@ -579,6 +585,13 @@ class PurchaseWindow():
 
         # Cargar compras
         for p in purchases:
+            if p[7] == 'BORRADOR':
+                tag = "purchase_draft"
+            elif p[7] == 'PAGADA':
+                tag = "purchase_paid"
+            else:
+                tag = "orow"
+
             self.purchase_tree.insert(
                 parent="", index="end", iid=p[0],
                 values=(
@@ -591,6 +604,6 @@ class PurchaseWindow():
                     p[9], # saldo pend
                     p[10] # total
                 ),
-                tag="orow"
+                tag=tag
             )
 

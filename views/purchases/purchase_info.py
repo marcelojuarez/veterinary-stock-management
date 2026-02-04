@@ -450,8 +450,6 @@ class PurchaseInfo():
 
             # Control si tiene compras asociadas
             self.controller.confirm_purchase(purchase_id)
-        
-            close_win(win, parent)
         else:
             print('no aca')
             return
