@@ -9,6 +9,8 @@ from views.stock_view import StockView
 from views.sales_view import SalesView
 from views.supplier_view import SupplierView
 from views.customers_view import CustomersView
+from views.reports_view import ReportsView
+from datetime import datetime
 
 from controllers.auth_controller import validate_data
 from controllers.stock_controller import StockController
@@ -19,6 +21,7 @@ from controllers.purchase_controller import PurchaseController
 from controllers.payment_controller import PaymentController
 from controllers.supplier_invoice_controller import SupplierInvoiceController
 from controllers.supplier_receipt_controller import SupplierReceiptController
+from controllers.iva_reports_controller import ReportsController
 
 class App():
     def __init__(self):
@@ -105,6 +108,8 @@ class App():
         self.sales_controller = SalesController()
         self.supplier_controller = SupplierController()
         self.customer_controller = CustomerController()
+        self.iva_reports_controller = ReportsController()
+
 
         self.purchase_controller = PurchaseController(event_bus)
 
@@ -152,6 +157,20 @@ class App():
         self.backup_view = BackupManagerView(self.notebook, controller=self.stock_controller)
         self.backup_view.frame.pack(fill='both', expand=True)
         self.notebook.add(self.backup_view.frame, text='Backups')
+
+        # --- REPORTES ---
+        self.reports_view = ReportsView(self.notebook, controller=self.iva_reports_controller)
+        self.iva_reports_controller.set_view(self.reports_view)
+
+        self.reports_view.frame.pack(fill='both', expand=True)
+        self.notebook.add(self.reports_view.frame, text='Reportes')
+
+        # Cargar mes actual automáticamente
+        self.iva_reports_controller.load_period_reports(
+            datetime.now().month,
+            datetime.now().year
+        )
+
 
     def load_initial_data(self):
         try:

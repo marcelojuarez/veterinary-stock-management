@@ -29,3 +29,21 @@ def normalize_string_to_dec(value):
         return None
 
 
+def format_money(value):
+    try:
+        if value is None:
+            return "$0.00"
+
+        dec = Decimal(str(value))
+        return f"${dec:,.2f}"
+    except (InvalidOperation, ValueError):
+        return "$0.00"
+
+
+def format_percent(value):
+    try:
+        return f"{float(Decimal(value)):.1f}%"
+    except (InvalidOperation, TypeError, ValueError):
+        return "0.0%"
+
+

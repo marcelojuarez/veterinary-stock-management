@@ -86,9 +86,37 @@ class NewProductForm():
         add_field(0, "Nombre Artículo: ", 
                 ctk.CTkEntry(form_frame, textvariable=self.name_var, width=200))
         
-        add_field(1, "Envase: ",
-                ctk.CTkComboBox(form_frame, values=["UNIDAD", "CAJA", "FRASCO", "AMPOLLA", "SOBRE", "OTRO"], 
-                variable=self.pack_var, width=200, height=35))
+        add_field(
+            1,
+            "Envase: ",
+            ctk.CTkComboBox(
+                form_frame,
+                values=[
+                    "UNIDAD",
+                    "10 ML",
+                    "20 ML",
+                    "25 ML",
+                    "50 ML",
+                    "90 ML",
+                    "100 ML",
+                    "200 ML",
+                    "250 ML",
+                    "300 ML",
+                    "500 ML",
+                    "400 GR",
+                    "5 KG",
+                    "10 KG",
+                    "12 KG",
+                    "15 KG",
+                    "20 KG",
+                    "25 KG",
+                    "40 DS",
+                ],
+                variable=self.pack_var,
+                width=200,
+                height=35
+            )
+        )
 
         self.pack_var.set("UNIDAD")
 
