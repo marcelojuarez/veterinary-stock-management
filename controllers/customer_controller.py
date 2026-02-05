@@ -226,61 +226,6 @@ class CustomerController:
             except Exception as e:
                 show_error(f"Error al obtener las deudas del cliente: {e}")
 
-    def register_payment(self, sale_id, client_id, amount, method, window):
-        try:
-            # 1) Estado ANTES (para saldo previo)
-            before = self.payment_model.get_sale_balance(sale_id)
-
-            # 2) Registrar pago
-            self.payment_model.create_payment(
-                sale_id=sale_id,
-                client_id=client_id,
-                amount=amount,
-                method=method,
-                notes="Payment through UI"
-            )
-
-            # 3) Actualizar estado y congelar si queda paid
-            status = self.payment_model.update_sale_status(sale_id,skip_credit_generation=True)
-
-            self.payment_model.reconcile_sale(sale_id)
-
-            # 4) Estado DESPUÉS (para saldo restante / total)
-            after = self.payment_model.get_sale_balance(sale_id)
-
-            # 5) Actualizar UI de deudas
-            debts = self.model.get_customer_debts(client_id)
-            total = self.model.get_total_debt(client_id)
-            credit = round(self.payment_model.get_customer_credit(client_id), 2)
-            net = round(max(0.0, total - credit), 2)
-            self.view.update_debt_window(debts, total, credit, net)
-
-            window.destroy()
-            show_success("Pago registrado con éxito.")
-
-            # 6) Comprobante (siempre que el usuario quiera)
-            fmt = self.ask_receipt_format()
-            if not fmt:
-                return
-
-            client_name = self.model.find_customer_by_id(client_id)[1]
-            sale_items = self.model.get_sale_items(sale_id)
-
-            generate_receipts_for_payment(
-                mode="sale",
-                format=fmt,
-                client_name=client_name,
-                method=method,
-                amount=amount,
-                sale_id=int(sale_id),
-                sale_info=after,
-                payments=self.payment_model.get_payments_for_sale(sale_id),
-                sale_items=sale_items
-            )
-
-        except Exception as e:
-            show_error(f"Error: {e}")
-
 
     def open_global_payment_window(self):
         customer_id = self.view.get_selected_customer_id()
@@ -297,7 +242,7 @@ class CustomerController:
         # Crear ventana modal con estilo
         win = ctk.CTkToplevel(self.view.frame)
         win.title("Pago Global a Cuenta")
-        win.geometry("450x400")
+        win.geometry("450x410")
         win.transient(self.view.frame)
         win.grab_set()
 
@@ -344,6 +289,45 @@ class CustomerController:
         )
         entry_amount.pack()
 
+        # Método de pago
+        ctk.CTkLabel(
+            content, 
+            text="Método de pago:", 
+            font=ctk.CTkFont(weight="bold")
+        ).pack(anchor="w", pady=(20, 5))
+
+        method_var = ctk.StringVar(value="Efectivo")
+        method_menu = ctk.CTkComboBox(
+            content,
+            variable=method_var,
+            values=["Efectivo", "Tarjeta", "Transferencia", "Cheque", "Otro"],
+            width=250,
+            height=40,
+            font=ctk.CTkFont(size=14)
+        )
+        method_menu.pack()
+
+        # Separador visual
+        ctk.CTkFrame(content, fg_color="#e0e0e0", height=2).pack(fill="x", pady=(15, 8))
+
+        # Mostrar deuda total destacada
+        deuda_frame = ctk.CTkFrame(content, fg_color="#f5f5f5", corner_radius=8)
+        deuda_frame.pack(fill="x", pady=(0, 5))
+
+        ctk.CTkLabel(
+            deuda_frame,
+            text="Deuda total del cliente:",
+            font=ctk.CTkFont(size=12),
+            text_color="#666666"
+        ).pack(pady=(8, 2))
+
+        ctk.CTkLabel(
+            deuda_frame,
+            text=f"${total_debt:,.2f}",
+            font=ctk.CTkFont(size=20, weight="bold"),
+            text_color="#D32F2F"
+        ).pack(pady=(0, 8))
+        
         def process():
             try:
                 val = entry_amount.get().strip()
@@ -371,7 +355,8 @@ class CustomerController:
                 return
 
             try:
-                result = self.payment_model.apply_global_payment(customer_id, amount)
+                method = method_var.get()
+                result = self.payment_model.apply_global_payment(customer_id, str(amount), method=method)
 
                 # Construir mensaje de resultado
                 msg = ("Pago registrado con éxito.")
@@ -413,7 +398,7 @@ class CustomerController:
                         mode="global",
                         format=fmt,
                         client_name=client_name,
-                        method="Global",
+                        method=method,
                         amount=amount,
                         customer_id=customer_id,
                         result_data=result,
@@ -426,7 +411,7 @@ class CustomerController:
 
         # Botones
         btn_frame = ctk.CTkFrame(win, fg_color="transparent")
-        btn_frame.pack(pady=20, fill="x", padx=20)
+        btn_frame.pack(pady=(5,15), fill="x", padx=20)
 
         ctk.CTkButton(
             btn_frame, 
