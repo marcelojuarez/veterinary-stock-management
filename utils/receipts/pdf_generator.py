@@ -478,7 +478,7 @@ def generate_global_payment_receipt(*, file_path, client_name, payment_amount, m
                 c.setFont("Helvetica", 8)
                 c.setFillColor(black)
                 for item in items:
-                    nombre, cantidad, precio, subtotal = item
+                    nombre, cantidad, precio, subtotal = item[:4]
                     
                     # Truncar nombre si es muy largo
                     nombre_display = nombre[:28] + "..." if len(str(nombre)) > 28 else str(nombre)

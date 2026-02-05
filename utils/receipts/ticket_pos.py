@@ -224,7 +224,7 @@ def generate_global_payment_ticket(
                 c.setFont("Helvetica", 6.5)
                 
                 for item in items:
-                    nombre, cantidad, precio, subtotal = item
+                    nombre, cantidad, precio, subtotal = item[:4]
                     
                     # Truncar nombre para que entre en el ticket
                     nombre_display = nombre[:22] + "..." if len(str(nombre)) > 22 else str(nombre)
