@@ -112,6 +112,7 @@ def generate_global_payment_ticket(
     commerce_cuit,
     client_name,
     amount,
+    method,
     result_data,
     sales_items=None,
     ticket_width_mm=80
@@ -192,7 +193,8 @@ def generate_global_payment_ticket(
     sep()
 
     tl(f"CLIENTE: {client_name}", 7.5)
-    tl("PAGO GLOBAL A CUENTA", 7.5)
+    tl("PAGO A CUENTA", 7.5)
+    tl(f"{method.upper()}", 7.5)
     y -= 2
     sep(True)
 

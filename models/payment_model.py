@@ -132,7 +132,7 @@ class PaymentModel:
         )
         return rows
 
-    def apply_global_payment(self, customer_id, amount):
+    def apply_global_payment(self, customer_id, amount, method="Efectivo"):
         """
         Aplica un pago global distribuido entre las deudas pendientes. 
         Nota: Usualmente es FIFO (ASC)
@@ -170,7 +170,7 @@ class PaymentModel:
                     sale_id=sale_id,
                     client_id=customer_id,
                     amount=pay_amount,
-                    method="Global",
+                    method=method,
                     notes="Pago Global Automático"
                 )
                 
@@ -276,8 +276,6 @@ class PaymentModel:
 
         client_id, current_status, total_cerrado = row_sale
 
-        # 🔹 CAMBIO: Solo respetamos total_cerrado si está PAID y cerrada
-        # Si es partial/pending, SIEMPRE recalculamos
         if current_status == "paid" and total_cerrado is not None:
             # Ya está cerrada, no tocar
             return "paid"

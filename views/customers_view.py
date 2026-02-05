@@ -507,22 +507,9 @@ class CustomersView:
         btn_frame = ctk.CTkFrame(win, fg_color="transparent")
         btn_frame.pack(pady=10)
 
-        def mark_as_paid():
-            selected = self.debt_table.selection()
-            
-            if total == 0:
-                messagebox.showwarning("Advertencia", "El cliente no tiene deudas pendientes")
-                return
-            
-            if not selected:
-                messagebox.showwarning("Advertencia", "Seleccione una venta para registrar un pago.")
-                return
-            sale_id = self.debt_table.item(selected[0])["values"][0]
-            self.open_payment_window(sale_id, cliente_id, cliente_nombre)
-
         btn_pago_global = ctk.CTkButton(
             btn_frame,
-            text="Pagar todas las ventas",
+            text="Pagar",
             width=160,
             height=35,
             fg_color="#009688",
@@ -531,18 +518,6 @@ class CustomersView:
             command=lambda: self.controller.open_global_payment_window() if self.controller else None
         )
         btn_pago_global.grid(row=0, column=0, padx=10)
-
-        btn_pago_seleccionado = ctk.CTkButton(
-            btn_frame,
-            text="Pagar venta seleccionada",
-            width=160,
-            height=35,
-            fg_color="#009688",
-            hover_color="#00796B",
-            font=ctk.CTkFont(size=13, weight="bold"),
-            command=mark_as_paid
-        )
-        btn_pago_seleccionado.grid(row=0, column=1, padx=10)
 
         btn_usar_credito = ctk.CTkButton(
             btn_frame,
@@ -555,7 +530,7 @@ class CustomersView:
             state="normal" if credit > 0 else "disabled",
             command=lambda: self.controller.apply_credit_to_debts(cliente_id, cliente_nombre) if self.controller else None
         )
-        btn_usar_credito.grid(row=0, column=2, padx=10, pady=5)
+        btn_usar_credito.grid(row=0, column=1, padx=10, pady=5)
         
         btn_historial = ctk.CTkButton(
             btn_frame,
@@ -567,7 +542,7 @@ class CustomersView:
             font=ctk.CTkFont(size=13, weight="bold"),
             command=lambda: self.controller.show_account_history(cliente_id, cliente_nombre) if self.controller else None
         )
-        btn_historial.grid(row=0, column=3, padx=10)
+        btn_historial.grid(row=0, column=2, padx=10)
 
         # ----------------------------------------------------------------
         # Evento: seleccionar deuda -> cargar detalle de productos
@@ -655,241 +630,6 @@ class CustomersView:
             print(f"Error mostrando items: {e}")
             messagebox.showerror("Error", f"No se pudieron mostrar los productos: {e}")
 
-    def open_payment_window(self, sale_id, client_id, client_name):
-        """Ventana de pago historial, monto, métodos, saldo."""
-        # ================================================================
-        #  CREAR VENTANA
-        # ================================================================
-        width_win = 550
-        height_win = 550
-
-        x_root = self.frame.winfo_x()
-        y_root = self.frame.winfo_y()
-        width_root = self.frame.winfo_width()
-        height_root = self.frame.winfo_height()
-
-        x = x_root + (width_root // 2) - (width_win // 2)
-        y = y_root + (height_root // 2) - (height_win // 2)
-        win = ctk.CTkToplevel(self.frame)
-        win.title(f"Registrar Pago - Venta #{sale_id}")
-        win.geometry(f"{width_win}x{height_win}+{x}+{y}")
-        win.transient(self.frame)
-        win.grab_set()
-
-        # ================================================================
-        #  CONSULTAR SALDO Y PAGOS
-        # ================================================================
-        info = self.controller.payment_model.get_sale_balance(sale_id)
-        payments = self.controller.payment_model.get_payments_for_sale(sale_id)
-
-        total_sale = info["total"]
-        paid = info["paid"]
-        balance = info["balance"]
-
-        # ================================================================
-        #  TÍTULO
-        # ================================================================
-        ctk.CTkLabel(
-            win, text=f"Pago de Venta #{sale_id} - Cliente {client_name}",
-            font=ctk.CTkFont(size=16, weight="bold")
-        ).pack(pady=10)
-
-        # ================================================================
-        #  SALDO
-        # ================================================================
-        balance_label = ctk.CTkLabel(
-            win,
-            text=f"Saldo pendiente: ${balance:.2f}",
-            font=ctk.CTkFont(size=15, weight="bold")
-        )
-        balance_label.pack(pady=(0, 15))
-
-        if balance <= 0:
-            balance_label.configure(
-                text="Esta venta ya está PAGADA ✔",
-                text_color="#4CAF50"
-            )
-            messagebox.showinfo("Venta Pagada", "Esta venta no tiene saldo pendiente.")
-
-            # Desactivar entradas
-            amount_entry = ctk.CTkEntry(form_frame, state="disabled")
-            try:
-                method_menu.configure(state="disabled")
-            except:
-                pass
-
-            # Desactivar controles
-            for w in form_frame.winfo_children():
-                try:
-                    w.configure(state="disabled")
-                except:
-                    pass
-
-            for w in button_frame.winfo_children():
-                try:
-                    w.configure(state="disabled")
-                except:
-                    pass
-
-            return
-
-        # ================================================================
-        #  HISTORIAL DE PAGOS
-        # ================================================================
-        ctk.CTkLabel(
-            win, text="Historial de Pagos", font=ctk.CTkFont(size=14, weight="bold")
-        ).pack()
-
-        columns = ("ID", "Fecha", "Monto", "Método")
-        pay_table = ttk.Treeview(win, columns=columns, show="headings", height=5)
-
-        for col, w in zip(columns, [50, 150, 100, 120]):
-            pay_table.column(col, width=w, anchor="center")
-            pay_table.heading(col, text=col, anchor="center")
-
-        pay_table.pack(padx=10, pady=10, fill="x")
-
-        for p in payments:
-            pay_table.insert("", "end", values=p)
-
-        # ================================================================
-        #  FORMULARIO DE PAGO
-        # ================================================================
-        form_frame = ctk.CTkFrame(win)
-        form_frame.pack(pady=10, padx=15, fill="x")
-
-        # Entrada de monto
-        ctk.CTkLabel(
-            form_frame, 
-            text="Monto a pagar:",
-            font=ctk.CTkFont(size=12, weight="bold"),
-        ).grid(
-            row=0, 
-            column=0, 
-            padx=10, 
-            pady=10, 
-            sticky="w"
-        )
-
-        amount_var = ctk.StringVar()
-        amount_entry = ctk.CTkEntry(form_frame, textvariable=amount_var, width=150)
-        amount_entry.grid(row=0, column=1, pady=10, padx=10)
-
-        # Método de pago
-        ctk.CTkLabel(
-            form_frame, 
-            text="Método:",
-            font=ctk.CTkFont(size=12, weight="bold"),
-        ).grid(
-            row=1, 
-            column=0, 
-            padx=10,
-            pady=10, 
-            sticky="w"
-        )
-        method_var = ctk.StringVar(value="Efectivo")
-
-        method_menu = ctk.CTkComboBox(
-            form_frame,
-            variable=method_var,
-            values=["Efectivo", "Tarjeta", "Transferencia", "Otro"],
-            width=150
-        )
-        method_menu.grid(row=1, column=1, pady=10, padx=10)
-
-        # ================================================================
-        #  VALIDACIÓN EN TIEMPO REAL
-        # ================================================================
-        def validate_amount(*args):
-            val = amount_var.get().strip()
-            try:
-                num = float(val)
-
-                # Si ingresa más del saldo → sobrescribir automáticamente
-                if num > balance:
-                    amount_var.set(str(balance))
-                    amount_entry.configure(fg_color="white")
-                    return
-
-                if num <= 0:
-                    amount_entry.configure(fg_color="#FFCDD2")
-                else:
-                    amount_entry.configure(fg_color="white")
-
-            except:
-                amount_entry.configure(fg_color="#FFCDD2")
-
-
-        amount_var.trace("w", validate_amount)
-
-        # ================================================================
-        #  FUNCIONES PARA LOS BOTONES
-        # ================================================================
-        def confirm_payment():
-            val = amount_var.get().strip()
-            try:
-                amount = float(val)
-            except:
-                messagebox.showerror("Error", "Ingrese un monto válido.")
-                return
-
-            if amount <= 0:
-                messagebox.showerror("Error", "El monto debe ser mayor a 0.")
-                return
-            
-            if amount > balance:
-                messagebox.showerror("Error", "El monto excede el saldo pendiente.")
-                return
-
-            # Registrar pago
-            self.controller.register_payment(
-                sale_id, client_id, amount, method_var.get(), win
-            )
-
-        def pay_full_balance():
-            """Pagar el saldo completo usando los controles existentes"""
-            amount_var.set(str(balance))
-
-        # ================================================================
-        #  BOTONES INFERIORES - DISEÑO PROFESIONAL
-        # ================================================================
-        button_frame = ctk.CTkFrame(win, fg_color="transparent")
-        button_frame.pack(pady=20)
-
-        ctk.CTkButton(
-            button_frame,
-            text="Pagar Saldo Completo",
-            fg_color="#4CAF50",
-            hover_color="#45a049",
-            command=pay_full_balance,
-            width=160,
-            height=40,
-            font=ctk.CTkFont(size=13, weight="bold")
-        ).grid(row=0, column=0, padx=5)
-
-        ctk.CTkButton(
-            button_frame,
-            text="Registrar Pago",
-            fg_color="#009688",
-            hover_color="#00796B",
-            command=confirm_payment,
-            width=160,
-            height=40,
-            font=ctk.CTkFont(size=13, weight="bold")
-        ).grid(row=0, column=1, padx=5)
-
-        ctk.CTkButton(
-            button_frame,
-            text="Cerrar",
-            fg_color="#757575",
-            hover_color="#616161",
-            command=win.destroy,
-            width=160,
-            height=40,
-            font=ctk.CTkFont(size=13, weight="bold")
-        ).grid(row=0, column=2, padx=5)
-
-
     def select_customer_in_table(self, customer_id):
         """Re-selecciona el cliente en la tabla luego de un pago."""
         for row in self.table.get_children():
@@ -912,14 +652,12 @@ class CustomersView:
         x = x_root + (width_root // 2) - (width_win // 2)
         y = y_root + (height_root // 2) - (height_win // 2)
 
-         # Usar porcentaje en lugar de valor fijo
-        offset_percentage = 0.1  # 10% hacia arriba
+        offset_percentage = 0.1  
         y_offset = int(height_win * offset_percentage)
         
         x = x_root + (width_root // 2) - (width_win // 2)
         y = y_root + (height_root // 2) - (height_win // 2) - y_offset
-        
-        # Asegurarnos de que no sea negativo
+
         if y < 0:
             y = max(20, y_root + 50) 
 
@@ -1022,14 +760,11 @@ class CustomersView:
         history_table.configure(yscrollcommand=scroll_y.set)
         scroll_y.pack(side="right", fill="y")
         history_table.pack(fill="both", expand=True)
+
         # Insertar movimientos
         for mov in reversed(movements):
             fecha_fmt = mov["fecha"][:16] if len(mov["fecha"]) > 16 else mov["fecha"]
-            
-            # Mostrar monto en columna DEBE (ventas)
             debe_txt = f"${mov['debe']:,.2f}" if mov["debe"] > 0 else ""
-            
-            # Mostrar monto en columna HABER (pagos)
             haber_txt = f"${mov['haber']:,.2f}" if mov["haber"] > 0 else ""
             
             # Saldo con formato claro
@@ -1053,7 +788,6 @@ class CustomersView:
                 saldo_txt      # Deuda/Crédito
             ))
 
-        # Colorear filas según tipo
         def tag_rows():
             for item in history_table.get_children():
                 values = history_table.item(item)["values"]
@@ -1079,7 +813,6 @@ class CustomersView:
         btn_frame = ctk.CTkFrame(win, fg_color="transparent")
         btn_frame.pack(pady=15)
 
-        # Determinar si se puede resetear (deuda = 0)
         can_reset = summary['deuda_pendiente'] <= 0.01
 
         ctk.CTkButton(
@@ -1092,8 +825,6 @@ class CustomersView:
             font=ctk.CTkFont(size=13, weight="bold"),
             command=lambda: self.controller.export_account_history_pdf(cliente_id, cliente_nombre) if self.controller else None
         ).grid(row=0, column=0, padx=10)
-
-        # Cambiar el botón Reset en open_account_history_window:
 
         ctk.CTkButton(
             btn_frame,

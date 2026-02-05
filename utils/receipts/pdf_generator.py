@@ -304,7 +304,7 @@ def generate_payment_receipt(*, file_path, client_name, sale_id, payment_amount,
 # ============================================================
 #               RECIBO DE PAGO GLOBAL 
 # ============================================================
-def generate_global_payment_receipt(*, file_path, client_name, payment_amount, result_data, sale_items=None):
+def generate_global_payment_receipt(*, file_path, client_name, payment_amount, method, result_data, sale_items=None):
     """
     Genera comprobante A4 de pago global.
     Estilo ticket profesional en blanco y negro.
@@ -389,7 +389,7 @@ def generate_global_payment_receipt(*, file_path, client_name, payment_amount, r
     # ================================================================
     draw_text_left("ORIGINAL", 8, bold=True)
     y += 15
-    draw_pill("COMPROBANTE PAGO GLOBAL")
+    draw_pill("COMPROBANTE DE PAGO")
     y -= 20
     
     now = datetime.now()
@@ -416,7 +416,8 @@ def generate_global_payment_receipt(*, file_path, client_name, payment_amount, r
     # DATOS DEL CLIENTE
     # ================================================================
     draw_text_left(f"CLIENTE: {client_name}", 11, bold=True, extra_spacing=2)
-    draw_text_left("TIPO: PAGO GLOBAL A CUENTA", 10, extra_spacing=2)
+    draw_text_left("TIPO: PAGO A CUENTA", 10, extra_spacing=2)
+    draw_text_left(f"MÉTODO DE PAGO: {method.upper()}", 10, extra_spacing=2)
     
     draw_separator(extra_spacing=15)
     

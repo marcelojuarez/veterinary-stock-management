@@ -79,6 +79,7 @@ def generate_receipts_for_payment(
                 commerce_cuit=COMMERCE["cuit"],
                 client_name=client_name,
                 amount=amount,
+                method=method,
                 result_data=result_data,
                 sales_items=sale_items
             )
@@ -108,6 +109,7 @@ def generate_receipts_for_payment(
                 file_path=a4_path,
                 client_name=client_name,
                 payment_amount=amount,
+                method=method,
                 result_data=result_data,
                 sale_items=sale_items
             )
