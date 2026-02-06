@@ -176,27 +176,23 @@ class Database:
             cursor.execute(''' 
                 CREATE TABLE IF NOT EXISTS supplier_invoice(
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
-                           
-                    -- Relacion
                     supplier_id INTEGER,
                            
-                    -- Datos de la factura
                     invoice_id TEXT,
                     invoice_type TEXT,
                     
-                    -- Fechas
                     date TEXT CURRENT_DATE,
-                    expiration_date TEXT CURRENT_DATE,
-
-                    -- Montos     
-                    total TEXT NOT NULL,
-                    subtotal TEXT NOT NULL,
-                    iva TEXT NOT NULL,
-                    discount TEXT NOT NULL,
-                    
-                    -- Otros
+                    expiration_date TEXT CURRENT_DATE,  
                     state TEXT,
-                    observations TEXT,
+                    observations TEXT, 
+        
+                    orig_subtotal TEXT NOT NULL,
+                    discount TEXT NOT NULL,
+                    discount_amount TEXT NOT NULL,
+                    subtotal_w_discount TEXT NOT NULL,
+                    iva TEXT NOT NULL,
+                           
+                    total TEXT NOT NULL,
                            
                     FOREIGN KEY (supplier_id) REFERENCES supplier (id)
                 );

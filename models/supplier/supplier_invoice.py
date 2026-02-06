@@ -11,21 +11,23 @@ class SupplierInvoice():
         date = datetime.now().strftime("%Y-%m-%d")
         query = """
         INSERT INTO supplier_invoice(supplier_id, invoice_id, invoice_type, date, expiration_date, 
-        total, subtotal, iva, discount, state, observations)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        state, observations, orig_subtotal, discount, discount_amount, subtotal_w_discount, iva, total)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """
-        params =[
+        params = [
             data['supplier_id'],
             data['invoice_id'],
             data['invoice_type'],
             date,
             data['expiration_date'],
-            str(data['total']),
-            str(data['subtotal']),
-            str(data['iva']),
-            str(data['discount']),
             data['state'],
             data['observations'],
+            data['orig_subtotal'],
+            str(data['discount']),
+            data['discount_amount'],
+            data['subtotal_w_discount'],
+            data['iva'],
+            data['total'],
         ]
 
         return self.db.execute_query(query, params, conn=conn, commit=commit)
@@ -37,9 +39,17 @@ class SupplierInvoice():
         """
 
         return self.db.fetch_one(query, (invoice_id, ))
+    
+    def get_invoice_discount(self, invoice_id):
+        query = """
+        SELECT discount FROM supplier_invoice
+        WHERE id = ? 
+        """
+
+        return self.db.fetch_one(query, (invoice_id, ))
         
     def update_invoice_info(self, invoice_id, data, conn=None, commit=True):
-        date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        date = datetime.now().strftime("%Y-%m-%d")
         query = """
         UPDATE supplier_invoice
         SET 
@@ -56,7 +66,7 @@ class SupplierInvoice():
             data['invoice_type'], 
             data['obs'],
             date,
-            data['expiration'],
+            traditional_to_iso(data['expiration']),
             invoice_id
         ]
 

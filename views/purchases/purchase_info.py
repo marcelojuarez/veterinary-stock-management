@@ -142,20 +142,22 @@ class PurchaseInfo():
 
             elif doc_type == "FACTURA":
                 width_win = 750
-                height_win = 900
+                height_win = 950
 
                 self.doc_type.set('invoice')
 
                 self.invoice_vars = {
                         'number': tk.StringVar(),
                         'type': tk.StringVar(),
-                        'obs': tk.StringVar(),
                         'date': tk.StringVar(),
                         'expiration': tk.StringVar(),
-                        'iva': tk.StringVar(),
                         'state': tk.StringVar(),
+                        'obs': tk.StringVar(),
+                        'orig_subtotal': tk.StringVar(),
                         'discount': tk.StringVar(),
-                        'subtotal': tk.StringVar(),
+                        'discount_amount': tk.StringVar(),
+                        'subtotal_w_discount': tk.StringVar(),
+                        'iva': tk.StringVar(),
                         'total': tk.StringVar()
                     }
                 
@@ -183,39 +185,39 @@ class PurchaseInfo():
                 type_box.grid(row=1, column=1, sticky="w", padx=15, pady=6)
                 type_box.set('A')
 
-                # OBSERVACIONES
-                ctk.CTkLabel(info_frame, text="Observaciones: ", font=ctk.CTkFont(size=13, weight="bold")
-                ).grid(row=2, column=0, sticky="w", padx=15, pady=6)
-
-                obs_entry = ctk.CTkEntry(
-                    info_frame, textvariable=self.invoice_vars["obs"], width=250, height=60, state='readonly', font=ctk.CTkFont(size=13)
-                )
-                obs_entry.grid(row=2, column=1, sticky="w", padx=15, pady=6)
-
                 # FECHA
                 ctk.CTkLabel(info_frame, text="Fecha: ", font=ctk.CTkFont(size=13, weight="bold")
-                ).grid(row=3, column=0, sticky="w", padx=15, pady=6)
+                ).grid(row=2, column=0, sticky="w", padx=15, pady=6)
 
                 ctk.CTkEntry(
                     info_frame, textvariable=self.invoice_vars["date"], width=200, state='readonly', font=ctk.CTkFont(size=13)
-                ).grid(row=3, column=1, sticky="w", padx=15, pady=6)
+                ).grid(row=2, column=1, sticky="w", padx=15, pady=6)
 
                 # FECHA DE VENC
                 ctk.CTkLabel(info_frame, text="Fecha de Vencimiento: ", font=ctk.CTkFont(size=13, weight="bold")
-                ).grid(row=4, column=0, sticky="w", padx=15, pady=6)
+                ).grid(row=3, column=0, sticky="w", padx=15, pady=6)
 
                 exp_date_entry = ctk.CTkEntry(
                     info_frame, textvariable=self.invoice_vars["expiration"], width=200, state='readonly', font=ctk.CTkFont(size=13)
                 )
-                exp_date_entry.grid(row=4, column=1, sticky="w", padx=15, pady=6)
+                exp_date_entry.grid(row=3, column=1, sticky="w", padx=15, pady=6)                
 
-                # IVA
-                ctk.CTkLabel(info_frame, text="Monto IVA: ", font=ctk.CTkFont(size=13, weight="bold")
+                # OBSERVACIONES
+                ctk.CTkLabel(info_frame, text="Observaciones: ", font=ctk.CTkFont(size=13, weight="bold")
+                ).grid(row=4, column=0, sticky="w", padx=15, pady=6)
+
+                obs_entry = ctk.CTkEntry(
+                    info_frame, textvariable=self.invoice_vars["obs"], width=250, height=60, state='readonly', font=ctk.CTkFont(size=13)
+                )
+                obs_entry.grid(row=4, column=1, sticky="w", padx=15, pady=6)
+
+                # SUBTOTAL ORIGINAL
+                ctk.CTkLabel(info_frame, text="Subtotal: ", font=ctk.CTkFont(size=13, weight="bold")
                 ).grid(row=5, column=0, sticky="w", padx=15, pady=6)
 
                 ctk.CTkEntry(
-                    info_frame, textvariable=self.invoice_vars["iva"], width=200, state='readonly', font=ctk.CTkFont(size=13)
-                ).grid(row=5, column=1, sticky="w", padx=15, pady=6)
+                    info_frame, textvariable=self.invoice_vars["orig_subtotal"], width=200, state='readonly', font=ctk.CTkFont(size=13)
+                ).grid(row=5, column=1, sticky="w", padx=15, pady=6)  
 
                 # DESCUENTO
                 ctk.CTkLabel(info_frame, text="Descuento %: ", font=ctk.CTkFont(size=13, weight="bold")
@@ -223,23 +225,39 @@ class PurchaseInfo():
 
                 ctk.CTkEntry(
                     info_frame, textvariable=self.invoice_vars["discount"], width=200, state='readonly', font=ctk.CTkFont(size=13)
-                ).grid(row=6, column=1, sticky="w", padx=15, pady=6)            
+                ).grid(row=6, column=1, sticky="w", padx=15, pady=6)   
 
-                # SUBTOTAL
-                ctk.CTkLabel(info_frame, text="Subtotal: ", font=ctk.CTkFont(size=13, weight="bold")
+                # MONTO DESCUENTO
+                ctk.CTkLabel(info_frame, text="Monto Descuento: ", font=ctk.CTkFont(size=13, weight="bold")
                 ).grid(row=7, column=0, sticky="w", padx=15, pady=6)
 
                 ctk.CTkEntry(
-                    info_frame, textvariable=self.invoice_vars["subtotal"], width=200, state='readonly', font=ctk.CTkFont(size=13)
-                ).grid(row=7, column=1, sticky="w", padx=15, pady=6)            
+                    info_frame, textvariable=self.invoice_vars["discount_amount"], width=200, state='readonly', font=ctk.CTkFont(size=13)
+                ).grid(row=7, column=1, sticky="w", padx=15, pady=6)           
 
-                # Total
-                ctk.CTkLabel(info_frame, text="Total: ", font=ctk.CTkFont(size=13, weight="bold")
+                # SUBTOTAL CON DESCUENTO
+                ctk.CTkLabel(info_frame, text="Subtotal C/ Descuento: ", font=ctk.CTkFont(size=13, weight="bold")
                 ).grid(row=8, column=0, sticky="w", padx=15, pady=6)
 
                 ctk.CTkEntry(
+                    info_frame, textvariable=self.invoice_vars["subtotal_w_discount"], width=200, state='readonly', font=ctk.CTkFont(size=13)
+                ).grid(row=8, column=1, sticky="w", padx=15, pady=6)            
+
+                # IVA
+                ctk.CTkLabel(info_frame, text="Monto IVA: ", font=ctk.CTkFont(size=13, weight="bold")
+                ).grid(row=9, column=0, sticky="w", padx=15, pady=6)
+
+                ctk.CTkEntry(
+                    info_frame, textvariable=self.invoice_vars["iva"], width=200, state='readonly', font=ctk.CTkFont(size=13)
+                ).grid(row=9, column=1, sticky="w", padx=15, pady=6)
+                
+                # Total
+                ctk.CTkLabel(info_frame, text="Total: ", font=ctk.CTkFont(size=13, weight="bold")
+                ).grid(row=10, column=0, sticky="w", padx=15, pady=6)
+
+                ctk.CTkEntry(
                     info_frame, textvariable=self.invoice_vars["total"], width=200, state='readonly', font=ctk.CTkFont(size=13)
-                ).grid(row=8, column=1, sticky="w", padx=15, pady=6)
+                ).grid(row=10, column=1, sticky="w", padx=15, pady=6)
 
                 self.customizable_wid = [
                     num_entry,
@@ -366,13 +384,16 @@ class PurchaseInfo():
         except ValueError as e:
             print(f'Error{e}')
 
+        except Exception as e:
+            print(f'Error{e}')
+
     ## -- Carga campos con informacion -- ##
     def load_data(self, doc_id):
         if self.doc_type.get().strip() == 'receipt':
             # Widgets para informacion del remito
             receipt_data = self.model.purchase.supplier_receipt.get_receipt_data(doc_id)
 
-            self.receipt_vars['number'].set(receipt_data[2])
+            self.receipt_vars['number'].set(receipt_data[2]) 
             self.receipt_vars['date'].set(iso_to_traditional(receipt_data[3]))
             self.receipt_vars['expiration'].set(iso_to_traditional(receipt_data[4]))
             self.receipt_vars['obs'].set(receipt_data[5])
@@ -385,14 +406,16 @@ class PurchaseInfo():
 
             self.invoice_vars['number'].set(invoice_data[2])
             self.invoice_vars['type'].set(invoice_data[3])
-            self.invoice_vars['obs'].set(invoice_data[11])
-            self.invoice_vars['date'].set(invoice_data[4])
-            self.invoice_vars['expiration'].set(invoice_data[5])
-            self.invoice_vars['iva'].set(invoice_data[8])
-            self.invoice_vars['state'].set(invoice_data[10])
+            self.invoice_vars['date'].set(iso_to_traditional(invoice_data[4]))
+            self.invoice_vars['expiration'].set(iso_to_traditional(invoice_data[5]))
+            self.invoice_vars['state'].set(invoice_data[6])
+            self.invoice_vars['obs'].set(invoice_data[7])
+            self.invoice_vars['orig_subtotal'].set(invoice_data[8])
             self.invoice_vars['discount'].set(invoice_data[9])
-            self.invoice_vars['subtotal'].set(invoice_data[7])
-            self.invoice_vars['total'].set(invoice_data[6])
+            self.invoice_vars['discount_amount'].set(invoice_data[10])
+            self.invoice_vars['subtotal_w_discount'].set(invoice_data[11])
+            self.invoice_vars['iva'].set(invoice_data[12])
+            self.invoice_vars['total'].set(invoice_data[13])
 
     ## -- Carga tabla con informacion -- ##
     def load_data_into_the_sheet(self):
@@ -551,7 +574,7 @@ class PurchaseInfo():
         else:
             self.invoice_vars['number'].set(self.custom_wid_values[0])
             self.invoice_vars['type'].set(self.custom_wid_values[1])
-            self.invoice_vars['point_sale'].set(self.custom_wid_values[2])
+            self.invoice_vars['obs'].set(self.custom_wid_values[2])
             self.invoice_vars['expiration'].set(self.custom_wid_values[3])
         
         for w in self.customizable_wid:

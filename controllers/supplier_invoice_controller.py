@@ -1,6 +1,6 @@
 from views.view_helpers import show_success, show_error, show_warning, close_win
 from datetime import datetime
-from utils.utils import normalize_decimal, traditional_to_iso
+from utils.utils import normalize_string_to_dec, normalize_decimal, traditional_to_iso
 
 class SupplierInvoiceController():
     def __init__(self):
@@ -30,10 +30,11 @@ class SupplierInvoiceController():
             supplier_data = self.model.core.find_supplier_by_cuit(data['supplier_cuit'])
             
             if not self.validate_date(data):
+                win.focus_force()
                 return
             
             expiration_date = traditional_to_iso(data['expiration_date'])
-            total = normalize_decimal(data['total'])
+            discount = normalize_string_to_dec(data['discount'])
 
             invoice_params = {
                 'supplier_id': supplier_data[0],
@@ -42,10 +43,12 @@ class SupplierInvoiceController():
                 'expiration_date': expiration_date,
                 'state': data['state'],
                 'observations': data['observations'],
-                'subtotal': data['subtotal'],
+                'orig_subtotal': data['subtotal'],
+                'discount': discount,
+                'discount_amount': '0.00',
+                'subtotal_w_discount': data['subtotal'],
                 'iva': data['iva'],
-                'discount': data['discount'],
-                'total': total
+                'total': data['total']
             }
 
             purchase_params = {
@@ -54,8 +57,8 @@ class SupplierInvoiceController():
                 'expiration_date': expiration_date,
                 'state': data['state'],
                 'observations': data['observations'],
-                'pending': total, 
-                'total': total
+                'pending': data['total'], 
+                'total': data['total']
             }
 
             self.model.purchase.create_invoice_and_purchase(invoice_params, purchase_params)
@@ -74,7 +77,6 @@ class SupplierInvoiceController():
             'invoice_type': 'Tipo de Factura',
             'expiration_date': 'Fecha de vencimiento',
             'state': 'Estado',
-            'observations': 'Observaciones',
             'subtotal': 'Subtotal',
             'iva': 'Iva',
             'discount': 'Descuento',
@@ -89,7 +91,18 @@ class SupplierInvoiceController():
         if not cls.is_valid_date(data['expiration_date']):
             show_error('Por favor coloque la fecha en formato dd/mm/yyyy')
             return False
-                
+        
+        if not cls.is_decimal(data['discount']):
+            show_error('Error. Formato incorrecto en el descuento.')
+            return False
+
+        discount = normalize_string_to_dec(data['discount'])
+
+        if discount < normalize_decimal(0.00) \
+        or discount > normalize_decimal(99.00):
+            show_error('Error. El porcentaje de descuento debe rondar entre 0 y 99 %')
+            return False
+
         return True
 
     @staticmethod    
@@ -99,3 +112,12 @@ class SupplierInvoiceController():
             return True
         except:
             return False
+
+    @staticmethod
+    def is_decimal(value):
+        value = normalize_string_to_dec(value)
+        if value is None:
+            return False
+        else:    
+            return True
+        

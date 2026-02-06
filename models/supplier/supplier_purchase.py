@@ -206,35 +206,72 @@ class SupplierPurchase():
 
         if doc_type == 'FACTURA':
             ## factura ##
+            discount = normalize_decimal(self.supplier_invoice.get_invoice_discount(doc_id)[0])
 
-            ## monto_iva
+            ## var bool para aplicar el descuento
+            discount_available = None
+
+            if discount > normalize_decimal('0.00'):
+                discount_available = True
+            
+            else:
+                discount_available = False
+
+            ## Monto_iva
             iva_amount = self.get_iva_amount_of_p_items(purchase_id, conn=conn)[0]
+
             if iva_amount is None:
-                r_iva_amount = normalize_decimal('0.00')
+                iva_amount = normalize_decimal('0.00')
             else:
-                r_iva_amount = normalize_decimal(iva_amount)
-            print(f'Monto iva: {r_iva_amount}')
+                iva_amount = normalize_decimal(iva_amount)
 
-            query = """ UPDATE supplier_invoice SET iva = ? WHERE id = ? """
+                if discount_available:
+                    iva_discount =  normalize_decimal((iva_amount * discount) / 100)
+                    iva_amount =  normalize_decimal(iva_amount - iva_discount)
 
-            self.db.execute_query(query, (str(r_iva_amount), doc_id), conn=conn, commit=commit)
-
-            ## subtotal
-            subtotal = self.get_subtotal_of_items(purchase_id, conn=conn)[0]
-            if subtotal is None:
-                r_subtotal = normalize_decimal('0.00')
+            ## Subtotal
+            orig_subtotal = self.get_subtotal_of_items(purchase_id, conn=conn)[0]
+            
+            if orig_subtotal is None:
+                orig_subtotal = normalize_decimal('0.00')
+                discount_amount = normalize_decimal('0.00')
+                subtotal_w_d = normalize_decimal('0.00')
             else:
-                r_subtotal = normalize_decimal(subtotal)
+                orig_subtotal = normalize_decimal(orig_subtotal)
 
+                if discount_available:
+                    discount_amount = normalize_decimal((orig_subtotal * discount) / 100)
+                    subtotal_w_d = normalize_decimal(orig_subtotal - discount_amount)
+                else:
+                    discount_amount = normalize_decimal('0.00')
+                    subtotal_w_d = orig_subtotal
+
+            ## Total
             total = self.get_total_of_items(purchase_id, conn=conn)[0]
             if total is None:
-                r_total = normalize_decimal('0.00')
+                total = normalize_decimal('0.00')
             else:
-                r_total = normalize_decimal(total)
+                if discount_available:
+                    total = subtotal_w_d + iva_amount
+                else:
+                    total = normalize_decimal(total)
             
-            query = """ UPDATE supplier_invoice SET subtotal = ?, total = ?  WHERE id = ? """
+            query = """ 
+            UPDATE supplier_invoice 
+            SET orig_subtotal = ?, discount_amount = ?, subtotal_w_discount = ?, iva = ?, total = ?  
+            WHERE id = ? 
+            """
 
-            self.db.execute_query(query, (str(r_subtotal), str(r_total), doc_id), conn=conn, commit=commit)
+            params = [
+                str(orig_subtotal), 
+                str(discount_amount), 
+                str(subtotal_w_d), 
+                str(iva_amount), 
+                str(total), 
+                doc_id
+            ]
+
+            self.db.execute_query(query, params, conn=conn, commit=commit)
 
         else:
             ## remito

@@ -33,15 +33,13 @@ class SupplierReceiptController():
             
             expiration_date = traditional_to_iso(data['expiration_date'])
 
-            total = normalize_decimal(data['total'])
-
             receipt_params = {
                 'supplier_id': supplier_data[0],
                 'receipt_id': data['receipt_id'],
                 'expiration_date': expiration_date,
                 'observations': data['observations'],
                 'state': data['state'],
-                'total': total
+                'total': data['total']
             }
 
             purchase_params = {
@@ -50,8 +48,8 @@ class SupplierReceiptController():
                 'expiration_date': expiration_date,
                 'state': data['state'],
                 'observations': data['observations'],
-                'pending' : total, 
-                'total': total, 
+                'pending' : data['total'], 
+                'total': data['total'], 
             }
 
             self.model.purchase.create_receipt_and_purchase(receipt_params, purchase_params)

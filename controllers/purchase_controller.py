@@ -391,7 +391,6 @@ class PurchaseController():
     ## -- Verifica si el producto ya fue incluido en la compra -- ##
     def exists_product_on_purchase(self, win, parent, purchase_id, product_id):
         result = self.model.purchase.get_product_on_purchase(purchase_id, product_id)
-        print(f'result: {result}')
         if result is None:
             return False
         

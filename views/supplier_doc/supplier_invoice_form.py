@@ -48,7 +48,7 @@ class SupplierInvoiceForm():
 
         # Tamaño fijo
         width_win = 500
-        height_win = 720
+        height_win = 700
 
         # Centrar respecto al padre
         x_root = parent.winfo_x()
@@ -112,7 +112,7 @@ class SupplierInvoiceForm():
                 ctk.CTkEntry(form_frame, textvariable=self.iva_var, state='readonly', width=250))
         
         add_field(7, "Descuento:", 
-                ctk.CTkEntry(form_frame, textvariable=self.discount_var, state='readonly', width=250))
+                ctk.CTkEntry(form_frame, textvariable=self.discount_var, width=250))
         
         add_field(8, "Subtotal:", 
                 ctk.CTkEntry(form_frame, textvariable=self.subtotal_var, state='readonly', width=250))
@@ -124,7 +124,6 @@ class SupplierInvoiceForm():
         self.expiration_var.set(formated_act_date)
         self.state_var.set("BORRADOR")
         self.iva_var.set("0.00")
-        self.discount_var.set("0")
         self.subtotal_var.set("0.00")
         self.total_var.set("0.00")
 
