@@ -12,7 +12,8 @@ class PurchaseController():
         self.form_view = None
         self.new_p_form = None # new_product_form
         self.new_p_i_form = None # new_purchase_form
-        self.info_view = None
+        self.receipt_info_vw = None
+        self.invoice_info_vw = None
         self.event_bus = event_bus
 
         self.event_bus.subscribe(
@@ -30,8 +31,11 @@ class PurchaseController():
     def set_view(self, view):
         self.view = view
 
-    def set_info_view(self, info_view):
-        self.info_view = info_view
+    def set_receipt_view(self, receipt_view):
+        self.receipt_info_vw = receipt_view
+    
+    def set_invoice_view(self, invoice_view):
+        self.invoice_info_vw = invoice_view
 
     def set_form_view(self, form_view):
         self.form_view = form_view
@@ -87,7 +91,7 @@ class PurchaseController():
             purchase_id = purchase_data[0]
 
             if doc_type == 'REMITO':
-                data = self.info_view.get_receipt_data()
+                data = self.receipt_info_vw.get_receipt_data()
                 print(f'receipt data: {data}')
 
                 if not self.validate_doc_data(data, doc_type):
@@ -98,7 +102,7 @@ class PurchaseController():
                 result = self.model.purchase.update_purchase(purchase_id, receipt_id, data, doc_type)
 
             else:
-                data = self.info_view.get_invoice_data()
+                data = self.invoice_info_vw.get_invoice_data()
                 print(f'invoice data: {data}')
 
                 if not self.validate_doc_data(data, doc_type):
@@ -120,7 +124,12 @@ class PurchaseController():
 
         except ValueError as e:
             show_error(f'Error al actualizar el Documento:{e}')
-            self.info_view.recover_previous_values(purchase_id, doc_type)
+            if doc_type == 'REMITO':
+                self.receipt_info_vw.recover_previous_values(purchase_id)
+
+            else:
+                self.invoice_info_vw.recover_previous_values(purchase_id)
+            
             return False
 
     # Validate data
@@ -441,8 +450,13 @@ class PurchaseController():
             if result:
                 show_success('Item eliminado con exito')
                 ## actualizar tabla y labels
-                self.info_view.load_data(doc_id)
-                self.info_view.load_data_into_the_sheet()
+                if doc_type == "REMITO":
+                    self.receipt_info_vw.load_receipt_data(doc_id)
+                    self.receipt_info_vw.load_data_into_the_sheet()
+
+                else:
+                    self.invoice_info_vw.load_invoice_data(doc_id)
+                    self.invoice_info_vw.load_data_into_the_sheet()
 
             else:
                 show_error('Ocurrio un error')

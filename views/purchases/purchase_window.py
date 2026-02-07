@@ -5,7 +5,8 @@ from datetime import datetime
 
 from tkinter import ttk
 
-from .purchase_info import PurchaseInfo
+from .purchase_info_receipt_view import PurchaseInfoReceiptView
+from .purchase_info_invoice_view import PurchaseInfoInvoiceView
 from .purchase_form import PurchaseForm
 from utils.utils import iso_to_traditional
 from controllers.purchase_filter_controller import PurchaseFilterController
@@ -33,10 +34,12 @@ class PurchaseWindow():
         self.controller = controller
         self.controller.set_view(self)
 
-        self.purchase_info = PurchaseInfo(self.model, self.controller)
+        self.purchase_info_receipt = PurchaseInfoReceiptView(self.model, self.controller)
+        self.purchase_info_invoice = PurchaseInfoInvoiceView(self.model, self.controller)
         self.purchase_form = PurchaseForm(self.model, stock_model, self.controller)
 
-        self.controller.set_info_view(self.purchase_info)
+        self.controller.set_receipt_view(self.purchase_info_receipt)
+        self.controller.set_invoice_view(self.purchase_info_invoice)
         self.controller.set_form_view(self.purchase_form)
 
     def open_purchase_window(self, parent):
@@ -375,8 +378,12 @@ class PurchaseWindow():
 
             iid = selected[0]
             values = self.purchase_tree.item(iid, "values")
+            doc_type = values[2]
 
-            self.purchase_info.show_purchase_info(parent, values)            
+            if doc_type == 'REMITO':
+                self.purchase_info_receipt.show_purchase_info(parent, values)      
+            else:
+                self.purchase_info_invoice.show_purchase_info(parent, values) 
 
         except ValueError as e:
             print(f'Error al obtener la compra: {e}')

@@ -74,7 +74,7 @@ class NewPurchaseItemForm():
         form_frame = ctk.CTkFrame(card_frame, fg_color='white')
         form_frame.pack(pady=5, padx=(10,0), fill='x')
 
-        def add_field(row, column,label, witget):
+        def add_field(row, column, label, widget):
             field_lbl = ctk.CTkLabel(
                 form_frame,
                 text=label,
@@ -83,7 +83,7 @@ class NewPurchaseItemForm():
             )
             field_lbl.grid(row=row, column=column, sticky="e", padx=10, pady=7)
 
-            witget.grid(row=row, column=column+1, padx=(10,20), pady=7, sticky='w')
+            widget.grid(row=row, column=column+1, padx=(10,20), pady=7, sticky='w')
 
         add_field(0, 0,"Id Compra:",
                 ctk.CTkEntry(form_frame, textvariable=self.purchase_id, state='readonly', width=200))
