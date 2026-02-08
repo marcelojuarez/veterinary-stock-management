@@ -3,7 +3,9 @@ from tkinter import ttk, messagebox
 import tkinter as tk
 from models.stock import StockModel
 from views.view_helpers import close_win, show_warning
+from utils.utils import iso_to_traditional
 import random
+
 
 # Configurar tema y colores
 ctk.set_appearance_mode("light")  # "light" o "dark"
@@ -259,7 +261,10 @@ class StockView():
 
             print(f'Producto seleccionado: {product}')
 
-            _, _, name, pack, profit, cost_price, sale_price, iva, _, _, _, stock = product
+            print(product)
+            print(len(product))
+
+            _, name, pack, profit, cost_price, sale_price, iva, _, _, _, stock = product
 
             window = ctk.CTkToplevel(self.frame)
             window.title(f"Actualizar Precio - {name}")
@@ -732,7 +737,7 @@ class StockView():
             self.stock_tree.insert(
                 "", "end", 
                 values=(id, name, pack, profit, cost_price, price, iva, price_with_iva, 
-                        created_at, last_price_update, quantity), 
+                        iso_to_traditional(created_at), iso_to_traditional(last_price_update), quantity), 
                 tags=(tag,)
             )
 

@@ -10,7 +10,7 @@ class PaymentInfo():
     def show_payment_info(self, parent, values):
         payment_info = ctk.CTkToplevel(parent)
         payment_info.title("Información del Pago")
-        payment_info.geometry("650x650")
+        payment_info.geometry("650x450")
         payment_info.resizable(False, False)
 
         payment_info.protocol(

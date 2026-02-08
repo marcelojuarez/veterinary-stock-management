@@ -5,7 +5,7 @@ from .payment_form import PaymentForm
 from .payment_info import PaymentInfo
 from controllers.payment_controller import PaymentController
 from views.view_helpers import close_win, show_warning, show_error
-import locale
+from utils.utils import iso_to_traditional
 
 # Configurar tema y colores
 ctk.set_appearance_mode("light")  # "light" o "dark"
@@ -20,7 +20,7 @@ class PaymentWindow():
 
         self.controller = controller
         self.controller.set_pay_view(self)
-        self.controller.set_form_view(self.payment_form)
+        self.controller.set_form_view(self.payment_form) 
 
         self.payment_form.set_controller(self.controller)
 
@@ -110,6 +110,8 @@ class PaymentWindow():
         # add frames to the notebook
         payment_notebook.add(self.set_movement_tree(payment_notebook), text='Movimientos')
         payment_notebook.add(self.set_purchase_tree(payment_notebook), text='Registros de Compra')
+
+        self.load_payment_movement()
 
         # frame inferior (botones y cantidad)
         buttons_frame = ctk.CTkFrame(win, corner_radius=20)
@@ -216,7 +218,7 @@ class PaymentWindow():
         purchase_frame.pack(fill='both', expand=True)
 
         self.purchase_tree = ttk.Treeview(purchase_frame, show="headings", height=8)
-        self.purchase_tree["columns"] = ("ID", "Cuit Proveedor", "Tipo Comprobante", "Fecha", "Fecha Venc.", "Estado", "Saldo Pendiente")
+        self.purchase_tree["columns"] = ("ID", "Cuit Proveedor", "Tipo Comprobante", "Fecha", "Fecha Venc.", "Estado", "Saldo Pendiente", "Total")
         for col in self.purchase_tree["columns"]:
             self.purchase_tree.heading(col, text=col.capitalize())
             if col == "ID":
@@ -285,48 +287,40 @@ class PaymentWindow():
             if not selected:
                 return
             iid = selected[0]
-            print(iid)
             values = self.supplier_tree.item(iid, "values")
 
             self.supplier_var.set(values[0])
             self.search_var.set(values[0])
 
             win.after(800, lambda: close_win(win, parent))
-            self.load_payment_movement()
+            self.load_payment_movement(self.supplier_var.get())
             self.load_purchase_history(True)
         except ValueError as e:
             show_warning(f'Error en la seleccion del proveedor: {e}')
 
     ## --  Carga de tabla de movimientos -- ##
-    def load_payment_movement(self, supplier_id=None, supplier_cuit=None):
-        if supplier_id is None and supplier_cuit is None:
-            supplier_cuit = self.supplier_var.get()
-            result = self.model.core.find_supplier_by_cuit(supplier_cuit)
-            supplier_id = result[0]
-            print(f'{supplier_id}')
+    def load_payment_movement(self, supplier_cuit=None):
+        if supplier_cuit is None:
+            payments = self.model.payment.get_all_payments()
+
+        else:
             print(f'{supplier_cuit}')
-
-
-        if not supplier_id or not supplier_cuit:
-            show_warning("Atención", "Primero selecciona un proveedor.")
-            return
+            payments = self.model.payment.get_all_payments(supplier_cuit)
 
         # Limpiar tabla
         for item in self.movement_tree.get_children():
             self.movement_tree.delete(item)
-
-        payments = self.model.payment.get_all_payment_of_supplier(supplier_id)
         # Cargar productos
         for p in payments:
             self.movement_tree.insert(
                 parent='', index='end', iid=p[0],
                 values=(
-                   p[0],
-                   supplier_cuit,
-                   p[3], 
-                   p[4],
-                   p[5],
-                   p[11]                  
+                   p[0], # id
+                   p[1], # cuit
+                   p[3], # monto
+                   p[4], # metodo
+                   p[5], # observation
+                   iso_to_traditional(p[11]) # fecha    
                 ),
                 tag="orow"
             )
@@ -349,10 +343,12 @@ class PaymentWindow():
                 debt = 0
 
             self.debt_var.set(debt)
-            purchases = self.model.purchase.get_all_purchases(selected_supplier)
+            purchases = self.model.purchase.get_all_confirmed_purchases(selected_supplier)
 
         else:
-            purchases = self.model.purchase.get_all_purchases()
+            purchases = self.model.purchase.get_all_confirmed_purchases()
+
+        print(purchases)
 
         # Limpiar tabla
         for item in self.purchase_tree.get_children():
@@ -363,13 +359,14 @@ class PaymentWindow():
             self.purchase_tree.insert(
                 parent="", index="end", iid=p[0],
                 values=(
-                    p[0],
-                    p[1],
-                    p[2],
-                    p[5],
-                    p[6],
-                    p[7],
-                    p[9],
+                    p[0], # id
+                    p[1], # cuit
+                    p[2], # comprobante
+                    iso_to_traditional(p[5]), # fecha
+                    iso_to_traditional(p[6]), # fecha venc
+                    p[7], # estado
+                    p[9], # saldo pend
+                    p[10] # total
                 ),
                 tag="orow"
             )  

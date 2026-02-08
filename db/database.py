@@ -180,27 +180,23 @@ class Database:
             cursor.execute(''' 
                 CREATE TABLE IF NOT EXISTS supplier_invoice(
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
-                           
-                    -- Relacion
                     supplier_id INTEGER,
                            
-                    -- Datos de la factura
                     invoice_id TEXT,
                     invoice_type TEXT,
                     
-                    -- Fechas
                     date TEXT CURRENT_DATE,
-                    expiration_date TEXT CURRENT_DATE,
-
-                    -- Montos     
-                    total TEXT NOT NULL,
-                    subtotal TEXT NOT NULL,
-                    iva TEXT NOT NULL,
-                    discount TEXT NOT NULL,
-                    
-                    -- Otros
+                    expiration_date TEXT CURRENT_DATE,  
                     state TEXT,
-                    observations TEXT,
+                    observations TEXT, 
+        
+                    orig_subtotal TEXT NOT NULL,
+                    discount TEXT NOT NULL,
+                    discount_amount TEXT NOT NULL,
+                    subtotal_w_discount TEXT NOT NULL,
+                    iva TEXT NOT NULL,
+                           
+                    total TEXT NOT NULL,
                            
                     FOREIGN KEY (supplier_id) REFERENCES supplier (id)
                 );
@@ -365,25 +361,58 @@ class Database:
             
         return cursor.lastrowid
     
-    def fetch_all(self, query, params=None):
-        """Ejecutar una consulta que devuelve múltiples resultados"""
-        with self.get_connection() as conn:
-            cursor = conn.cursor()
-            if params:
-                cursor.execute(query, params)
-            else:
-                cursor.execute(query)
-            return cursor.fetchall()
+    def fetch_all(self, query, params=None, conn=None):
+        """
+        Ejecutar una consulta que devuelve múltiples resultados
+
+        - Si conn es None → abre su propia conexión (modo normal)
+        - Si conn se pasa → usa esa conexión (modo transacción)
+        - si commit=True hace commit si la conexión es propia
+        """
+        own_conn = False
+        if conn is None:
+            conn = self.get_connection()
+            own_conn = True
+
+        cursor = conn.cursor()
+        if params:
+            cursor.execute(query, params)
+        else:
+            cursor.execute(query)
+
+        rows = cursor.fetchall()
+
+        if own_conn:
+            conn.close()
+        
+        return rows
+        
     
-    def fetch_one(self, query, params=None):
-        """Ejecutar una consulta que devuelve un resultado"""
-        with self.get_connection() as conn:
-            cursor = conn.cursor()
-            if params:
-                cursor.execute(query, params)
-            else:
-                cursor.execute(query)
-            return cursor.fetchone()
+    def fetch_one(self, query, params=None, conn=None):
+        """
+        Ejecutar una consulta que devuelve un resultado
+
+        - Si conn es None → abre su propia conexión (modo normal)
+        - Si conn se pasa → usa esa conexión (modo transacción)
+        - si commit=True hace commit si la conexión es propia
+        """
+        own_conn = False
+        if conn is None:
+            conn = self.get_connection()
+            own_conn = True
+
+        cursor = conn.cursor()
+        if params:
+            cursor.execute(query, params)
+        else:
+            cursor.execute(query)
+        
+        row = cursor.fetchone()
+
+        if own_conn:
+            conn.close()
+
+        return row
 
 
 db = Database('db/stock.db')

@@ -7,6 +7,7 @@ from models.stock import StockModel
 from views.payments.payment_window import PaymentWindow
 from views.purchases.purchase_window import PurchaseWindow
 from views.view_helpers import close_win, show_warning
+from utils.utils import iso_to_traditional
 
 # Configurar tema y colores
 ctk.set_appearance_mode("light")  # "light" o "dark"
@@ -20,7 +21,6 @@ class SupplierView():
 
         self.controller = controller
         self.purchase_controller = purchase_controller
-        print(f'purchase s: {self.purchase_controller}')
 
         self.payment_controller = payment_controller
         
@@ -394,7 +394,7 @@ class SupplierView():
 
         # --- Panel de deuda ---
         self.debt = tk.StringVar(value=f'{debt}')
-        self.last_update_debt = tk.StringVar(value=f'Ultima actualizacion deuda: \n {supplier[6]}')
+        self.last_update_debt = tk.StringVar(value=f'Ultima actualizacion deuda: \n {iso_to_traditional(supplier[6])}')
         right_frame = ctk.CTkFrame(info_win, corner_radius=10)
         right_frame.grid(row=0, column=1, sticky="nsew", padx=10, pady=(10, 0))
 
@@ -424,8 +424,6 @@ class SupplierView():
         )
         cancel_btn.grid(row=0, column=1, padx=10, ipadx=5)
     
-    ## -- -- ##
-
     def open_purchase_window(self, parent):
 
         win = ctk.CTkToplevel(self.frame)

@@ -81,7 +81,7 @@ class PaymentController():
             result = self.model.payment.register_payment(data, purchase_id)
             
             if result:
-                self.pay_view.load_payment_movement(data['Supplier_id'], selected)
+                self.pay_view.load_payment_movement(selected)
                 self.pay_view.load_purchase_history(True)
 
             close_win(win, parent)
@@ -96,7 +96,6 @@ class PaymentController():
             'amount': 'Monto', 
             'method': 'Metodo', 
             'receipt_number': 'Numero de recibo', 
-            'observation': 'Observaciones'
         }
 
         for field, label in required_fields.items():

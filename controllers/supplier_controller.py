@@ -2,6 +2,7 @@
 
 from models.stock import StockModel
 from views.view_helpers import show_warning, show_error, show_success
+from utils.utils import normalize_decimal
 import re
 
 class SupplierController():
@@ -83,9 +84,14 @@ class SupplierController():
             values = self.view.supplier_tree.item(iid, "values")
             print(values)
             debt = self.model.purchase.get_debt_of_supplier(values[2])[0]
+
             if debt is None:
-                debt = 0
-            print(debt)
+                debt = normalize_decimal(0.00)
+            else:
+                debt = normalize_decimal(debt)
+
+            print(f'debt: {debt}')
+            print(f'type of debt: {type(debt)}')
             self.view.open_info_window(values, debt, parent)
         except Exception as e:
             print(f'Hubo un error: {e}')
