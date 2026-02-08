@@ -323,9 +323,15 @@ class PurchaseController():
 
             # Se agrega item a la compra
             result = self.model.purchase.handle_add_p_item(item_data_clean, purchase_id, doc_type, doc_id)
-            print(f'result: {result}')
             if result:
                 show_success('Item agregado con exito')
+
+                if self.view.supplier_var.get().strip() == "":
+                    self.view.load_purchases(False)
+
+                else:
+                    self.view.load_purchases(True)
+
                 close_win(win, parent)
                  
             else:
@@ -457,6 +463,12 @@ class PurchaseController():
                 else:
                     self.invoice_info_vw.load_invoice_data(doc_id)
                     self.invoice_info_vw.load_data_into_the_sheet()
+
+                if self.view.supplier_var.get().strip() == "":
+                    self.view.load_purchases(False)
+
+                else:
+                    self.view.load_purchases(True)
 
             else:
                 show_error('Ocurrio un error')

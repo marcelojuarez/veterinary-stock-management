@@ -205,7 +205,7 @@ class SupplierPurchase():
     def recalc_doc_values(self, purchase_id, doc_type, doc_id, conn=None, commit=True):
 
         if doc_type == 'FACTURA':
-            ## factura ##
+            ## Factura
             discount = normalize_decimal(self.supplier_invoice.get_invoice_discount(doc_id)[0])
 
             ## var bool para aplicar el descuento
@@ -273,19 +273,37 @@ class SupplierPurchase():
 
             self.db.execute_query(query, params, conn=conn, commit=commit)
 
+            ## Se actualiza la compra
+
+            query = """ UPDATE purchase SET pending = ? , total = ? WHERE id = ? """
+
+            purchase_params = [str(total), str(total), purchase_id]
+
+            self.db.execute_query(query, purchase_params, conn=conn, commit=commit)
+
         else:
-            ## remito
+            ## Remito
             total = self.get_total_of_items(purchase_id, conn=conn)[0]
             if total is None:
-                rounded_total = normalize_decimal('0.00')
+                total = normalize_decimal('0.00')
             else:
-                rounded_total = normalize_decimal(total)
+                total = normalize_decimal(total)
 
-            print(f'Total: {rounded_total}')
+            print(f'Total: {total}')
 
             query = """ UPDATE supplier_receipt SET total = ? WHERE id = ? """
 
-            self.db.execute_query(query, (str(rounded_total), doc_id), conn=conn, commit=commit)
+            receipt_params = [str(total), doc_id]
+
+            self.db.execute_query(query, receipt_params, conn=conn, commit=commit)
+
+            ## Se actualiza la compra
+
+            query = """ UPDATE purchase SET pending = ? , total = ? WHERE id = ? """
+
+            purchase_params = [str(total), str(total), purchase_id]
+
+            self.db.execute_query(query, purchase_params, conn=conn, commit=commit)
 
     ## -- Obtener items de compra -- ##
     def get_purchase_items(self, purchase_id):
@@ -581,7 +599,7 @@ class SupplierPurchase():
         query = """
         SELECT SUM(pending) 
         FROM purchase JOIN supplier ON purchase.supplier_id = supplier.id
-        WHERE supplier.cuit = ?
+        WHERE supplier.cuit = ? AND purchase.state != 'BORRADOR'
         """
 
         return self.db.fetch_one(query, (cuit, ))

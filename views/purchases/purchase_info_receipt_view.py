@@ -1,6 +1,9 @@
 import tkinter as tk
 from tksheet import Sheet
 import customtkinter as ctk
+
+from services.purchase_detail import PurchaseDetail
+
 from utils.utils import iso_to_traditional
 from views.view_helpers import close_win, ask_confirmation, show_success, show_warning, show_error
 
@@ -8,6 +11,7 @@ class PurchaseInfoReceiptView():
     def __init__(self, model, controller):
         self.model = model
         self.controller = controller
+        self.purchase_detail = PurchaseDetail(model)
 
     def show_purchase_info(self, parent, values):
         try:
@@ -137,7 +141,7 @@ class PurchaseInfoReceiptView():
                 fg_color="#0B9E97",
                 hover_color="#087E78",
                 font=ctk.CTkFont(size=13, weight="bold"),
-                #command= lambda: self.gen_purchase_detail_pdf(purchase_id)
+                command= lambda: self.gen_purchase_detail_pdf()
             )
             self.print_info.grid(row=0, column=3, padx=10)
 
@@ -272,9 +276,9 @@ class PurchaseInfoReceiptView():
         self.sheet.set_column_widths([60, 260, 120, 80, 100, 100, 100, 150, 100, 100, 100])
 
     ## -- Generar purchase detail como pdf -- ##
-    def gen_purchase_detail_pdf(self, purchase_id):
+    def gen_purchase_detail_pdf(self):
         try:
-            #self.purchase_detail.generate_purchase_detail(purchase_id)
+            self.purchase_detail.generate_purchase_detail(self.purchase_id)
             show_success(f'Detalle de compra generado con exito')
         except ValueError as e:
             print(f'Error: {e}')
