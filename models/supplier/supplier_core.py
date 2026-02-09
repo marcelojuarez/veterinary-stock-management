@@ -34,7 +34,7 @@ class SupplierCore():
 
     def add_supplier(self, supplier_data):
         # Agregar nuevo proveedor a la base de datos
-        date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        date = datetime.now().strftime("%Y-%m-%d")
         query = """
             INSERT INTO supplier (name, cuit, home, phone, email, last_debt_update)
             VALUES (?, ?, ?, ?, ?, ?)

@@ -7,7 +7,6 @@ from views.view_helpers import close_win, show_error, ask_confirmation
 class NewProductForm():
     def __init__(self, controller):
         self.controller = controller
-        print(f'new p f {self.controller}')
 
     def setup_new_product_variables(self):
         """Configurar variables del formulario"""

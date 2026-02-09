@@ -101,7 +101,7 @@ class SupplierReceiptForm():
         
         self.expiration_var.set(formated_act_date)
         self.state_var.set("BORRADOR")
-        self.total_var.set("0")
+        self.total_var.set("0.00")
 
         # --- Botones inferior ---
         button_frame = ctk.CTkFrame(card_frame, fg_color="white")

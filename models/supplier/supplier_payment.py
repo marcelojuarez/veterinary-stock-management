@@ -49,21 +49,31 @@ class SupplierPayment():
             print(f'Error getting transfer data by payment id: {e}')
             return None
     
-    ## -- Obtiene todos los registros de pago vinculados a un proveedor -- ##
-    def get_all_payment_of_supplier(self, supplier_id):
+    ## -- Obtiene todos los pagos asociados o no, a un cuit-- ##
+    def get_all_payments(self, cuit=None):
         try:
             query = """
-            SELECT * FROM supplier_payment 
-            WHERE supplier_id = ? ORDER BY date DESC
+            SELECT supplier_payment.id, supplier.cuit, supplier_payment.receipt_number, supplier_payment.amount,
+            supplier_payment.method, supplier_payment.observation, supplier_payment.operation_num, supplier_payment.origin, 
+            supplier_payment.destination, supplier_payment.check_number, supplier_payment.bank, supplier_payment.date
+            FROM supplier_payment 
+            JOIN supplier ON supplier_payment.supplier_id = supplier.id
+            WHERE (? IS NULL OR supplier.cuit = ?)
+            ORDER BY supplier_payment.date DESC
             """
-            return self.db.fetch_all(query, (supplier_id,))            
+            params = [
+               cuit,
+               cuit
+            ]
+
+            return self.db.fetch_all(query, params)
         except ValueError as e:
             print(f'Error getting supplier payment by id: {e}')
-            return None    
+            return None  
 
     ## -- Agrega una relacion entre un pago y una compra -- ##
     def add_purchase_payment_relation(self, data, conn=None, commit=True):
-        date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        date = datetime.now().strftime("%Y-%m-%d")
         query = """
         INSERT INTO purchase_payment (purchase_id, payment_id, amount_applied, applied_at)
         VALUES (?, ?, ?, ?)
@@ -99,7 +109,7 @@ class SupplierPayment():
             # Iniciar transacción
             conn.execute("BEGIN")
 
-            date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            date = datetime.now().strftime("%Y-%m-%d")
             
             # registra un pago
             query = """

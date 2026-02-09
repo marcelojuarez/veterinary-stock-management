@@ -12,7 +12,8 @@ class PurchaseController():
         self.form_view = None
         self.new_p_form = None # new_product_form
         self.new_p_i_form = None # new_purchase_form
-        self.info_view = None
+        self.receipt_info_vw = None
+        self.invoice_info_vw = None
         self.event_bus = event_bus
 
         self.event_bus.subscribe(
@@ -30,8 +31,11 @@ class PurchaseController():
     def set_view(self, view):
         self.view = view
 
-    def set_info_view(self, info_view):
-        self.info_view = info_view
+    def set_receipt_view(self, receipt_view):
+        self.receipt_info_vw = receipt_view
+    
+    def set_invoice_view(self, invoice_view):
+        self.invoice_info_vw = invoice_view
 
     def set_form_view(self, form_view):
         self.form_view = form_view
@@ -55,9 +59,7 @@ class PurchaseController():
                 return 
 
             # Se establece compra como pendiente y deuda proveedor
-            debt = self.model.purchase.get_sum_of_items(purchase_id)[0]
-            print(f'Suma de totales: {debt}')
-            print(f'tipo de initial_debt: {type(debt)}')
+            debt = normalize_decimal(self.model.purchase.get_total_of_items(purchase_id)[0])
             purchase_data = self.model.purchase.get_purchase_by_id(purchase_id)
 
             doc_type = purchase_data[2]
@@ -89,7 +91,7 @@ class PurchaseController():
             purchase_id = purchase_data[0]
 
             if doc_type == 'REMITO':
-                data = self.info_view.get_receipt_data()
+                data = self.receipt_info_vw.get_receipt_data()
                 print(f'receipt data: {data}')
 
                 if not self.validate_doc_data(data, doc_type):
@@ -100,13 +102,14 @@ class PurchaseController():
                 result = self.model.purchase.update_purchase(purchase_id, receipt_id, data, doc_type)
 
             else:
-                data = self.info_view.get_invoice_data()
+                data = self.invoice_info_vw.get_invoice_data()
                 print(f'invoice data: {data}')
 
                 if not self.validate_doc_data(data, doc_type):
                     return                
 
                 invoice_id = purchase_data[3]
+                
 
                 result = self.model.purchase.update_purchase(purchase_id, invoice_id, data, doc_type)
 
@@ -121,7 +124,12 @@ class PurchaseController():
 
         except ValueError as e:
             show_error(f'Error al actualizar el Documento:{e}')
-            self.info_view.recover_previous_values(purchase_id, doc_type)
+            if doc_type == 'REMITO':
+                self.receipt_info_vw.recover_previous_values(purchase_id)
+
+            else:
+                self.invoice_info_vw.recover_previous_values(purchase_id)
+            
             return False
 
     # Validate data
@@ -130,7 +138,6 @@ class PurchaseController():
             required_files = {
                 'receipt_id': 'Numero de Remito',
                 'expiration': 'Fecha de Vencimiento',
-                'obs': 'Observaciones'
             }
 
             for field, label in required_files.items():
@@ -146,7 +153,6 @@ class PurchaseController():
             required_files = {
                 'invoice_id': 'Numero de Factura',
                 'invoice_type': 'Tipo de Factura',
-                'obs': 'Observaciones',
                 'expiration': 'Fecha de Vencimiento' 
             }
 
@@ -270,7 +276,6 @@ class PurchaseController():
     def add_purchase_item(self, win, parent):
         try:
             item_data = self.new_p_i_form.get_purchase_item_data()
-            print(item_data)
 
             if not self.validate_purchase_item_data(item_data):
                 return
@@ -278,6 +283,10 @@ class PurchaseController():
             # Convertir los valores a los tipos correctos            
             purchase_id = int(item_data['Purchase_id'])
             product_id = int(item_data['Product_id'])
+
+            if self.exists_product_on_purchase(win, parent, purchase_id, product_id):
+                return
+
             product_name = item_data['Product_name']
             pack = item_data['Pack']
             qty = int(item_data['Qty'])
@@ -312,19 +321,22 @@ class PurchaseController():
             else:
                 doc_id = purchase_data[3]
 
-            print(f'doc_id: {doc_id}')
-
             # Se agrega item a la compra
-            ok = self.model.purchase.add_purchase_item(item_data_clean)
-            if ok:
-                ok = self.model.purchase.recalc_doc_values(purchase_id, doc_type, doc_id)
-                if ok:
-                    show_success('Item agregado con exito')
-                    close_win(win, parent) 
+            result = self.model.purchase.handle_add_p_item(item_data_clean, purchase_id, doc_type, doc_id)
+            if result:
+                show_success('Item agregado con exito')
+
+                if self.view.supplier_var.get().strip() == "":
+                    self.view.load_purchases(False)
+
+                else:
+                    self.view.load_purchases(True)
+
+                close_win(win, parent)
+                 
             else:
                 show_error('Ocurrio un error')
   
-
         except ValueError as e:
             show_error(f'Error al cargar item de compra: {e}')
             return 
@@ -345,6 +357,14 @@ class PurchaseController():
             'Iva_amount': 'Monto Iva',
             'Total': 'Total'
         }
+
+        if not cls.is_int(form_data['Qty']):
+            show_error(f'Error. El stock debe ser un valor Entero')
+            return False
+        
+        if int(form_data['Qty']) <= 0:
+            show_error(f'Error. El stock debe ser mayor a Cero(0)')
+            return False
 
         for field, lbl in required_fields.items():
             if not form_data[field]:
@@ -374,14 +394,6 @@ class PurchaseController():
         or normalize_decimal(form_data['Discount']) > normalize_decimal(99.00):
             show_error('Error. El porcentaje de descuento debe rondar entre 0 y 99 %')
             return False
-
-        if not cls.is_int(form_data['Qty']):
-            show_error(f'Error. El stock debe ser un valor Entero')
-            return False
-        
-        if int(form_data['Qty']) <= 0:
-            show_error(f'Error. El stock debe ser mayor a Cero(0)')
-            return False
     
         return True
 
@@ -390,6 +402,19 @@ class PurchaseController():
         try: int(n); return True
         except:
             return False
+        
+    ## -- Verifica si el producto ya fue incluido en la compra -- ##
+    def exists_product_on_purchase(self, win, parent, purchase_id, product_id):
+        result = self.model.purchase.get_product_on_purchase(purchase_id, product_id)
+        if result is None:
+            return False
+        
+        else:
+            show_error('Error. El producto ya esta incluido en la compra. \n' \
+                       'Para cualquier modificacion Agregar nuevamente.')
+            
+            close_win(win, parent)
+            return True
 
     ## -- Eliminar un registro de compra -- ##    
     def delete_purchase(self, purchase_id, doc_type):
@@ -414,3 +439,41 @@ class PurchaseController():
                 self.view.load_purchases(True)
 
             show_success('Compra eliminada con exito.')
+
+    ## -- Elimina un item de compra -- ##
+    def delete_purchase_item(self, purchase_id, product_id):
+        try:
+            
+            purchase_data = self.model.purchase.get_purchase_by_id(purchase_id)
+
+            doc_type = purchase_data[2]
+            if doc_type == "REMITO":
+                doc_id = purchase_data[4]
+            else:
+                doc_id = purchase_data[3]
+
+            result = self.model.purchase.handle_delete_purchase_item(purchase_id, product_id, doc_type, doc_id)
+            if result:
+                show_success('Item eliminado con exito')
+                ## actualizar tabla y labels
+                if doc_type == "REMITO":
+                    self.receipt_info_vw.load_receipt_data(doc_id)
+                    self.receipt_info_vw.load_data_into_the_sheet()
+
+                else:
+                    self.invoice_info_vw.load_invoice_data(doc_id)
+                    self.invoice_info_vw.load_data_into_the_sheet()
+
+                if self.view.supplier_var.get().strip() == "":
+                    self.view.load_purchases(False)
+
+                else:
+                    self.view.load_purchases(True)
+
+            else:
+                show_error('Ocurrio un error')
+                
+
+        except ValueError as e:
+            show_error(f'Error al eliminar item de compra: {e}')
+            return 

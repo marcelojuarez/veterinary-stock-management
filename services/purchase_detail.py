@@ -14,7 +14,8 @@ class PurchaseDetail():
 
     def load_data(self, purchase_id):
         purchase_data = self.model.purchase.get_purchase_by_id(purchase_id)
-        name = None
+        supplier_data = self.model.core.find_supplier_by_id(supplier_id=purchase_data[1])
+        name = supplier_data[2]
 
         # Datos de compra
         self.purchase = {
@@ -26,7 +27,7 @@ class PurchaseDetail():
             'state': purchase_data[7],
             'observations': purchase_data[8],
             'pending': purchase_data[9],
-            'total': self.model.purchase.get_sum_of_items(purchase_id)[0]
+            'total': purchase_data[10]
         }
 
         # Datos de items de compra
@@ -35,24 +36,26 @@ class PurchaseDetail():
         # 
         if self.purchase['document_type'] == 'REMITO':
             doc_id = purchase_data[4]
-            receipt_data = self.model.purchase.get_receipt_data(doc_id)
+            receipt_data = self.model.purchase.supplier_receipt.get_receipt_data(doc_id)
 
             self.doc_data = {
-               'id': receipt_data[2],
+               'Num Remito': receipt_data[2],
             }
 
         else:
             doc_id = purchase_data[3]
-            invoice_data = self.model.purchase.get_invoice_data(doc_id)
+            invoice_data = self.model.purchase.supplier_invoice.get_invoice_data(doc_id)
 
-            # self.doc_data = {
-            #    'id': invoice_data[2],
-            #    'type': invoice_data[3],
-            #    'discount': ,
-            #    'iva':,
-            #    'subtotal':,
-            #    'total':
-            # }
+            self.doc_data = {
+               'Num Factura': invoice_data[2],
+               'Tipo': invoice_data[3],
+               'Subtotal': f'${invoice_data[8]}',
+               'Descuento': f'{invoice_data[9]}%',
+               'Monto Descuento': f'${invoice_data[10]}',
+               'Subtotal c/ Descuento': f'${invoice_data[11]}',
+               'Monto Iva': f'${invoice_data[12]}',
+               'Total': f'${invoice_data[13]}'
+            }
 
     def generate_purchase_detail(self, purchase_id):
         self.load_data(purchase_id)
@@ -91,13 +94,21 @@ class PurchaseDetail():
 
         info = f"""
         <b>Proveedor:</b> {self.purchase['supplier_name']}<br/>
-        <b>Tipo documento:</b> {self.purchase['document_type']}<br/>
         <b>Fecha:</b> {date_ui}<br/>
         <b>Fecha De Vencimiento:</b> {expiration_date_ui}<br/>
-        <b>Estado: {self.purchase['state']}</b>
+        <b>Estado:</b> {self.purchase['state']}<br/>
+        <b>Tipo documento:</b> {self.purchase['document_type']}<br/>
         """
 
         elements.append(Paragraph(info, styles["Normal"]))
+        elements.append(Spacer(1, 16))
+
+        doc_info = ""
+
+        for lbl, field in self.doc_data.items():
+            doc_info += f"  <b>{lbl}:</b> {field}<br/>"
+
+        elements.append(Paragraph(doc_info, styles["Normal"]))
         elements.append(Spacer(1, 16))
 
         # Tabla de ítems
@@ -134,7 +145,7 @@ class PurchaseDetail():
 
         # Totales
         totals = f"""
-        <b>Total:</b> ${self.purchase['total']}<br/>
+        <b>Total:</b> $ {self.purchase['total']}<br/>
         """
 
         elements.append(Paragraph(totals, styles["Normal"]))

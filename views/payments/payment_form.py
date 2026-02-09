@@ -78,7 +78,7 @@ class PaymentForm:
         self.add_pay_win.grab_set()
         
         # Centrar la ventana
-        self.add_pay_win.geometry("380x360+{}+{}".format(
+        self.add_pay_win.geometry("380x330+{}+{}".format(
             self.add_pay_win.winfo_screenwidth()//2 - 175,
             self.add_pay_win.winfo_screenheight()//2 - 190
         ))
@@ -156,116 +156,95 @@ class PaymentForm:
             state="readonly",
             command=lambda value: self.render_dynamic_fields(parent)
         )
-        method_combo.set("-")
+        method_combo.set("")
         method_combo.grid(row=5, column=1, padx=(15,20), pady=5)
 
         self.dynamic_frame = ctk.CTkFrame(self.add_pay_win, fg_color="transparent")
-        self.dynamic_frame.grid(row=6, column=0, columnspan=2, pady=10)
+        self.dynamic_frame.grid(row=6, column=0, columnspan=2, pady=5)
+
+        self.create_dynamic_fields()
+        self.create_action_buttons(parent)
 
         self.dynamic_frame.columnconfigure(0, weight=0)
         self.dynamic_frame.columnconfigure(1, weight=1)
+        
+    def create_dynamic_fields(self):
+        # TRANSFERENCIA
+        self.op_num_lbl = ctk.CTkLabel(self.dynamic_frame, text="Numero de operacion:", font=ctk.CTkFont(size=12, weight="bold"))
+        self.op_num_entry = ctk.CTkEntry(self.dynamic_frame, textvariable=self.opt_num_var, width=200, height=35, font=ctk.CTkFont(size=12))
+        self.origin_lbl = ctk.CTkLabel(self.dynamic_frame, text="CBU/Alias (Cuenta Emisora):", font=ctk.CTkFont(size=12, weight="bold"))
+        self.origin_entry = ctk.CTkEntry(self.dynamic_frame, textvariable=self.origin_var, width=200, height=35, font=ctk.CTkFont(size=12))
+        self.destino_lbl = ctk.CTkLabel(self.dynamic_frame, text="CBU/Alias (Cuenta Receptora):", font=ctk.CTkFont(size=12, weight="bold"))
+        self.destino_entry = ctk.CTkEntry(self.dynamic_frame, textvariable=self.destinatation_var, width=200, height=35, font=ctk.CTkFont(size=12))
+
+        # CHEQUE
+        # banco que emite el cheque
+        self.check_bank_lbl = ctk.CTkLabel(self.dynamic_frame, text="Banco:", font=ctk.CTkFont(size=12, weight="bold"))
+        self.check_bank_entry = ctk.CTkEntry(self.dynamic_frame, textvariable=self.bank_var, width=200, height=35, font=ctk.CTkFont(size=12))
+        # Numero de cheque
+        self.check_num_lbl = ctk.CTkLabel(self.dynamic_frame, text="Numero de cheque:", font=ctk.CTkFont(size=12, weight="bold"))
+        self.check_num_entry = ctk.CTkEntry(self.dynamic_frame, textvariable=self.check_num_var, width=200, height=35, font=ctk.CTkFont(size=12))
+
+        # EFECTIVO
 
     ## -- Renderiza distintos campos segun el metodo de pago -- ##
     def render_dynamic_fields(self, parent):
         method = self.method_var.get()
 
+        if method not in ("EFECTIVO", "TRANSFERENCIA", "CHEQUE"):
+            return
+        
         # limpiar todo antes de agregar nuevos widgets
         self.clear_dynamic_frame()
 
         if method == "TRANSFERENCIA":
-            self.add_pay_win.geometry("380x550")
 
-            op_num_lbl = ctk.CTkLabel(self.dynamic_frame, text="Numero de operacion:", font=ctk.CTkFont(size=12, weight="bold"))
-            op_num_lbl. grid(row=0, column=0, padx=20, pady=5)
+            self.op_num_lbl.grid(row=0, column=0, padx=20, pady=5)
+            self.op_num_entry.grid(row=0, column=1, padx=(0,40), pady=5)
+            self.origin_lbl. grid(row=1, column=0, padx=20, pady=5)
+            self.origin_entry.grid(row=1, column=1, padx=(0,40), pady=5)
+            self.destino_lbl.grid(row=2, column=0, padx=20, pady=5)
+            self.destino_entry.grid(row=2, column=1, padx=(0,40), pady=5)
 
-            op_num_entry = ctk.CTkEntry(
-                self.dynamic_frame,
-                textvariable=self.opt_num_var,
-                width=200,
-                height=35,
-                font=ctk.CTkFont(size=12),
-            )
-            op_num_entry.grid(row=0, column=1, padx=(0,40), pady=5)
+            self.add_pay_win.geometry("380x520")
 
-            origin_lbl = ctk.CTkLabel(self.dynamic_frame, text="CBU/Alias (Cuenta Emisora):", font=ctk.CTkFont(size=12, weight="bold"))
-            origin_lbl. grid(row=1, column=0, padx=20, pady=5)
-
-            origin_entry = ctk.CTkEntry(
-                self.dynamic_frame,
-                textvariable=self.origin_var,
-                width=200,
-                height=35,
-                font=ctk.CTkFont(size=12),
-            )
-            origin_entry.grid(row=1, column=1, padx=(0,40), pady=5)
-
-            destino_lbl = ctk.CTkLabel(self.dynamic_frame, text="CBU/Alias (Cuenta Receptora):", font=ctk.CTkFont(size=12, weight="bold"))
-            destino_lbl. grid(row=2, column=0, padx=20, pady=5)
-
-            destino_entry = ctk.CTkEntry(
-                self.dynamic_frame,
-                textvariable=self.destinatation_var,
-                width=200,
-                height=35,
-                font=ctk.CTkFont(size=12),
-            )
-            destino_entry.grid(row=2, column=1, padx=(0,40), pady=5)
-
-            self.render_buttons(parent, 9)
+            self.render_buttons(9)
 
         elif method == "CHEQUE":
-            self.add_pay_win.geometry("380x550")
 
-            # banco que emite el cheque
-            check_bank_lbl = ctk.CTkLabel(self.dynamic_frame, text="Banco:", font=ctk.CTkFont(size=12, weight="bold"))
-            check_bank_lbl. grid(row=0, column=0, padx=20, pady=5)
+            self.check_bank_lbl. grid(row=0, column=0, padx=20, pady=5)
+            self.check_bank_entry.grid(row=0, column=1, padx=(0,40), pady=5)
+            self.check_num_lbl.grid(row=1, column=0, padx=20, pady=5)
+            self.check_num_entry.grid(row=1, column=1, padx=(0,40), pady=5)
 
-            check_bank_entry = ctk.CTkEntry(
-                self.dynamic_frame,
-                textvariable=self.bank_var,
-                width=200,
-                height=35,
-                font=ctk.CTkFont(size=12),
-            )
-            check_bank_entry.grid(row=0, column=1, padx=(0,40), pady=5)
+            self.add_pay_win.geometry("380x470")
 
-            # Numero de cheque
-            check_num_lbl = ctk.CTkLabel(self.dynamic_frame, text="Numero de cheque:", font=ctk.CTkFont(size=12, weight="bold"))
-            check_num_lbl.grid(row=1, column=0, padx=20, pady=5)
-
-            check_num_entry = ctk.CTkEntry(
-                self.dynamic_frame,
-                textvariable=self.check_num_var,
-                width=200,
-                height=35,
-                font=ctk.CTkFont(size=12),
-            )
-            check_num_entry.grid(row=1, column=1, padx=(0,40), pady=5)
-
-            self.render_buttons(parent, 8)
+            self.render_buttons(8)
         
         elif method == "EFECTIVO":
-            self.add_pay_win.geometry("380x400")
-            self.render_buttons(parent, 6)
+            self.add_pay_win.geometry("380x380")
+            self.render_buttons(6)
+
+    def create_action_buttons(self, parent):
+        self.button_frame = ctk.CTkFrame(self.dynamic_frame, fg_color="transparent")
+
+        self.add_button = ctk.CTkButton(self.button_frame, text="Agregar Pago", width=120, height=35, font=ctk.CTkFont(size=15, weight="bold"),
+            fg_color="#4CAF50", hover_color="#45a049", command=lambda: self.controller.register_payment(self.supplier_var, self.add_pay_win, parent, self.purchase_id))
+        self.add_button.grid(row=0, column=0, padx=15, pady=10)
+
+        self.cancel_button = ctk.CTkButton(self.button_frame, text="Cancelar", width=120, height=35, font=ctk.CTkFont(size=15, weight="bold"),
+            fg_color="#757575", hover_color="#616161", command= lambda: close_win(self.add_pay_win, parent))
+        self.cancel_button.grid(row=0, column=1, padx=15, pady=10) 
 
     ## -- Renderiza botones de accion -- ##
-    def render_buttons(self, parent, row_num):
+    def render_buttons(self, row_num):
         # Botones
-        button_frame = ctk.CTkFrame(self.dynamic_frame, fg_color="transparent")
-        button_frame.grid(row=row_num, column=0, columnspan=2, pady=15)
-
-        add_button = ctk.CTkButton(button_frame, text="Agregar Pago", width=120, height=35, font=ctk.CTkFont(size=15, weight="bold"),
-            fg_color="#4CAF50", hover_color="#45a049", command=lambda: self.controller.register_payment(self.supplier_var, self.add_pay_win, parent, self.purchase_id))
-        add_button.grid(row=0, column=0, padx=15, pady=15)
-
-        cancel_button = ctk.CTkButton(button_frame, text="Cancelar", width=120, height=35, font=ctk.CTkFont(size=15, weight="bold"),
-            fg_color="#757575", hover_color="#616161", command= lambda: close_win(self.add_pay_win, parent))
-        cancel_button.grid(row=0, column=1, padx=15, pady=15) 
+        self.button_frame.grid(row=row_num, column=0, columnspan=2)
 
     ## -- Elimina campos dinamicos -- ##
     def clear_dynamic_frame(self):
         for widget in self.dynamic_frame.winfo_children():
-            widget.destroy()
+            widget.grid_forget()
 
     ## -- Se obtienen datos del formulario de pago -- ##
     def get_payment_data(self):
