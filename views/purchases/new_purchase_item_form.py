@@ -95,7 +95,8 @@ class NewPurchaseItemForm():
                 ctk.CTkEntry(form_frame, textvariable=self.product_name, width=200))
         
         add_field(3, 0, "Envase:",
-                ctk.CTkComboBox(form_frame,  values=["UNIDAD", "CAJA", "FRASCO", "AMPOLLA", "SOBRE", "OTRO"], variable=self.product_pack, width=200))
+                ctk.CTkComboBox(form_frame,  values=["UNIDAD", "CAJA", "FRASCO", "AMPOLLA", "SOBRE", "OTRO"], 
+                                variable=self.product_pack, state='readonly', width=200))
         
         add_field(4, 0, "Stock:",
                 ctk.CTkEntry(form_frame, textvariable=self.quantity, width=200))
@@ -104,7 +105,8 @@ class NewPurchaseItemForm():
                 ctk.CTkEntry(form_frame, textvariable=self.cost_price, width=200))
 
         add_field(0, 2, "Porcentaje Iva:",
-                ctk.CTkComboBox(form_frame, values=["21.00", "10.50", "0.00"],variable=self.iva_rate, width=200))
+                ctk.CTkComboBox(form_frame, values=["21.00", "10.50", "0.00"], 
+                                variable=self.iva_rate, state='readonly', width=200))
 
         add_field(1, 2, "Porcentaje Descuento:",
                 ctk.CTkEntry(form_frame, textvariable=self.discount_var, width=200))

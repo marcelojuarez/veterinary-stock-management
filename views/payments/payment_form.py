@@ -53,7 +53,7 @@ class PaymentForm:
             show_warning('Por favor selecciona un Proveedor')
             return
 
-        if normalize_decimal(self.pay_win.debt_var.get()) <= 0:
+        if normalize_decimal(self.pay_win.debt_var.get()) <= normalize_decimal(0.00):
             show_warning(f'Atención. No se registra Deuda al proveedor: {supplier_cuit}')
             return
 

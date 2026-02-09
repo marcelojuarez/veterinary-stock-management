@@ -16,11 +16,8 @@ class PaymentController():
     def set_pay_view(self, pay_view):
         self.pay_view = pay_view        
 
-    """
-    Permitir pagar el monto de una compra
-    Permitir registrar un monto que afecta a las compras que mas proximo se vencen
-    """
-
+    # Permitir pagar el monto de una compra
+    # Permitir registrar un monto que afecta a las compras que mas proximo se vencen
     def register_payment(self, supplier_var, win, parent, purchase_id):
 
         try:

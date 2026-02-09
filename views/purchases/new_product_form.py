@@ -22,7 +22,6 @@ class NewProductForm():
         self.qnt_var = tk.StringVar()
         self.sale_price_var = tk.StringVar()
         self.final_price = tk.StringVar() # sale_price + iva_amount
-        
 
     def open_add_window(self, parent):
         """Ventana para agregar nuevo producto con CustomTkinter"""
@@ -37,7 +36,6 @@ class NewProductForm():
         add_win.grab_set()
     
         # Centrar la ventana
-
         width_win = 480
         height_win = 600
 
@@ -87,7 +85,7 @@ class NewProductForm():
         
         add_field(1, "Envase: ",
                 ctk.CTkComboBox(form_frame, values=["UNIDAD", "CAJA", "FRASCO", "AMPOLLA", "SOBRE", "OTRO"], 
-                variable=self.pack_var, width=200, height=35))
+                variable=self.pack_var, state='readonly', width=200, height=35))
 
         self.pack_var.set("UNIDAD")
 
@@ -104,7 +102,7 @@ class NewProductForm():
 
         add_field(5, "% Iva: ",
                 ctk.CTkComboBox(form_frame, values=["21.00", "10.50", "0.00"], 
-                variable=self.iva_var, width=200, height=35))
+                variable=self.iva_var, state='readonly', width=200, height=35))
         
         self.iva_var.set("21.00")
 
