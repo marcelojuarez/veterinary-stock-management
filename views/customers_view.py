@@ -28,7 +28,6 @@ class CustomersView:
         header.grid_columnconfigure(0, weight=0)  # título
         header.grid_columnconfigure(1, weight=0)  # entry búsqueda
         header.grid_columnconfigure(2, weight=0)  # botón buscar
-        header.grid_columnconfigure(3, weight=0)  # botón actualizar empuja al borde derecho
 
         # --- Título ---
         title = ctk.CTkLabel(
@@ -66,23 +65,8 @@ class CustomersView:
             corner_radius=8,
             command=lambda: self.controller.filter_customers(self.search_var.get()) if self.controller else None
         )
-        search_btn.grid(row=0, column=2, padx=(5, 10), pady=5, sticky="w")
+        search_btn.grid(row=0, column=2, padx=(5, 15), pady=5, sticky="w")
 
-        # --- Botón Actualizar ---
-        refresh_btn = ctk.CTkButton(
-            header,
-            text="Actualizar lista",
-            width=150,
-            height=35,
-            font=ctk.CTkFont(size=12, weight="bold"),
-            fg_color="#009688",
-            hover_color="#00796B",
-            corner_radius=8,
-            command=lambda: self.controller.refresh_customer_data() if self.controller else None
-        )
-        refresh_btn.grid(row=0, column=3, padx=(10, 40), pady=5, sticky="w")
-
-        refresh_btn.grid(row=0, column=3, padx=(10, 20), pady=5, sticky="e")
 
 
     # --------------------------------------------------------------------
@@ -156,6 +140,7 @@ class CustomersView:
         self.table.configure(yscroll=scroll_y.set)
         scroll_y.pack(side="right", fill="y")
         self.table.pack(padx=10, pady=10, fill="both", expand=True)
+        self.table.bind("<<TreeviewSelect>>", lambda e: self.update_debts_button_state())
 
     # --------------------------------------------------------------------
     # FOOTER BUTTONS
@@ -166,22 +151,73 @@ class CustomersView:
         footer.grid_columnconfigure((0, 1, 2), weight=1)
         W, H = 250, 40
 
-        buttons = [
-            (" Borrar Cliente", self.delete_selected_customer),
-            (" Agregar Cliente", self.open_add_customer_window),
-            (" Ver Deudas", self.open_selected_customer_debts)
-        ]
-        for i, (text, cmd) in enumerate(buttons):
-            ctk.CTkButton(
-                footer,
-                text=text,
-                width=W,
-                height=H,
-                font=ctk.CTkFont(size=13, weight="bold"),
+        # Guardar referencia al botón de deudas
+        self.btn_ver_deudas = ctk.CTkButton(
+            footer,
+            text="💳 Ver Deudas",
+            width=W,
+            height=H,
+            font=ctk.CTkFont(size=13, weight="bold"),
+            fg_color="#009688",
+            hover_color="#00796B",
+            command=self.open_selected_customer_debts
+        )
+        self.btn_ver_deudas.grid(row=0, column=2, padx=20, pady=10)
+
+        ctk.CTkButton(
+            footer,
+            text="🗑️ Borrar Cliente",
+            width=W,
+            height=H,
+            font=ctk.CTkFont(size=13, weight="bold"),
+            fg_color="#009688",
+            hover_color="#00796B",
+            command=self.delete_selected_customer
+        ).grid(row=0, column=0, padx=20, pady=10)
+
+        ctk.CTkButton(
+            footer,
+            text="➕ Agregar Cliente",
+            width=W,
+            height=H,
+            font=ctk.CTkFont(size=13, weight="bold"),
+            fg_color="#009688",
+            hover_color="#00796B",
+            command=self.open_add_customer_window
+        ).grid(row=0, column=1, padx=20, pady=10)
+
+
+    def update_debts_button_state(self):
+        """Actualiza el estado del botón Ver Deudas según el cliente seleccionado"""
+        selected = self.table.selection()
+        
+        if not selected:
+            # Sin selección: deshabilitado
+            self.btn_ver_deudas.configure(
+                state="disabled",
+                fg_color="#CCCCCC",
+                text_color="#888888"
+            )
+            return
+        
+        # Obtener el nombre del cliente (columna 1)
+        values = self.table.item(selected[0])["values"]
+        nombre_cliente = values[1] if len(values) > 1 else ""
+        
+        if nombre_cliente == "Consumidor Final":
+            # Cliente "Consumidor Final": deshabilitado
+            self.btn_ver_deudas.configure(
+                state="disabled",
+                fg_color="#CCCCCC",
+                text_color="#888888"
+            )
+        else:
+            # Otros clientes: habilitado
+            self.btn_ver_deudas.configure(
+                state="normal",
                 fg_color="#009688",
-                hover_color="#00796B",
-                command=cmd
-            ).grid(row=0, column=i, padx=20, pady=10)
+                text_color="white"
+            )
 
 
     # --------------------------------------------------------------------
@@ -291,7 +327,13 @@ class CustomersView:
                 ok = self.controller.add_new_customer_window(data, win)
                 if ok:
                     self.show_success("Cliente agregado correctamente.")
-                    win.destroy()
+                    cleanup_and_close()
+
+        def cleanup_and_close():
+            """Limpia eventos antes de cerrar"""
+            win.unbind("<Return>")
+            win.grab_release()
+            win.destroy()
 
         save_btn = ctk.CTkButton(
             btn_frame,
@@ -300,12 +342,10 @@ class CustomersView:
             height=40,
             fg_color="#009688",
             hover_color="#00796B",
-            font=ctk.CTkFont(size=15, weight="bold"),
+            font=ctk.CTkFont(size=13, weight="bold"),
             command=save_and_close
         )
         save_btn.grid(row=0, column=0, padx=15)
-
-        win.bind("<Return>", lambda event: save_btn.invoke())
 
         cancel_btn = ctk.CTkButton(
             btn_frame,
@@ -314,10 +354,22 @@ class CustomersView:
             height=40,
             fg_color="#E74C3C",
             hover_color="#C0392B",
-            font=ctk.CTkFont(size=15, weight="bold"),
-            command=win.destroy
+            font=ctk.CTkFont(size=13, weight="bold"),
+            command=cleanup_and_close
         )
         cancel_btn.grid(row=0, column=1, padx=15)
+
+        # Binding de Enter con verificación
+        def on_enter(event):
+            if win.winfo_exists():
+                save_btn.invoke()
+        
+        win.bind("<Return>", on_enter)
+        
+        # Cleanup al cerrar con X
+        win.protocol("WM_DELETE_WINDOW", cleanup_and_close)
+
+
 
     # --------------------------------------------------------------------
     # CONTROLLER & HELPERS
