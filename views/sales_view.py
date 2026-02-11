@@ -5,6 +5,8 @@ from models.stock import StockModel
 from services.daily_sales_report import DailySalesReportService
 from views.client_selector import ClientSelectorDialog
 from models.customer import CustomerModel
+from datetime import datetime, timedelta
+from tkcalendar import DateEntry
 
 
 ctk.set_appearance_mode("light")
@@ -77,7 +79,7 @@ class SalesView:
         search_btn.grid(row=0, column=2, padx=10)
 
         today_btn = ctk.CTkButton(
-            header, text="📅 Ventas del día",
+            header, text="📅 Ver Ventas",
             width=150, height=35,
             fg_color="#009688", hover_color="#00796B",
             command=lambda: self.controller.show_today_sales()
@@ -609,6 +611,360 @@ class SalesView:
         confirm_win.wait_window()
         
         return result["confirmed"]
+    
+    def open_sales_query_window(self):
+        """Ventana completa de consulta de ventas con filtros por fecha"""
+        width_win = 1000
+        height_win = 700
+
+        x_root = self.frame.winfo_x()
+        y_root = self.frame.winfo_y()
+        width_root = self.frame.winfo_width()
+        height_root = self.frame.winfo_height()
+
+        x = x_root + (width_root // 2) - (width_win // 2)
+        y = y_root + (height_root // 2) - (height_win // 2)
+        
+        win = ctk.CTkToplevel(self.frame)
+        win.title("Consulta de Ventas")
+        win.geometry(f"{width_win}x{height_win}+{x}+{y}")
+        win.transient(self.frame)
+        win.grab_set()
+
+        # ================================================================
+        # HEADER
+        # ================================================================
+        header = ctk.CTkFrame(win, fg_color="#009688", height=60, corner_radius=0)
+        header.pack(fill="x")
+        header.pack_propagate(False)
+
+        ctk.CTkLabel(
+            header,
+            text="📊 Consulta de Ventas",
+            font=ctk.CTkFont(size=18, weight="bold"),
+            text_color="white"
+        ).pack(side="left", padx=20, pady=15)
+
+        # ================================================================
+        # PANEL DE FILTROS
+        # ================================================================
+        filter_frame = ctk.CTkFrame(win, fg_color="#f5f5f5", corner_radius=10)
+        filter_frame.pack(fill="x", padx=15, pady=10)
+
+        # Variables para filtros
+        fecha_desde_var = tk.StringVar(value=(datetime.now() - timedelta(days=30)).strftime("%Y-%m-%d"))
+        fecha_hasta_var = tk.StringVar(value=datetime.now().strftime("%Y-%m-%d"))
+        estado_var = tk.StringVar(value="Todos")
+
+        # --- Fila 1: Fechas ---
+        row1 = ctk.CTkFrame(filter_frame, fg_color="transparent")
+        row1.pack(fill="x", padx=10, pady=8)
+
+        ctk.CTkLabel(
+            row1,
+            text="Desde:",
+            font=ctk.CTkFont(size=12, weight="bold")
+        ).pack(side="left", padx=(0, 5))
+
+        fecha_desde_entry = DateEntry(
+            row1,
+            textvariable=fecha_desde_var,
+            width=12,
+            background='#009688',
+            foreground='white',
+            borderwidth=2,
+            date_pattern='yyyy-mm-dd'
+        )
+        fecha_desde_entry.pack(side="left", padx=5)
+
+        ctk.CTkLabel(
+            row1,
+            text="Hasta:",
+            font=ctk.CTkFont(size=12, weight="bold")
+        ).pack(side="left", padx=(15, 5))
+
+        fecha_hasta_entry = DateEntry(
+            row1,
+            textvariable=fecha_hasta_var,
+            width=12,
+            background='#009688',
+            foreground='white',
+            borderwidth=2,
+            date_pattern='yyyy-mm-dd'
+        )
+        fecha_hasta_entry.pack(side="left", padx=5)
+
+        # Botones de rangos rápidos
+        quick_btns = ctk.CTkFrame(row1, fg_color="transparent")
+        quick_btns.pack(side="left", padx=20)
+
+        def set_today():
+            hoy = datetime.now().strftime("%Y-%m-%d")
+            fecha_desde_var.set(hoy)
+            fecha_hasta_var.set(hoy)
+            fecha_desde_entry.set_date(datetime.now())
+            fecha_hasta_entry.set_date(datetime.now())
+
+        def set_this_week():
+            hoy = datetime.now()
+            inicio_semana = hoy - timedelta(days=hoy.weekday())
+            fecha_desde_var.set(inicio_semana.strftime("%Y-%m-%d"))
+            fecha_hasta_var.set(hoy.strftime("%Y-%m-%d"))
+            fecha_desde_entry.set_date(inicio_semana)
+            fecha_hasta_entry.set_date(hoy)
+
+        def set_this_month():
+            hoy = datetime.now()
+            inicio_mes = hoy.replace(day=1)
+            fecha_desde_var.set(inicio_mes.strftime("%Y-%m-%d"))
+            fecha_hasta_var.set(hoy.strftime("%Y-%m-%d"))
+            fecha_desde_entry.set_date(inicio_mes)
+            fecha_hasta_entry.set_date(hoy)
+
+        ctk.CTkButton(
+            quick_btns, text="Hoy", width=60, height=28,
+            fg_color="#2196F3", hover_color="#1976D2",
+            command=set_today
+        ).pack(side="left", padx=2)
+
+        ctk.CTkButton(
+            quick_btns, text="Semana", width=70, height=28,
+            fg_color="#2196F3", hover_color="#1976D2",
+            command=set_this_week
+        ).pack(side="left", padx=2)
+
+        ctk.CTkButton(
+            quick_btns, text="Mes", width=60, height=28,
+            fg_color="#2196F3", hover_color="#1976D2",
+            command=set_this_month
+        ).pack(side="left", padx=2)
+
+        # --- Fila 2: Filtro de estado ---
+        row2 = ctk.CTkFrame(filter_frame, fg_color="transparent")
+        row2.pack(fill="x", padx=10, pady=8)
+
+        ctk.CTkLabel(
+            row2,
+            text="Estado:",
+            font=ctk.CTkFont(size=12, weight="bold")
+        ).pack(side="left", padx=(0, 5))
+
+        estado_combo = ctk.CTkComboBox(
+            row2,
+            variable=estado_var,
+            values=["Todos", "Pagada", "Pendiente", "Parcial"],
+            width=120,
+            height=32,
+            state="readonly"
+        )
+        estado_combo.pack(side="left", padx=5)
+
+        # Botón consultar
+        ctk.CTkButton(
+            row2,
+            text="🔍 Consultar",
+            width=130,
+            height=35,
+            font=ctk.CTkFont(size=13, weight="bold"),
+            fg_color="#009688",
+            hover_color="#00796B",
+            command=lambda: load_sales()
+        ).pack(side="left", padx=20)
+
+        # ================================================================
+        # RESUMEN DE RESULTADOS
+        # ================================================================
+        summary_frame = ctk.CTkFrame(win, fg_color="transparent")
+        summary_frame.pack(fill="x", padx=15, pady=5)
+
+        summary_label = ctk.CTkLabel(
+            summary_frame,
+            text="",
+            font=ctk.CTkFont(size=12),
+            text_color="#666666"
+        )
+        summary_label.pack(side="left", padx=10)
+
+        total_label = ctk.CTkLabel(
+            summary_frame,
+            text="",
+            font=ctk.CTkFont(size=14, weight="bold"),
+            text_color="#009688"
+        )
+        total_label.pack(side="right", padx=10)
+
+        # ================================================================
+        # TABLA DE RESULTADOS
+        # ================================================================
+        table_frame = ctk.CTkFrame(win)
+        table_frame.pack(fill="both", expand=True, padx=15, pady=10)
+
+        # Estilo
+        style = ttk.Style()
+        style.configure(
+            "Sales.Treeview",
+            rowheight=28,
+            font=("Segoe UI", 10)
+        )
+        style.configure(
+            "Sales.Treeview.Heading",
+            font=("Segoe UI", 10, "bold")
+        )
+
+        cols = ("ID", "Fecha", "Hora", "Cliente", "Estado", "Total", "Pagado", "Saldo")
+        sales_tree = ttk.Treeview(
+            table_frame,
+            columns=cols,
+            show="headings",
+            height=15,
+            style="Sales.Treeview"
+        )
+
+        col_widths = [60, 100, 80, 250, 90, 100, 100, 100]
+        for col, w in zip(cols, col_widths):
+            sales_tree.column(col, width=w, anchor="center" if col != "Cliente" else "w")
+            sales_tree.heading(col, text=col, anchor="center")
+
+        # Scrollbar
+        scroll_y = ttk.Scrollbar(table_frame, orient="vertical", command=sales_tree.yview)
+        sales_tree.configure(yscrollcommand=scroll_y.set)
+        scroll_y.pack(side="right", fill="y")
+        sales_tree.pack(fill="both", expand=True)
+
+        # Tags para colores
+        sales_tree.tag_configure("paid", background="#E8F5E9")
+        sales_tree.tag_configure("pending", background="#FFEBEE")
+        sales_tree.tag_configure("partial", background="#FFF3E0")
+
+        # ================================================================
+        # FUNCIÓN PARA CARGAR VENTAS
+        # ================================================================
+        def load_sales():
+            """Cargar ventas según filtros"""
+            try:
+                # Limpiar tabla
+                for item in sales_tree.get_children():
+                    sales_tree.delete(item)
+
+                # Obtener filtros
+                fecha_desde = fecha_desde_var.get()
+                fecha_hasta = fecha_hasta_var.get()
+                estado = estado_var.get()
+
+                # Mapeo de estados
+                estado_filter = None
+                if estado == "Pagada":
+                    estado_filter = "paid"
+                elif estado == "Pendiente":
+                    estado_filter = "pending"
+                elif estado == "Parcial":
+                    estado_filter = "partial"
+
+                # Obtener ventas desde el controlador
+                ventas = self.controller.get_sales_by_date_range(
+                    fecha_desde, fecha_hasta, estado_filter
+                )
+
+                # Llenar tabla
+                total_ventas = 0
+                total_pagado = 0
+                total_saldo = 0
+
+                for venta in ventas:
+                    sale_id, fecha, total, cliente_nombre, estado_venta, pagado = venta
+                    
+                    # Calcular saldo
+                    saldo = max(0, total - pagado)
+                    
+                    # Formatear fecha y hora
+                    try:
+                        fecha_dt = datetime.strptime(fecha, "%Y-%m-%d %H:%M:%S")
+                        fecha_str = fecha_dt.strftime("%Y-%m-%d")
+                        hora_str = fecha_dt.strftime("%H:%M")
+                    except:
+                        fecha_str = fecha[:10] if len(fecha) >= 10 else fecha
+                        hora_str = fecha[11:16] if len(fecha) >= 16 else ""
+                    
+                    # Estado en español
+                    estado_texto = {
+                        "paid": "Pagada",
+                        "pending": "Pendiente",
+                        "partial": "Parcial"
+                    }.get(estado_venta, estado_venta.upper())
+                    
+                    # Tag según estado
+                    tag = estado_venta if estado_venta in ["paid", "pending", "partial"] else ""
+                    
+                    sales_tree.insert("", "end", values=(
+                        sale_id,
+                        fecha_str,
+                        hora_str,
+                        cliente_nombre if cliente_nombre else "Consumidor Final",
+                        estado_texto,
+                        f"${total:,.2f}",
+                        f"${pagado:,.2f}",
+                        f"${saldo:,.2f}"
+                    ), tags=(tag,))
+                    
+                    total_ventas += total
+                    total_pagado += pagado
+                    total_saldo += saldo
+
+                # Actualizar resumen
+                summary_label.configure(
+                    text=f"📊 {len(ventas)} ventas encontradas"
+                )
+                total_label.configure(
+                    text=f"Total: ${total_ventas:,.2f} | Pagado: ${total_pagado:,.2f} | Saldo: ${total_saldo:,.2f}"
+                )
+
+            except Exception as e:
+                messagebox.showerror("Error", f"Error al cargar ventas: {e}")
+
+        # ================================================================
+        # BOTONES INFERIORES
+        # ================================================================
+        btn_frame = ctk.CTkFrame(win, fg_color="transparent")
+        btn_frame.pack(pady=15)
+
+        def export_results():
+            """Exportar resultados a PDF"""
+            if len(sales_tree.get_children()) == 0:
+                messagebox.showwarning("Advertencia", "No hay ventas para exportar")
+                return
+            
+            # Recopilar datos de la tabla
+            ventas_export = []
+            for item in sales_tree.get_children():
+                ventas_export.append(sales_tree.item(item)["values"])
+            
+            # Llamar al método de exportación existente
+            self.export_sales_day(ventas_export, fecha_desde_var.get(), fecha_hasta_var.get())
+
+        ctk.CTkButton(
+            btn_frame,
+            text="📄 Exportar PDF",
+            width=180,
+            height=40,
+            fg_color="#FF9800",
+            hover_color="#F57C00",
+            font=ctk.CTkFont(size=13, weight="bold"),
+            command=export_results
+        ).grid(row=0, column=0, padx=10)
+
+        ctk.CTkButton(
+            btn_frame,
+            text="Cerrar",
+            width=150,
+            height=40,
+            fg_color="#757575",
+            hover_color="#616161",
+            font=ctk.CTkFont(size=13, weight="bold"),
+            command=win.destroy
+        ).grid(row=0, column=1, padx=10)
+
+        # Cargar ventas inicialmente (último mes)
+        load_sales()
 
     def process_sale_with_confirmation(self):
         """Procesar venta con confirmación previa"""

@@ -186,7 +186,7 @@ class SalesController:
                 self.sales_view.show_warning("No hay ventas registradas hoy.")
                 return
 
-            self.sales_view.open_today_sales_window(rows)
+            self.sales_view.open_sales_query_window()
 
         except Exception as e:
             self.sales_view.show_error(f"Error al listar ventas: {e}")
@@ -250,4 +250,62 @@ class SalesController:
             self.sales_view.generate_delivery_note()
 
 
+    def get_sales_by_date_range(self, fecha_desde, fecha_hasta, estado=None):
+        """
+        Obtener ventas por rango de fechas y opcionalmente filtradas por estado
+        
+        Args:
+            fecha_desde (str): Fecha inicial en formato YYYY-MM-DD
+            fecha_hasta (str): Fecha final en formato YYYY-MM-DD  
+            estado (str, optional): Estado de la venta ('paid', 'pending', 'partial', None para todos)
+        
+        Returns:
+            list: Lista de tuplas (sale_id, fecha, total, cliente, estado, pagado)
+        """
+        try:
+            # Query base
+            query = """
+                SELECT 
+                    s.id,
+                    s.date,
+                    s.total,
+                    COALESCE(c.nombre, '') as cliente,
+                    s.estado,
+                    COALESCE((
+                        SELECT SUM(p.amount) 
+                        FROM payments p 
+                        WHERE p.sale_id = s.id
+                    ), 0) as pagado
+                FROM sales s
+                LEFT JOIN clientes c ON c.id = s.cliente_id
+                WHERE DATE(s.date) BETWEEN ? AND ?
+            """
+            
+            params = [fecha_desde, fecha_hasta]
+            
+            # Filtro por estado si se especifica
+            if estado:
+                query += " AND s.estado = ?"
+                params.append(estado)
+            
+            query += " ORDER BY s.date DESC"
+            
+            # Ejecutar query
+            rows = self.sales_model.db.fetch_all(query, tuple(params))
+            
+            return rows
+            
+        except Exception as e:
+            print(f"Error al obtener ventas por rango de fechas: {e}")
+            return []
+
+
+    def get_today_sales(self):
+        """
+        Obtener ventas del día actual
+        Wrapper del nuevo método para compatibilidad
+        """
+        from datetime import datetime
+        hoy = datetime.now().strftime("%Y-%m-%d")
+        return self.get_sales_by_date_range(hoy, hoy)
 
