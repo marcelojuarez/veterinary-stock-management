@@ -1,7 +1,6 @@
 import locale
 import tkinter as tk
 import customtkinter as ctk
-from datetime import datetime
 
 from tkinter import ttk
 
@@ -260,8 +259,7 @@ class PurchaseWindow():
             
             iid = selected[0]
             values = self.purchase_tree.item(iid, "values")
-
-            print(values)
+            
             if values[5] != 'BORRADOR':
                 show_error('Error. No puede eliminar una compra ya confirmada.') 
                 return

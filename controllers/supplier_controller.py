@@ -1,8 +1,5 @@
 # controllers/supplier_controller.py
-
-from models.stock import StockModel
 from views.view_helpers import show_warning, show_error, show_success
-from utils.utils import normalize_decimal
 import re
 
 class SupplierController():
@@ -83,12 +80,7 @@ class SupplierController():
             iid = selected[0]
             values = self.view.supplier_tree.item(iid, "values")
             print(values)
-            debt = self.model.purchase.get_debt_of_supplier(values[2])[0]
-
-            if debt is None:
-                debt = normalize_decimal(0.00)
-            else:
-                debt = normalize_decimal(debt)
+            debt = self.model.purchase.get_debt_of_supplier(values[2])
 
             print(f'debt: {debt}')
             print(f'type of debt: {type(debt)}')

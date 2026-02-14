@@ -1,7 +1,8 @@
 import tkinter as tk
 import customtkinter as ctk
-from utils.utils import normalize_decimal, normalize_string_to_dec, normalize_int_to_dec
-from views.view_helpers import show_warning, show_error, close_win, ask_confirmation
+from decimal import Decimal
+from utils.utils import normalize_to_2_decimals, normalize_string_to_dec, normalize_int_to_dec
+from views.view_helpers import close_win, ask_confirmation
 
 class NewPurchaseItemForm():
     def __init__(self, controller, stock_model):
@@ -38,8 +39,8 @@ class NewPurchaseItemForm():
 
         self.setup_purchase_items_variables(purchase_id)
 
-        self.cost = normalize_decimal("0.00")
-        self.iva = normalize_decimal("0.00")
+        self.cost = Decimal('0.00')
+        self.iva = Decimal('0.00')
 
         """Ventana para agregar nuevo producto con CustomTkinter"""
         add_win = ctk.CTkToplevel(parent)
@@ -127,18 +128,26 @@ class NewPurchaseItemForm():
             ## stock
             self.qty = normalize_int_to_dec(self.quantity.get())
 
-            ## precios, iva, descuento
+            ## precio - iva - descuento
             self.cost = normalize_string_to_dec(self.cost_price.get())
-            self.iva = normalize_decimal(self.iva_rate.get() or 0.00)
+            self.iva = normalize_string_to_dec(self.iva_rate.get())
             self.discount = normalize_string_to_dec(self.discount_var.get())
 
             if self.cost is None or self.iva is None or self.discount is None or self.qty is None:
                 return
 
-            discount_amount = normalize_decimal(((self.qty * self.cost) * self.discount) / 100)
-            subtotal = normalize_decimal(self.qty * self.cost - discount_amount)
-            iva_amount = normalize_decimal(subtotal * (self.iva / 100))
-            total = normalize_decimal(subtotal + iva_amount)
+            # Calculos (sin normalizar)
+            base_amount = self.qty * self.cost
+            discount_rate = self.discount / Decimal('100')
+            discount_amount = base_amount * discount_rate            
+
+            subtotal = normalize_to_2_decimals(self.qty * self.cost - discount_amount)
+            iva_amount = normalize_to_2_decimals(subtotal * (self.iva / Decimal('100')))
+            total = subtotal + iva_amount
+
+            # normalizacion final
+            discount_amount = normalize_to_2_decimals(discount_amount)
+            total = normalize_to_2_decimals(total)
 
             self.discount_amount.set(discount_amount)
             self.subtotal.set(subtotal)
@@ -161,7 +170,7 @@ class NewPurchaseItemForm():
         add_win.bind("<Return>", lambda event: add_button.invoke())
 
         cancel_button = ctk.CTkButton(button_frame, text="Cancelar", width=120, height=35, font=ctk.CTkFont(size=12, weight="bold"),
-            fg_color="#757575", hover_color="#616161", command=add_win.destroy)
+            fg_color="#757575", hover_color="#616161", command=lambda: close_win(add_win, parent))
         cancel_button.grid(row=0, column=1, padx=10)
 
     def confirm_new_p_item(self, win, parent):
@@ -193,6 +202,7 @@ class NewPurchaseItemForm():
         if ask_confirmation(data, 'Desea confirmar la carga de este producto?'):
             self.controller.add_purchase_item(win, parent)
 
+    ## -- Carga los datos asociados a un producto -- ##
     def load_item_info(self, product_id):
         product_data = self.stock_model.get_product_by_id(product_id)
 
@@ -202,7 +212,7 @@ class NewPurchaseItemForm():
         self.cost_price.set(product_data[4])
         self.iva_rate.set(product_data[6])
 
-        ## -- Obtener los datos de los items de compra -- ##
+    ## -- Obtiene los datos de los items de compra -- ##
     def get_purchase_item_data(self):
         return{
             'Purchase_id': self.purchase_id.get().strip(),

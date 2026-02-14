@@ -1,6 +1,6 @@
 import tkinter as tk
 import customtkinter as ctk
-from utils.utils import normalize_decimal
+from decimal import Decimal
 
 from views.view_helpers import close_win, show_warning
 
@@ -53,7 +53,7 @@ class PaymentForm:
             show_warning('Por favor selecciona un Proveedor')
             return
 
-        if normalize_decimal(self.pay_win.debt_var.get()) <= normalize_decimal(0.00):
+        if Decimal(self.pay_win.debt_var.get()) <= Decimal('0.00'):
             show_warning(f'Atención. No se registra Deuda al proveedor: {supplier_cuit}')
             return
 

@@ -4,7 +4,7 @@ from tkinter import ttk
 from .payment_form import PaymentForm 
 from .payment_info import PaymentInfo
 from views.view_helpers import close_win, show_warning, show_error
-from utils.utils import iso_to_traditional, normalize_decimal
+from utils.utils import iso_to_traditional
 
 # Configurar tema y colores
 ctk.set_appearance_mode("light")  # "light" o "dark"
@@ -302,7 +302,6 @@ class PaymentWindow():
             payments = self.model.payment.get_all_payments()
 
         else:
-            print(f'{supplier_cuit}')
             payments = self.model.payment.get_all_payments(supplier_cuit)
 
         # Limpiar tabla
@@ -335,10 +334,7 @@ class PaymentWindow():
                 show_warning("Atención", "Primero selecciona un proveedor.")
                 return
             
-            debt = normalize_decimal(self.model.purchase.get_debt_of_supplier(selected_supplier)[0])
-
-            if debt is None:
-                debt = normalize_decimal('0.00')
+            debt = self.model.purchase.get_debt_of_supplier(selected_supplier)
 
             self.debt_var.set(debt)
             purchases = self.model.purchase.get_all_confirmed_purchases(selected_supplier)

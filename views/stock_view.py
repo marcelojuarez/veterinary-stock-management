@@ -3,7 +3,7 @@ from tkinter import ttk, messagebox
 import tkinter as tk
 from models.stock import StockModel
 from views.view_helpers import close_win, show_warning
-from utils.utils import iso_to_traditional
+from utils.utils import iso_to_traditional, norm_string_to_2_dec
 import random
 
 
@@ -724,7 +724,7 @@ class StockView():
             # Insertar en la Treeview
             self.stock_tree.insert(
                 "", "end", 
-                values=(id, name, pack, profit, cost_price, price, iva, price_with_iva, 
+                values=(id, name, pack, profit, norm_string_to_2_dec(cost_price), norm_string_to_2_dec(price), iva, norm_string_to_2_dec(price_with_iva), 
                         iso_to_traditional(created_at), iso_to_traditional(last_price_update), quantity), 
                 tags=(tag,)
             )

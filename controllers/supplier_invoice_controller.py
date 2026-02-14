@@ -1,6 +1,7 @@
 from views.view_helpers import show_success, show_error, show_warning, close_win
 from datetime import datetime
-from utils.utils import normalize_string_to_dec, normalize_decimal, traditional_to_iso
+from utils.utils import normalize_string_to_dec, traditional_to_iso
+from decimal import Decimal
 
 class SupplierInvoiceController():
     def __init__(self):
@@ -17,19 +18,14 @@ class SupplierInvoiceController():
     def set_model(self, model):
         self.model = model
 
-    def convert_string_to_date_formated(self, date):
-        # convierto el string a obj tipo date
-        date_formated = datetime.strptime(date, "%d/%m/%Y").date()
-        # formateo el obj
-        return date_formated.strftime("%Y-%m-%d")
-
+    ## -- Agrega una nueva factura correspondiente a un proveedor -- ##
     def add_new_invoice(self, win, parent):
 
         try:
             data = self.form_view.get_invoice_form_data()
             supplier_data = self.model.core.find_supplier_by_cuit(data['supplier_cuit'])
             
-            if not self.validate_date(data):
+            if not self.validate_invoice_data(data):
                 win.focus_force()
                 return
             
@@ -70,8 +66,9 @@ class SupplierInvoiceController():
         except Exception as e:
             show_error(f'Error al registrar factura: {e}')
 
+    ## -- Valida los datos del formulario correspondiente a la factura -- 
     @classmethod
-    def validate_date(cls, data):
+    def validate_invoice_data(cls, data):
         required_files = {
             'invoice_id': 'Numero de Factura',
             'invoice_type': 'Tipo de Factura',
@@ -98,13 +95,14 @@ class SupplierInvoiceController():
 
         discount = normalize_string_to_dec(data['discount'])
 
-        if discount < normalize_decimal(0.00) \
-        or discount > normalize_decimal(99.00):
+        if discount < Decimal('0.00') \
+        or discount > Decimal('99.00'):
             show_error('Error. El porcentaje de descuento debe rondar entre 0 y 99 %')
             return False
 
         return True
 
+    ## -- Valida si una fecha esta en el formato correcto -- ##
     @staticmethod    
     def is_valid_date(date):
         try:
@@ -113,6 +111,7 @@ class SupplierInvoiceController():
         except:
             return False
 
+    ## -- Valida si un dato es un decimal o se puede normalizar -- ##
     @staticmethod
     def is_decimal(value):
         value = normalize_string_to_dec(value)
