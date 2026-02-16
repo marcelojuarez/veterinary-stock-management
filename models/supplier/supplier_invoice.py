@@ -1,6 +1,6 @@
 from datetime import datetime
 from utils.utils import traditional_to_iso
-
+from decimal import Decimal
 
 class SupplierInvoice():
     def __init__(self, db):
@@ -46,7 +46,8 @@ class SupplierInvoice():
         WHERE id = ? 
         """
 
-        return self.db.fetch_one(query, (invoice_id, ))
+        result = self.db.fetch_one(query, (invoice_id, ))[0]
+        return Decimal(result)
         
     def update_invoice_info(self, invoice_id, data, conn=None, commit=True):
         date = datetime.now().strftime("%Y-%m-%d")

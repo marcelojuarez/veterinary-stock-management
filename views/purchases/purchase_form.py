@@ -2,7 +2,7 @@ import tkinter as tk
 from tkinter import ttk
 import customtkinter as ctk
 
-from views.view_helpers import show_warning, show_error, close_win, ask_confirmation
+from views.view_helpers import  show_error, close_win
 from .new_product_form import NewProductForm
 from .new_purchase_item_form import NewPurchaseItemForm
 

@@ -1,7 +1,6 @@
 import customtkinter as ctk
 import tkinter as tk
 from views.view_helpers import close_win, show_warning
-from controllers.supplier_receipt_controller import SupplierReceiptController
 import datetime
 
 class SupplierReceiptForm():

@@ -1,8 +1,9 @@
 import tkinter as tk
 import customtkinter as ctk
-from utils.utils import normalize_decimal, normalize_string_to_dec
-from decimal import InvalidOperation
-from views.view_helpers import close_win, show_error, ask_confirmation
+
+from decimal import Decimal
+from utils.utils import convert_to_decimal, normalize_string_to_dec
+from views.view_helpers import close_win, ask_confirmation
 
 class NewProductForm():
     def __init__(self, controller):
@@ -22,7 +23,6 @@ class NewProductForm():
         self.qnt_var = tk.StringVar()
         self.sale_price_var = tk.StringVar()
         self.final_price = tk.StringVar() # sale_price + iva_amount
-        
 
     def open_add_window(self, parent):
         """Ventana para agregar nuevo producto con CustomTkinter"""
@@ -37,7 +37,6 @@ class NewProductForm():
         add_win.grab_set()
     
         # Centrar la ventana
-
         width_win = 480
         height_win = 600
 
@@ -87,7 +86,7 @@ class NewProductForm():
         
         add_field(1, "Envase: ",
                 ctk.CTkComboBox(form_frame, values=["UNIDAD", "CAJA", "FRASCO", "AMPOLLA", "SOBRE", "OTRO"], 
-                variable=self.pack_var, width=200, height=35))
+                variable=self.pack_var, state='readonly', width=200, height=35))
 
         self.pack_var.set("UNIDAD")
 
@@ -101,22 +100,22 @@ class NewProductForm():
         
         add_field(4, "% Rentabilidad: ",
                 ctk.CTkEntry(form_frame, textvariable=self.profit_var, width=200))
-
-        add_field(5, "% Iva: ",
-                ctk.CTkComboBox(form_frame, values=["21.00", "10.50", "0.00"], 
-                variable=self.iva_var, width=200, height=35))
         
-        self.iva_var.set("21.00")
-
-        add_field(6, "Monto IVA: ",
-                  ctk.CTkEntry(form_frame, textvariable=self.iva_amount, width=200))
-        
-        self.iva_amount.set('0.0')
-
-        add_field(7, "Precio venta: ",
+        add_field(5, "Precio venta: ",
                 ctk.CTkEntry(form_frame, textvariable=self.sale_price_var, width=200))
         
         self.sale_price_var.set('0.0')
+
+        add_field(6, "% Iva: ",
+                ctk.CTkComboBox(form_frame, values=["21.00", "10.50", "0.00"], 
+                variable=self.iva_var, state='readonly', width=200, height=35))
+        
+        self.iva_var.set("21.00")
+
+        add_field(7, "Monto IVA: ",
+                  ctk.CTkEntry(form_frame, textvariable=self.iva_amount, width=200))
+        
+        self.iva_amount.set('0.0')
 
         add_field(8, "Precio venta C/IVA: ",
                 ctk.CTkEntry(form_frame, textvariable=self.final_price, width=200))
@@ -127,19 +126,25 @@ class NewProductForm():
             try:
                 self.cost_price = normalize_string_to_dec(self.price_var.get())
                 self.profit = normalize_string_to_dec(self.profit_var.get())
-                self.iva = normalize_decimal(self.iva_var.get())
+                self.iva = normalize_string_to_dec(self.iva_var.get())
                 
                 if self.cost_price is None or self.profit is None or self.iva is None:
                     return
 
-                # precio con rentabilidad
-                profit_rate = self.profit / 100
-                profit_amount = normalize_decimal(self.cost_price * profit_rate)
-                sale_price = normalize_decimal(self.cost_price + profit_amount)
-                
-                # precio con rentabilidad e iva
-                iva_amount = normalize_decimal(sale_price * (self.iva / 100))
-                sale_price_with_iva = normalize_decimal(sale_price + iva_amount)
+                # tasas
+                profit_rate = self.profit / Decimal('100')
+                iva_rate = self.iva / Decimal('100')
+
+                # calculos (sin normalizar)
+                profit_amount = self.cost_price * profit_rate
+                sale_price = self.cost_price + profit_amount
+                iva_amount = sale_price * iva_rate
+                sale_price_with_iva = sale_price + iva_amount
+
+                # normalizacion final
+                sale_price = convert_to_decimal(sale_price)
+                iva_amount = convert_to_decimal(iva_amount)
+                sale_price_with_iva = convert_to_decimal(sale_price_with_iva)
 
                 self.iva_amount.set(iva_amount)
                 self.sale_price_var.set(sale_price)

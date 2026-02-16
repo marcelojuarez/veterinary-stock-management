@@ -390,7 +390,7 @@ class SupplierView():
         sheet.grid(row=0, column=0, sticky="nsew", padx=10, pady=(10, 0))
         sheet.headers(["Id", "Nombre Artículo", "Envase", "Stock"])
         sheet.set_sheet_data(products)
-        sheet.set_column_widths([100, 200, 200, 50])
+        sheet.set_column_widths([100, 300, 200, 50])
 
         # --- Panel de deuda ---
         self.debt = tk.StringVar(value=f'{debt}')

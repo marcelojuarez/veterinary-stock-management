@@ -4,8 +4,8 @@ from datetime import datetime
 from models.stock import StockModel
 from .supplier_invoice import SupplierInvoice
 from .supplier_receipt import SupplierReceipt
-from decimal import Decimal, ROUND_HALF_UP
-from utils.utils import normalize_decimal, traditional_to_iso
+from decimal import Decimal
+from utils.utils import normalize_to_2_decimals, traditional_to_iso, convert_to_decimal
 
 class SupplierPurchase():
     def __init__(self, db):
@@ -131,6 +131,7 @@ class SupplierPurchase():
             print(f'Error al obtener las compras: {e}')
             return None
     
+    ## -- Busca un producto en una determinada compra -- ##
     def get_product_on_purchase(self, purchase_id, product_id):
         try:
             query = """
@@ -157,11 +158,11 @@ class SupplierPurchase():
         params = (
             product_data['Name'],
             product_data['Package'],
-            str(product_data['Profit']),
-            str(product_data['CostPrice']),
-            str(product_data['SalePrice']),
-            str(product_data['Iva']),
-            str(product_data['PriceWIva']),
+            product_data['Profit'],
+            product_data['CostPrice'],
+            product_data['SalePrice'],
+            product_data['Iva'],
+            product_data['PriceWIva'],
             product_data['Stock'],
             date,
             date
@@ -183,14 +184,13 @@ class SupplierPurchase():
 
         except Exception as e:
             conn.rollback()
-            print(f'Hubo un error {e}')
+            print(f'Hubo un errorr {e}')
             return False
         
         finally:
             conn.close() 
-
     
-    ## -- Agregar nuevo Item de compra -- ##
+    ## -- Agrega un  nuevo Item de compra -- ##
     def add_purchase_item(self, params, conn=None, commit=True):
 
         query = """
@@ -206,55 +206,26 @@ class SupplierPurchase():
 
         if doc_type == 'FACTURA':
             ## Factura
-            discount = normalize_decimal(self.supplier_invoice.get_invoice_discount(doc_id)[0])
-
-            ## var bool para aplicar el descuento
-            discount_available = None
-
-            if discount > normalize_decimal('0.00'):
-                discount_available = True
-            
-            else:
-                discount_available = False
+            discount = Decimal(self.supplier_invoice.get_invoice_discount(doc_id))
 
             ## Monto_iva
-            iva_amount = self.get_iva_amount_of_p_items(purchase_id, conn=conn)[0]
+            iva_amount = self.get_iva_amount_of_p_items(purchase_id, conn=conn)
 
-            if iva_amount is None:
-                iva_amount = normalize_decimal('0.00')
-            else:
-                iva_amount = normalize_decimal(iva_amount)
-
-                if discount_available:
-                    iva_discount =  normalize_decimal((iva_amount * discount) / 100)
-                    iva_amount =  normalize_decimal(iva_amount - iva_discount)
+            iva_discount = (iva_amount * discount) / Decimal('100')
+            iva_amount =  normalize_to_2_decimals(iva_amount - iva_discount)
 
             ## Subtotal
-            orig_subtotal = self.get_subtotal_of_items(purchase_id, conn=conn)[0]
+            orig_subtotal = self.get_subtotal_of_items(purchase_id, conn=conn)
             
-            if orig_subtotal is None:
-                orig_subtotal = normalize_decimal('0.00')
-                discount_amount = normalize_decimal('0.00')
-                subtotal_w_d = normalize_decimal('0.00')
-            else:
-                orig_subtotal = normalize_decimal(orig_subtotal)
+            ## Descuento
+            discount_amount = normalize_to_2_decimals(
+                (orig_subtotal * discount) / Decimal('100')
+            )
 
-                if discount_available:
-                    discount_amount = normalize_decimal((orig_subtotal * discount) / 100)
-                    subtotal_w_d = normalize_decimal(orig_subtotal - discount_amount)
-                else:
-                    discount_amount = normalize_decimal('0.00')
-                    subtotal_w_d = orig_subtotal
+            subtotal = normalize_to_2_decimals(orig_subtotal - discount_amount)
 
             ## Total
-            total = self.get_total_of_items(purchase_id, conn=conn)[0]
-            if total is None:
-                total = normalize_decimal('0.00')
-            else:
-                if discount_available:
-                    total = subtotal_w_d + iva_amount
-                else:
-                    total = normalize_decimal(total)
+            total = subtotal + iva_amount
             
             query = """ 
             UPDATE supplier_invoice 
@@ -265,7 +236,7 @@ class SupplierPurchase():
             params = [
                 str(orig_subtotal), 
                 str(discount_amount), 
-                str(subtotal_w_d), 
+                str(subtotal), 
                 str(iva_amount), 
                 str(total), 
                 doc_id
@@ -274,7 +245,6 @@ class SupplierPurchase():
             self.db.execute_query(query, params, conn=conn, commit=commit)
 
             ## Se actualiza la compra
-
             query = """ UPDATE purchase SET pending = ? , total = ? WHERE id = ? """
 
             purchase_params = [str(total), str(total), purchase_id]
@@ -282,12 +252,8 @@ class SupplierPurchase():
             self.db.execute_query(query, purchase_params, conn=conn, commit=commit)
 
         else:
-            ## Remito
-            total = self.get_total_of_items(purchase_id, conn=conn)[0]
-            if total is None:
-                total = normalize_decimal('0.00')
-            else:
-                total = normalize_decimal(total)
+            ## Remito ## sin iva
+            total = self.get_subtotal_of_items(purchase_id, conn=conn)
 
             print(f'Total: {total}')
 
@@ -319,30 +285,35 @@ class SupplierPurchase():
     ##  -- Obtener subtotal de items -- ##
     def get_subtotal_of_items(self, purchase_id, conn=None):
         query = """
-        SELECT SUM(subtotal)
+        SELECT subtotal
         FROM purchase_item
         WHERE purchase_id = ?
         """
-        return self.db.fetch_one(query, (purchase_id, ), conn=conn)
-    
-    ##  -- Obtener total de items -- ##
-    def get_total_of_items(self, purchase_id, conn=None):
-        query = """
-        SELECT SUM(total)
-        FROM purchase_item
-        WHERE purchase_id = ?
-        """ 
+        rows = self.db.fetch_all(query, (purchase_id,), conn=conn)
+        print(f'rows: \n {rows}')
 
-        return self.db.fetch_one(query, (purchase_id, ), conn=conn)
-    
+        subtotal = Decimal('0.00')
+
+        for row in rows:
+            subtotal += Decimal(row[0])
+
+        return normalize_to_2_decimals(subtotal)
+
     ## -- Obtener suma de iva de items -- ##
     def get_iva_amount_of_p_items(self, purchase_id, conn=None):
         query = """
-        SELECT SUM(iva_amount)
+        SELECT iva_amount
         FROM purchase_item
         WHERE purchase_id = ?
         """
-        return self.db.fetch_one(query, (purchase_id, ), conn=conn)
+        rows = self.db.fetch_all(query, (purchase_id, ), conn=conn)
+
+        iva_amount = Decimal('0.00')
+
+        for row in rows:
+            iva_amount += Decimal(row[0])
+
+        return normalize_to_2_decimals(iva_amount)
 
     ## -- Obtener todos los productos de un proveedor a traves de las compras
     def get_all_products_by_supplier_id(self, supplier_id):
@@ -388,45 +359,26 @@ class SupplierPurchase():
 
         return self.db.fetch_all(query, params)
     
-    def set_initial_debt_purchase(self, purchase_id, id, doc_type, initial_debt, conn=None, commit=True):
+    ## -- setea la compra y el doc asociado como pendiente -- ##
+    def set_purchase_as_pending(self, purchase_id, id, doc_type, conn=None, commit=True):
 
-        query = """
-        UPDATE purchase
-        SET
-            state = 'PENDIENTE',
-            pending = ?,
-            total = ?
-        WHERE id = ?
-        """
+        query = """ UPDATE purchase SET state = 'PENDIENTE' WHERE id = ? """
 
-        params = (str(initial_debt), str(initial_debt), purchase_id)
-        self.db.execute_query(query, params, conn=conn, commit=commit)
-
-        # Si quedó pagada, actualizar comprobante
+        self.db.execute_query(query, (purchase_id, ), conn=conn, commit=commit)
 
         if doc_type == "REMITO":
             query = """
-            UPDATE supplier_receipt
-            SET 
-                state = 'PENDIENTE',
-                total = ?
-            WHERE id = ?
+            UPDATE supplier_receipt SET state = 'PENDIENTE' WHERE id = ? 
             """
         else:
             query = """
-            UPDATE supplier_invoice
-            SET 
-                state = 'PENDIENTE',
-                total = ?
-            WHERE id = ?
+            UPDATE supplier_invoice SET state = 'PENDIENTE' WHERE id = ? 
             """
 
-        params = (str(initial_debt), id)
-        self.db.execute_query(query, params, conn=conn, commit=commit)       
+        self.db.execute_query(query, (id, ), conn=conn, commit=commit)       
 
-    ## -- Carga los items de la compra en stock y setea la nueva deuda del proveedor -- ## 
-
-    def load_products_and_set_initial_debt(self, purchase_id, id, doc_type, debt):
+    ## -- Carga los items de la compra en stock y setea la compra como pendiente-- ## 
+    def load_products(self, purchase_id, id, doc_type):
         try:
             conn = self.db.get_connection()
 
@@ -434,7 +386,7 @@ class SupplierPurchase():
             conn.execute("BEGIN")
 
             # Se setea nueva deuda y se carga compra como pendiente
-            self.set_initial_debt_purchase(purchase_id, id, doc_type, debt, conn=conn, commit=False)
+            self.set_purchase_as_pending(purchase_id, id, doc_type, conn=conn, commit=False)
 
             items = self.get_purchase_items(purchase_id)
 
@@ -501,22 +453,33 @@ class SupplierPurchase():
             id =  item['id'] # id producto
             name = item['name'] # nombre producto
             pack = item['pack'] # envase producto
-            discount_amount = normalize_decimal((item['cost_price'] * item['discount']) / 100) # monto descuento
-            cost_price = normalize_decimal(item['cost_price'] - discount_amount)# se aplica descuento
+            discount_amount = Decimal((item['cost_price'] * item['discount']) / Decimal('100')) # monto descuento
+            cost_price = Decimal(item['cost_price'] - discount_amount)# se aplica descuento
             iva = item['iva_rate'] # porcentaje de iva
             last_price_upd = date # fecha de ult. act de precio
 
-            profit = Decimal(1 + Decimal(p[3]) / 100)
+            profit = Decimal(1 + Decimal(p[3]) / Decimal('100'))
 
-            sale_price = normalize_decimal(cost_price * profit)
-
+            sale_price = cost_price * profit
+            print(f'cost price: {cost_price}')
+            print(f'sale price sin redondeo: {sale_price}')
             # precio con iva
-            if iva == 21.0:
-                price_with_iva = normalize_decimal(sale_price * Decimal(1.21))
-            elif iva == 10.5:
-                price_with_iva = normalize_decimal(sale_price * Decimal(1.105))
+            if iva == Decimal('21.00'):
+                price_with_iva = sale_price * Decimal('1.21')
+            elif iva == Decimal('10.50'):
+                price_with_iva = sale_price * Decimal('1.105')
             else:
                 price_with_iva = sale_price
+
+            print(f'price_with_iva sin redondeo: {price_with_iva}')
+
+            cost_price = convert_to_decimal(cost_price)
+            sale_price = convert_to_decimal(sale_price)
+            price_with_iva = convert_to_decimal(price_with_iva)
+
+            print(f'cost price: {cost_price}')
+            print(f'sale price: {sale_price}')
+            print(f'price_with_iva: {price_with_iva}')
 
             product_data = {
                 'id': id, # id producto
@@ -534,12 +497,7 @@ class SupplierPurchase():
     ## -- Setear saldo pendiente de la compra-- ##
     def set_new_debt_purchase(self, purchase_id, id, doc_type, new_debt, conn=None, commit=True):
 
-        print(f'new_debt: {new_debt}')
-        print(f'tipo new_debt: {type(new_debt)}')
-
-        new_debt = normalize_decimal(new_debt)
-
-        state = 'PAGADA' if new_debt <= Decimal(0.00) else 'PENDIENTE'
+        state = 'PAGADA' if new_debt <= Decimal('0.00') else 'PENDIENTE'
 
         query = """
         UPDATE purchase
@@ -597,15 +555,20 @@ class SupplierPurchase():
     ## -- Debt -- ##
     def get_debt_of_supplier(self, cuit):
         query = """
-        SELECT SUM(pending) 
+        SELECT pending
         FROM purchase JOIN supplier ON purchase.supplier_id = supplier.id
         WHERE supplier.cuit = ? AND purchase.state != 'BORRADOR'
-        """
+        """    
+        rows = self.db.fetch_all(query, (cuit, ))
 
-        return self.db.fetch_one(query, (cuit, ))
+        pending = Decimal('0.00')
+
+        for row in rows:
+            pending += Decimal(row[0])
+
+        return normalize_to_2_decimals(pending)
     
     def update_last_debt_update(self, supplier_id, conn=None, commit=True):
-        print('Se ejecuta esta funcion')
         date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         """Actualizar Saldo deuda a un proveedor"""
         query = """
@@ -696,12 +659,14 @@ class SupplierPurchase():
             UPDATE purchase
             SET
                 date = ?,
-                expiration_date = ?
+                expiration_date = ?,
+                observations = ?
             WHERE id = ?
             """
             params = [
                 date,
                 traditional_to_iso(data['expiration']),
+                data['obs'],
                 purchase_id
             ]
             

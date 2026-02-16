@@ -1,5 +1,5 @@
 from datetime import datetime
-from utils.utils import normalize_decimal, traditional_to_iso
+from utils.utils import traditional_to_iso
 from views.view_helpers import close_win, show_error
 
 class SupplierReceiptController():
@@ -17,18 +17,13 @@ class SupplierReceiptController():
     def set_model(self, model):
         self.model = model
 
-    def convert_string_to_date_formated(self, date):
-        # convierto el string a obj tipo date
-        date_formated = datetime.strptime(date, "%d/%m/%Y").date()
-        # formateo el obj a un string nuevamente
-        return date_formated.strftime("%Y-%m-%d")
-
+    ## -- Agrega un nuevo remito de un proveedor -- ##
     def add_new_receipt(self, win, parent):
         try:
             data = self.form_view.get_receipt_form_data()
             supplier_data = self.model.core.find_supplier_by_cuit(data['supplier_cuit'])
 
-            if not self.validate_date(data):
+            if not self.validate_receipt_data(data):
                 return
             
             expiration_date = traditional_to_iso(data['expiration_date'])
@@ -61,8 +56,9 @@ class SupplierReceiptController():
         except Exception as e:
             show_error(f'Error al registrar remito: {e}')
 
+    ## -- Valida los datos del recibo -- ##
     @classmethod
-    def validate_date(cls, data):
+    def validate_receipt_data(cls, data):
         required_files = {
             'receipt_id': 'Numero de Recibo',
             'expiration_date': 'Fecha de vencimiento',
@@ -80,6 +76,7 @@ class SupplierReceiptController():
         
         return True
 
+    ## -- Verifica si una fecha dada esta en el formato valido -- ##
     @staticmethod    
     def is_valid_date(date):
         try:

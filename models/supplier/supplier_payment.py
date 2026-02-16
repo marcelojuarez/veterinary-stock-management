@@ -2,8 +2,8 @@
 
 from datetime import datetime
 from .supplier_purchase import SupplierPurchase
-from utils.utils import normalize_decimal
-from decimal import Decimal, ROUND_HALF_UP
+from utils.utils import normalize_to_2_decimals
+from decimal import Decimal
 
 class SupplierPayment():
     def __init__(self, db):
@@ -133,9 +133,7 @@ class SupplierPayment():
             ]
 
             payment_id = self.db.execute_query(query, params, conn=conn, commit=False)
-            rest_amount = pay_data['Amount']
-
-            print(f'Tipo de rest_amount: {type(rest_amount)}')
+            total_amount = pay_data['Amount']
 
             if purchase_id is not None:
                 # El pago aplica a una compra 
@@ -144,8 +142,8 @@ class SupplierPayment():
                 purchase_data = self.purchase.get_purchase_by_id(purchase_id.get())
 
                 # Nueva Deuda
-                debt = normalize_decimal(purchase_data[9])
-                new_debt = normalize_decimal(debt - rest_amount)
+                debt = Decimal(purchase_data[9])
+                new_debt = debt - total_amount
 
                 # Documento asociado
                 doc_type = purchase_data[2]
@@ -156,13 +154,16 @@ class SupplierPayment():
                 else:
                     id = purchase_data[3]
 
+                # normalizacion
+                new_debt = normalize_to_2_decimals(new_debt)
+
                 # cambios en la compra
                 self.purchase.set_new_debt_purchase(purchase_id.get(), id, doc_type, new_debt, conn=conn, commit=False)
                 
                 params = {
                     'Purchase_id': purchase_id.get(),
                     'Payment_id': payment_id,
-                    'Amount_applied': rest_amount
+                    'Amount_applied': total_amount
                 }
                 
                 # agrega una relacion entre un pago y una venta
@@ -170,37 +171,36 @@ class SupplierPayment():
 
             else:
                 # El pago aplica a mas de una compra
-
                 purchases = self.purchase.get_all_purchases_without_paying()
 
                 for p in purchases:
-                    print(f'Monto: {rest_amount}')
+                    print(f'Monto: {total_amount}')
 
                     # Si ya no queda monto para aplicar, cortar el ciclo
-                    if rest_amount <= 0:
+                    if total_amount <= Decimal('0.00'):
                         break
 
                     # Saldo pendiente de la compra actual
-                    debt = normalize_decimal(p[9])
+                    debt = Decimal(p[9])
 
-                    if debt <= rest_amount:
+                    if debt <= total_amount:
                         # monto restante
-                        rest_amount = normalize_decimal(rest_amount - debt)
+                        total_amount = normalize_to_2_decimals(total_amount - debt)
 
                         # monto del pago 
-                        amount = debt
+                        amount_in_pay = debt
 
                         # saldo deuda actualizado
-                        new_debt = Decimal("0.00")
+                        new_debt = Decimal('0.00')
                     else:
                         # Nuevo saldo pendiente
-                        new_debt = normalize_decimal(debt - rest_amount)
+                        new_debt = debt - total_amount
 
                         # monto del pago 
-                        amount = rest_amount
+                        amount_in_pay = total_amount
 
                         # monto restante
-                        rest_amount = Decimal("0.00")
+                        total_amount = Decimal('0.00')
 
                     # Documento asociado
                     doc_type = p[2]
@@ -211,15 +211,16 @@ class SupplierPayment():
                     else:
                         id = p[3]
 
+                    # normalizacion
+                    new_debt = normalize_to_2_decimals(new_debt)
+
                     #cambios en la compra
                     self.purchase.set_new_debt_purchase(p[0], id, doc_type, new_debt, conn=conn, commit=False)
-
-                    amount = normalize_decimal(amount)
 
                     params = {
                         'Purchase_id': p[0],
                         'Payment_id': payment_id,
-                        'Amount_applied': amount
+                        'Amount_applied': amount_in_pay
                     }
                     
                     self.add_purchase_payment_relation(params, conn=conn, commit=False)

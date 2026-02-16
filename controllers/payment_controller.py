@@ -1,4 +1,5 @@
-from utils.utils import normalize_decimal
+from utils.utils import norm_string_to_2_dec
+from decimal import Decimal
 from views.view_helpers import show_warning, show_error, close_win
 
 class PaymentController():
@@ -16,11 +17,8 @@ class PaymentController():
     def set_pay_view(self, pay_view):
         self.pay_view = pay_view        
 
-    """
-    Permitir pagar el monto de una compra
-    Permitir registrar un monto que afecta a las compras que mas proximo se vencen
-    """
-
+    # Permitir pagar el monto de una compra
+    # Permitir registrar un monto que afecta a las compras que mas proximo se vencen
     def register_payment(self, supplier_var, win, parent, purchase_id):
 
         try:
@@ -33,17 +31,20 @@ class PaymentController():
                return
             
             supplier_data = self.model.core.find_supplier_by_cuit(selected)
+            
+            # se validan los datos de pago
             if not self.validate_data(payment_data):
                 return 
             
-            amount = normalize_decimal(payment_data['amount'])
+            amount = norm_string_to_2_dec(payment_data['amount'])
 
             if purchase_id is not None:
+                ## Se paga una compra en concreto
+
                 # Datos de la compra
                 purchase = self.model.purchase.get_purchase_by_id(purchase_id.get())
-                
                 # Deuda actual de la compra
-                debt = normalize_decimal(purchase[9])
+                debt = Decimal(purchase[9])
                 
                 # Chequeo si quiere pagar de mas
                 if not self.validate_debt(amount, debt, False):
@@ -51,18 +52,18 @@ class PaymentController():
                     return
 
             else:
+                # Se pagan multiples compras 
                 
                 purchases = self.model.purchase.get_all_purchases_without_paying(selected)
 
                 for p in purchases:
                     print(p)
 
-                total_debt = self.model.purchase.get_debt_of_supplier(selected)[0]
-                total_debt_formated = normalize_decimal(total_debt)
+                total_debt = self.model.purchase.get_debt_of_supplier(selected)
 
-                # Chequeo si quiere pagar de mas
-                if not self.validate_debt(amount, total_debt_formated, True):
-                    self.form_view.amount_var.set(str(total_debt_formated))
+                # Se chequea si el monto es superior a la deuda
+                if not self.validate_debt(amount, total_debt, True):
+                    self.form_view.amount_var.set(str(total_debt))
                     return
 
             data = {
@@ -108,7 +109,9 @@ class PaymentController():
             show_error('Error. Monto invalido')
             return False
         
-        if normalize_decimal(data['amount']) <= normalize_decimal('0.00'):
+        amount = norm_string_to_2_dec(data['amount'])
+
+        if amount <= Decimal('0.00'):
             show_error('Error. El monto debe ser un valor positivo')
             return False
 
@@ -159,10 +162,14 @@ class PaymentController():
         
         return True
 
+    ## -- Valida si un dato es un decimal o se puede normalizar -- ##
     @staticmethod
-    def _is_decimal(value):
-        try: normalize_decimal(value); return True
-        except: return False
+    def is_decimal(value):
+        value = norm_string_to_2_dec(value)
+        if value is None:
+            return False
+        else:    
+            return True
 
     @staticmethod
     def _is_int(value):

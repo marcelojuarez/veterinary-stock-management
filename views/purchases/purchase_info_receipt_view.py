@@ -383,9 +383,6 @@ class PurchaseInfoReceiptView():
             self.customizable_wid[2].get(),
         ]
 
-        for value in self.custom_wid_values:
-            print(value)
-
     ## --  Recuperar valores previos de los campos -- ##
     def recover_previous_values_of_receipt(self, purchase_id):
 
