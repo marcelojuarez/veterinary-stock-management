@@ -7,7 +7,8 @@ from random import choice, randint, uniform
 from models.company import CompanyModel
 from models.user import User
 from models.supplier.__init__ import SupplierModel
-from models.security import gen_password
+from models.security import gen_password, validate_password
+from utils.utils import normalize_decimal
 
 DB_PATH = "db/stock.db"
 
@@ -206,17 +207,17 @@ def seed_stock():
     
     # Insertar productos asignando proveedores al azar
     for p in productos_base:
-        quantity = randint(5, 50)  # Cantidad aleatoria entre 5 y 50
-        sale_price = round(p['cost_price'] * (1 + p['profit']/100), 2)
-        price_with_iva = round(sale_price * (1 + p['iva']/100), 2)
+        quantity = randint(5, 50)
+        sale_price = str(normalize_decimal(p['cost_price'] * (1 + p['profit']/100)))
+        price_with_iva = str(normalize_decimal(float(sale_price) * (1 + p['iva']/100)))
         
         cursor.execute("""
             INSERT OR REPLACE INTO stock
             (name, pack, profit, cost_price, price, iva, price_with_iva, quantity, created_at, last_price_update)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, (
-            p['name'], p['pack'], p['profit'], p['cost_price'], 
-            sale_price, p['iva'], price_with_iva, quantity, 
+            p['name'], p['pack'], str(p['profit']), str(p['cost_price']), 
+            sale_price, str(p['iva']), price_with_iva, quantity, 
             datetime.now().strftime("%Y-%m-%d"), datetime.now().strftime("%Y-%m-%d")
         ))
     
@@ -652,8 +653,8 @@ def seed_sales_with_products():
         # Insertar venta inicial con total 0
         cur.execute("""
             INSERT INTO sales (date, total, cliente_id, estado)
-            VALUES (?, 0, ?, ?)
-        """, (fecha_str, venta["cliente_id"], venta["estado"]))
+            VALUES (?, ?, ?, ?)
+        """, (fecha_str, "0", venta["cliente_id"], venta["estado"]))
         sale_id = cur.lastrowid
 
         # Agregar productos aleatorios
@@ -663,17 +664,19 @@ def seed_sales_with_products():
         for _ in range(num_productos):
             prod_id, price = choice(productos)
             cantidad = randint(1, 4)
-            subtotal = round(price * cantidad, 2)
+            price_decimal = normalize_decimal(price)
+            subtotal = normalize_decimal(price_decimal * cantidad)
             total_venta += subtotal
             
             cur.execute("""
                 INSERT INTO sale_items (sale_id, product_id, quantity, price, subtotal)
                 VALUES (?, ?, ?, ?, ?)
-            """, (sale_id, prod_id, cantidad, price, subtotal))
+            """, (sale_id, prod_id, cantidad, str(price_decimal), str(subtotal)))
+
 
         # Actualizar total de la venta
-        total_venta = round(total_venta, 2)
-        cur.execute("UPDATE sales SET total = ? WHERE id = ?", (total_venta, sale_id))
+        total_venta = normalize_decimal(total_venta)
+        cur.execute("UPDATE sales SET total = ? WHERE id = ?", (str(total_venta), sale_id))
 
         # 🔹 CREAR PAGOS según el estado
         if venta["estado"] == "paid":
@@ -681,20 +684,20 @@ def seed_sales_with_products():
             cur.execute("""
                 INSERT INTO payments (sale_id, client_id, amount, date, method, notes)
                 VALUES (?, ?, ?, ?, ?, ?)
-            """, (sale_id, venta["cliente_id"], total_venta, fecha_str, 
-                  choice(["Efectivo", "Transferencia", "Tarjeta"]), "Pago completo"))
+            """, (sale_id, venta["cliente_id"], str(total_venta), fecha_str, 
+                choice(["Efectivo", "Transferencia", "Tarjeta"]), "Pago completo"))
         
         elif venta["estado"] == "partial":
             # Venta parcial: pago entre 30% y 70% del total
-            monto_pagado = round(total_venta * uniform(0.3, 0.7), 2)
+            monto_pagado = normalize_decimal(float(total_venta) * uniform(0.3, 0.7))
             fecha_pago = fecha_venta + timedelta(days=randint(1, 3))
-            
+
             cur.execute("""
                 INSERT INTO payments (sale_id, client_id, amount, date, method, notes)
                 VALUES (?, ?, ?, ?, ?, ?)
-            """, (sale_id, venta["cliente_id"], monto_pagado, 
-                  fecha_pago.strftime("%Y-%m-%d %H:%M:%S"),
-                  choice(["Efectivo", "Transferencia"]), "Pago parcial"))
+            """, (sale_id, venta["cliente_id"], str(monto_pagado), 
+                fecha_pago.strftime("%Y-%m-%d %H:%M:%S"),
+                choice(["Efectivo", "Transferencia"]), "Pago parcial"))
 
         # Para 'pending' no creamos pagos
         

@@ -325,7 +325,7 @@ class Database:
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     sale_id INTEGER NOT NULL,
                     client_id INTEGER NOT NULL,
-                    amount REAL NOT NULL,
+                    amount TEXT NOT NULL,
                     date TEXT DEFAULT CURRENT_TIMESTAMP,
                     method TEXT,
                     notes TEXT,
@@ -338,7 +338,7 @@ class Database:
                     CREATE TABLE IF NOT EXISTS customer_credit(
                            id INTEGER PRIMARY KEY AUTOINCREMENT,
                            client_id INTEGER NOT NULL,
-                           amount REAL NOT NULL,
+                           amount TEXT NOT NULL,
                            reason TEXT,
                            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
                            sale_id INTEGER,

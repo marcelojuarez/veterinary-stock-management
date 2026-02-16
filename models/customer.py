@@ -1,6 +1,7 @@
 import sqlite3
 from db.database import db
 
+from utils.utils import normalize_decimal, iso_to_traditional
 class CustomerModel:
     def __init__(self, db_connection=None):
         self.db = db_connection or db 
@@ -162,11 +163,14 @@ class CustomerModel:
 
         formatted = []
         for sale_id, date, total, pagado, estado in rows:
-            total = round(float(total), 2)
-            pagado = round(float(pagado), 2)
+            total = normalize_decimal(total)
+            pagado = normalize_decimal(pagado)
             estado_es = state_map.get(estado, estado)
-            saldo = round(max(0.0, total - pagado), 2)
-            formatted.append((sale_id, date, total, pagado, saldo, estado_es))
+            saldo = normalize_decimal(max(normalize_decimal(0.0), total - pagado))
+
+            fecha_formateada = iso_to_traditional(date.split()[0]) if date else ""
+
+            formatted.append((sale_id, fecha_formateada, total, pagado, saldo, estado_es))
 
         return formatted
     
@@ -222,13 +226,13 @@ class CustomerModel:
 
         rows = self.db.fetch_all(query, (cliente_id,))
 
-        total_pending = 0.0
+        total_pending = normalize_decimal(0.0)
         for _, total_variable, paid in rows:
-            saldo = max(0.0, float(total_variable) - float(paid))
-            if saldo > 0.01:
+            saldo = max(normalize_decimal(0.0), normalize_decimal(total_variable) - normalize_decimal(paid))
+            if saldo > normalize_decimal(0.01):
                 total_pending += saldo
 
-        return round(total_pending, 2)
+        return normalize_decimal(total_pending)
 
     def _is_cash_sale(self, sale_id, fecha_venta):
         """
@@ -304,7 +308,7 @@ class CustomerModel:
             if sale_id in contado_sales:
                 continue
                 
-            total = round(float(total), 2)
+            total = normalize_decimal(total)
             cant_prod = int(cant_prod) if cant_prod else 0
             
             estado_map = {
@@ -314,13 +318,16 @@ class CustomerModel:
             }
             estado_txt = estado_map.get(estado, estado)
             
+            fecha_formateada = iso_to_traditional(fecha.split()[0]) if fecha else ""
+
             movements.append({
-                "fecha": fecha,
+                "fecha": fecha_formateada,
+                "fecha_original": fecha,
                 "tipo": "VENTA",
                 "descripcion": f"Venta #{sale_id} · {cant_prod} producto(s) · {estado_txt}",
                 "debe": total,
-                "haber": 0.0,
-                "saldo": 0.0,
+                "haber": normalize_decimal(0.0),
+                "saldo": normalize_decimal(0.0),
                 "sale_id": sale_id,
                 "referencia": ""
             })
@@ -359,21 +366,24 @@ class CustomerModel:
             if sale_id in contado_sales:
                 continue
                 
-            monto = round(float(monto), 2)
+            monto = normalize_decimal(monto)
             method_txt = method_map.get(method.lower() if method else "", method.capitalize() if method else "Efectivo")
             
             if sale_id:
                 desc = f"Pago Venta #{sale_id} · {method_txt}"
             else:
                 desc = f"Pago a cuenta · {method_txt}"
+
+            fecha_formateada = iso_to_traditional(fecha.split()[0]) if fecha else ""
             
             movements.append({
-                "fecha": fecha,
+                "fecha": fecha_formateada,
+                "fecha_original": fecha,
                 "tipo": "PAGO",
                 "descripcion": desc,
-                "debe": 0.0,
+                "debe": normalize_decimal(0.0),
                 "haber": monto,
-                "saldo": 0.0,
+                "saldo": normalize_decimal(0.0),
                 "sale_id": sale_id,
                 "referencia": notes or ""
             })
@@ -398,20 +408,22 @@ class CustomerModel:
                 credits = self.db.fetch_all(credits_query, (cliente_id,))
                 
                 for credit_id, fecha, monto, reason, sale_id in credits:
-                    monto = round(float(monto), 2)
+                    monto = normalize_decimal(monto)
                     
-                    if monto > 0:
+                    if monto > normalize_decimal(0):
                         desc = f"Nota de crédito"
                         if reason:
                             desc += f" · {reason}"
                         
+                        fecha_formateada = iso_to_traditional(fecha.split()[0]) if fecha else ""
                         movements.append({
-                            "fecha": fecha,
+                            "fecha": fecha_formateada,
+                            "fecha_original": fecha,
                             "tipo": "CRÉDITO",
                             "descripcion": desc,
-                            "debe": 0.0,
+                            "debe": normalize_decimal(0.0),
                             "haber": monto,
-                            "saldo": 0.0,
+                            "saldo": normalize_decimal(0.0),
                             "sale_id": sale_id,
                             "referencia": reason or ""
                         })
@@ -419,14 +431,15 @@ class CustomerModel:
                         desc = f"Aplicación de saldo"
                         if sale_id:
                             desc += f" · Venta #{sale_id}"
-                        
+                        fecha_formateada = iso_to_traditional(fecha.split()[0]) if fecha else ""
                         movements.append({
-                            "fecha": fecha,
+                            "fecha": fecha_formateada,
+                            "fecha_original": fecha,
                             "tipo": "USO CRÉDITO",
                             "descripcion": desc,
                             "debe": abs(monto),
-                            "haber": 0.0,
-                            "saldo": 0.0,
+                            "haber": normalize_decimal(0.0),
+                            "saldo": normalize_decimal(0.0),
                             "sale_id": sale_id,
                             "referencia": reason or ""
                         })
@@ -436,22 +449,25 @@ class CustomerModel:
         # ================================================================
         # PASO 5: ORDENAR CRONOLÓGICAMENTE
         # ================================================================
-        movements.sort(key=lambda x: (x["fecha"], x.get("sale_id", 0) or 0))
+        movements.sort(key=lambda x: (x["fecha_original"], x.get("sale_id", 0) or 0))
+
+        for mov in movements:
+            mov.pop("fecha_orignal", None)
         
         # ================================================================
         # PASO 6: CALCULAR SALDO ACUMULADO
         # ================================================================
-        saldo_acumulado = 0.0
+        saldo_acumulado = normalize_decimal(0.0)
         for mov in movements:
             saldo_acumulado += mov["debe"] - mov["haber"]
-            mov["saldo"] = round(saldo_acumulado, 2)
+            mov["saldo"] = normalize_decimal(saldo_acumulado)
         
         # ================================================================
         # PASO 7: RESUMEN (solo cuenta ventas a crédito)
         # ================================================================
-        total_debe = sum(m["debe"] for m in movements)
-        total_haber = sum(m["haber"] for m in movements)
-        saldo_final = round(saldo_acumulado, 2)
+        total_debe = sum(normalize_decimal(m["debe"]) for m in movements)
+        total_haber = sum(normalize_decimal(m["haber"]) for m in movements)
+        saldo_final = normalize_decimal(saldo_acumulado)
 
         ventas_totales = len([m for m in movements if m["tipo"] == "VENTA"])
         
@@ -468,10 +484,10 @@ class CustomerModel:
         ventas_pagadas = ventas_credito_pagadas
 
         summary = {
-            'total_comprado': round(total_debe, 2),
-            'total_pagado': round(total_haber, 2),
-            'saldo_a_favor': abs(saldo_final) if saldo_final < 0 else 0.0,
-            'deuda_pendiente': saldo_final if saldo_final > 0 else 0.0,
+            'total_comprado': normalize_decimal(total_debe),
+            'total_pagado': normalize_decimal(total_haber),
+            'saldo_a_favor': abs(saldo_final) if saldo_final < normalize_decimal(0) else normalize_decimal(0.0),
+            'deuda_pendiente': saldo_final if saldo_final > normalize_decimal(0) else normalize_decimal(0.0),
             'ventas_pagadas': ventas_pagadas,
             'total_ventas': ventas_totales,
             'ventas_texto': f"{ventas_pagadas}/{ventas_totales} pagadas"

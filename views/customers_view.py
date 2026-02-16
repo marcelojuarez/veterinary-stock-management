@@ -1,6 +1,6 @@
 import customtkinter as ctk
 from tkinter import ttk, messagebox
-
+from utils.utils import normalize_decimal
 ctk.set_appearance_mode("light")
 ctk.set_default_color_theme("blue")
 
@@ -674,8 +674,8 @@ class CustomersView:
                 self.debt_items_table.insert("", "end", values=(
                     display_name,
                     quantity,
-                    f"${float(price):.2f}",
-                    f"${float(subtotal):.2f}"
+                    f"${normalize_decimal(price):.2f}",
+                    f"${normalize_decimal(subtotal):.2f}"
                 ))
 
         except Exception as e:
