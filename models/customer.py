@@ -1,7 +1,8 @@
 import sqlite3
 from db.database import db
 
-from utils.utils import normalize_decimal, iso_to_traditional
+from utils.utils import normalize_to_2_decimals, convert_to_decimal, iso_to_traditional
+from decimal import Decimal
 class CustomerModel:
     def __init__(self, db_connection=None):
         self.db = db_connection or db 
@@ -163,10 +164,10 @@ class CustomerModel:
 
         formatted = []
         for sale_id, date, total, pagado, estado in rows:
-            total = normalize_decimal(total)
-            pagado = normalize_decimal(pagado)
+            total = total
+            pagado = pagado
             estado_es = state_map.get(estado, estado)
-            saldo = normalize_decimal(max(normalize_decimal(0.0), total - pagado))
+            saldo = max(Decimal('0.00'), normalize_to_2_decimals(total) - normalize_to_2_decimals(pagado))
 
             fecha_formateada = iso_to_traditional(date.split()[0]) if date else ""
 
@@ -226,13 +227,13 @@ class CustomerModel:
 
         rows = self.db.fetch_all(query, (cliente_id,))
 
-        total_pending = normalize_decimal(0.0)
+        total_pending = Decimal('0.00')
         for _, total_variable, paid in rows:
-            saldo = max(normalize_decimal(0.0), normalize_decimal(total_variable) - normalize_decimal(paid))
-            if saldo > normalize_decimal(0.01):
+            saldo = max(Decimal('0.00'), normalize_to_2_decimals(total_variable) - normalize_to_2_decimals(paid))
+            if saldo > Decimal('0.01'):
                 total_pending += saldo
 
-        return normalize_decimal(total_pending)
+        return normalize_to_2_decimals(total_pending)
 
     def _is_cash_sale(self, sale_id, fecha_venta):
         """
@@ -308,7 +309,7 @@ class CustomerModel:
             if sale_id in contado_sales:
                 continue
                 
-            total = normalize_decimal(total)
+            total = normalize_to_2_decimals(total)
             cant_prod = int(cant_prod) if cant_prod else 0
             
             estado_map = {
@@ -326,8 +327,8 @@ class CustomerModel:
                 "tipo": "VENTA",
                 "descripcion": f"Venta #{sale_id} · {cant_prod} producto(s) · {estado_txt}",
                 "debe": total,
-                "haber": normalize_decimal(0.0),
-                "saldo": normalize_decimal(0.0),
+                "haber": Decimal('0.00'),
+                "saldo": Decimal('0.00'),
                 "sale_id": sale_id,
                 "referencia": ""
             })
@@ -366,7 +367,7 @@ class CustomerModel:
             if sale_id in contado_sales:
                 continue
                 
-            monto = normalize_decimal(monto)
+            monto = normalize_to_2_decimals(monto)
             method_txt = method_map.get(method.lower() if method else "", method.capitalize() if method else "Efectivo")
             
             if sale_id:
@@ -381,9 +382,9 @@ class CustomerModel:
                 "fecha_original": fecha,
                 "tipo": "PAGO",
                 "descripcion": desc,
-                "debe": normalize_decimal(0.0),
+                "debe": Decimal('0.00'),
                 "haber": monto,
-                "saldo": normalize_decimal(0.0),
+                "saldo": Decimal('0.00'),
                 "sale_id": sale_id,
                 "referencia": notes or ""
             })
@@ -408,9 +409,9 @@ class CustomerModel:
                 credits = self.db.fetch_all(credits_query, (cliente_id,))
                 
                 for credit_id, fecha, monto, reason, sale_id in credits:
-                    monto = normalize_decimal(monto)
+                    monto = normalize_to_2_decimals(monto)
                     
-                    if monto > normalize_decimal(0):
+                    if monto > Decimal('0.00'):
                         desc = f"Nota de crédito"
                         if reason:
                             desc += f" · {reason}"
@@ -421,9 +422,9 @@ class CustomerModel:
                             "fecha_original": fecha,
                             "tipo": "CRÉDITO",
                             "descripcion": desc,
-                            "debe": normalize_decimal(0.0),
+                            "debe": Decimal('0.00'),
                             "haber": monto,
-                            "saldo": normalize_decimal(0.0),
+                            "saldo": Decimal('0.00'),
                             "sale_id": sale_id,
                             "referencia": reason or ""
                         })
@@ -438,8 +439,8 @@ class CustomerModel:
                             "tipo": "USO CRÉDITO",
                             "descripcion": desc,
                             "debe": abs(monto),
-                            "haber": normalize_decimal(0.0),
-                            "saldo": normalize_decimal(0.0),
+                            "haber": Decimal('0.00'),
+                            "saldo": Decimal('0.00'),
                             "sale_id": sale_id,
                             "referencia": reason or ""
                         })
@@ -457,17 +458,17 @@ class CustomerModel:
         # ================================================================
         # PASO 6: CALCULAR SALDO ACUMULADO
         # ================================================================
-        saldo_acumulado = normalize_decimal(0.0)
+        saldo_acumulado = Decimal('0.00')
         for mov in movements:
             saldo_acumulado += mov["debe"] - mov["haber"]
-            mov["saldo"] = normalize_decimal(saldo_acumulado)
+            mov["saldo"] = normalize_to_2_decimals(saldo_acumulado)
         
         # ================================================================
         # PASO 7: RESUMEN (solo cuenta ventas a crédito)
         # ================================================================
-        total_debe = sum(normalize_decimal(m["debe"]) for m in movements)
-        total_haber = sum(normalize_decimal(m["haber"]) for m in movements)
-        saldo_final = normalize_decimal(saldo_acumulado)
+        total_debe = sum(normalize_to_2_decimals(m["debe"]) for m in movements)
+        total_haber = sum(normalize_to_2_decimals(m["haber"]) for m in movements)
+        saldo_final = normalize_to_2_decimals(saldo_acumulado)
 
         ventas_totales = len([m for m in movements if m["tipo"] == "VENTA"])
         
@@ -484,10 +485,10 @@ class CustomerModel:
         ventas_pagadas = ventas_credito_pagadas
 
         summary = {
-            'total_comprado': normalize_decimal(total_debe),
-            'total_pagado': normalize_decimal(total_haber),
-            'saldo_a_favor': abs(saldo_final) if saldo_final < normalize_decimal(0) else normalize_decimal(0.0),
-            'deuda_pendiente': saldo_final if saldo_final > normalize_decimal(0) else normalize_decimal(0.0),
+            'total_comprado': normalize_to_2_decimals(total_debe),
+            'total_pagado': normalize_to_2_decimals(total_haber),
+            'saldo_a_favor': abs(saldo_final) if saldo_final < Decimal('0.00') else Decimal('0.00'),
+            'deuda_pendiente': saldo_final if saldo_final > Decimal('0.00') else Decimal('0.00'),
             'ventas_pagadas': ventas_pagadas,
             'total_ventas': ventas_totales,
             'ventas_texto': f"{ventas_pagadas}/{ventas_totales} pagadas"
