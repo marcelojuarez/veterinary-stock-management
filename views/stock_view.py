@@ -4,8 +4,6 @@ import tkinter as tk
 from models.stock import StockModel
 from views.view_helpers import close_win, show_warning
 from utils.utils import iso_to_traditional
-import random
-
 
 # Configurar tema y colores
 ctk.set_appearance_mode("light")  # "light" o "dark"
@@ -55,7 +53,6 @@ class StockView():
             font=ctk.CTkFont(size=12, weight="bold"),
             fg_color=btn_color,
             hover_color=btn_hover,
-            #command=lambda: self.open_add_window(manage_frame)
         )
         
         update_btn = ctk.CTkButton(
@@ -100,9 +97,6 @@ class StockView():
         """Crear frame para formulario de producto"""
         self.find_var = tk.StringVar()
 
-        btn_color = "#009688"
-        btn_hover = "#00796B"
-
         find_frame = ctk.CTkFrame(self.frame)
         find_frame.grid(row=0, column=0, sticky='w', padx=10, pady=10)
 
@@ -124,20 +118,6 @@ class StockView():
 
         find_entry.grid(row=0, column=1, padx=10, pady=15)
         find_entry.bind("<KeyRelease>", lambda event: self.controller.find_product_live(self.find_var.get()))
-        
-        '''
-        find_btn = ctk.CTkButton(
-            find_frame,
-            text="!",
-            width=60,
-            height=35,
-            font=ctk.CTkFont(size=15, weight="bold"),
-            fg_color=btn_color,
-            hover_color=btn_hover,
-            command=lambda: show_warning("Ingrese un NOMBRE, o ENVASE para buscar un Producto")
-        )
-        find_btn.grid(row=0, column=2, padx=15, pady=15)
-        '''
 
     def create_tree_frame(self):
         """Crear frame para tabla de stock"""

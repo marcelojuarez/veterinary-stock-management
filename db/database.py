@@ -92,6 +92,23 @@ class Database:
                 );
             ''')
 
+            # Tabla de empresa
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS company (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    business_name TEXT,
+                    cuit TEXT,
+                    iva_condition TEXT,
+                    start_date TEXT,
+                    address TEXT,
+                    city TEXT,
+                    province TEXT,
+                    postal_code TEXT,
+                    phone1 TEXT,
+                    phone2 TEXT 
+                );
+            ''')
+
             # Tabla pagos proveedor 
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS supplier_payment (

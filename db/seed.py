@@ -4,11 +4,29 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import sqlite3
 from datetime import datetime, timedelta
 from random import choice, randint, uniform
+from models.company import CompanyModel
 from models.user import User
 from models.supplier.__init__ import SupplierModel
-from models.security import gen_password, validate_password
+from models.security import gen_password
 
 DB_PATH = "db/stock.db"
+
+def seed_company_data():
+    company_data = {
+            "business_name": "EGUIZABAL DIEGO VICENTE",
+            "cuit": "20-14221046-1",
+            "iva_condition": "Resp. Inscripto",
+            "start_date": "", 
+            "address": "RUTA 8 KM 681",
+            "city": "CHAJAN",
+            "province": "CORDOBA",
+            "postal_code": "5837",
+            "phone1" : "358 - 2412227",
+            "phone2" : "03582 492040",
+        }
+
+    company_mdl = CompanyModel()
+    company_mdl.add_company_data(company_data)
 
 def seed_stock():
     # Categorías base de productos
@@ -778,6 +796,7 @@ if __name__ == "__main__":
     print("🌱 Iniciando seed de la base de datos...")
     print("-" * 50)
     
+    seed_company_data()
     seed_suppliers()
     seed_client()
     seed_clients()

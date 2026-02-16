@@ -5,6 +5,7 @@ from tkinter import ttk
 from config.settings import settings
 from events import EventBus
 
+from views.start_view import StartView
 from views.stock_view import StockView
 from views.sales_view import SalesView
 from views.supplier_view import SupplierView
@@ -115,6 +116,10 @@ class App():
         self.receipt_controller = SupplierReceiptController()
 
         ## -- VIEWS -- ##
+        # --- START ---  
+        self.start_view = StartView(self.notebook)
+        self.notebook.add(self.start_view.frame, text='Inicio')
+
         # --- STOCK ---
         self.stock_view = StockView(self.notebook, controller=self.stock_controller)
         self.stock_controller.set_view(self.stock_view)
