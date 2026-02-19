@@ -15,8 +15,8 @@ class NewProductForm():
         self.pack_var = tk.StringVar()
         self.profit_var = tk.StringVar()
         self.profit = None
-        self.price_var = tk.StringVar()
-        self.cost_price = None
+        self.list_price_var = tk.StringVar()
+        self.list_price = None
         self.iva_var = tk.StringVar()
         self.iva = None
         self.iva_amount = tk.StringVar()
@@ -95,8 +95,8 @@ class NewProductForm():
 
         self.qnt_var.set("0")
         
-        add_field(3, "Precio Costo: ", 
-                ctk.CTkEntry(form_frame, textvariable=self.price_var, width=200))
+        add_field(3, "Precio Lista: ", 
+                ctk.CTkEntry(form_frame, textvariable=self.list_price_var, width=200))
         
         add_field(4, "% Rentabilidad: ",
                 ctk.CTkEntry(form_frame, textvariable=self.profit_var, width=200))
@@ -124,11 +124,11 @@ class NewProductForm():
 
         def recalc(*args):
             try:
-                self.cost_price = normalize_string_to_dec(self.price_var.get())
+                self.list_price = normalize_string_to_dec(self.list_price_var.get())
                 self.profit = normalize_string_to_dec(self.profit_var.get())
                 self.iva = normalize_string_to_dec(self.iva_var.get())
                 
-                if self.cost_price is None or self.profit is None or self.iva is None:
+                if self.list_price is None or self.profit is None or self.iva is None:
                     return
 
                 # tasas
@@ -136,8 +136,8 @@ class NewProductForm():
                 iva_rate = self.iva / Decimal('100')
 
                 # calculos (sin normalizar)
-                profit_amount = self.cost_price * profit_rate
-                sale_price = self.cost_price + profit_amount
+                profit_amount = self.list_price * profit_rate
+                sale_price = self.list_price + profit_amount
                 iva_amount = sale_price * iva_rate
                 sale_price_with_iva = sale_price + iva_amount
 
@@ -154,7 +154,7 @@ class NewProductForm():
                 print(f'{e}')
                 return
 
-        self.price_var.trace_add("write", recalc)
+        self.list_price_var.trace_add("write", recalc)
         self.profit_var.trace_add("write", recalc)
         self.iva_var.trace_add("write", recalc)
 
@@ -173,8 +173,8 @@ class NewProductForm():
         cancel_button.grid(row=0, column=1, padx=10)
 
     def confirm_new_product(self, parent):
-        if self.cost_price is not None:
-            self.price_var.set(self.cost_price)
+        if self.list_price is not None:
+            self.list_price_var.set(self.list_price)
 
         if self.profit is not None:
             self.profit_var.set(self.profit)
@@ -186,7 +186,7 @@ class NewProductForm():
             f"Nombre: {self.name_var.get().upper()}\n"
             f"Pack: {self.pack_var.get()}\n"
             f"Cantidad: {self.qnt_var.get()}\n"
-            f"Precio costo $: {self.price_var.get()}\n"
+            f"Precio Lista $: {self.list_price_var.get()}\n"
             f"Rentabilidad %: {self.profit_var.get()}\n"
             f"IVA %:  {self.iva_var.get()}\n"
             f"Monto IVA $: {self.iva_amount.get()}\n"
@@ -204,7 +204,7 @@ class NewProductForm():
             'Name': self.name_var.get().strip(),
             'Package': self.pack_var.get().strip(),
             'Profit': self.profit_var.get().strip(),
-            'CostPrice': self.price_var.get().strip(),
+            'ListPrice': self.list_price_var.get().strip(),
             'Iva': self.iva_var.get().strip(),
             'Stock': self.qnt_var.get().strip(),
             'SalePrice': self.sale_price_var.get().strip(),

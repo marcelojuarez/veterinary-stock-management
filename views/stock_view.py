@@ -170,18 +170,20 @@ class StockView():
         self.stock_tree.configure(yscrollcommand=scrollbar.set)
 
         self.stock_tree['columns'] = (
-            "Id", "Name", "Package", "Profit", "CostPrice", "SalePrice",
-            "Iva", "SalePriceWithIva", "ValidityDate", "LastPriceUpdate", "Stock"
+            "Id", "Name", "Package", "ListPrice", "Discount", "CostPrice", "Profit", 
+            "SalePrice", "Iva", "SalePriceWithIva", "ValidityDate", "LastPriceUpdate", "Stock"
         )
 
         self.stock_tree['displaycolumns'] = self.stock_tree['columns']
 
         # Definición de columnas
         self.stock_tree.column("Id", anchor=tk.W, width=60, stretch=False)
-        self.stock_tree.column("Name", anchor=tk.W, width=250, stretch=True)
-        self.stock_tree.column("Package", anchor=tk.W, width=120, stretch=True)
-        self.stock_tree.column("Profit", anchor=tk.CENTER, width=80, stretch=False)
+        self.stock_tree.column("Name", anchor=tk.W, width=250, stretch=False)
+        self.stock_tree.column("Package", anchor=tk.W, width=120, stretch=False)
+        self.stock_tree.column("ListPrice", anchor=tk.E, width=100, stretch=False)
+        self.stock_tree.column("Discount", anchor=tk.E, width=100, stretch=False)
         self.stock_tree.column("CostPrice", anchor=tk.E, width=100, stretch=False)
+        self.stock_tree.column("Profit", anchor=tk.CENTER, width=80, stretch=False)
         self.stock_tree.column("SalePrice", anchor=tk.E, width=100, stretch=False)
         self.stock_tree.column("Iva", anchor=tk.CENTER, width=60, stretch=False)
         self.stock_tree.column("SalePriceWithIva", anchor=tk.E, width=120, stretch=False)
@@ -196,10 +198,14 @@ class StockView():
                                 command=lambda: self.sort_tree("Name"))
         self.stock_tree.heading("Package", text="Envase ↕", anchor=tk.W,
                                 command=lambda: self.sort_tree("Package"))
-        self.stock_tree.heading("Profit", text="% Rent. ↕", anchor=tk.CENTER,
-                                command=lambda: self.sort_tree("Profit"))
+        self.stock_tree.heading("ListPrice", text="P. Lista ↕", anchor=tk.E,
+                                command=lambda: self.sort_tree("ListPrice"))
+        self.stock_tree.heading("Discount", text="% Dto. ↕", anchor=tk.E,
+                                command=lambda: self.sort_tree("Discount"))                
         self.stock_tree.heading("CostPrice", text="P. Costo ↕", anchor=tk.E,
                                 command=lambda: self.sort_tree("CostPrice"))
+        self.stock_tree.heading("Profit", text="% Rent. ↕", anchor=tk.CENTER,
+                                command=lambda: self.sort_tree("Profit"))
         self.stock_tree.heading("SalePrice", text="P. Venta ↕", anchor=tk.E,
                                 command=lambda: self.sort_tree("SalePrice"))
         self.stock_tree.heading("Iva", text="% Iva", anchor=tk.CENTER,
@@ -693,7 +699,7 @@ class StockView():
             self.stock_tree.delete(item)
         
         for product in products:  
-            (id, name, pack, profit, cost_price, price, 
+            (id, name, pack, list_price, discount, cost_price, profit, price, 
             iva, price_with_iva, created_at, last_price_update, quantity) = product
 
             # Decidir el tag según stock
@@ -707,8 +713,10 @@ class StockView():
             # Insertar en la Treeview
             self.stock_tree.insert(
                 "", "end", 
-                values=(id, name, pack, profit, norm_string_to_2_dec(cost_price), norm_string_to_2_dec(price), iva, norm_string_to_2_dec(price_with_iva), 
-                        iso_to_traditional(created_at), iso_to_traditional(last_price_update), quantity), 
+                values=(
+                    id, name, pack, norm_string_to_2_dec(list_price), discount, norm_string_to_2_dec(cost_price), 
+                    profit, norm_string_to_2_dec(price), iva, norm_string_to_2_dec(price_with_iva), 
+                    iso_to_traditional(created_at), iso_to_traditional(last_price_update), quantity), 
                 tags=(tag,)
             )
 
@@ -752,7 +760,7 @@ class StockView():
                 value = item[1][column_index]
 
                 # Numéricos
-                if column in ["Profit", "CostPrice", "SalePrice", "SalePriceWithIva", "Stock"]:
+                if column in ["ListPrice", "CostPrice", "Profit", "SalePrice", "SalePriceWithIva", "Stock"]:
                     try:
                         return float(value)
                     except (ValueError, TypeError):

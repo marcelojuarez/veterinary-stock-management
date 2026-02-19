@@ -181,7 +181,7 @@ class SupplierPayment():
                         break
 
                     # Saldo pendiente de la compra actual
-                    debt = Decimal(p[9])
+                    debt = Decimal(p[10])
 
                     if debt <= total_amount:
                         # monto restante
@@ -203,13 +203,13 @@ class SupplierPayment():
                         total_amount = Decimal('0.00')
 
                     # Documento asociado
-                    doc_type = p[2]
+                    doc_type = p[3]
 
                     if doc_type == 'REMITO':
-                        id = p[4]
+                        id = p[5]
                     
                     else:
-                        id = p[3]
+                        id = p[4]
 
                     # normalizacion
                     new_debt = normalize_to_2_decimals(new_debt)

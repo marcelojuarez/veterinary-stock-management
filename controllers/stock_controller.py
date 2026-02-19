@@ -180,7 +180,7 @@ class StockController:
         self._reconcile_sales_with_product(product_id, old_sale_price, new_sale_price)
         self.refresh_stock_table()
 
-
+    ## -- -- ##
     def _reconcile_sales_with_product(self, product_id, old_price, new_price):
         """Actualizar precios en ventas que contengan el producto modificado"""
         if abs(old_price - new_price) < 0.01:
@@ -226,8 +226,7 @@ class StockController:
         except Exception as e:
             print(f"⚠️ Error al reconciliar ventas: {e}")
             # No bloqueamos la actualización de precio si falla la reconciliación
-
-
+    
     def show_all_products(self):
         self.refresh_stock_table()
         self.view.show_success("Mostrando todos los artículos del inventario")

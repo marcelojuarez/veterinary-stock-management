@@ -15,9 +15,9 @@ class SupplierReceiptForm():
         self.supplier_var.set(supplier_var)
 
         self.receipt_id_var = tk.StringVar()
+        self.date_var = tk.StringVar()
         self.expiration_var = tk.StringVar()
         self.ob_var = tk.StringVar()
-        self.state_var = tk.StringVar()
         self.total_var = tk.StringVar()  
 
     def open_receipt_form(self, parent, supplier_var):
@@ -33,6 +33,7 @@ class SupplierReceiptForm():
             return
 
         self.receipt_win = ctk.CTkToplevel(self.frame)
+
         self.receipt_win.title("Registrar nuevo Remito")
         self.receipt_win.withdraw()
         self.receipt_win.protocol("WM_DELETE_WINDOW",
@@ -73,33 +74,79 @@ class SupplierReceiptForm():
             field_lbl.grid(row=row, column=0, sticky="e", padx=(10,10), pady=7)
 
             widget.grid(row=row, column=1, padx=(10,20), pady=7, sticky="w")
+            return widget
 
         # CUIT Proveedor
-        add_field(0, "CUIT Proveedor:",
-                ctk.CTkEntry(form_frame, textvariable=self.supplier_var, width=250))
+        add_field(
+            0, "CUIT Proveedor:",
+            ctk.CTkEntry(
+                form_frame, 
+                textvariable=self.supplier_var, 
+                width=200,
+                font=ctk.CTkFont(size=11),
+                state='readonly'
+            )
+        )
 
         # Número Remito
-        add_field(1, "N° Remito:",
-                ctk.CTkEntry(form_frame, textvariable=self.receipt_id_var, width=250))
+        self.num_entry = add_field(
+                        1, "N° Remito:",
+                        ctk.CTkEntry(
+                            form_frame, 
+                            textvariable=self.receipt_id_var, 
+                            width=200,
+                            font=ctk.CTkFont(size=11),
+                        )
+                    )
+        
+        # Fecha 
+        add_field(
+            2, "Fecha:",
+            ctk.CTkEntry(
+                form_frame, 
+                textvariable=self.date_var, 
+                width=200,
+                font=ctk.CTkFont(size=11),
+            )
+        )
 
         # Fecha Vencimiento
-        add_field(2, "Vencimiento:",
-                ctk.CTkEntry(form_frame, textvariable=self.expiration_var, width=250))
+        add_field(
+            3, "Vencimiento:",
+            ctk.CTkEntry(
+                form_frame, 
+                textvariable=self.expiration_var, 
+                width=200,
+                font=ctk.CTkFont(size=11)
+            )
+        )
 
         # Observaciones
-        add_field(3, "Observaciones:",
-                ctk.CTkEntry(form_frame, textvariable=self.ob_var, width=250, height=80))
-        
-        # Estado
-        add_field(4, "Estado:",
-                ctk.CTkEntry(form_frame, textvariable=self.state_var, width=250))
+        add_field(
+            4, "Observaciones:",
+            ctk.CTkEntry(
+                form_frame, 
+                textvariable=self.ob_var, 
+                width=200, 
+                height=80,
+                font=ctk.CTkFont(size=11)
+            )
+        )
 
         # Total
-        add_field(5, "Total:",
-                ctk.CTkEntry(form_frame, textvariable=self.total_var, width=250, state='readonly'))
+        add_field(
+            5, "Total:",
+            ctk.CTkEntry(
+                form_frame, 
+                textvariable=self.total_var, 
+                width=200,
+                font=ctk.CTkFont(size=11), 
+                state='readonly'
+            )
+        )
         
+        self.date_var.set(formated_act_date)
         self.expiration_var.set(formated_act_date)
-        self.state_var.set("BORRADOR")
         self.total_var.set("0.00")
 
         # --- Botones inferior ---
@@ -113,7 +160,7 @@ class SupplierReceiptForm():
             hover_color=btn_hover,
             height=40,
             width=160,
-            font=ctk.CTkFont(size=15, weight="bold"),
+            font=ctk.CTkFont(size=13, weight="bold"),
             command=lambda:self.controller.add_new_receipt(self.receipt_win, parent)
         )
         save_btn.grid(row=0, column=0, padx=15)
@@ -127,13 +174,12 @@ class SupplierReceiptForm():
             hover_color="#C0392B",
             height=40,
             width=160,
-            font=ctk.CTkFont(size=15, weight="bold"),
-            command=lambda: close_win(self.receipt_win, parent, self.clear_receipt_form)
+            font=ctk.CTkFont(size=13, weight="bold"),
+            command=lambda: close_win(self.receipt_win, parent)
         )
         cancel_btn.grid(row=0, column=1, padx=15)
 
         # centrar ventana
-        
         width_win = 500
         height_win = 520
 
@@ -150,22 +196,20 @@ class SupplierReceiptForm():
         self.receipt_win.transient(parent)
         self.receipt_win.grab_set()
 
-    def clear_receipt_form(self):
-        """Limpiar formulario de factura"""
-        self.supplier_var.set('')
-        self.receipt_id_var.set('')
-        self.expiration_var.set('')
-        self.ob_var.set('')
-        self.state_var.set('')
-        self.total_var.set('')
+        self.setup_final_focus()
 
+    def setup_final_focus(self):
+        self.receipt_win.focus_force() 
+        self.receipt_win.after(50, lambda: self.num_entry.focus_set())
+
+    ## -- Obtener datos del formulario -- ##
     def get_receipt_form_data(self):
         """Obtener datos del formulario de factura"""
         return {
             'supplier_cuit': self.supplier_var.get().strip(),
             'receipt_id': self.receipt_id_var.get().strip(),
+            'date': self.date_var.get().strip(),
             'expiration_date': self.expiration_var.get().strip(),
             'observations': self.ob_var.get().strip(),
-            'state': self.state_var.get().strip(),
             'total': self.total_var.get().strip(),
         }

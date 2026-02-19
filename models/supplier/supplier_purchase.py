@@ -17,7 +17,6 @@ class SupplierPurchase():
     ## -- Agregar nueva compra -- ##
     def add_new_purchase(self, data, conn=None, commit=True):
         try:
-            date = datetime.now().strftime("%Y-%m-%d")
             query = """
             INSERT INTO purchase (supplier_id, document_type, date, expiration_date, state, observations, pending, total) 
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
@@ -26,12 +25,12 @@ class SupplierPurchase():
             params = [
                 data['supplier_id'],
                 data['doc_type'],
-                date,
+                data['date'],
                 data['expiration_date'],
                 data['state'],
                 data['observations'],
-                str(data['pending']),
-                str(data['total'])
+                data['pending'],
+                data['total']
             ]
 
             return self.db.execute_query(query, params, conn=conn, commit=commit)
@@ -55,7 +54,7 @@ class SupplierPurchase():
     def get_purchases_by_date(self, date, cuit=None):
         try:
             query = """
-                SELECT purchase.id, supplier.cuit, purchase.document_type, purchase.invoice_id, purchase.receipt_id , purchase.date, 
+                SELECT purchase.id, supplier.cuit, supplier.name, purchase.document_type, purchase.invoice_id, purchase.receipt_id , purchase.date, 
                 purchase.expiration_date, purchase.state, purchase.observations, purchase.pending, purchase.total
                 FROM purchase
                 JOIN supplier ON purchase.supplier_id = supplier.id
@@ -83,7 +82,7 @@ class SupplierPurchase():
     def get_all_purchases(self, cuit=None):
         try:
             query = """
-                SELECT purchase.id, supplier.cuit, purchase.document_type, purchase.invoice_id, purchase.receipt_id , purchase.date, 
+                SELECT purchase.id, supplier.cuit, supplier.name, purchase.document_type, purchase.invoice_id, purchase.receipt_id , purchase.date, 
                 purchase.expiration_date, purchase.state, purchase.observations, purchase.pending, purchase.total
                 FROM purchase
                 JOIN supplier ON purchase.supplier_id = supplier.id
@@ -109,7 +108,7 @@ class SupplierPurchase():
     def get_all_confirmed_purchases(self, cuit=None):
         try:
             query = """
-                SELECT purchase.id, supplier.cuit, purchase.document_type, purchase.invoice_id, purchase.receipt_id , purchase.date, 
+                SELECT purchase.id, supplier.cuit, supplier.name, purchase.document_type, purchase.invoice_id, purchase.receipt_id , purchase.date, 
                 purchase.expiration_date, purchase.state, purchase.observations, purchase.pending, purchase.total
                 FROM purchase
                 JOIN supplier ON purchase.supplier_id = supplier.id
@@ -152,14 +151,16 @@ class SupplierPurchase():
         """Agregar un nuevo producto"""
         query = """
             INSERT INTO stock 
-            (name, pack, profit, cost_price, price, iva, price_with_iva, quantity, created_at, last_price_update) 
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            (name, pack, list_price, discount, cost_price, profit, price, iva, price_with_iva, quantity, created_at, last_price_update) 
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """
         params = (
             product_data['Name'],
             product_data['Package'],
-            product_data['Profit'],
+            product_data['ListPrice'],
+            product_data['Discount'],
             product_data['CostPrice'],
+            product_data['Profit'],
             product_data['SalePrice'],
             product_data['Iva'],
             product_data['PriceWIva'],
@@ -195,8 +196,8 @@ class SupplierPurchase():
 
         query = """
             INSERT INTO purchase_item (purchase_id, product_id, product_name, pack, quantity,
-            cost_price, iva_rate,discount, discount_amount, subtotal, iva_amount, total) 
-            VALUES (?, ?, ? ,?, ?, ?, ?, ?, ?, ?, ?, ?)
+            list_price, discount, cost_price, iva_rate, discount_amount, subtotal, iva_amount, total) 
+            VALUES (?, ?, ? ,?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """
 
         self.db.execute_query(query, params, conn=conn, commit=commit)
@@ -224,8 +225,10 @@ class SupplierPurchase():
 
             subtotal = normalize_to_2_decimals(orig_subtotal - discount_amount)
 
+            perceptions_amount = self.supplier_invoice.get_invoice_perceptions_amount(doc_id)
+            
             ## Total
-            total = subtotal + iva_amount
+            total = subtotal + iva_amount + perceptions_amount
             
             query = """ 
             UPDATE supplier_invoice 
@@ -274,8 +277,8 @@ class SupplierPurchase():
     ## -- Obtener items de compra -- ##
     def get_purchase_items(self, purchase_id):
         query = """
-            SELECT product_id, product_name, pack, quantity, cost_price, iva_rate,
-            discount, discount_amount, subtotal, iva_amount, total
+            SELECT product_id, product_name, pack, quantity, list_price, discount, 
+            cost_price, iva_rate, discount_amount, subtotal, iva_amount, total
             FROM purchase_item
             WHERE purchase_id = ?
         """
@@ -290,7 +293,6 @@ class SupplierPurchase():
         WHERE purchase_id = ?
         """
         rows = self.db.fetch_all(query, (purchase_id,), conn=conn)
-        print(f'rows: \n {rows}')
 
         subtotal = Decimal('0.00')
 
@@ -339,7 +341,7 @@ class SupplierPurchase():
     def get_all_purchases_without_paying(self, cuit=None):
 
         query = """
-            SELECT purchase.id, supplier.cuit, purchase.document_type, purchase.invoice_id, purchase.receipt_id , purchase.date, 
+            SELECT purchase.id, supplier.cuit, supplier.name, purchase.document_type, purchase.invoice_id, purchase.receipt_id , purchase.date, 
             purchase.expiration_date, purchase.state, purchase.observations, purchase.pending, purchase.total
             FROM purchase
             JOIN supplier ON purchase.supplier_id = supplier.id
@@ -397,9 +399,10 @@ class SupplierPurchase():
                     'name': i[1],
                     'pack': i[2],
                     'qty': i[3],
-                    'cost_price': Decimal(i[4]),
-                    'iva_rate': Decimal(i[5]),
-                    'discount': Decimal(i[6]),
+                    'list_price': Decimal(i[4]),
+                    'discount': Decimal(i[5]),
+                    'cost_price': Decimal(i[6]),
+                    'iva_rate': Decimal(i[7]),
                 }
 
                 print(f'Producto desde purchase: \n {i_data}')
@@ -408,6 +411,8 @@ class SupplierPurchase():
                 params = [
                     p_data['name'],
                     p_data['pack'],
+                    p_data['list_price'],
+                    p_data['discount'],
                     p_data['cost_price'],
                     p_data['sale_price'],
                     p_data['iva'],
@@ -421,6 +426,8 @@ class SupplierPurchase():
                 SET 
                     name = ?,
                     pack = ?,
+                    list_price = ?,
+                    discount = ?,
                     cost_price = ?,
                     price = ?,
                     iva = ?,
@@ -453,8 +460,12 @@ class SupplierPurchase():
             id =  item['id'] # id producto
             name = item['name'] # nombre producto
             pack = item['pack'] # envase producto
-            discount_amount = Decimal((item['cost_price'] * item['discount']) / Decimal('100')) # monto descuento
-            cost_price = Decimal(item['cost_price'] - discount_amount)# se aplica descuento
+            list_price = item['list_price']
+
+            discount = item['discount']
+            discount_amount = Decimal((item['list_price'] * discount) / Decimal('100')) # monto descuento
+
+            cost_price = Decimal(item['list_price'] - discount_amount)# se aplica descuento
             iva = item['iva_rate'] # porcentaje de iva
             last_price_upd = date # fecha de ult. act de precio
 
@@ -485,6 +496,8 @@ class SupplierPurchase():
                 'id': id, # id producto
                 'name': name, # nombre producto
                 'pack': pack, # envase producto
+                'list_price': str(list_price),
+                'discount': str(discount), # descuento
                 'cost_price': str(cost_price),
                 'iva': str(iva), # porcentaje de iva
                 'sale_price': str(sale_price),
@@ -650,7 +663,6 @@ class SupplierPurchase():
 
         try:
             conn = self.db.get_connection()
-            date = datetime.now().strftime("%Y-%m-%d")
 
             # Iniciar transacción
             conn.execute("BEGIN")
@@ -664,8 +676,8 @@ class SupplierPurchase():
             WHERE id = ?
             """
             params = [
-                date,
-                traditional_to_iso(data['expiration']),
+                data['date'],
+                data['expiration'],
                 data['obs'],
                 purchase_id
             ]
@@ -716,7 +728,7 @@ class SupplierPurchase():
 
 
     ## -- Transaccion para agregar venta y factura -- ##
-    def create_invoice_and_purchase(self, invoice_params, purchase_params):
+    def create_invoice_and_purchase(self, invoice_params, perception_parameters, purchase_params):
         try:
             conn = self.db.get_connection()
 
@@ -724,6 +736,8 @@ class SupplierPurchase():
             conn.execute("BEGIN")
 
             invoice_id = self.supplier_invoice.add_new_invoice(invoice_params, conn, commit=False)
+            for p in perception_parameters:
+                self.supplier_invoice.add_invoice_perceptions(invoice_id, p, conn, commit=False)
             purchase_id = self.add_new_purchase(purchase_params, conn, commit=False)
 
             self.set_doc_on_purchase(purchase_id, invoice_id, "FACTURA", conn, commit=False)

@@ -132,32 +132,44 @@ class PurchaseController():
     ## -- Validar datos del documento -- ##
     def validate_doc_data(cls, data, doc_type):
         if doc_type == 'REMITO':
-            required_files = {
+            required_fields = {
                 'receipt_id': 'Numero de Remito',
+                'date': 'Fecha',
                 'expiration': 'Fecha de Vencimiento',
+                'obs': 'Observaciones'
             }
 
-            for field, label in required_files.items():
+            for field, label in required_fields.items():
                 if not data[field]:
                     show_error(f'Por favor complete el campo: "{label}"')
                     return False
-            
+
+            if not cls.is_valid_date(data['date']):
+                show_error('Por favor coloque la fecha en formato dd/mm/yyyy')
+                return False
+
             if not cls.is_valid_date(data['expiration']):
                 show_error('Por favor coloque la fecha en formato dd/mm/yyyy')
                 return False
                 
         else:
-            required_files = {
+            required_fields = {
                 'invoice_id': 'Numero de Factura',
-                'invoice_type': 'Tipo de Factura',
-                'expiration': 'Fecha de Vencimiento' 
+                'date': 'Fecha',
+                'expiration': 'Fecha de Vencimiento',
+                'pay_cond': 'Condicion de Pago',
+                'pay_period': 'Plazo en dias' 
             }
 
-            for (field,label) in required_files.items():
+            for (field,label) in required_fields.items():
                 if not data[field]:
                     show_error(f'Por favor complete el campo: "{label}"')
                     return False
                 
+            if not cls.is_valid_date(data['date']):
+                show_error('Por favor coloque la fecha en formato dd/mm/yyyy')
+                return False
+            
             if not cls.is_valid_date(data['expiration']):
                 show_error('Por favor coloque la fecha en formato dd/mm/yyyy')
                 return False
@@ -189,11 +201,13 @@ class PurchaseController():
             product_data = {
                 'Name': (form_data['Name']).upper(),
                 'Package': form_data['Package'],
+                'ListPrice': form_data['ListPrice'],
+                'Discount': '0.00',
+                'CostPrice': form_data['ListPrice'],
                 'Profit': form_data['Profit'],
-                'CostPrice': form_data['CostPrice'],
+                'SalePrice': form_data['SalePrice'],
                 'Iva': form_data['Iva'],
                 'Stock': int(form_data['Stock']),
-                'SalePrice': form_data['SalePrice'],
                 'PriceWIva': form_data['PriceWIva'],
             }
 
@@ -224,7 +238,7 @@ class PurchaseController():
         required_fields = {
             'Name': 'Nombre Artículo', 
             'Package': 'Envase', 
-            'CostPrice': 'Precio Costo', 
+            'ListPrice': 'Precio de Lista', 
             'Profit': 'Rentabilidad', 
             'Stock': 'Stock'
         }
@@ -237,12 +251,12 @@ class PurchaseController():
         # Validar Tipos Numéricos
         ## Precio de costo
         try:
-            Decimal(form_data['CostPrice'])
+            Decimal(form_data['ListPrice'])
         except Exception:
             show_warning("Error. Formato incorrecto en precio costo")
             return False
         
-        if Decimal(form_data['CostPrice']) <= Decimal('0.00'):
+        if Decimal(form_data['ListPrice']) <= Decimal('0.00'):
             show_error('Error. El precio de costo no puede ser un valor Negativo o (0)')
             return False
         
@@ -280,9 +294,10 @@ class PurchaseController():
                 item_data['Product_name'],
                 item_data['Pack'],
                 item_data['Qty'],
-                item_data['Cost'],
-                item_data['Iva_rate'],
+                item_data['List_price'],
                 item_data['Discount'],
+                item_data['Cost_price'],
+                item_data['Iva_rate'],
                 item_data['Discount_amount'],
                 item_data['Subtotal'],
                 item_data['Iva_amount'],
@@ -326,14 +341,20 @@ class PurchaseController():
             'Product_name': 'Nombre Producto',
             'Pack': 'Envase',
             'Qty': 'Stock',
-            'Cost': 'Precio de Costo',
-            'Iva_rate': 'Porcentaje de Iva',
+            'List_price': 'Precio de Listaaa',
             'Discount': 'Descuento',
+            'Cost_price': 'Precio de Costo',
+            'Iva_rate': 'Porcentaje de Iva',
             'Discount_amount': 'Monto Descuento',
             'Subtotal': 'SubTotal',
             'Iva_amount': 'Monto Iva',
             'Total': 'Total'
         }
+
+        for field, label in required_fields.items():
+            if not form_data[field]:
+                show_error(f'Por favor complete el campo: "{label}"')
+                return False
 
         if not cls.is_int(form_data['Qty']):
             show_error(f'Error. El stock debe ser un valor Entero')
@@ -352,13 +373,13 @@ class PurchaseController():
         ## Precio de costo
         #- Formato correcto
         try:
-            Decimal(form_data['Cost'])
+            Decimal(form_data['Cost_price'])
         except Exception:
             show_warning("Error. Formato incorrecto en precio costo")
             return False
         
         #- Valor Positivo
-        if Decimal(form_data['Cost']) <= Decimal('0.00'):
+        if Decimal(form_data['Cost_price']) <= Decimal('0.00'):
             show_error('Error. El precio de costo no puede ser un valor Negativo o (0)')
             return False
         
