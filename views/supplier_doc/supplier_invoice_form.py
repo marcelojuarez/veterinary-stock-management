@@ -1,36 +1,51 @@
-import customtkinter as ctk
 import tkinter as tk
+import customtkinter as ctk
+from datetime import datetime
+from utils.invoice_utils import pay_period_control, calculate_exp_date
+from utils.utils import iso_to_traditional
 from views.view_helpers import close_win, show_warning
-import datetime
 
 class SupplierInvoiceForm():
-    def __init__(self, view, frame, invoice_controller):
+    def __init__(self, view, frame, invoice_controller, supp_mdl):
         self.view = view
         self.frame = frame
         self.controller = invoice_controller
+        self.supp_mdl = supp_mdl
         self.controller.set_form_view(self)
 
     def setup_variables(self, supplier_var):
         self.supplier_var = tk.StringVar()
         self.supplier_var.set(supplier_var)
+        
+        supplier_data = self.supp_mdl.core.find_supplier_by_cuit(self.supplier_var.get())
+
+        # Condicion IVA proveedor
+        self.s_iva_c_var = tk.StringVar()
+        self.s_iva_c_var.set(supplier_data[6])
 
         self.invoice_id_var = tk.StringVar()
         self.invoice_type_var = tk.StringVar()
+        self.date_var = tk.StringVar()
         self.expiration_var = tk.StringVar()
-        self.subtotal_var = tk.StringVar()
         self.iva_var = tk.StringVar()
         self.obs_var = tk.StringVar()
+        self.pay_cond_var = tk.StringVar()
+        self.pay_period_var = tk.StringVar()
+
         self.discount_var = tk.StringVar()
+        
+        # Percepciones
+        self.iibb_per_var = tk.StringVar()
+        self.iva_per_var = tk.StringVar()
+
+        self.subtotal_var = tk.StringVar()
         self.total_var = tk.StringVar()
-        self.state_var = tk.StringVar()
 
     def open_invoice_form(self, parent, supplier_var):
         btn_color = "#009688"
         btn_hover = "#00796B"
 
         self.setup_variables(supplier_var)
-        actual_date = datetime.datetime.now()
-        formated_act_date = actual_date.strftime("%d/%m/%Y")
 
         if self.supplier_var.get() == "":
             show_warning("Por favor seleccione un Proveedor")
@@ -46,8 +61,8 @@ class SupplierInvoiceForm():
                                 lambda: close_win(self.invoice_win, parent))
 
         # Tamaño fijo
-        width_win = 500
-        height_win = 700
+        width_win = 800
+        height_win = 560
 
         # Centrar respecto al padre
         x_root = parent.winfo_x()
@@ -78,60 +93,247 @@ class SupplierInvoiceForm():
         form_frame.pack(padx=15, pady=5, fill="x")
 
         # --- Función auxiliar para campos ---
-        def add_field(row, label, widget):
-            lbl = ctk.CTkLabel(
+        def add_field(row, column, label, widget):
+            field_lbl = ctk.CTkLabel(
                 form_frame,
                 text=label,
-                font=ctk.CTkFont(size=13, weight="bold"),
-                text_color="black"
+                font=ctk.CTkFont(size=13, weight='bold'),
+                text_color='black',
             )
-            lbl.grid(row=row, column=0, sticky="e", padx=(10,10), pady=7)
-            widget.grid(row=row, column=1, sticky="w", padx=(10,20), pady=7)
+            field_lbl.grid(row=row, column=column, sticky="e", padx=10, pady=7)
 
-        # Campos
-        add_field(0, "CUIT Proveedor:", 
-                ctk.CTkEntry(form_frame, textvariable=self.supplier_var, state='readonly', width=250))
-        
-        add_field(1, "Número Factura:", 
-                ctk.CTkEntry(form_frame, textvariable=self.invoice_id_var, width=250))
-        
-        add_field(2, "Tipo:",
-                ctk.CTkComboBox(form_frame, values=["A","B","C","M","-"], variable=self.invoice_type_var, width=250, state="readonly"))
-        
-        add_field(3, "Vencimiento:",
-                ctk.CTkEntry(form_frame, textvariable=self.expiration_var, width=250))
-        
-        add_field(4, "Observaciones:", 
-                ctk.CTkEntry(form_frame, textvariable=self.obs_var, width=250, height=80))
-        
-        add_field(5, "Estado:", 
-                ctk.CTkEntry(form_frame, textvariable=self.state_var, width=250, state="readonly"))
-        
-        add_field(6, "Monto IVA:",
-                ctk.CTkEntry(form_frame, textvariable=self.iva_var, state='readonly', width=250))
-        
-        add_field(7, "Descuento:", 
-                ctk.CTkEntry(form_frame, textvariable=self.discount_var, width=250))
-        
-        add_field(8, "Subtotal:", 
-                ctk.CTkEntry(form_frame, textvariable=self.subtotal_var, state='readonly', width=250))
-        
-        add_field(9, "Total:", 
-                ctk.CTkEntry(form_frame, textvariable=self.total_var, state='readonly', width=250))
+            widget.grid(row=row, column=column+1, padx=(10,20), pady=7, sticky='w')
 
-        self.invoice_type_var.set("-")
-        self.expiration_var.set(formated_act_date)
-        self.state_var.set("BORRADOR")
+            return widget
+
+        ## CAMPOS
+
+        # CUIT Proveedor
+        add_field(
+            0, 0, "CUIT Proveedor:", 
+            ctk.CTkEntry(
+                form_frame, 
+                textvariable=self.supplier_var, 
+                state='readonly', 
+                width=160, 
+                font=ctk.CTkFont(size=11)
+            )
+        )
+        
+        # Número Factura
+        add_field(
+            1, 0, "Número Factura:", 
+            ctk.CTkEntry(
+                form_frame, 
+                textvariable=self.invoice_id_var,
+                width=160,
+                font=ctk.CTkFont(size=11)
+            )
+        )
+
+        # Condicion IVA proveedor
+        add_field(
+            2, 0, "Cond. IVA Proveedor:", 
+            ctk.CTkEntry(
+                form_frame, 
+                textvariable=self.s_iva_c_var, 
+                width=160,
+                font=ctk.CTkFont(size=11),
+                state="readonly"
+            )
+        )
+        
+        # Tipo Factura
+        invoice_type = add_field(
+                            3, 0,  "Tipo:",
+                            ctk.CTkComboBox(
+                                form_frame, 
+                                variable=self.invoice_type_var, 
+                                width=160,
+                                font=ctk.CTkFont(size=11),
+                                state="readonly"
+                            )
+                        )
+        
+        ## Tipo de Factura segun cond IVA proveedor
+        if self.s_iva_c_var.get() == "RESP. INS":
+            invoice_type.configure(values=['A', 'M'])
+            self.invoice_type_var.set('A')
+        
+        elif self.s_iva_c_var.get() == "MONOTRIBUTISTA":
+            invoice_type.configure(values=['C'])
+            self.invoice_type_var.set('C')
+
+        elif self.s_iva_c_var.get() in ("EXENTO", "NO RESPONSABLE"):
+            invoice_type.configure(values=['B'])                                
+            self.invoice_type_var.set('B')
+        
+        # Observaciones
+        add_field(
+            4, 0, "Observaciones:", 
+            ctk.CTkEntry(
+                form_frame, 
+                textvariable=self.obs_var, 
+                width=160, 
+                height=60,
+                font=ctk.CTkFont(size=11)
+            )
+        )
+        
+        # Condicion de Pago
+        add_field(
+            5, 0, "Cond. De Pago:", 
+            ctk.CTkComboBox(
+                form_frame, 
+                values=["CTA CTE", "CONTADO"], 
+                variable=self.pay_cond_var, 
+                width=160, 
+                font=ctk.CTkFont(size=11),
+                state="readonly"
+            )
+        )
+
+        # Plazo en Dias
+        pay_period_wid = add_field(
+                                    6, 0, "Plazo en dias:", 
+                                    ctk.CTkComboBox(
+                                        form_frame,
+                                        values=["7", "15", "30", "45", "60", "90"], 
+                                        variable=self.pay_period_var, 
+                                        width=100, 
+                                        font=ctk.CTkFont(size=11),
+                                        state="readonly"
+                                    )
+                                )
+
+        # Fecha
+        add_field(
+            7, 0, "Fecha:", 
+            ctk.CTkEntry(
+                form_frame, 
+                textvariable=self.date_var, 
+                width=160, 
+                font=ctk.CTkFont(size=11),
+            )
+        )
+
+        # Fecha Vencimiento
+        add_field(
+            0, 2, "Fecha Venc:",
+            ctk.CTkEntry(
+                form_frame, 
+                textvariable=self.expiration_var,
+                width=160,
+                font=ctk.CTkFont(size=11),
+                state='readonly'
+            )
+        )
+        
+        # Monto IVA
+        add_field(
+            1, 2,"Monto IVA:",
+            ctk.CTkEntry(
+                form_frame, 
+                textvariable=self.iva_var, 
+                width=160,
+                font=ctk.CTkFont(size=11),
+                state='readonly',
+            )
+        )
+        
+        # Descuento
+        add_field(
+            2, 2,"Descuento:", 
+            ctk.CTkEntry(
+                form_frame, 
+                textvariable=self.discount_var, 
+                width=160,
+                font=ctk.CTkFont(size=11),
+            )
+        )
+        
+        # Subtotal
+        add_field(
+            3, 2, "Subtotal:", 
+            ctk.CTkEntry(
+                form_frame, 
+                textvariable=self.subtotal_var, 
+                width=160,
+                font=ctk.CTkFont(size=11),
+                state='readonly'
+            )
+        )
+        
+        # Percepcion IIBB
+        add_field(
+            4, 2, "Percepcion IIBB:", 
+            ctk.CTkEntry(
+                form_frame, 
+                textvariable=self.iibb_per_var,
+                width=160,
+                font=ctk.CTkFont(size=11),
+            )
+        )
+        
+        # Percepcion IVA
+        add_field(
+            5, 2, "Percepcion IVA:", 
+            ctk.CTkEntry(
+                form_frame, 
+                textvariable=self.iva_per_var, 
+                width=160,
+                font=ctk.CTkFont(size=11),
+            )
+        )
+        
+        # Total
+        add_field(
+            6, 2, "Total:", 
+            ctk.CTkEntry(
+                form_frame, 
+                textvariable=self.total_var, 
+                width=160,
+                font=ctk.CTkFont(size=11),
+                state='readonly'
+            )
+        )
+
+        self.pay_cond_var.set("CTA CTE")
+        self.pay_period_var.set("30")
         self.iva_var.set("0.00")
         self.subtotal_var.set("0.00")
         self.total_var.set("0.00")
 
-        btn_frame = ctk.CTkFrame(card_frame, fg_color="white")
-        btn_frame.pack(pady=20)
+        self.pay_cond_var.trace_add(
+            "write", 
+            lambda *args: pay_period_control(
+                        self.pay_cond_var, 
+                        self.pay_period_var,
+                        pay_period_wid
+                    )
+        )
 
-        # Configurar columnas para botones
-        btn_frame.grid_columnconfigure(0, weight=1)
-        btn_frame.grid_columnconfigure(1, weight=1)
+        self.date_var.trace_add(
+            "write", 
+            lambda *args: calculate_exp_date(
+                self.date_var,
+                self.pay_period_var,
+                self.expiration_var
+            )
+        )
+        self.pay_period_var.trace_add(
+            "write", 
+            lambda *args: calculate_exp_date(
+                self.date_var,
+                self.pay_period_var,
+                self.expiration_var
+            )
+        )
+
+        self.date_var.set(iso_to_traditional(str(datetime.now().date())))
+
+        btn_frame = ctk.CTkFrame(card_frame, fg_color="transparent")
+        btn_frame.pack(pady=10)
 
         save_btn = ctk.CTkButton(
             btn_frame,
@@ -139,8 +341,8 @@ class SupplierInvoiceForm():
             fg_color=btn_color,
             hover_color=btn_hover,
             height=40,
-            width=180,
-            font=ctk.CTkFont(size=15, weight="bold"),
+            width=160,
+            font=ctk.CTkFont(size=13, weight="bold"),
             command=lambda: self.controller.add_new_invoice(self.invoice_win, parent)
         )
         save_btn.grid(row=0, column=0, padx=15)
@@ -153,35 +355,29 @@ class SupplierInvoiceForm():
             fg_color="#E74C3C",
             hover_color="#C0392B",
             height=40,
-            width=180,
-            font=ctk.CTkFont(size=15, weight="bold"),
-            command=lambda: close_win(self.invoice_win, parent, self.clear_invoice_form)
+            width=160,
+            font=ctk.CTkFont(size=13, weight="bold"),
+            command=lambda: close_win(self.invoice_win, parent)
         )
         cancel_btn.grid(row=0, column=1, padx=15)
-
-    def clear_invoice_form(self):
-        """Limpiar formulario de factura"""
-        self.invoice_id_var.set('')
-        self.invoice_type_var.set('')
-        self.expiration_var.set('')
-        self.subtotal_var.set('')
-        self.iva_var.set('')
-        self.discount_var.set('')
-        self.obs_var.set('')
-        self.total_var.set('')
-        self.state_var.set('')
-
+        
+    ## -- Obtener datos del formulario -- ##
     def get_invoice_form_data(self):
         """Obtener datos del formulario de factura"""
         return {
             'supplier_cuit': self.supplier_var.get().strip(),
             'invoice_id': self.invoice_id_var.get().strip(),
             'invoice_type': self.invoice_type_var.get().strip(),
+            'date': self.date_var.get().strip(),
             'expiration_date': self.expiration_var.get().strip(),
-            'subtotal': self.subtotal_var.get().strip(),
-            'iva': self.iva_var.get().strip(),
+            's_iva_c': self.s_iva_c_var.get().strip(),
             'discount': self.discount_var.get().strip(),
             'observations': self.obs_var.get().strip(),
+            'pay_cond': self.pay_cond_var.get().strip(),
+            'pay_period': self.pay_period_var.get().strip(),
+            'iibb_per': self.iibb_per_var.get().strip(),
+            'iva_per': self.iva_per_var.get().strip(),
+            'subtotal': self.subtotal_var.get().strip(),
+            'iva': self.iva_var.get().strip(),
             'total': self.total_var.get().strip(),
-            'state': self.state_var.get().strip(),
         }

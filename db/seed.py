@@ -6,7 +6,8 @@ from datetime import datetime
 from random import choice, randint
 from models.user import User
 from models.supplier.__init__ import SupplierModel
-from models.security import gen_password, validate_password
+from decimal import Decimal
+from models.security import gen_password
 
 DB_PATH = "db/stock.db"
 
@@ -429,6 +430,8 @@ def seed_suppliers():
         "Avenida Sabattini", "Entre Ríos", "9 de Julio", "Sobremonte",
         "Rivadavia", "Ruta 8", "Ruta 158", "Ruta A005"
     ]
+
+    condicion_iva = ["RESP. INS", "MONOTRIBUTISTA", "EXENTO"]
     
     suppliers = []
     
@@ -470,6 +473,8 @@ def seed_suppliers():
             debt = 0
         else:
             debt = randint(5000, 150000)
+
+        iva_condition = choice(condicion_iva)            
         
         suppliers.append({
             "cuit": cuit,
@@ -477,6 +482,7 @@ def seed_suppliers():
             "home": home,
             "phone": phone,
             "email": email,
+            "iva_condition": iva_condition,
             "debt": debt
         })
     
@@ -494,7 +500,7 @@ if __name__ == "__main__":
     seed_suppliers()
     seed_client()
     # seed_clients()
-    seed_stock()
+    # seed_stock()
     # seed_sales_with_fiados()
     # seed_sales_with_products()
     

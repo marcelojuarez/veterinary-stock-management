@@ -177,7 +177,6 @@ class StockController:
         self.stock_model.update_product(product_id, complete_product_data)
         self.refresh_stock_table()
 
-
     def show_all_products(self):
         self.refresh_stock_table()
         self.view.show_success("Mostrando todos los artículos del inventario")

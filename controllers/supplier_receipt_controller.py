@@ -25,23 +25,25 @@ class SupplierReceiptController():
 
             if not self.validate_receipt_data(data):
                 return
-            
-            expiration_date = traditional_to_iso(data['expiration_date'])
+
+            state = 'BORRADOR'
 
             receipt_params = {
                 'supplier_id': supplier_data[0],
                 'receipt_id': data['receipt_id'],
-                'expiration_date': expiration_date,
+                'date': traditional_to_iso(data['date']),
+                'expiration_date': traditional_to_iso(data['expiration_date']),
                 'observations': data['observations'],
-                'state': data['state'],
+                'state': state,
                 'total': data['total']
             }
 
             purchase_params = {
                 'supplier_id': supplier_data[0],
                 'doc_type': "REMITO",
-                'expiration_date': expiration_date,
-                'state': data['state'],
+                'date': traditional_to_iso(data['date']),
+                'expiration_date': traditional_to_iso(data['expiration_date']),
+                'state': state,
                 'observations': data['observations'],
                 'pending' : data['total'], 
                 'total': data['total'], 
@@ -49,7 +51,7 @@ class SupplierReceiptController():
 
             self.model.purchase.create_receipt_and_purchase(receipt_params, purchase_params)
             self.purchase_view.load_purchases(True)
-            close_win(win, parent, self.form_view.clear_receipt_form())
+            close_win(win, parent)
             
         except ValueError as e:
             show_error(f'Error en los datos: {e}')
@@ -60,7 +62,9 @@ class SupplierReceiptController():
     @classmethod
     def validate_receipt_data(cls, data):
         required_files = {
+            'supplier_cuit': 'Cuit Proveedor',
             'receipt_id': 'Numero de Recibo',
+            'date': 'Fecha',
             'expiration_date': 'Fecha de vencimiento',
             'total': 'Total'
         }
@@ -69,7 +73,11 @@ class SupplierReceiptController():
             if not data[field]:
                 show_error(f'Por favor complete el campo: "{label}"')
                 return False
-            
+
+        if not cls.is_valid_date(data['date']):
+            show_error('Por favor coloque la fecha en formato dd/mm/yyyy')
+            return False        
+
         if not cls.is_valid_date(data['expiration_date']):
             show_error('Por favor coloque la fecha en formato dd/mm/yyyy')
             return False

@@ -53,6 +53,7 @@ class SupplierView():
         self.home_var = tk.StringVar()
         self.phone_var = tk.StringVar()
         self.email_var = tk.StringVar()
+        self.iva_condition = tk.StringVar()
 
     """ Crear todos los widgets del formulario """
     def create_widgets(self):
@@ -148,7 +149,9 @@ class SupplierView():
         scrl_bar.grid(row=0, column=3, sticky='ns')
         self.supplier_tree.configure(yscrollcommand=scrl_bar.set)
                            
-        self.supplier_tree['columns'] = ("Id", "Nombre", "Cuit", "Domicilio", "Telefono", "Email", "Ultima actualizacion deuda")
+        self.supplier_tree['columns'] = (
+            "Id", "Nombre", "Cuit", "Domicilio", "Telefono", "Email", "Condicion Iva", "Ultima actualizacion deuda"
+        )
         self.supplier_tree['displaycolumns'] = self.supplier_tree['columns']
         self.supplier_tree.column("Id", anchor=tk.W, width=50,stretch=False)
         self.supplier_tree.column("Nombre", anchor=tk.W, width=350,stretch=False)
@@ -156,6 +159,7 @@ class SupplierView():
         self.supplier_tree.column("Domicilio", anchor=tk.W, width=350,stretch=False)
         self.supplier_tree.column("Telefono", anchor=tk.W, width=160,stretch=False)
         self.supplier_tree.column("Email", anchor=tk.W, width=200, stretch=False)
+        self.supplier_tree.column("Condicion Iva", anchor=tk.W, width=200, stretch=False)
         self.supplier_tree.column("Ultima actualizacion deuda", anchor=tk.W, width=200, stretch=False)
 
         self.supplier_tree.heading('Id', text='ID ↕')
@@ -164,6 +168,7 @@ class SupplierView():
         self.supplier_tree.heading('Domicilio', text='Domicilio ↕')
         self.supplier_tree.heading('Telefono', text='Telefono ↕')
         self.supplier_tree.heading('Email', text='Email ↕')
+        self.supplier_tree.heading('Condicion Iva', text='Condicion Iva ↕')
         self.supplier_tree.heading('Ultima actualizacion deuda', text='Ultima actualizacion deuda ↕')
 
         self.supplier_tree.tag_configure('orow', background="#FFFFFF")
@@ -266,7 +271,7 @@ class SupplierView():
         height_root = self.frame.winfo_height()
 
         width_win = 415
-        height_win = 420
+        height_win = 460
         btn_color = "#009688"
         btn_hover = "#00796B"
 
@@ -322,7 +327,17 @@ class SupplierView():
 
         add_field(4, "Email: ",
                   ctk.CTkEntry(form_frame, textvariable=self.email_var, width=200))
+        
+        add_field(5, "Condicion IVA: ",
+                  ctk.CTkComboBox(
+                      form_frame,  
+                      values=["RESP. INS", "MONOTRIBUTISTA", "EXENTO", "NO RESPONSABLE"], 
+                      variable=self.iva_condition, 
+                      width=200
+                    )
+        )
 
+        self.iva_condition.set('RESP. INS')
 
         btn_frame = ctk.CTkFrame(card_frame, fg_color="white")
         btn_frame.pack(pady=20)
@@ -393,7 +408,7 @@ class SupplierView():
 
         # --- Panel de deuda ---
         self.debt = tk.StringVar(value=f'{debt}')
-        self.last_update_debt = tk.StringVar(value=f'Ultima actualizacion deuda: \n {iso_to_traditional(supplier[6])}')
+        self.last_update_debt = tk.StringVar(value=f'Ultima actualizacion deuda: \n {supplier[7]}')
         right_frame = ctk.CTkFrame(info_win, corner_radius=10)
         right_frame.grid(row=0, column=1, sticky="nsew", padx=10, pady=(10, 0))
 
@@ -573,7 +588,8 @@ class SupplierView():
                     s[3],   # home
                     s[4],   # phone
                     s[5],   # email
-                    s[6]    # last act debt
+                    s[6],   # condicion iva
+                    iso_to_traditional(s[7])    # last act debt
                 ),
                 tag="orow"
             )
@@ -594,7 +610,8 @@ class SupplierView():
                     supplier[3],   # home
                     supplier[4],   # phone
                     supplier[5],   # email
-                    supplier[6]    # last act debt
+                    supplier[6],    # condicion iva
+                    iso_to_traditional(supplier[7])    # last act debt
                 ),
                 tag="orow"
             )
@@ -608,6 +625,7 @@ class SupplierView():
         self.cuit_var.set('')
         self.home_var.set('')
         self.phone_var.set('')
+        self.iva_condition.set('')
 
     def get_supplier_data(self):
         return {
@@ -616,4 +634,5 @@ class SupplierView():
             'home': self.home_var.get().strip(),
             'phone': self.phone_var.get().strip(),
             'email': self.email_var.get().strip(),
+            'iva_condition': self.iva_condition.get().strip()
         }

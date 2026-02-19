@@ -48,7 +48,8 @@ class SupplierController():
                 'cuit': data['cuit'],
                 'home': data['home'],
                 'phone': data['phone'],
-                'email': data['email']
+                'email': data['email'],
+                'iva_condition': data['iva_condition']
             }
 
             self.model.core.add_supplier(supplier_data)
@@ -93,7 +94,7 @@ class SupplierController():
         return suppliers_data 
     
     def __validates_supplier_data(self, form_data):
-        required_files =  ['name', 'cuit', 'home', 'phone', 'email']
+        required_files =  ['name', 'cuit', 'home', 'phone', 'email', 'iva_condition']
 
         print(f'Formulario de datos {form_data}')
 

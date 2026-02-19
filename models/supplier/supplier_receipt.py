@@ -6,7 +6,6 @@ class SupplierReceipt():
         self.db = db
 
     def add_new_receipt(self, data, conn=None, commit=True):
-        date = datetime.now().strftime("%Y-%m-%d")
         query = """
         INSERT INTO supplier_receipt(supplier_id, receipt_id, date, expiration_date, observations,
         state, total)
@@ -15,11 +14,11 @@ class SupplierReceipt():
         params = [
             data['supplier_id'],
             data['receipt_id'],
-            date,
+            data['date'],
             data['expiration_date'],
             data['observations'],
             data['state'],
-            str(data['total']), 
+            data['total'], 
         ]
 
         return self.db.execute_query(query, params, conn=conn, commit=commit)

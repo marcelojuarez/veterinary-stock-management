@@ -51,8 +51,10 @@ class Database:
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 name TEXT NOT NULL,
                 pack TEXT NOT NULL,
-                profit TEXT NOT NULL,
+                list_price TEXT NOT NULL,
+                discount TEXT NOT NULL,
                 cost_price TEXT NOT NULL,
+                profit TEXT NOT NULL,
                 price TEXT NOT NULL,
                 iva TEXT NOT NULL,
                 price_with_iva TEXT NOT NULL,
@@ -84,6 +86,7 @@ class Database:
                     home TEXT,
                     phone TEXT,
                     email TEXT,
+                    iva_condition TEXT,
                     last_debt_update TEXT DEFAULT CURRENT_DATE
                 );
             ''')
@@ -158,9 +161,10 @@ class Database:
                     pack TEXT NOT NULL,
 
                     quantity INTEGER NOT NULL,
+                    list_price TEXT NOT NULL,
+                    discount TEXT NOT NULL,
                     cost_price TEXT NOT NULL,
                     iva_rate TEXT NOT NULL,
-                    discount TEXT NOT NULL,
                     discount_amount TEXT NOT NULL,
 
                     subtotal TEXT NOT NULL,
@@ -182,9 +186,12 @@ class Database:
                     invoice_type TEXT,
                     
                     date TEXT CURRENT_DATE,
-                    expiration_date TEXT CURRENT_DATE,  
+                    expiration_date TEXT CURRENT_DATE,
+                    supplier_iva_condition TEXT,
                     state TEXT,
-                    observations TEXT, 
+                    observations TEXT,
+                    pay_condition TEXT,
+                    pay_period TEXT,
         
                     orig_subtotal TEXT NOT NULL,
                     discount TEXT NOT NULL,
@@ -197,6 +204,18 @@ class Database:
                     FOREIGN KEY (supplier_id) REFERENCES supplier (id)
                 );
             ''')
+
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS invoice_perceptions(
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    invoice_id INTEGER NOT NULL,
+                    tax_type TEXT NOT NULL,
+                    amount TEXT NOT NULL,
+                           
+                    FOREIGN KEY (invoice_id) REFERENCES supplier_invoice(id) ON DELETE CASCADE         
+                );
+            ''')
+
 
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS supplier_receipt (

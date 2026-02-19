@@ -213,38 +213,82 @@ class PurchaseInfoReceiptView():
 
         # NUMERO DE RECIBO
 
-        num_entry = add_field(0, "Número de Recibo: ", ctk.CTkEntry(
-            self.info_frame, textvariable=self.receipt_vars["number"], width=200, state='readonly', font=ctk.CTkFont(size=13)
-        ))
+        num_entry = add_field(
+                        0, "Número de Recibo: ", 
+                        ctk.CTkEntry(
+                            self.info_frame, 
+                            textvariable=self.receipt_vars["number"], 
+                            width=200,
+                            font=ctk.CTkFont(size=11),
+                            state='readonly'
+                        )
+                    )
 
         # FECHA
-        add_field(1, "Fecha: ", ctk.CTkEntry(
-            self.info_frame, textvariable=self.receipt_vars["date"], width=200, state='readonly', font=ctk.CTkFont(size=13)
-        ))
+        date_entry = add_field(
+                        1, "Fecha: ", 
+                        ctk.CTkEntry(
+                            self.info_frame, 
+                            textvariable=self.receipt_vars["date"], 
+                            width=200, 
+                            font=ctk.CTkFont(size=11),
+                            state='readonly'
+                        )
+                    )
 
         # FECHA DE VENC
-        exp_date_entry = add_field(2, "Fecha de Vencimiento: ", ctk.CTkEntry(
-            self.info_frame, textvariable=self.receipt_vars["expiration"], width=200, state='readonly', font=ctk.CTkFont(size=13)
-        ))
+        exp_date_entry = add_field(
+                            2, "Fecha de Vencimiento: ", 
+                            ctk.CTkEntry(
+                                self.info_frame,
+                                textvariable=self.receipt_vars["expiration"], 
+                                width=200, 
+                                font=ctk.CTkFont(size=11),
+                                state='readonly'
+                            )
+                        )
 
         # OBSERVACIONES
-        obs_entry = add_field(3, "Observaciones: ", ctk.CTkEntry(
-            self.info_frame, textvariable=self.receipt_vars["obs"], width=200, height=60, state='readonly', font=ctk.CTkFont(size=13)
-        ))
+        obs_entry = add_field(
+                        3, "Observaciones: ", 
+                        ctk.CTkEntry(
+                            self.info_frame, 
+                            textvariable=self.receipt_vars["obs"], 
+                            width=200, 
+                            height=60, 
+                            font=ctk.CTkFont(size=11),
+                            state='readonly'
+                        )
+                    )
 
         # ESTADO
-        add_field(4, "Estado: ", ctk.CTkEntry(
-            self.info_frame, textvariable=self.receipt_vars["state"], width=200, state='readonly', font=ctk.CTkFont(size=13)
-        ))
+        add_field(
+            4, "Estado: ", 
+            ctk.CTkEntry(
+                self.info_frame,
+                textvariable=self.receipt_vars["state"], 
+                width=200, 
+                font=ctk.CTkFont(size=13),
+                state='readonly'
+            )
+        )
 
         # Total
-        add_field(5, "Total: ", ctk.CTkEntry(
-            self.info_frame, textvariable=self.receipt_vars["total"], width=200, state='readonly', font=ctk.CTkFont(size=13)
-        ))
+        add_field(
+            5, "Total: ", 
+            ctk.CTkEntry(
+                self.info_frame, 
+                textvariable=self.receipt_vars["total"], 
+                width=200, 
+                font=ctk.CTkFont(size=13),
+                state='readonly'
+            )
+        )
 
         # customizable entries
         self.customizable_wid = (
             num_entry,
+            date_entry,
             exp_date_entry,
             obs_entry
         )
@@ -264,6 +308,7 @@ class PurchaseInfoReceiptView():
     def get_receipt_data(self):
         return {
             'receipt_id': self.receipt_vars['number'].get().strip(),
+            'date': self.receipt_vars['date'].get().strip(),
             'expiration': self.receipt_vars['expiration'].get().strip(),
             'obs': self.receipt_vars['obs'].get().strip()
         }
@@ -381,6 +426,7 @@ class PurchaseInfoReceiptView():
             self.customizable_wid[0].get(),
             self.customizable_wid[1].get(),
             self.customizable_wid[2].get(),
+            self.customizable_wid[3].get(),
         ]
 
     ## --  Recuperar valores previos de los campos -- ##
@@ -400,8 +446,9 @@ class PurchaseInfoReceiptView():
         # Recuperar valores
 
         self.receipt_vars['number'].set(self.custom_wid_values[0])
-        self.receipt_vars['expiration'].set(self.custom_wid_values[1])
-        self.receipt_vars['obs'].set(self.custom_wid_values[2])
+        self.receipt_vars['date'].set(self.custom_wid_values[1])
+        self.receipt_vars['expiration'].set(self.custom_wid_values[2])
+        self.receipt_vars['obs'].set(self.custom_wid_values[3])
         
         for w in self.customizable_wid:
             w.configure(state='readonly')

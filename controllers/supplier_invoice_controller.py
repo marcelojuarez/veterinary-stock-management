@@ -28,38 +28,48 @@ class SupplierInvoiceController():
             if not self.validate_invoice_data(data):
                 win.focus_force()
                 return
-            
-            expiration_date = traditional_to_iso(data['expiration_date'])
+
+            iibb_per = normalize_string_to_dec(data['iibb_per'])
+            iva_per = normalize_string_to_dec(data['iva_per'])
             discount = normalize_string_to_dec(data['discount'])
+
+            state = 'BORRADOR'
 
             invoice_params = {
                 'supplier_id': supplier_data[0],
                 'invoice_id': data['invoice_id'],
                 'invoice_type': data['invoice_type'],
-                'expiration_date': expiration_date,
-                'state': data['state'],
+                'date': traditional_to_iso(data['date']),
+                'expiration_date': traditional_to_iso(data['expiration_date']),
+                's_iva_c': data['s_iva_c'],
+                'discount': str(discount),
+                'state': state,
                 'observations': data['observations'],
+                'pay_cond': data['pay_cond'],
+                'pay_period': data['pay_period'],
                 'orig_subtotal': data['subtotal'],
-                'discount': discount,
                 'discount_amount': '0.00',
                 'subtotal_w_discount': data['subtotal'],
                 'iva': data['iva'],
                 'total': data['total']
             }
 
+            perception_parameters = self.prepare_perceptions_parameters(iibb_per, iva_per)
+
             purchase_params = {
                 'supplier_id': supplier_data[0],
                 'doc_type': "FACTURA",
-                'expiration_date': expiration_date,
-                'state': data['state'],
+                'date': traditional_to_iso(data['date']),
+                'expiration_date': traditional_to_iso(data['expiration_date']),
+                'state': state,
                 'observations': data['observations'],
                 'pending': data['total'], 
                 'total': data['total']
             }
 
-            self.model.purchase.create_invoice_and_purchase(invoice_params, purchase_params)
+            self.model.purchase.create_invoice_and_purchase(invoice_params, perception_parameters, purchase_params)
             self.purchase_view.load_purchases(True)
-            close_win(win, parent, self.form_view.clear_invoice_form())
+            close_win(win, parent)
 
         except ValueError as e:
             show_error(f'Error en los datos: {e}')
@@ -72,23 +82,50 @@ class SupplierInvoiceController():
         required_files = {
             'invoice_id': 'Numero de Factura',
             'invoice_type': 'Tipo de Factura',
+            'date': 'Fecha',
             'expiration_date': 'Fecha de vencimiento',
-            'state': 'Estado',
+            's_iva_c': 'Cond. IVA Proveedor',
             'subtotal': 'Subtotal',
             'iva': 'Iva',
             'discount': 'Descuento',
-            'total': 'Total'
+            'iibb_per': 'Percepciones IIBB',
+            'iva_per': 'Percepciones IVA',
+            'total': 'Total',
         }
         
         for field, label in required_files.items():
             if not data[field]:
                 show_error(f'Por favor complete el campo: "{label}"')
                 return False
-            
+        
+        ## Fecha de Vencimiento
         if not cls.is_valid_date(data['expiration_date']):
             show_error('Por favor coloque la fecha en formato dd/mm/yyyy')
             return False
         
+        ## Percepcion IIBB
+        if not cls.is_decimal(data['iibb_per']):
+            show_error('Error. Formato incorrecto en la Percepcion IIBB')
+            return False
+        
+        iibb_per = normalize_string_to_dec(data['iibb_per'])
+
+        if iibb_per < Decimal('0.00'):
+            show_error('Error. El monto de Percepcion IIBB debe ser positivo')
+            return False
+
+        ## Percepcion IVA
+        if not cls.is_decimal(data['iva_per']):
+            show_error('Error. Formato incorrecto en la Percepcion IVA')
+            return False
+
+        iva_per = normalize_string_to_dec(data['iva_per'])
+
+        if iva_per < Decimal('0.00'):
+            show_error('Error. El monto de Percepcion IVA debe ser positivo')
+            return False
+
+        ## Descuento
         if not cls.is_decimal(data['discount']):
             show_error('Error. Formato incorrecto en el descuento.')
             return False
@@ -120,3 +157,24 @@ class SupplierInvoiceController():
         else:    
             return True
         
+    def prepare_perceptions_parameters(self, iibb_per, iva_per):
+        data = []
+
+        if iibb_per > Decimal('0.00'):
+            data.append(
+                {
+                    'tax_type': 'IIBB_PER',
+                    'amount': str(iibb_per)
+                }
+            )
+
+        if iva_per > Decimal('0.00'):
+            data.append(
+                {
+                    'tax_type': 'IVA_PER',
+                    'amount': str(iva_per)
+                }
+            )
+
+        print(data)
+        return data

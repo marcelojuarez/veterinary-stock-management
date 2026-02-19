@@ -7,7 +7,7 @@ class StockModel:
     def get_all_products(self):
         """Obtener todos los productos del stock"""
         query = """
-            SELECT id, name, pack, profit, cost_price, price, iva, 
+            SELECT id, name, pack, list_price, discount, cost_price, profit, price, iva, 
                    price_with_iva, created_at, last_price_update, quantity
             FROM stock 
             ORDER BY name
@@ -22,8 +22,8 @@ class StockModel:
     def get_product_by_id(self, product_id):
         """Obtener un producto por su ID"""
         query = """
-            SELECT id, name, pack, profit, cost_price, price, iva, 
-                   price_with_iva, created_at, last_price_update, quantity
+            SELECT id, name, pack, profit, list_price, discount, cost_price, 
+            price, iva, price_with_iva, created_at, last_price_update, quantity
             FROM stock 
             WHERE id = ?
         """

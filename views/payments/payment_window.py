@@ -217,7 +217,8 @@ class PaymentWindow():
         purchase_frame.pack(fill='both', expand=True)
 
         self.purchase_tree = ttk.Treeview(purchase_frame, show="headings", height=8)
-        self.purchase_tree["columns"] = ("ID", "Cuit Proveedor", "Tipo Comprobante", "Fecha", "Fecha Venc.", "Estado", "Saldo Pendiente", "Total")
+        self.purchase_tree["columns"] = ("ID", "Cuit Proveedor", "Nombre Proveedor", "Tipo Comprobante", "Fecha", 
+                                         "Fecha Venc.", "Estado", "Saldo Pendiente", "Total")
         for col in self.purchase_tree["columns"]:
             self.purchase_tree.heading(col, text=col.capitalize())
             if col == "ID":
@@ -353,12 +354,13 @@ class PaymentWindow():
                 values=(
                     p[0], # id
                     p[1], # cuit
-                    p[2], # comprobante
-                    iso_to_traditional(p[5]), # fecha
-                    iso_to_traditional(p[6]), # fecha venc
-                    p[7], # estado
-                    p[9], # saldo pend
-                    p[10] # total
+                    p[2], # nombre
+                    p[3], # comprobante
+                    iso_to_traditional(p[6]), # fecha
+                    iso_to_traditional(p[7]), # fecha venc
+                    p[8], # estado
+                    p[10], # saldo pend
+                    p[11] # total
                 ),
                 tag="orow"
             )  

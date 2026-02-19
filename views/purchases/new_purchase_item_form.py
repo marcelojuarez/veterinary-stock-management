@@ -1,7 +1,7 @@
 import tkinter as tk
 import customtkinter as ctk
 from decimal import Decimal
-from utils.utils import normalize_to_2_decimals, normalize_string_to_dec, normalize_int_to_dec
+from utils.utils import normalize_to_2_decimals, normalize_string_to_dec, normalize_int_to_dec, convert_to_decimal
 from views.view_helpers import close_win, ask_confirmation
 
 class NewPurchaseItemForm():
@@ -20,8 +20,9 @@ class NewPurchaseItemForm():
         self.product_pack = tk.StringVar()
         self.quantity = tk.StringVar()
         self.qty = None
-        self.cost_price = tk.StringVar()
-        self.cost = None
+        self.list_price_var = tk.StringVar()
+        self.list_price = None
+        self.cost_price_var = tk.StringVar()
         self.iva_rate = tk.StringVar()
         self.iva = None
         
@@ -39,8 +40,8 @@ class NewPurchaseItemForm():
 
         self.setup_purchase_items_variables(purchase_id)
 
-        self.cost = Decimal('0.00')
-        self.iva = Decimal('0.00')
+        # self.list_price = Decimal('0.00')
+        # self.iva = Decimal('0.00')
 
         """Ventana para agregar nuevo producto con CustomTkinter"""
         add_win = ctk.CTkToplevel(parent)
@@ -52,7 +53,7 @@ class NewPurchaseItemForm():
         add_win.grab_set()
 
         # Centrar la ventana
-        add_win.geometry("800x450+{}+{}".format(
+        add_win.geometry("850x500+{}+{}".format(
             add_win.winfo_screenwidth()//2 - 200,
             add_win.winfo_screenheight()//2 - 250
         ))
@@ -102,17 +103,20 @@ class NewPurchaseItemForm():
         add_field(4, 0, "Stock:",
                 ctk.CTkEntry(form_frame, textvariable=self.quantity, width=200))
         
-        add_field(5, 0, "Precio Costo:",
-                ctk.CTkEntry(form_frame, textvariable=self.cost_price, width=200))
+        add_field(5, 0, "Precio Lista:",
+                ctk.CTkEntry(form_frame, textvariable=self.list_price_var, width=200))
+        
+        add_field(6, 0,"% Dto:",
+                ctk.CTkEntry(form_frame, textvariable=self.discount_var, width=200))  
+        
+        add_field(0, 2, "Precio Costo:",
+                ctk.CTkEntry(form_frame, textvariable=self.cost_price_var, state='readonly', width=200))
 
-        add_field(0, 2, "Porcentaje Iva:",
+        add_field(1, 2, "Porcentaje Iva:",
                 ctk.CTkComboBox(form_frame, values=["21.00", "10.50", "0.00"], 
                                 variable=self.iva_rate, state='readonly', width=200))
 
-        add_field(1, 2, "Porcentaje Descuento:",
-                ctk.CTkEntry(form_frame, textvariable=self.discount_var, width=200))
-        
-        add_field(2, 2, "Monto Descuento:",
+        add_field(2, 2, "Total Descuento:",
                 ctk.CTkEntry(form_frame, textvariable=self.discount_amount, state='readonly', width=200))
         
         add_field(3, 2, "SubTotal:",
@@ -129,19 +133,21 @@ class NewPurchaseItemForm():
             self.qty = normalize_int_to_dec(self.quantity.get())
 
             ## precio - iva - descuento
-            self.cost = normalize_string_to_dec(self.cost_price.get())
+            self.list_price = normalize_string_to_dec(self.list_price_var.get())
             self.iva = normalize_string_to_dec(self.iva_rate.get())
             self.discount = normalize_string_to_dec(self.discount_var.get())
 
-            if self.cost is None or self.iva is None or self.discount is None or self.qty is None:
+            if self.list_price is None or self.iva is None or self.discount is None or self.qty is None:
                 return
 
             # Calculos (sin normalizar)
-            base_amount = self.qty * self.cost
+            base_amount = self.qty * self.list_price
             discount_rate = self.discount / Decimal('100')
+            unit_d_amount = self.list_price * discount_rate
             discount_amount = base_amount * discount_rate            
 
-            subtotal = normalize_to_2_decimals(self.qty * self.cost - discount_amount)
+            cost_price = convert_to_decimal(self.list_price - unit_d_amount)
+            subtotal = normalize_to_2_decimals(self.qty * cost_price)
             iva_amount = normalize_to_2_decimals(subtotal * (self.iva / Decimal('100')))
             total = subtotal + iva_amount
 
@@ -149,13 +155,14 @@ class NewPurchaseItemForm():
             discount_amount = normalize_to_2_decimals(discount_amount)
             total = normalize_to_2_decimals(total)
 
+            self.cost_price_var.set(cost_price)
             self.discount_amount.set(discount_amount)
             self.subtotal.set(subtotal)
             self.iva_amount.set(iva_amount)
             self.total_item_var.set(total)
 
         self.quantity.trace_add("write", recalc)
-        self.cost_price.trace_add("write", recalc)
+        self.list_price_var.trace_add("write", recalc)
         self.iva_rate.trace_add("write", recalc)
         self.discount_var.trace_add("write", recalc) 
 
@@ -177,8 +184,8 @@ class NewPurchaseItemForm():
         if self.qty is not None:
             self.quantity.set(self.qty)
 
-        if self.cost is not None:
-            self.cost_price.set(self.cost)
+        if self.list_price is not None:
+            self.list_price_var.set(self.list_price)
 
         if self.discount is not None:
             self.discount_var.set(self.discount)
@@ -190,12 +197,13 @@ class NewPurchaseItemForm():
             f"Nombre: {self.product_name.get().upper()}\n"
             f"Pack: {self.product_pack.get()}\n"
             f"Cantidad: {self.quantity.get()}\n"
-            f"Precio costo: ${self.cost_price.get()}\n"
-            f"IVA %:  {self.iva_rate.get()}\n"
-            f"Monto IVA $: {self.iva_amount.get()}\n"
+            f"Precio lista: ${self.list_price_var.get()}\n"
             f"Descuento %: {self.discount_var.get()}\n"
+            f"Precio costo: ${self.cost_price_var.get()}\n"
+            f"IVA %:  {self.iva_rate.get()}\n"
             f"Monto Descuento: ${self.discount_amount.get()}\n"
             f"Subtotal: ${self.subtotal.get()}\n"
+            f"Monto IVA $: {self.iva_amount.get()}\n"
             f"Total: ${self.total_item_var.get()}"
         )
 
@@ -209,8 +217,8 @@ class NewPurchaseItemForm():
         self.product_id.set(product_data[0])
         self.product_name.set(product_data[1])
         self.product_pack.set(product_data[2])
-        self.cost_price.set(product_data[4])
-        self.iva_rate.set(product_data[6])
+        self.list_price_var.set(product_data[4])
+        self.iva_rate.set(product_data[8])
 
     ## -- Obtiene los datos de los items de compra -- ##
     def get_purchase_item_data(self):
@@ -220,9 +228,10 @@ class NewPurchaseItemForm():
             'Product_name': self.product_name.get().strip(),
             'Pack': self.product_pack.get().strip(),
             'Qty': self.quantity.get().strip(), 
-            'Cost': self.cost_price.get().strip(),
-            'Iva_rate': self.iva_rate.get().strip(),
+            'List_price': self.list_price_var.get().strip(),
             'Discount': self.discount_var.get().strip(),
+            'Cost_price': self.cost_price_var.get().strip(),
+            'Iva_rate': self.iva_rate.get().strip(),
             'Discount_amount': self.discount_amount.get().strip(),
             'Subtotal': self.subtotal.get().strip(),
             'Iva_amount': self.iva_amount.get().strip(),
