@@ -304,6 +304,8 @@ class Database:
                     quantity INTEGER NOT NULL,
                     price REAL NOT NULL,
                     subtotal REAL NOT NULL,
+                    iva_rate REAL DEFAULT 21.0,
+                    iva_amount REAL DEFAULT 0.0,
                     observations TEXT,
                     FOREIGN KEY(sale_id) REFERENCES sales(id) ON DELETE CASCADE,
                     FOREIGN KEY(product_id) REFERENCES stock(id)

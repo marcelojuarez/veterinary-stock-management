@@ -8,7 +8,6 @@ class SalesModel:
     def register_sale(self, total, items, cliente_id, estado):
         with self.db.get_connection() as conn:
             cursor = conn.cursor()
-
             date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
             cursor.execute("""
@@ -25,18 +24,26 @@ class SalesModel:
                     product_id, name, quantity, price = item
                     observations = None
                 
-                # IMPORTANTE: El precio aquí debe ser el precio CON IVA
+                # OBTENER IVA DEL PRODUCTO
+                cursor.execute("SELECT iva FROM stock WHERE id = ?", (product_id,))
+                row = cursor.fetchone()
+                iva_rate = float(row[0]) if row and row[0] else 21.0
+                
+                # CALCULAR MONTOS
                 subtotal = round(price * quantity, 2)
-                print(price)
+                iva_amount = round(subtotal * (iva_rate / 100), 2)
+                
+                # GUARDAR CON IVA
                 cursor.execute("""
-                    INSERT INTO sale_items (sale_id, product_id, quantity, price, subtotal, observations)
-                    VALUES (?, ?, ?, ?, ?, ?)
-                """, (sale_id, product_id, quantity, price, subtotal, observations))
+                    INSERT INTO sale_items (sale_id, product_id, quantity, price, subtotal, iva_rate, iva_amount, observations)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                """, (sale_id, product_id, quantity, price, subtotal, iva_rate, iva_amount, observations))
 
+                # Solo descontar stock si NO es honorarios
                 cursor.execute("SELECT name FROM stock WHERE id = ?", (product_id,))
                 row = cursor.fetchone()
                 
-                if row and row[0] != 'HONORARIOS':
+                if row and row[0] != 'HONORARIOS PROFESIONALES':
                     cursor.execute("""
                         UPDATE stock SET quantity = quantity - ?
                         WHERE id = ?
@@ -44,6 +51,7 @@ class SalesModel:
 
             conn.commit()
             return sale_id
+        
     def get_today_sales(self):
         query = """
             SELECT s.id, s.date, s.total,

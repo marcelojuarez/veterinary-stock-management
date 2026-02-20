@@ -100,3 +100,21 @@ def traditional_to_iso(date):
     date_formated = datetime.strptime(date, "%d/%m/%Y").date()
     # formateo el obj a un string nuevamente
     return date_formated.strftime("%Y-%m-%d")
+def format_money(value):
+    try:
+        if value is None:
+            return "$0.00"
+
+        dec = Decimal(str(value))
+        return f"${dec:,.2f}"
+    except (InvalidOperation, ValueError):
+        return "$0.00"
+
+
+def format_percent(value):
+    try:
+        return f"{float(Decimal(value)):.1f}%"
+    except (InvalidOperation, TypeError, ValueError):
+        return "0.0%"
+
+
