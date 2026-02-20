@@ -44,7 +44,7 @@ class StockView():
         H = 40
         btn_color = "#009688"
         btn_hover = "#00796B"
-
+        '''
         new_btn = ctk.CTkButton(
             manage_frame,
             text="📦 Nuevo producto",
@@ -53,7 +53,10 @@ class StockView():
             font=ctk.CTkFont(size=12, weight="bold"),
             fg_color=btn_color,
             hover_color=btn_hover,
+            command=lambda: self.open_add_window(manage_frame)
         )
+        '''
+        
         
         update_btn = ctk.CTkButton(
             manage_frame,
@@ -88,7 +91,7 @@ class StockView():
             command=lambda: self.open_bulk_update_window()
         )
 
-        new_btn.grid(row=1, column=0, padx=10, pady=10)
+        #new_btn.grid(row=1, column=0, padx=10, pady=10)
         delete_btn.grid(row=1, column=1, padx=10, pady=10)
         update_btn.grid(row=1, column=2, padx=10, pady=10)
         bulk_update_btn.grid(row=1, column=3, padx=10, pady=10)
@@ -233,7 +236,7 @@ class StockView():
         self.stock_tree.grid(row=0, column=0, sticky="nsew")
 
     def open_update_price_window(self):
-        """Abrir ventana para actualizar precio de producto seleccionado con CustomTkinter"""
+        """Abrir ventana para actualizar precio de producto seleccionado"""
         try:
             product_id = self.get_selected_product()
             if not product_id:
@@ -244,11 +247,6 @@ class StockView():
             if not product:
                 self.show_error(f"Producto {product_id} no encontrado")
                 return
-
-            print(f'Producto seleccionado: {product}')
-
-            print(product)
-            print(len(product))
 
             _, name, pack, profit, cost_price, sale_price, iva, _, _, _, stock = product
 
@@ -312,35 +310,39 @@ class StockView():
                     profit_entry.configure(state="disabled")
                     try:
                         new_sale = float(sale_var.get())
-                        new_profit = round(((new_sale - cost_price) / cost_price) * 100, 2)
-                        
-                        if iva == 21.0:
+                        new_profit = round(((new_sale - float(cost_price)) / float(cost_price)) * 100, 2)
+                    
+                        if float(iva) == 21.0:
                             price_with_iva = round(new_sale * 1.21, 2)
-                        elif iva == 10.5:
+                        elif float(iva) == 10.5:
                             price_with_iva = round(new_sale * 1.105, 2)
                         else:
                             price_with_iva = new_sale
                             
                         result_var.set(f"Precio: ${new_sale} | Rentabilidad: {new_profit}% | Con IVA: ${price_with_iva}")
-                    except:
-                        result_var.set("Valor inválido")
+                    except ValueError:
+                        result_var.set("Valor inválido - Ingrese un número")
+                    except Exception as e:
+                        result_var.set(f"Error: {str(e)}")
                 else:
                     sale_entry.configure(state="disabled")
                     profit_entry.configure(state="normal")
                     try:
                         new_profit = float(profit_var.get())
-                        new_sale = round(cost_price * (1 + new_profit / 100), 2)
+                        new_sale = round(float(cost_price) * (1 + new_profit / 100), 2)
                         
-                        if iva == 21:
+                        if float(iva) == 21.0:
                             price_with_iva = round(new_sale * 1.21, 2)
-                        elif iva == 10.5:
+                        elif float(iva) == 10.5:
                             price_with_iva = round(new_sale * 1.105, 2)
                         else:
                             price_with_iva = new_sale
                             
                         result_var.set(f"Precio: ${new_sale} | Rentabilidad: {new_profit}% | Con IVA: ${price_with_iva}")
-                    except:
-                        result_var.set("Valor inválido")
+                    except ValueError:
+                        result_var.set("Valor inválido - Ingrese un número")
+                    except Exception as e:
+                        result_var.set(f"Error: {str(e)}")
 
             method_var.trace('w', lambda *args: update_interface())
             sale_var.trace('w', lambda *args: update_interface() if method_var.get() == "sale_price" else None)
@@ -358,14 +360,14 @@ class StockView():
                     
                     if method == "sale_price":
                         new_sale_price = float(sale_var.get())
-                        new_profit = round(((new_sale_price - cost_price) / cost_price) * 100, 2)
+                        new_profit = round(((new_sale_price - float(cost_price)) / float(cost_price)) * 100, 2)
                     else:
                         new_profit = float(profit_var.get())
-                        new_sale_price = round(cost_price * (1 + new_profit / 100), 2)
+                        new_sale_price = round(float(cost_price) * (1 + new_profit / 100), 2)
 
-                    if iva == 21.0:
+                    if float(iva) == 21.0:
                         price_with_iva = round(new_sale_price * 1.21, 2)
-                    elif iva == 10.5:
+                    elif float(iva) == 10.5:
                         price_with_iva = round(new_sale_price * 1.105, 2)
                     else:
                         price_with_iva = new_sale_price
@@ -374,11 +376,11 @@ class StockView():
                         "Name": name,
                         "Package": pack,
                         "Profit": new_profit,
-                        "CostPrice": cost_price,
+                        "CostPrice": float(cost_price),
                         "SalePrice": new_sale_price,
-                        "Iva": iva,
+                        "Iva": float(iva),
                         "PriceWIva": price_with_iva,
-                        "Stock": stock,
+                        "Stock": int(stock),
                     }
 
                     self.stock_model.update_product(product_id, product_data)
@@ -386,8 +388,8 @@ class StockView():
                     window.destroy()
                     self.show_success("Precio actualizado correctamente")
 
-                except ValueError:
-                    self.show_error("Por favor ingrese valores numéricos válidos")
+                except ValueError as e:
+                    self.show_error(f"Por favor ingrese valores numéricos válidos: {e}")
                 except Exception as e:
                     self.show_error(f"Error al actualizar precio: {str(e)}")
 
@@ -594,7 +596,7 @@ class StockView():
         column_name = self.stock_tree['columns'][column_index]
         
         # No permitir editar el ID
-        if column_name == 'Id':
+        if column_name in ['Id', 'Profit', 'CostPrice', 'SalePrice', 'Iva', 'SalePriceWithIva', 'ValidityDate', 'LastPriceUpdate', 'Stock']:
             return
             
         self.start_edit(item, column_name, column)
