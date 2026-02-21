@@ -286,10 +286,10 @@ class Database:
                 CREATE TABLE IF NOT EXISTS sales (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     date TEXT DEFAULT CURRENT_TIMESTAMP,
-                    total REAL NOT NULL,
+                    total TEXT NOT NULL,
                     cliente_id INTEGER,
                     estado TEXT DEFAULT 'paid',
-                    total_cerrado REAL,
+                    total_cerrado TEXT,
                     fecha_cierre TEXT,
                     FOREIGN KEY(cliente_id) REFERENCES clientes(id) ON DELETE CASCADE
                 );
@@ -302,10 +302,10 @@ class Database:
                     sale_id INTEGER NOT NULL,
                     product_id INTEGER NOT NULL,
                     quantity INTEGER NOT NULL,
-                    price REAL NOT NULL,
-                    subtotal REAL NOT NULL,
-                    iva_rate REAL DEFAULT 21.0,
-                    iva_amount REAL DEFAULT 0.0,
+                    price TEXT NOT NULL,
+                    subtotal TEXT NOT NULL,
+                    iva_rate TEXT NOT NULL,
+                    iva_amount TEXT NOT NULL,
                     observations TEXT,
                     FOREIGN KEY(sale_id) REFERENCES sales(id) ON DELETE CASCADE,
                     FOREIGN KEY(product_id) REFERENCES stock(id)

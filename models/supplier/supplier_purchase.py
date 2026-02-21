@@ -472,8 +472,6 @@ class SupplierPurchase():
             profit = Decimal(1 + Decimal(p[3]) / Decimal('100'))
 
             sale_price = cost_price * profit
-            print(f'cost price: {cost_price}')
-            print(f'sale price sin redondeo: {sale_price}')
             # precio con iva
             if iva == Decimal('21.00'):
                 price_with_iva = sale_price * Decimal('1.21')
@@ -482,15 +480,9 @@ class SupplierPurchase():
             else:
                 price_with_iva = sale_price
 
-            print(f'price_with_iva sin redondeo: {price_with_iva}')
-
             cost_price = convert_to_decimal(cost_price)
             sale_price = convert_to_decimal(sale_price)
             price_with_iva = convert_to_decimal(price_with_iva)
-
-            print(f'cost price: {cost_price}')
-            print(f'sale price: {sale_price}')
-            print(f'price_with_iva: {price_with_iva}')
 
             product_data = {
                 'id': id, # id producto

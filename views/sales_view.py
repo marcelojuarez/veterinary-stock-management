@@ -1,12 +1,14 @@
-import customtkinter as ctk
-from tkinter import ttk, messagebox
 import tkinter as tk
-from models.stock import StockModel
-from services.daily_sales_report import DailySalesReportService
-from views.client_selector import ClientSelectorDialog
-from models.customer import CustomerModel
-from datetime import datetime, timedelta
+import customtkinter as ctk
+from decimal import Decimal
 from tkcalendar import DateEntry
+from tkinter import ttk, messagebox
+from models.stock import StockModel
+from datetime import datetime, timedelta
+from models.customer import CustomerModel
+from views.client_selector import ClientSelectorDialog
+from services.daily_sales_report import DailySalesReportService
+from utils.utils import norm_string_to_2_dec, normalize_to_2_decimals
 
 
 ctk.set_appearance_mode("light")
@@ -194,7 +196,6 @@ class SalesView:
 
             item = self.product_tree.item(selected[0])["values"]
             product_id, name, price, stock = item
-            price, stock = float(price), int(stock)
 
             # Ventana emergente para cantidad
             qty_win = ctk.CTkToplevel(self.frame)
@@ -323,7 +324,7 @@ class SalesView:
                 pid, name, qty, price = item
                 display_name = name if name else self._get_product_name(pid)
             
-            subtotal = round(price * qty, 2)
+            subtotal = normalize_to_2_decimals(price * qty)
             self.sale_tree.insert("", "end", values=(pid, display_name, qty, price, subtotal))
 
     def _get_product_name(self, pid):
@@ -344,7 +345,8 @@ class SalesView:
                 _, _, qty, price = item
             total += qty * price
         
-        self.total_var.set(f"TOTAL: ${total:.2f}")
+        total = normalize_to_2_decimals(total)
+        self.total_var.set(f"TOTAL: ${total}")
 
     def clear_sale(self):
         if not self.last_sale_id:
@@ -402,7 +404,11 @@ class SalesView:
             _, price_with_iva, _, _, qty) = p
             
             if qty > 0:  # Solo mostrar productos con stock
-                self.product_tree.insert("", "end", values=(pid, name, price_with_iva, qty))
+                self.product_tree.insert(
+                    "", 
+                    "end", 
+                    values=(pid, name, norm_string_to_2_dec(price_with_iva), qty)
+                )
 
 
     def on_client_selected(self, selected_name):
@@ -536,16 +542,18 @@ class SalesView:
                             product_name = values[1]
                             break
             
-            subtotal = round(price * qty, 2)
+            subtotal = normalize_to_2_decimals(price * qty)
             total += subtotal
             
             preview_tree.insert("", "end", values=(
                 qty,
                 product_name,
-                f"${price:.2f}",
-                f"${subtotal:.2f}"
+                f"${price}",
+                f"${subtotal}"
             ))
-        
+
+        # Se normaliza el total
+        total = normalize_to_2_decimals(total)
         preview_tree.pack(padx=8, pady=5, fill="both", expand=True)  # Reducido padding
         
         # Frame de totales - MÁS COMPACTO
@@ -563,7 +571,7 @@ class SalesView:
         
         ctk.CTkLabel(
             totals_frame,
-            text=f"TOTAL A PAGAR: ${total:.2f}",
+            text=f"TOTAL A PAGAR: ${total}",
             font=ctk.CTkFont(size=20, weight="bold"),  # Reducido de 22 a 20
             text_color="#2e7d32"
         ).pack(pady=(3, 10))  # Reducido padding

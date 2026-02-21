@@ -48,7 +48,6 @@ def convert_to_decimal(value):
         return dec
 
     except (InvalidOperation, ValueError) as e:
-        print(f'Hubo un error: {e}')
         return None
 
 ## Dado un string devuelve su representacion como entero
@@ -100,6 +99,7 @@ def traditional_to_iso(date):
     date_formated = datetime.strptime(date, "%d/%m/%Y").date()
     # formateo el obj a un string nuevamente
     return date_formated.strftime("%Y-%m-%d")
+
 def format_money(value):
     try:
         if value is None:
@@ -109,7 +109,6 @@ def format_money(value):
         return f"${dec:,.2f}"
     except (InvalidOperation, ValueError):
         return "$0.00"
-
 
 def format_percent(value):
     try:

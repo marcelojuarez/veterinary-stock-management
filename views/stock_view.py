@@ -1,9 +1,10 @@
-import customtkinter as ctk
-from tkinter import ttk, messagebox
 import tkinter as tk
+import customtkinter as ctk
+from decimal import Decimal
 from models.stock import StockModel
+from tkinter import ttk, messagebox
 from views.view_helpers import close_win, show_warning
-from utils.utils import iso_to_traditional, norm_string_to_2_dec
+from utils.utils import iso_to_traditional, norm_string_to_2_dec, normalize_to_2_decimals, convert_to_decimal, normalize_string_to_dec
 
 # Configurar tema y colores
 ctk.set_appearance_mode("light")  # "light" o "dark"
@@ -66,7 +67,7 @@ class StockView():
             font=ctk.CTkFont(size=12, weight="bold"),
             fg_color=btn_color,
             hover_color=btn_hover,
-            command=lambda: self.open_update_price_window()
+            command=lambda: self.open_update_price_window(manage_frame)
         )
         
         delete_btn = ctk.CTkButton(
@@ -235,7 +236,7 @@ class StockView():
 
         self.stock_tree.grid(row=0, column=0, sticky="nsew")
 
-    def open_update_price_window(self):
+    def open_update_price_window(self, parent):
         """Abrir ventana para actualizar precio de producto seleccionado"""
         try:
             product_id = self.get_selected_product()
@@ -248,17 +249,21 @@ class StockView():
                 self.show_error(f"Producto {product_id} no encontrado")
                 return
 
-            _, name, pack, profit, cost_price, sale_price, iva, _, _, _, stock = product
+            _, name, pack, profit, _, _, cost_price, _, iva, _, _, _, stock = product
 
             window = ctk.CTkToplevel(self.frame)
             window.title(f"Actualizar Precio - {name}")
+            
+            window.geometry("550x480+{}+{}".format(window.winfo_screenwidth()//2 - 225, window.winfo_screenheight()//2 - 225))
+
+            window.transient(parent)
             window.grab_set()
-            window.geometry("550x550+{}+{}".format(window.winfo_screenwidth()//2 - 225, window.winfo_screenheight()//2 - 225))
 
             # Información básica
             info_label = ctk.CTkLabel(
                 window, 
-                text=f"Producto: {name} | Código: {product_id} | Costo: ${cost_price}",
+                text=f"Producto: {name} | Código: {product_id} \n" \
+                    f"Costo Real: ${cost_price} | Costo Final: ${normalize_to_2_decimals(cost_price)} ",
                 font=ctk.CTkFont(size=14, weight="bold")
             )
             info_label.pack(pady=20)
@@ -269,27 +274,30 @@ class StockView():
             method_label = ctk.CTkLabel(main_frame, text="Método:", font=ctk.CTkFont(size=16, weight="bold"))
             method_label.pack(pady=(15, 5))
 
-            method_var = tk.StringVar(value="sale_price")
+            method_var = tk.StringVar(value="cost_price")
             
-            sale_radio = ctk.CTkRadioButton(main_frame, text="Por Precio de Venta", variable=method_var, value="sale_price")
-            sale_radio.pack(pady=2)
+            # Opciones
+            cost_radio = ctk.CTkRadioButton(main_frame, text="Por Precio de Costo", variable=method_var, value="cost_price")
+            cost_radio.pack(pady=2)
             
             profit_radio = ctk.CTkRadioButton(main_frame, text="Por Rentabilidad (%)", variable=method_var, value="profit")
             profit_radio.pack(pady=2)
 
             # Campos de entrada
-            input_frame = ctk.CTkFrame(main_frame)
+            input_frame = ctk.CTkFrame(main_frame, bg_color="gray38")
             input_frame.pack(pady=15, padx=20, fill="x")
 
-            sale_var = tk.StringVar(value=str(sale_price))
-            profit_var = tk.StringVar(value=str(profit))
+            cost_var = tk.StringVar(value=cost_price)
+            profit_var = tk.StringVar(value=profit)
 
-            sale_label = ctk.CTkLabel(input_frame, text="Precio de Venta:")
-            sale_label.grid(row=0, column=0, padx=10, pady=10, sticky="w")
+            # Precio Costo
+            cost_label = ctk.CTkLabel(input_frame, text="Precio de Costo:")
+            cost_label.grid(row=0, column=0, padx=10, pady=10, sticky="w")
             
-            sale_entry = ctk.CTkEntry(input_frame, textvariable=sale_var, width=150)
-            sale_entry.grid(row=0, column=1, padx=10, pady=10)
+            cost_entry = ctk.CTkEntry(input_frame, textvariable=cost_var, width=150)
+            cost_entry.grid(row=0, column=1, padx=10, pady=10)
 
+            # Rentabilidad
             profit_label = ctk.CTkLabel(input_frame, text="Rentabilidad (%):")
             profit_label.grid(row=1, column=0, padx=10, pady=10, sticky="w")
             
@@ -305,47 +313,81 @@ class StockView():
 
             def update_interface():
                 method = method_var.get()
-                if method == "sale_price":
-                    sale_entry.configure(state="normal")
+                if method == "cost_price":
+                    cost_entry.configure(state="normal")
                     profit_entry.configure(state="disabled")
+                    profit_var.set(profit)
                     try:
-                        new_sale = float(sale_var.get())
-                        new_profit = round(((new_sale - float(cost_price)) / float(cost_price)) * 100, 2)
-                    
-                        if float(iva) == 21.0:
-                            price_with_iva = round(new_sale * 1.21, 2)
-                        elif float(iva) == 10.5:
-                            price_with_iva = round(new_sale * 1.105, 2)
+                        self.new_cost = normalize_string_to_dec(cost_var.get())
+
+                        if self.new_cost is None:
+                            raise ValueError
+
+                        self.profit = Decimal(profit)
+
+                        profit_rate = self.profit / Decimal('100')
+                        profit_amount = self.new_cost * profit_rate
+                        self.new_sale_price = self.new_cost + profit_amount
+
+                        if Decimal(iva) == Decimal('21.00'):
+                            self.price_with_iva = self.new_sale_price * Decimal('1.21')
+                        elif Decimal(iva) == Decimal('10.5'):
+                            self.price_with_iva = self.new_sale_price * Decimal('1.105')
                         else:
-                            price_with_iva = new_sale
-                            
-                        result_var.set(f"Precio: ${new_sale} | Rentabilidad: {new_profit}% | Con IVA: ${price_with_iva}")
-                    except ValueError:
-                        result_var.set("Valor inválido - Ingrese un número")
-                    except Exception as e:
-                        result_var.set(f"Error: {str(e)}")
-                else:
-                    sale_entry.configure(state="disabled")
-                    profit_entry.configure(state="normal")
-                    try:
-                        new_profit = float(profit_var.get())
-                        new_sale = round(float(cost_price) * (1 + new_profit / 100), 2)
+                            self.price_with_iva = self.new_sale_price
+
+                        # Normalizacion
+                        self.new_sale_price = convert_to_decimal(self.new_sale_price)
+                        self.price_with_iva = convert_to_decimal(self.price_with_iva)
                         
-                        if float(iva) == 21.0:
-                            price_with_iva = round(new_sale * 1.21, 2)
-                        elif float(iva) == 10.5:
-                            price_with_iva = round(new_sale * 1.105, 2)
-                        else:
-                            price_with_iva = new_sale
-                            
-                        result_var.set(f"Precio: ${new_sale} | Rentabilidad: {new_profit}% | Con IVA: ${price_with_iva}")
+                        result_var.set(
+                            f"Precio De Costo: ${self.new_cost} | "\
+                            f"Rentabilidad: {self.profit}% \n"\
+                            f"Precio De Venta: ${self.new_sale_price} | "\
+                            f"Con IVA: ${self.price_with_iva}")
+                        
                     except ValueError:
                         result_var.set("Valor inválido - Ingrese un número")
-                    except Exception as e:
-                        result_var.set(f"Error: {str(e)}")
+
+                else:
+                    cost_entry.configure(state="disabled")
+                    profit_entry.configure(state="normal")
+                    cost_var.set(cost_price)
+                    try:
+                        
+                        self.new_profit = norm_string_to_2_dec(profit_var.get())
+
+                        if self.new_profit is None:
+                            raise ValueError
+
+                        self.cost = Decimal(cost_price)
+
+                        profit_rate = self.new_profit / Decimal('100')
+                        profit_amount = self.cost * profit_rate
+                        self.new_sale_price = self.cost + profit_amount
+                        
+                        if Decimal(iva) == Decimal('21.00'):
+                            self.price_with_iva = self.new_sale_price * Decimal('1.21')
+                        elif Decimal(iva) == Decimal('10.5'):
+                            self.price_with_iva = self.new_sale_price * Decimal('1.105')
+                        else:
+                            self.price_with_iva = self.new_sale_price
+                            
+                        # Normalizacion
+                        self.new_sale_price = convert_to_decimal(self.new_sale_price)
+                        self.price_with_iva = convert_to_decimal(self.price_with_iva)
+
+                        result_var.set(
+                            f"Precio De Costo: ${self.cost} | "\
+                            f"Rentabilidad: {self.new_profit}% \n"\
+                            f"Precio De Venta: ${self.new_sale_price} | "\
+                            f"Con IVA: ${self.price_with_iva}")
+                        
+                    except ValueError:
+                        result_var.set("Valor inválido - Ingrese un número")
 
             method_var.trace('w', lambda *args: update_interface())
-            sale_var.trace('w', lambda *args: update_interface() if method_var.get() == "sale_price" else None)
+            cost_var.trace('w', lambda *args: update_interface() if method_var.get() == "cost_price" else None)
             profit_var.trace('w', lambda *args: update_interface() if method_var.get() == "profit" else None)
 
             update_interface()
@@ -356,30 +398,40 @@ class StockView():
 
             def save_update():
                 try:
+
                     method = method_var.get()
                     
-                    if method == "sale_price":
-                        new_sale_price = float(sale_var.get())
-                        new_profit = round(((new_sale_price - float(cost_price)) / float(cost_price)) * 100, 2)
-                    else:
-                        new_profit = float(profit_var.get())
-                        new_sale_price = round(float(cost_price) * (1 + new_profit / 100), 2)
+                    if method == "cost_price":
+                        final_cost = self.new_cost
+                        final_profit = self.profit 
 
-                    if float(iva) == 21.0:
-                        price_with_iva = round(new_sale_price * 1.21, 2)
-                    elif float(iva) == 10.5:
-                        price_with_iva = round(new_sale_price * 1.105, 2)
                     else:
-                        price_with_iva = new_sale_price
+                        final_cost = self.cost
+                        final_profit = self.new_profit 
+
+                    # Validaciones para el precio costo
+                    if final_cost is None:
+                        raise ValueError('Formato incorrecto en PRECIO COSTO')
+
+                    if final_cost <= Decimal('0.00'):
+                        raise ValueError('El nuevo precio de COSTO no puede ser menor o igual a $0.00')
+                    
+                    # Validaciones para la rentabilidad
+                    if final_profit is None:
+                        raise ValueError('Formato incorrecto en RENTABILIDAD')
+
+                    if final_profit < Decimal('0.00'):
+                        raise ValueError('El nuevo porcentaje de RENTABILIDAD no puede ser un valor NEGATIVO')
+
 
                     product_data = {
                         "Name": name,
                         "Package": pack,
-                        "Profit": new_profit,
-                        "CostPrice": float(cost_price),
-                        "SalePrice": new_sale_price,
-                        "Iva": float(iva),
-                        "PriceWIva": price_with_iva,
+                        "Profit": str(final_profit),
+                        "CostPrice": str(final_cost),
+                        "SalePrice": str(self.new_sale_price),
+                        "Iva": str(iva),
+                        "PriceWIva": str(self.price_with_iva),
                         "Stock": int(stock),
                     }
 
@@ -389,13 +441,14 @@ class StockView():
                     self.show_success("Precio actualizado correctamente")
 
                 except ValueError as e:
-                    self.show_error(f"Por favor ingrese valores numéricos válidos: {e}")
-                except Exception as e:
-                    self.show_error(f"Error al actualizar precio: {str(e)}")
+                    self.show_error(f"Error. {e}")
+
 
             save_button = ctk.CTkButton(button_frame, text="Guardar", width=100, height=35, 
                 fg_color="#4CAF50", hover_color="#45a049", command=save_update)
             save_button.pack(side="left", padx=10)
+
+            window.bind("<Return>", lambda events: save_button.invoke())            
 
             cancel_button = ctk.CTkButton(button_frame, text="Cancelar", width=100, height=35, 
                 fg_color="#757575", hover_color="#616161", command=window.destroy)

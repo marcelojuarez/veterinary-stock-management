@@ -73,7 +73,7 @@ class PurchaseInfoReceiptView():
             table_frame = ctk.CTkFrame(main_frame, corner_radius=10)
             table_frame.pack(fill="both", expand=True, padx=10, pady=5)
 
-            headers = ["Id", "Nombre", "Envase", "Cantidad", "Precio Unidad", "Iva %", "Descuento %", 
+            headers = ["Id", "Nombre", "Envase", "Cantidad", "Precio Lista", "Dto %", 'Precio Costo', "Iva %", 
                         "Monto Descuento", "Subtotal", "Monto Iva", "Total"]
 
             self.sheet = Sheet(
@@ -318,7 +318,7 @@ class PurchaseInfoReceiptView():
         data = self.model.purchase.get_purchase_items(self.purchase_id)
 
         self.sheet.set_sheet_data(data)
-        self.sheet.set_column_widths([60, 260, 120, 80, 100, 100, 100, 150, 100, 100, 100])
+        self.sheet.set_column_widths([60, 260, 120, 80, 120, 100, 120, 100, 120, 120, 120, 120])
 
     ## -- Generar purchase detail como pdf -- ##
     def gen_purchase_detail_pdf(self):
@@ -360,9 +360,9 @@ class PurchaseInfoReceiptView():
 
         # confirmar compra
         if ask_confirmation('Desea confirmar esta Compra', 'Este es el titulo'):
-
-            # Control si tiene compras asociadas
-            self.controller.confirm_purchase(purchase_id)
+            result = self.controller.confirm_purchase(purchase_id)
+            if result:
+                self.confirm_btn.configure(state=tk.DISABLED)
         else:
             print('no aca')
             return

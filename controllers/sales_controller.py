@@ -1,21 +1,25 @@
-from models.stock import StockModel
-from models.sale import SalesModel
-from models.customer import CustomerModel
-from models.remito import RemitoModel
 from tkinter import messagebox
-from controllers.invoice_controller import InvoiceController
+from decimal import Decimal
+from models.sale import SalesModel
+from models.stock import StockModel
+from models.remito import RemitoModel
+from models.customer import CustomerModel
 from services.remito_pdf import RemitoPDF
+from utils.utils import normalize_to_2_decimals
+from controllers.invoice_controller import InvoiceController
 
 class SalesController:
-    def __init__(self):
+    def __init__(self, event_bus):
         self.sales_view = None
         self.stock_model = StockModel()
         self.sales_model = SalesModel()
         self.customer_model = CustomerModel()
         self.remito_model = RemitoModel()
+        self.event_bus = event_bus
 
     def set_view(self, view):
         self.sales_view = view
+        self.event_bus.subscribe('refresh_stock_in_sale_view', self.sales_view.load_available_products)
 
     def search_product_for_sale(self, search_term: str):
         """Buscar productos para la SalesView y llenar la tabla de disponibles"""
@@ -57,11 +61,12 @@ class SalesController:
         try:
             quantity = int(qty_input)
             stock = int(stock)
-            price = float(price)
+            price = Decimal(price)
 
             if quantity <= 0:
                 self.sales_view.show_warning("La cantidad debe ser mayor a 0.")
                 return False
+            
             if quantity > stock:
                 self.sales_view.show_warning(f"Solo hay {stock} unidades disponibles.")
                 return False
@@ -138,7 +143,7 @@ class SalesController:
         # Actualizar tabla con resultados filtrados
         self.sales_view.refresh_product_tree(filtered_products)
         
-
+    ## -- Confirmar compra -- ##
     def confirm_sale(self):
         """Procesar venta y actualizar stock"""
         try:
@@ -155,6 +160,8 @@ class SalesController:
                     _, _, qty, price = item
                 total += qty * price
 
+            # total normalizado
+            total = normalize_to_2_decimals(total)
             cliente_nombre = self.sales_view.client_var.get()
             cliente_id = self.customer_model.get_client_id_by_name(cliente_nombre)
 

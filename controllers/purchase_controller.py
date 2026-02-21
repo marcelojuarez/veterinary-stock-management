@@ -77,6 +77,14 @@ class PurchaseController():
                     self.view.load_purchases(True)
 
                 self.event_bus.publish('refresh_stock_table', None)
+                self.event_bus.publish('refresh_stock_in_sale_view', None)
+                
+                show_success('Compra confirmada')
+                return True
+
+            else:
+                show_error('Ocurrio un Error al confirmar la compra')
+                return False
                 
         except ValueError as e:
             show_error(f'Error al confirmar la compra: {e}')

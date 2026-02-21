@@ -108,7 +108,7 @@ class App():
         
         # --- CONTROLLERS ---
         self.stock_controller = StockController(event_bus)
-        self.sales_controller = SalesController()
+        self.sales_controller = SalesController(event_bus)
         self.supplier_controller = SupplierController()
         self.customer_controller = CustomerController()
         self.iva_reports_controller = ReportsController()

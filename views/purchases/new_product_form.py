@@ -2,7 +2,7 @@ import tkinter as tk
 import customtkinter as ctk
 
 from decimal import Decimal
-from utils.utils import convert_to_decimal, normalize_string_to_dec
+from utils.utils import convert_to_decimal, normalize_string_to_dec, norm_string_to_2_dec
 from views.view_helpers import close_win, ask_confirmation
 
 class NewProductForm():
@@ -153,7 +153,7 @@ class NewProductForm():
         def recalc(*args):
             try:
                 self.list_price = normalize_string_to_dec(self.list_price_var.get())
-                self.profit = normalize_string_to_dec(self.profit_var.get())
+                self.profit = norm_string_to_2_dec(self.profit_var.get())
                 self.iva = normalize_string_to_dec(self.iva_var.get())
                 
                 if self.list_price is None or self.profit is None or self.iva is None:

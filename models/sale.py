@@ -13,7 +13,7 @@ class SalesModel:
             cursor.execute("""
                 INSERT INTO sales (date, total, cliente_id, estado)
                 VALUES (?, ?, ?, ?)
-            """, (date, total, cliente_id, estado))
+            """, (date, str(total), cliente_id, estado))
 
             sale_id = cursor.lastrowid
 

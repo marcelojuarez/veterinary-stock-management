@@ -526,9 +526,10 @@ class PurchaseInfoInvoiceView():
 
         # confirmar compra
         if ask_confirmation('Desea confirmar esta Compra', 'Este es el titulo'):
+            result = self.controller.confirm_purchase(purchase_id)
+            if result:
+                self.confirm_btn.configure(state=tk.DISABLED)
 
-            # Control si tiene compras asociadas
-            self.controller.confirm_purchase(purchase_id)
         else:
             return
 
