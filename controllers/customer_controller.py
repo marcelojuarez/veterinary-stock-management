@@ -1,7 +1,7 @@
 from models.customer import CustomerModel
 from models.payment_model import PaymentModel
 from tkinter import messagebox
-from views.view_helpers import show_error, show_warning, show_success
+from views.view_helpers import center_window, show_error, show_warning, show_success
 import re
 import customtkinter as ctk
 from datetime import datetime
@@ -244,17 +244,9 @@ class CustomerController:
         # Crear ventana modal con estilo
         win = ctk.CTkToplevel(self.view.frame)
         win.title("Pago Global a Cuenta")
-        win.geometry("450x410")
         win.transient(self.view.frame)
         win.grab_set()
-
-        # Centrar
-        win.update_idletasks()
-        width = win.winfo_width()
-        height = win.winfo_height()
-        x = (win.winfo_screenwidth() // 2) - (width // 2)
-        y = (win.winfo_screenheight() // 2) - (height // 2)
-        win.geometry(f'{width}x{height}+{x}+{y}')
+        center_window(win, 450, 410)
 
         # Header
         header = ctk.CTkFrame(win, fg_color="#009688", height=60, corner_radius=0)
