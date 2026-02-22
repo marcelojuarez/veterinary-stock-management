@@ -23,6 +23,7 @@ from controllers.payment_controller import PaymentController
 from controllers.supplier_invoice_controller import SupplierInvoiceController
 from controllers.supplier_receipt_controller import SupplierReceiptController
 from controllers.iva_reports_controller import ReportsController
+import platform
 
 class App():
     def __init__(self):
@@ -34,10 +35,19 @@ class App():
     def setup_window(self):
         view_config = settings['VIEW_CONFIG']
         self.root.title(view_config['window-title'])
-        self.root.geometry(view_config['window-size'])
-        self.root.resizable(False, False)
-        self.root.withdraw()
         self.root.update_idletasks()
+    
+        sistema = platform.system()
+
+        if sistema == 'Windows':
+            self.root.state('zoomed')        # maximizado en Windows
+        elif sistema == 'Darwin':            # macOS
+            self.root.attributes('-zoomed', True)
+        else:                                # Linux
+            self.root.attributes('-zoomed', True)
+
+        self.root.resizable(True, True)
+        self.root.withdraw()
         
     def setup_variables(self):
         self.user_var = tk.StringVar()
@@ -93,8 +103,9 @@ class App():
                 
             self.create_views_and_controllers()
             self.root.after(100, self.load_initial_data) 
-
-            self.root.deiconify()
+            
+            self.root.state('zoomed')
+            self.root.deiconify() 
             self.root.update_idletasks()
 
             self.login_win.destroy() 

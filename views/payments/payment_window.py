@@ -3,7 +3,7 @@ import tkinter as tk
 from tkinter import ttk
 from .payment_form import PaymentForm 
 from .payment_info import PaymentInfo
-from views.view_helpers import close_win, show_warning, show_error
+from views.view_helpers import center_window, close_win, show_warning, show_error
 from utils.utils import iso_to_traditional
 
 # Configurar tema y colores
@@ -37,7 +37,7 @@ class PaymentWindow():
             
         win = ctk.CTkToplevel(self.frame)
         win.title("Registrar Pago a Proveedor")
-        win.geometry("1100x600")
+        center_window(win, 1100, 600)
         win.transient(parent)
         win.grab_set()
 

@@ -12,6 +12,7 @@ import shutil
 import logging
 from pathlib import Path
 from views.stock_view import StockView
+from views.view_helpers import center_window
 
 class BackupManagerView(ctk.CTkFrame):
     """Vista para gestionar backups de la base de datos"""
@@ -48,15 +49,16 @@ class BackupManagerView(ctk.CTkFrame):
             text="🧾 Gestión de Backups",
             font=ctk.CTkFont(size=18, weight="bold")
         )
-        title.grid(row=0, column=0, padx=10)
+        title.grid(row=0, column=0, padx=(15, 10), pady=8, sticky="w")
 
         refresh_btn = ctk.CTkButton(
             header,
             text="Actualizar",
-            width=140,
+            width=120,
             height=35,
             fg_color="#009688",
             hover_color="#00796B",
+            font=ctk.CTkFont(size=12, weight="bold"),
             command=self.refresh_data
         )
         refresh_btn.grid(row=0, column=1, padx=10)
@@ -107,6 +109,8 @@ class BackupManagerView(ctk.CTkFrame):
 
         container = tk.Frame(table_frame, bg="white")
         container.grid(row=1, column=0, sticky="nsew", padx=10, pady=10)
+        container.grid_rowconfigure(0, weight=1)
+        container.grid_columnconfigure(0, weight=1)
 
         style = ttk.Style()
         style.theme_use("clam")
@@ -117,7 +121,6 @@ class BackupManagerView(ctk.CTkFrame):
             container,
             show="headings",
             columns=("Nombre", "Fecha", "Tamaño", "Tipo"),
-            height=10
         )
 
         for col, w in {
@@ -143,7 +146,10 @@ class BackupManagerView(ctk.CTkFrame):
 
     def create_actions_panel(self):
         actions = ctk.CTkFrame(self.frame)
-        actions.grid(row=3, column=0, sticky="w", padx=10, pady=15)
+        actions.grid(row=3, column=0, sticky="ew", padx=10, pady=15)
+
+        for i in range(11):
+            actions.grid_columnconfigure(i, weight=1 if i % 2 == 0 else 0)
 
         buttons = [
             ("Crear Backup", self.create_manual_backup),
@@ -157,12 +163,13 @@ class BackupManagerView(ctk.CTkFrame):
             ctk.CTkButton(
                 actions,
                 text=text,
-                width=170,
-                height=35,
+                width=250,
+                height=40,
                 fg_color="#009688",
                 hover_color="#00796B",
+                font=ctk.CTkFont(size=13, weight="bold"),
                 command=cmd
-            ).grid(row=0, column=i, padx=8)
+            ).grid(row=0, column=i * 2 + 1, padx=8, pady=10)
 
     # ======================================================
     # LOGIC
@@ -295,8 +302,9 @@ class BackupManagerView(ctk.CTkFrame):
     def open_config_window(self):
         win = ctk.CTkToplevel(self.frame)
         win.title("Configuración de Backups")
-        win.geometry("500x420")
+        win.configure(fg_color="#e0e0e0")
         win.grab_set()
+        center_window(win, 520, 420)
 
         config = self.backup_service.config
 
@@ -306,24 +314,38 @@ class BackupManagerView(ctk.CTkFrame):
         retention_var = tk.StringVar(value=str(config.get("retention_days", 30)))
         compress_var = tk.BooleanVar(value=config.get("compress_backups", True))
 
-        frame = ctk.CTkFrame(win)
-        frame.pack(fill="both", expand=True, padx=20, pady=20)
+        # Card blanca igual que agregar clientes
+        card_frame = ctk.CTkFrame(win, fg_color="white", corner_radius=20)
+        card_frame.pack(fill="both", expand=True, padx=20, pady=20)
 
-        fields = [
-            ("Intervalo (min):", interval_var),
-            ("Máx backups:", max_var),
-            ("Días retención:", retention_var)
-        ]
+        ctk.CTkLabel(
+            card_frame,
+            text="Configuración de Backups",
+            font=ctk.CTkFont(size=18, weight="bold")
+        ).pack(pady=(20, 10))
 
-        ctk.CTkCheckBox(frame, text="Backup automático", variable=auto_var).pack(anchor="w", pady=5)
+        # Form frame igual que agregar clientes
+        form_frame = ctk.CTkFrame(card_frame, fg_color="#f9f9f9", corner_radius=10)
+        form_frame.pack(pady=10, padx=20, fill="x")
 
-        for text, var in fields:
-            row = ctk.CTkFrame(frame)
-            row.pack(fill="x", pady=5)
-            ctk.CTkLabel(row, text=text, width=140).pack(side="left")
-            ctk.CTkEntry(row, textvariable=var).pack(side="left", fill="x", expand=True)
+        def add_field(row, label, widget):
+            ctk.CTkLabel(
+                form_frame,
+                text=label,
+                font=ctk.CTkFont(size=14, weight="bold"),
+                text_color="black"
+            ).grid(row=row, column=0, sticky="e", padx=(10, 10), pady=7)
+            widget.grid(row=row, column=1, sticky="w", padx=(10, 10), pady=7)
 
-        ctk.CTkCheckBox(frame, text="Comprimir backups", variable=compress_var).pack(anchor="w", pady=10)
+        add_field(0, "Intervalo (min):", ctk.CTkEntry(form_frame, textvariable=interval_var, width=200))
+        add_field(1, "Máx backups:",     ctk.CTkEntry(form_frame, textvariable=max_var, width=200))
+        add_field(2, "Días retención:",  ctk.CTkEntry(form_frame, textvariable=retention_var, width=200))
+        add_field(3, "Backup automático:", ctk.CTkCheckBox(form_frame, text="", variable=auto_var))
+        add_field(4, "Comprimir backups:", ctk.CTkCheckBox(form_frame, text="", variable=compress_var))
+
+        # Botones igual que agregar clientes
+        btn_frame = ctk.CTkFrame(card_frame, fg_color="transparent")
+        btn_frame.pack(pady=20)
 
         def save():
             try:
@@ -340,11 +362,19 @@ class BackupManagerView(ctk.CTkFrame):
             except Exception as e:
                 messagebox.showerror("Error", str(e))
 
-        btns = ctk.CTkFrame(frame)
-        btns.pack(pady=15)
+        ctk.CTkButton(
+            btn_frame, text="Guardar", width=150, height=40,
+            fg_color="#009688", hover_color="#00796B",
+            font=ctk.CTkFont(size=13, weight="bold"),
+            command=save
+        ).grid(row=0, column=0, padx=15)
 
-        ctk.CTkButton(btns, text="Guardar", command=save).grid(row=0, column=0, padx=10)
-        ctk.CTkButton(btns, text="Cancelar", command=win.destroy).grid(row=0, column=1, padx=10)
+        ctk.CTkButton(
+            btn_frame, text="Cancelar", width=150, height=40,
+            fg_color="#E74C3C", hover_color="#C0392B",
+            font=ctk.CTkFont(size=13, weight="bold"),
+            command=win.destroy
+        ).grid(row=0, column=1, padx=15)
 
     def auto_refresh(self):
         self.refresh_data()

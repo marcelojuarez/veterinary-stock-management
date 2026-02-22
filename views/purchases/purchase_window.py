@@ -8,7 +8,7 @@ from .purchase_info_invoice_view import PurchaseInfoInvoiceView
 from .purchase_form import PurchaseForm
 from utils.utils import iso_to_traditional
 from controllers.purchase_filter_controller import PurchaseFilterController
-from views.view_helpers import close_win, show_warning, show_error
+from views.view_helpers import center_window, close_win, show_warning, show_error
 from views.supplier_doc.supplier_invoice_form import SupplierInvoiceForm
 from views.supplier_doc.supplier_receipt_form import SupplierReceiptForm
 
@@ -65,15 +65,7 @@ class PurchaseWindow():
         btn_color = "#009688"
         btn_hover = "#00796B"
 
-        x_root = parent.winfo_x()
-        y_root = parent.winfo_y()
-        width_root = parent.winfo_width()
-        height_root = parent.winfo_height()
-
-        x = x_root + (width_root // 2) - (width_win // 2) 
-        y = y_root + (height_root // 2) - (height_win // 2)
-
-        win.geometry(f"{width_win}x{height_win}+{x}+{y}")
+        center_window(win, width_win, height_win)
         win.configure(fg_color="#e0e0e0")
 
         # Configurar grilla principal
@@ -168,16 +160,10 @@ class PurchaseWindow():
         self.purchase_filter.set_treeview(self.purchase_tree)
 
         # --- Frame inferior (botones y cantidad) ---
-        buttons_frame = ctk.CTkFrame(
-            win,
-            fg_color="#FFFFFF",
-            border_color="#000000",
-            border_width=1,
-            corner_radius=18
-        )
+        buttons_frame = ctk.CTkFrame(win)  # ← sin fg_color, usa el gris por defecto
         buttons_frame.grid(
             row=4, column=0, columnspan=2,
-            padx=12, pady=12, sticky="ew"
+            padx=10, pady=(5, 15), sticky="ew"
         )
         for i in range(5):
             buttons_frame.grid_columnconfigure(i, weight=1)

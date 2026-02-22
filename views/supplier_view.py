@@ -6,8 +6,9 @@ from models.supplier.__init__ import SupplierModel
 from models.stock import StockModel
 from views.payments.payment_window import PaymentWindow
 from views.purchases.purchase_window import PurchaseWindow
-from views.view_helpers import close_win, show_warning
+from views.view_helpers import close_win, show_warning, center_window
 from utils.utils import iso_to_traditional
+
 
 # Configurar tema y colores
 ctk.set_appearance_mode("light")  # "light" o "dark"
@@ -73,7 +74,7 @@ class SupplierView():
 
         search_label = ctk.CTkLabel(
             find_frame, 
-            text="Buscar Proveedor", 
+            text="🔍 Buscar Proveedor", 
             font=ctk.CTkFont(size=14, weight='bold')
         )
         search_label.grid(row=0, column=0, padx=15, pady=15)
@@ -109,59 +110,62 @@ class SupplierView():
         """ Crea el frame para la tabla de Proveedores"""
         tree_frame = ctk.CTkFrame(self.frame)
         tree_frame.grid(row=1, column=0, padx=5, pady=5, sticky='nsew')
+        tree_frame.grid_rowconfigure(1, weight=1)
+        tree_frame.grid_columnconfigure(0, weight=1)
+
+        self.frame.grid_rowconfigure(1, weight=1)
+        self.frame.grid_columnconfigure(0, weight=1)
 
         # Titulo de la tabla
         table_title = ctk.CTkLabel(
             tree_frame,
-            text="Proveedores",
-            font=ctk.CTkFont(size=16, weight="bold")
+            text="📋 Proveedores registrados",
+            font=ctk.CTkFont(size=15, weight="bold")
         )
-        table_title.grid(row=0, column=0, pady=(15, 10))
+        table_title.pack(pady=(10,5))
 
-        # Frame interno para la tabla y scrollbar
-        table_container = tk.Frame(tree_frame, bg="white")
-        table_container.grid(row=1, column=0, padx=15, pady=(0, 15), sticky='nsew')
-
-        # Configurar el estilo del Treeview para que se vea más moderno
         style = ttk.Style()
         style.theme_use('clam')
-        
-        # Configurar colores del Treeview
-        style.configure('Treeview',
-                       background='#ffffff',
-                       foreground='#333333',
-                       rowheight=30,
-                       fieldbackground='#ffffff',
-                       font=('Arial', 12))
-        
-        style.configure('Treeview.Heading',
-                       background='#e0e0e0',
-                       foreground='#333333',
-                       font=('Arial', 12, 'bold'))
-        
+        style.configure(
+            'Treeview',
+            background='#f9f9f9',
+            fieldbackground='#f9f9f9',
+            foreground='#333333',
+            rowheight=28,
+            font=('Segoe UI', 10)
+        )
+        style.configure(
+            'Treeview.Heading',
+            background='#e6e6e6',
+            foreground='#000000',
+            font=('Segoe UI', 10, 'bold')
+        )
         style.map('Treeview',
-                 background=[('selected', '#0078d4')])
+            background=[('selected', '#0078d4')]
+        )
+        style.map('Treeview.Heading',
+            background=[('active', '#dcdcdc')]
+        )
 
         # Treeview
-        self.supplier_tree = ttk.Treeview(table_container, show='headings', height=15)
+        self.supplier_tree = ttk.Treeview(tree_frame, show='headings')
 
         # Scrollbar vertical para los proveedores
-        scrl_bar = ttk.Scrollbar(table_container, orient='vertical', command=self.supplier_tree.yview)
-        scrl_bar.grid(row=0, column=3, sticky='ns')
+        scrl_bar = ttk.Scrollbar(tree_frame, orient='vertical', command=self.supplier_tree.yview)
         self.supplier_tree.configure(yscrollcommand=scrl_bar.set)
                            
         self.supplier_tree['columns'] = (
             "Id", "Nombre", "Cuit", "Domicilio", "Telefono", "Email", "Condicion Iva", "Ultima actualizacion deuda"
         )
         self.supplier_tree['displaycolumns'] = self.supplier_tree['columns']
-        self.supplier_tree.column("Id", anchor=tk.W, width=50,stretch=False)
-        self.supplier_tree.column("Nombre", anchor=tk.W, width=350,stretch=False)
-        self.supplier_tree.column("Cuit", anchor=tk.W, width=200,stretch=False)
-        self.supplier_tree.column("Domicilio", anchor=tk.W, width=350,stretch=False)
-        self.supplier_tree.column("Telefono", anchor=tk.W, width=160,stretch=False)
-        self.supplier_tree.column("Email", anchor=tk.W, width=200, stretch=False)
-        self.supplier_tree.column("Condicion Iva", anchor=tk.W, width=200, stretch=False)
-        self.supplier_tree.column("Ultima actualizacion deuda", anchor=tk.W, width=200, stretch=False)
+        self.supplier_tree.column("Id", anchor=tk.W, width=50,stretch=True)
+        self.supplier_tree.column("Nombre", anchor=tk.W, width=200,stretch=True)
+        self.supplier_tree.column("Cuit", anchor=tk.W, width=130,stretch=True)
+        self.supplier_tree.column("Domicilio", anchor=tk.W, width=180,stretch=True)
+        self.supplier_tree.column("Telefono", anchor=tk.W, width=110,stretch=True)
+        self.supplier_tree.column("Email", anchor=tk.W, width=180, stretch=True)
+        self.supplier_tree.column("Condicion Iva", anchor=tk.W, width=120, stretch=True)
+        self.supplier_tree.column("Ultima actualizacion deuda", anchor=tk.W, width=150, stretch=True)
 
         self.supplier_tree.heading('Id', text='Cód ↕')
         self.supplier_tree.heading('Nombre', text='Nombre↕')
@@ -173,85 +177,40 @@ class SupplierView():
         self.supplier_tree.heading('Ultima actualizacion deuda', text='Ultima actualizacion deuda ↕')
 
         self.supplier_tree.tag_configure('orow', background="#FFFFFF")
-        self.supplier_tree.grid(row=0, column=2, padx=[20, 20], pady=20, ipadx=[6], sticky='nsew')
+        scrl_bar.pack(side="right", fill="y")
+        self.supplier_tree.pack(side="left", fill="both", expand=True, padx=(20, 0), pady=20)
 
     def create_buttons_frame(self):
-        """ Crear frame para botones de supplier"""
-        manage_frame = ctk.CTkFrame(
-            self.frame,
-            fg_color="#FFFFFF",
-            border_color="#313131",
-            border_width=1,
-            corner_radius=18
-        )
-        manage_frame.grid(row=2, column= 0,padx=[10, 20], pady=20, ipadx=[6], sticky='nsew')
+        manage_frame = ctk.CTkFrame(self.frame)
+        manage_frame.grid(row=2, column=0, padx=10, pady=(5, 15), sticky='ew')
 
-        manage_frame.columnconfigure((0, 1, 2, 3, 4), weight=1)
-        
-        W = 240
-        H = 35
+        for i in range(11):
+            manage_frame.grid_columnconfigure(i, weight=1 if i % 2 == 0 else 0)
+
+        W = 250
+        H = 40
         btn_color = "#009688"
         btn_hover = "#00796B"
 
-        info_btn = ctk.CTkButton(
-            manage_frame, 
-            text='Info', 
-            width=W, 
-            height=H,
-            font=ctk.CTkFont(size=12, weight="bold"),
-            fg_color=btn_color,
-            hover_color=btn_hover,
-            command=lambda: self.controller.supplier_info(manage_frame)
-        )
+        buttons = [
+            ('Info',             lambda: self.controller.supplier_info(manage_frame)),
+            ('Borrar',           lambda: self.controller.delete_supplier()),
+            ('Agregar',          lambda: self.open_add_window(manage_frame)),
+            ('Registrar Pago',   lambda: self.payment_window.open_payment_window(manage_frame)),
+            ('Registrar Compra', lambda: self.purchase_window.open_purchase_window(self.frame)),
+        ]
 
-        delete_btn = ctk.CTkButton(
-            manage_frame, 
-            text='Borrar', 
-            width=W, 
-            height=H,
-            font=ctk.CTkFont(size=12, weight="bold"),
-            fg_color=btn_color,
-            hover_color=btn_hover,
-            command=lambda:self.controller.delete_supplier()
-        )
-        add_btn = ctk.CTkButton(
-            manage_frame, 
-            text='Agregar', 
-            width=W, 
-            height=H, 
-            font=ctk.CTkFont(size=12, weight="bold"),
-            fg_color=btn_color,
-            hover_color=btn_hover,
-            command=lambda: self.open_add_window(manage_frame)
-        )
-
-        payment_btn = ctk.CTkButton(
-            manage_frame, 
-            text='Registrar Pago', 
-            width=W, 
-            height=H, 
-            font=ctk.CTkFont(size=12, weight="bold"),
-            fg_color=btn_color,
-            hover_color=btn_hover,
-            command= lambda: self.payment_window.open_payment_window(manage_frame)
-        )
-
-        purchase_btn = ctk.CTkButton(
-            manage_frame, 
-            text='Registrar Compra', 
-            width=W, 
-            height=H,
-            font=ctk.CTkFont(size=12, weight="bold"),
-            fg_color=btn_color,
-            hover_color=btn_hover,
-            command=lambda: self.purchase_window.open_purchase_window(self.frame)
-        )
-        
-        info_btn.grid(row= 0, column=0, padx=10, pady=5)
-        delete_btn.grid(row= 0, column=1, padx=10, pady=5)
-        add_btn.grid(row= 0, column=2, padx=10, pady=5)
-        payment_btn.grid(row= 0, column=3, padx=10, pady=5)
-        purchase_btn.grid(row=0, column=4, padx=10, pady=5)
+        for i, (text, cmd) in enumerate(buttons):
+            ctk.CTkButton(
+                manage_frame,
+                text=text,
+                width=W,
+                height=H,
+                font=ctk.CTkFont(size=13, weight="bold"),
+                fg_color=btn_color,
+                hover_color=btn_hover,
+                command=cmd
+            ).grid(row=0, column=i * 2 + 1, padx=8, pady=15)
 
     def open_add_window(self, parent):
         self.setup_supplier_variables()
@@ -264,23 +223,9 @@ class SupplierView():
         # Hacer que la ventana sea modal
         add_win.transient(self.frame)
         add_win.grab_set()
-
-        # posicion y tamaño del frame
-        x_root = self.frame.winfo_x() 
-        y_root = self.frame.winfo_y()
-        width_root = self.frame.winfo_width()
-        height_root = self.frame.winfo_height()
-
-        width_win = 415
-        height_win = 460
         btn_color = "#009688"
         btn_hover = "#00796B"
-
-        # centro
-        x = x_root + (width_root // 2) - (width_win // 2)
-        y = y_root + (height_root // 2) - (height_win // 2)
-
-        add_win.geometry(f"{width_win}x{height_win}+{x}+{y}")
+        center_window(add_win, 550, 480)
         add_win.configure(fg_color="#e0e0e0")
 
         card_frame = ctk.CTkFrame(
@@ -377,20 +322,7 @@ class SupplierView():
         info_win.transient(parent)
         info_win.grab_set()
 
-        # posicion y tamaño del frame
-        x_root = self.frame.winfo_rootx()
-        y_root = self.frame.winfo_rooty()
-        width_root = self.frame.winfo_width()
-        height_root = self.frame.winfo_height()
-
-        width_win = 1050
-        height_win = 450
-        btn_color = "#009688"
-        btn_hover = "#00796B"
-
-        x = x_root + (width_root // 2) - (width_win // 2)
-        y = y_root + (height_root // 2) - (height_win // 2)
-        info_win.geometry(f"{width_win}x{height_win}+{x}+{y}")
+        center_window(info_win, 1050, 450)
 
         info_win.grid_rowconfigure(0, weight=1)
         info_win.grid_rowconfigure(1, weight=0)
@@ -443,7 +375,7 @@ class SupplierView():
 
         win = ctk.CTkToplevel(self.frame)
         win.title("Registrar Compra a Proveedor")
-        win.geometry("750x550")
+        center_window(win, 750, 550)
         win.grab_set()
 
         win.protocol("WM_DELETE_WINDOW",lambda: close_win(win, parent))

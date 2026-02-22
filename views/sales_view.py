@@ -9,6 +9,7 @@ from models.customer import CustomerModel
 from views.client_selector import ClientSelectorDialog
 from services.daily_sales_report import DailySalesReportService
 from utils.utils import norm_string_to_2_dec, normalize_to_2_decimals
+from views.view_helpers import center_window, show_error, show_warning, show_success, ask_confirmation
 
 
 ctk.set_appearance_mode("light")
@@ -76,6 +77,7 @@ class SalesView:
             header, text="Buscar",
             width=120, height=35,
             fg_color="#009688", hover_color="#00796B",
+            font=ctk.CTkFont(size=12, weight="bold"),
             command=lambda: self.controller.search_products_live()
         )
         search_btn.grid(row=0, column=2, padx=10)
@@ -84,6 +86,7 @@ class SalesView:
             header, text="📅 Ver Ventas",
             width=150, height=35,
             fg_color="#009688", hover_color="#00796B",
+            font=ctk.CTkFont(size=12, weight="bold"),
             command=lambda: self.controller.show_today_sales()
         )
         today_btn.grid(row=0, column=3, padx=10)
@@ -117,6 +120,7 @@ class SalesView:
             text="➕ Agregar producto",
             width=180, height=35,
             fg_color="#4CAF50", hover_color="#45a049",
+            font=ctk.CTkFont(size=12, weight="bold"),
             command=lambda: self.add_selected_product()
         )
         add_btn.grid(row=0, column=0, padx=5)
@@ -127,6 +131,7 @@ class SalesView:
             text="💼 Agregar Honorarios",
             width=180, height=35,
             fg_color="#2196F3", hover_color="#1976D2",
+            font=ctk.CTkFont(size=12, weight="bold"),
             command=self.add_honorarios
         )
         honorarios_btn.grid(row=0, column=1, padx=5)
@@ -171,7 +176,7 @@ class SalesView:
             ("🗑️ Eliminar producto", "#009688", "#00796B", self.delete_selected_product),
             ("🧹 Limpiar", "#009688", "#00796B", self.clear_sale)
         ]
-        footer.columnconfigure((0, 1, 2, 3), weight=1)
+        footer.columnconfigure((0, 1, 2), weight=1)
         for i, (text, color, hover, cmd) in enumerate(buttons):
             ctk.CTkButton(
                 footer,
@@ -202,11 +207,7 @@ class SalesView:
             qty_win.title(f"Agregar {name}")
             qty_win.transient(self.frame)
             qty_win.grab_set()
-
-            # Centrar ventana
-            x = (self.frame.winfo_screenwidth() // 2) - 300
-            y = (self.frame.winfo_screenheight() // 2) - 220
-            qty_win.geometry(f"320x220+{x}+{y}")
+            center_window(qty_win, 320, 220)
 
             ctk.CTkLabel(qty_win, text=f"Agregar '{name}'", font=ctk.CTkFont(size=15, weight="bold")).pack(pady=(15, 5))
             ctk.CTkLabel(qty_win, text=f"Stock disponible: {stock}", font=ctk.CTkFont(size=13)).pack()
@@ -234,19 +235,11 @@ class SalesView:
         """Ventana con tabla para mostrar ventas del día"""
         width_win = 700
         height_win = 600
-
-        x_root = self.frame.winfo_x()
-        y_root = self.frame.winfo_y()
-        width_root = self.frame.winfo_width()
-        height_root = self.frame.winfo_height()
-
-        x = x_root + (width_root // 2) - (width_win // 2)
-        y = y_root + (height_root // 2) - (height_win // 2)
         win = ctk.CTkToplevel(self.frame)
         win.title("Ventas del día")
-        win.geometry(f"{width_win}x{height_win}+{x}+{y}")
         win.transient(self.frame)
         win.grab_set()
+        center_window(win, width_win, height_win)
 
         title = ctk.CTkLabel(win, text="📅 Ventas del día",
                             font=ctk.CTkFont(size=18, weight="bold"))
@@ -445,17 +438,11 @@ class SalesView:
         confirm_win = ctk.CTkToplevel(self.frame)
         confirm_win.withdraw()
         confirm_win.title("Confirmar Venta")
-
         confirm_win.transient(self.frame)
         confirm_win.grab_set()
-        confirm_win.resizable(False, False)  # Evitar redimensionar
-        
-        x = (confirm_win.winfo_screenwidth() // 2) - (325)
-        y = (confirm_win.winfo_screenheight() // 2) - (325)
-        confirm_win.geometry(f"650x650+{x}+{y}")
-        
+        confirm_win.resizable(False, False) 
         confirm_win.update_idletasks()
-        confirm_win.deiconify()
+        
         
         title = ctk.CTkLabel(
             confirm_win,
@@ -614,8 +601,10 @@ class SalesView:
             command=cancel
         )
         cancel_btn.grid(row=0, column=1, padx=10)
-        
+        center_window(confirm_win, 650, 650)
+
         # Esperar a que se cierre la ventana
+        confirm_win.deiconify()
         confirm_win.wait_window()
         
         return result["confirmed"]
@@ -624,20 +613,12 @@ class SalesView:
         """Ventana completa de consulta de ventas con filtros por fecha"""
         width_win = 1000
         height_win = 700
-
-        x_root = self.frame.winfo_x()
-        y_root = self.frame.winfo_y()
-        width_root = self.frame.winfo_width()
-        height_root = self.frame.winfo_height()
-
-        x = x_root + (width_root // 2) - (width_win // 2)
-        y = y_root + (height_root // 2) - (height_win // 2)
         
         win = ctk.CTkToplevel(self.frame)
         win.title("Consulta de Ventas")
-        win.geometry(f"{width_win}x{height_win}+{x}+{y}")
         win.transient(self.frame)
         win.grab_set()
+        center_window(win, width_win, height_win)
 
         # ================================================================
         # HEADER
@@ -1011,10 +992,11 @@ class SalesView:
         search_client_btn = ctk.CTkButton(
             client_select_frame,
             text="🔍 Buscar",
-            width=90,
+            width=120,
             height=35,
             fg_color="#009688",
             hover_color="#00796B",
+            font=ctk.CTkFont(size=12, weight="bold"),
             command=self.open_client_selector
         )
         search_client_btn.grid(row=0, column=1)
@@ -1023,7 +1005,7 @@ class SalesView:
         ctk.CTkLabel(
             client_frame, 
             text="CUIT / DNI:",
-            font=ctk.CTkFont(size=13)
+            font=ctk.CTkFont(size=13, weight="bold")
         ).grid(row=1, column=0, padx=10, pady=5, sticky="w")
         
         self.client_cuit_var = tk.StringVar()
@@ -1038,7 +1020,7 @@ class SalesView:
         ctk.CTkLabel(
             client_frame, 
             text="Dirección:",
-            font=ctk.CTkFont(size=13)
+            font=ctk.CTkFont(size=13, weight="bold")
         ).grid(row=2, column=0, padx=10, pady=5, sticky="w")
         
         self.client_address_var = tk.StringVar()
@@ -1053,14 +1035,14 @@ class SalesView:
         ctk.CTkLabel(
             client_frame, 
             text="Forma de pago:",
-            font=ctk.CTkFont(size=13)
+            font=ctk.CTkFont(size=13, weight="bold")
         ).grid(row=3, column=0, padx=10, pady=10, sticky="w")
 
         # --- Forma de pago ---
         ctk.CTkLabel(
             client_frame, 
             text="Forma de pago:",
-            font=ctk.CTkFont(size=13)
+            font=ctk.CTkFont(size=13, weight="bold")
         ).grid(row=3, column=0, padx=10, pady=10, sticky="w")
 
         self.payment_type_var = tk.StringVar(value="PAID")
@@ -1148,13 +1130,10 @@ class SalesView:
         
         # Centrar ventana
         dialog.update_idletasks()
-        x = (dialog.winfo_screenwidth() // 2) - 250
-        y = (dialog.winfo_screenheight() // 2) - 200
-        dialog.geometry(f"500x400+{x}+{y}")
-        
         dialog.transient(self.frame)
         dialog.grab_set()
         dialog.resizable(False, False)
+        center_window(dialog, 500, 400)
         
         # Título
         ctk.CTkLabel(
