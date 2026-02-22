@@ -319,13 +319,16 @@ class CustomersView:
                 ok = self.controller.add_new_customer_window(data, win)
                 if ok:
                     self.show_success("Cliente agregado correctamente.")
-                    cleanup_and_close()
 
         def cleanup_and_close():
             """Limpia eventos antes de cerrar"""
-            win.unbind("<Return>")
-            win.grab_release()
-            win.destroy()
+            try:
+                if win.winfo_exists():    
+                    win.unbind("<Return>")
+                    win.grab_release()
+                win.destroy()
+            except Exception:
+                pass
 
         save_btn = ctk.CTkButton(
             btn_frame,
