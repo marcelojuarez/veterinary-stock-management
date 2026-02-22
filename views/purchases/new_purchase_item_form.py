@@ -1,7 +1,7 @@
 import tkinter as tk
 import customtkinter as ctk
 from decimal import Decimal
-from utils.utils import normalize_to_2_decimals, normalize_string_to_dec, normalize_int_to_dec, convert_to_decimal
+from utils.utils import norm_string_to_2_dec, normalize_string_to_dec, normalize_int_to_dec, normalize_to_2_decimals, convert_to_decimal
 from views.view_helpers import close_win, ask_confirmation
 
 class NewPurchaseItemForm():
@@ -96,9 +96,36 @@ class NewPurchaseItemForm():
         add_field(2, 0, "Nombre:",
                 ctk.CTkEntry(form_frame, textvariable=self.product_name, width=200))
         
-        add_field(3, 0, "Envase:",
-                ctk.CTkComboBox(form_frame,  values=["UNIDAD", "CAJA", "FRASCO", "AMPOLLA", "SOBRE", "OTRO"], 
-                                variable=self.product_pack, state='readonly', width=200))
+        add_field(
+            3, 0, "Envase:",
+            ctk.CTkComboBox(
+                form_frame,  
+                values=[
+                    "UNIDAD",
+                    "10 ML",
+                    "20 ML",
+                    "25 ML",
+                    "50 ML",
+                    "90 ML",
+                    "100 ML",
+                    "200 ML",
+                    "250 ML",
+                    "300 ML",
+                    "500 ML",
+                    "400 GR",
+                    "5 KG",
+                    "10 KG",
+                    "12 KG",
+                    "15 KG",
+                    "20 KG",
+                    "25 KG",
+                    "40 DS",
+                ],
+                variable=self.product_pack, 
+                state='readonly', 
+                width=200
+                )
+            )
         
         add_field(4, 0, "Stock:",
                 ctk.CTkEntry(form_frame, textvariable=self.quantity, width=200))
@@ -135,7 +162,7 @@ class NewPurchaseItemForm():
             ## precio - iva - descuento
             self.list_price = normalize_string_to_dec(self.list_price_var.get())
             self.iva = normalize_string_to_dec(self.iva_rate.get())
-            self.discount = normalize_string_to_dec(self.discount_var.get())
+            self.discount = norm_string_to_2_dec(self.discount_var.get())
 
             if self.list_price is None or self.iva is None or self.discount is None or self.qty is None:
                 return
@@ -144,14 +171,15 @@ class NewPurchaseItemForm():
             base_amount = self.qty * self.list_price
             discount_rate = self.discount / Decimal('100')
             unit_d_amount = self.list_price * discount_rate
-            discount_amount = base_amount * discount_rate            
 
-            cost_price = convert_to_decimal(self.list_price - unit_d_amount)
+            cost_price = self.list_price - unit_d_amount
             subtotal = normalize_to_2_decimals(self.qty * cost_price)
             iva_amount = normalize_to_2_decimals(subtotal * (self.iva / Decimal('100')))
+            discount_amount = base_amount - subtotal  
             total = subtotal + iva_amount
 
             # normalizacion final
+            cost_price = convert_to_decimal(cost_price)
             discount_amount = normalize_to_2_decimals(discount_amount)
             total = normalize_to_2_decimals(total)
 

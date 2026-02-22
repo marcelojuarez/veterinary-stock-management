@@ -152,7 +152,7 @@ class SalesController:
                 self.sales_view.show_warning("No hay productos en la venta.")
                 return
 
-            total = 0
+            total = Decimal('0.00')
             for item in self.sales_view.items_in_sale:
                 if len(item) == 5:  # Tiene observaciones (honorarios)
                     _, _, qty, price, _ = item
@@ -174,9 +174,9 @@ class SalesController:
 
             invoice = InvoiceController()
 
-            pdf = invoice.generate_invoice(cliente_id, items)
+            #pdf = invoice.generate_invoice(cliente_id, items)
+            #self.sales_view.show_success(f"Venta registrada.\nFactura creada: {pdf}")
 
-            self.sales_view.show_success(f"Venta registrada.\nFactura creada: {pdf}")
             self.sales_view.last_sale_id = sale_id
             # self.ask_remito(f"¿Desea generar remito?")
             self.sales_view.clear_sale()
@@ -305,7 +305,6 @@ class SalesController:
         except Exception as e:
             print(f"Error al obtener ventas por rango de fechas: {e}")
             return []
-
 
     def get_today_sales(self):
         """

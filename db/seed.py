@@ -34,172 +34,172 @@ def seed_stock():
     # Categorías base de productos
     productos_base = [
         # Alimentos perros
-        {"name": "ALIMENTO CANINO CACHORRO", "pack": "BOLSA 3KG", "profit": "30.00", "list_price": "2500.9358", "discount": "0", "iva": "21"},
-        # {"name": "ALIMENTO CANINO CACHORRO", "pack": "BOLSA 15KG", "profit": "28", "list_price": "11000.088", "discount": "0", "iva": "21"},
-        # {"name": "ALIMENTO CANINO ADULTO", "pack": "BOLSA 3KG", "profit": "30", "list_price": "2200.534", "discount": "0", "iva": "21"},
-        # {"name": "ALIMENTO CANINO ADULTO", "pack": "BOLSA 15KG", "profit": "28", "list_price": "9500.750", "discount": "0", "iva": "21"},
-        # {"name": "ALIMENTO CANINO ADULTO", "pack": "BOLSA 20KG", "profit": "25", "list_price": "12000.9900", "discount": "0", "iva": "21"},
-        # {"name": "ALIMENTO CANINO SENIOR", "pack": "BOLSA 3KG", "profit": "30", "list_price": "2800.400", "discount": "10", "iva": "21"},
-        # {"name": "ALIMENTO CANINO SENIOR", "pack": "BOLSA 15KG", "profit": "28", "list_price": "12500.800", "discount": "0", "iva": "21"},
-        # {"name": "ALIMENTO PREMIUM PERRO RAZA PEQUEÑA", "pack": "BOLSA 7.5KG", "profit": "35", "list_price": "8500.600", "discount": "0", "iva": "21"},
-        # {"name": "ALIMENTO PREMIUM PERRO RAZA MEDIANA", "pack": "BOLSA 15KG", "profit": "35", "list_price": "15000.340", "discount": "0", "iva": "21"},
-        # {"name": "ALIMENTO PREMIUM PERRO RAZA GRANDE", "pack": "BOLSA 15KG", "profit": "35", "list_price": "14500.200", "discount": "15", "iva": "21"},
-        # {"name": "ALIMENTO LIGHT PERRO", "pack": "BOLSA 15KG", "profit": "32", "list_price": "13000.7800", "discount": "0", "iva": "21"},
-        # {"name": "ALIMENTO HIPOALERGÉNICO PERRO", "pack": "BOLSA 10KG", "profit": "40", "list_price": "18000.990", "discount": "0", "iva": "21"},
+        {"name": "ALIMENTO CANINO CACHORRO", "pack": "BOLSA 3KG", "profit": "30.00", "list_price": "2500.9358", "discount": "0", "iva": "21.00"},
+        {"name": "ALIMENTO CANINO CACHORRO", "pack": "BOLSA 15KG", "profit": "28.00", "list_price": "11000.088", "discount": "0", "iva": "21.00"},
+        {"name": "ALIMENTO CANINO ADULTO", "pack": "BOLSA 3KG", "profit": "30.00", "list_price": "2200.534", "discount": "0", "iva": "21.00"},
+        {"name": "ALIMENTO CANINO ADULTO", "pack": "BOLSA 15KG", "profit": "28.00", "list_price": "9500.750", "discount": "0", "iva": "21.00"},
+        {"name": "ALIMENTO CANINO ADULTO", "pack": "BOLSA 20KG", "profit": "25.00", "list_price": "12000.9900", "discount": "0", "iva": "21.00"},
+        {"name": "ALIMENTO CANINO SENIOR", "pack": "BOLSA 3KG", "profit": "30.00", "list_price": "2800.400", "discount": "10.00", "iva": "21.00"},
+        {"name": "ALIMENTO CANINO SENIOR", "pack": "BOLSA 15KG", "profit": "28.00", "list_price": "12500.800", "discount": "0", "iva": "21.00"},
+        {"name": "ALIMENTO PREMIUM PERRO RAZA PEQUEÑA", "pack": "BOLSA 7.5KG", "profit": "35.00", "list_price": "8500.600", "discount": "0", "iva": "21.00"},
+        {"name": "ALIMENTO PREMIUM PERRO RAZA MEDIANA", "pack": "BOLSA 15KG", "profit": "35.00", "list_price": "15000.340", "discount": "0", "iva": "21.00"},
+        {"name": "ALIMENTO PREMIUM PERRO RAZA GRANDE", "pack": "BOLSA 15KG", "profit": "35.00", "list_price": "14500.200", "discount": "15.00", "iva": "21.00"},
+        {"name": "ALIMENTO LIGHT PERRO", "pack": "BOLSA 15KG", "profit": "32.00", "list_price": "13000.7800", "discount": "0", "iva": "21.00"},
+        {"name": "ALIMENTO HIPOALERGÉNICO PERRO", "pack": "BOLSA 10KG", "profit": "40.00", "list_price": "18000.990", "discount": "0", "iva": "21.00"},
         
         # # Alimentos gatos
-        # {"name": "ALIMENTO FELINO CACHORRO", "pack": "BOLSA 1KG", "profit": "30", "list_price": "1800.500", "discount": "0", "iva": "21"},
-        # {"name": "ALIMENTO FELINO CACHORRO", "pack": "BOLSA 7.5KG", "profit": "28", "list_price": "10000.990", "discount": "0", "iva": "21"},
-        # {"name": "ALIMENTO FELINO ADULTO", "pack": "BOLSA 1KG", "profit": "30", "list_price": "1500.750", "discount": "0", "iva": "21"},
-        # {"name": "ALIMENTO FELINO ADULTO", "pack": "BOLSA 7.5KG", "profit": "28", "list_price": "8500.600", "discount": "10", "iva": "21"},
-        # {"name": "ALIMENTO FELINO ADULTO", "pack": "BOLSA 15KG", "profit": "25", "list_price": "15000.340", "discount": "0", "iva": "21"},
-        # {"name": "ALIMENTO FELINO SENIOR", "pack": "BOLSA 7.5KG", "profit": "30", "list_price": "11000.800", "discount": "0", "iva": "21"},
-        # {"name": "ALIMENTO PREMIUM GATO CASTRADO", "pack": "BOLSA 7.5KG", "profit": "35", "list_price": "12500.9900", "discount": "15", "iva": "21"},
-        # {"name": "ALIMENTO PREMIUM GATO CONTROL PESO", "pack": "BOLSA 7.5KG", "profit": "35", "list_price": "13000.450", "discount": "0", "iva": "21"},
-        # {"name": "ALIMENTO URINARY GATO", "pack": "BOLSA 7.5KG", "profit": "40", "list_price": "16000.880", "discount": "0", "iva": "21"},
+        {"name": "ALIMENTO FELINO CACHORRO", "pack": "BOLSA 1KG", "profit": "30.00", "list_price": "1800.500", "discount": "0", "iva": "21.00"},
+        {"name": "ALIMENTO FELINO CACHORRO", "pack": "BOLSA 7.5KG", "profit": "28.00", "list_price": "10000.9956", "discount": "0", "iva": "21.00"},
+        {"name": "ALIMENTO FELINO ADULTO", "pack": "BOLSA 1KG", "profit": "30.00", "list_price": "1500.7560", "discount": "0", "iva": "21.00"},
+        {"name": "ALIMENTO FELINO ADULTO", "pack": "BOLSA 7.5KG", "profit": "28.00", "list_price": "8500.6090", "discount": "10.00", "iva": "21.00"},
+        {"name": "ALIMENTO FELINO ADULTO", "pack": "BOLSA 15KG", "profit": "25.00", "list_price": "15000.3402", "discount": "0", "iva": "21.00"},
+        {"name": "ALIMENTO FELINO SENIOR", "pack": "BOLSA 7.5KG", "profit": "30.00", "list_price": "11000.8030", "discount": "0", "iva": "21.00"},
+        {"name": "ALIMENTO PREMIUM GATO CASTRADO", "pack": "BOLSA 7.5KG", "profit": "35.00", "list_price": "12500.9900", "discount": "15.00", "iva": "21.00"},
+        {"name": "ALIMENTO PREMIUM GATO CONTROL PESO", "pack": "BOLSA 7.5KG", "profit": "35.00", "list_price": "13000.450", "discount": "0", "iva": "21.00"},
+        {"name": "ALIMENTO URINARY GATO", "pack": "BOLSA 7.5KG", "profit": "40.00", "list_price": "16000.880", "discount": "0", "iva": "21.00"},
         
         # # Arena sanitaria
-        # {"name": "ARENA SANITARIA BÁSICA", "pack": "BOLSA 5L", "profit": "25", "list_price": "600.500", "discount": "0", "iva": "21"},
-        # {"name": "ARENA SANITARIA BÁSICA", "pack": "BOLSA 10L", "profit": "25", "list_price": "1000.750", "discount": "0", "iva": "21"},
-        # {"name": "ARENA AGLOMERANTE", "pack": "BOLSA 5L", "profit": "30", "list_price": "1200.600", "discount": "10", "iva": "21"},
-        # {"name": "ARENA AGLOMERANTE", "pack": "BOLSA 10L", "profit": "30", "list_price": "2000.990", "discount": "0", "iva": "21"},
-        # {"name": "ARENA BIODEGRADABLE", "pack": "BOLSA 10L", "profit": "35", "list_price": "2500.340", "discount": "0", "iva": "21"},
-        # {"name": "ARENA SILICA GEL", "pack": "BOLSA 5L", "profit": "40", "list_price": "3500.8800", "discount": "15", "iva": "21"},
-        # {"name": "PIEDRAS SANITARIAS", "pack": "BOLSA 10KG", "profit": "25", "list_price": "800.400", "discount": "0", "iva": "21"},
+        {"name": "ARENA SANITARIA BÁSICA", "pack": "BOLSA 5L", "profit": "25.00", "list_price": "600.567", "discount": "0", "iva": "21.00"},
+        {"name": "ARENA SANITARIA BÁSICA", "pack": "BOLSA 10L", "profit": "25.00", "list_price": "1000.750", "discount": "0", "iva": "21.00"},
+        {"name": "ARENA AGLOMERANTE", "pack": "BOLSA 5L", "profit": "30.00", "list_price": "1200.600", "discount": "10.00", "iva": "21.00"},
+        {"name": "ARENA AGLOMERANTE", "pack": "BOLSA 10L", "profit": "30.00", "list_price": "2000.990", "discount": "0", "iva": "21.00"},
+        {"name": "ARENA BIODEGRADABLE", "pack": "BOLSA 10L", "profit": "35.00", "list_price": "2500.340", "discount": "0", "iva": "21.00"},
+        {"name": "ARENA SILICA GEL", "pack": "BOLSA 5L", "profit": "40.00", "list_price": "3500.8800", "discount": "15.00", "iva": "21.00"},
+        {"name": "PIEDRAS SANITARIAS", "pack": "BOLSA 10KG", "profit": "25.00", "list_price": "800.400", "discount": "0", "iva": "21.00"},
 
         # # Higiene y cuidado
-        # {"name": "SHAMPOO PERRO CACHORROS", "pack": "500ML", "profit": "40", "list_price": "800.500", "discount": "0", "iva": "21"},
-        # {"name": "SHAMPOO PERRO ADULTO", "pack": "500ML", "profit": "40", "list_price": "700.750", "discount": "0", "iva": "21"},
-        # {"name": "SHAMPOO PERRO ANTIPULGAS", "pack": "500ML", "profit": "40", "list_price": "1200.990", "discount": "20", "iva": "21"},
-        # {"name": "SHAMPOO GATO", "pack": "500ML", "profit": "40", "list_price": "900.600", "discount": "0", "iva": "21"},
-        # {"name": "ACONDICIONADOR PERRO", "pack": "500ML", "profit": "40", "list_price": "850.340", "discount": "0", "iva": "21"},
-        # {"name": "SHAMPOO SECO PERRO", "pack": "400ML", "profit": "45", "list_price": "1100.880", "discount": "0", "iva": "21"},
-        # {"name": "SHAMPOO SECO GATO", "pack": "400ML", "profit": "45", "list_price": "1200.450", "discount": "10", "iva": "21"},
-        # {"name": "PERFUME MASCOTAS", "pack": "250ML", "profit": "50", "list_price": "600.990", "discount": "0", "iva": "21"},
-        # {"name": "CEPILLO DENTAL PERRO", "pack": "UNIDAD", "profit": "45", "list_price": "400.500", "discount": "0", "iva": "21"},
-        # {"name": "PASTA DENTAL PERRO", "pack": "100G", "profit": "45", "list_price": "800.750", "discount": "0", "iva": "21"},
-        # {"name": "CORTAUÑAS PERRO", "pack": "UNIDAD", "profit": "40", "list_price": "600.600", "discount": "0", "iva": "21"},
-        # {"name": "CORTAUÑAS GATO", "pack": "UNIDAD", "profit": "40", "list_price": "550.880", "discount": "0", "iva": "21"},
+        {"name": "SHAMPOO PERRO CACHORROS", "pack": "500ML", "profit": "40.00", "list_price": "800.500", "discount": "0", "iva": "21.00"},
+        {"name": "SHAMPOO PERRO ADULTO", "pack": "500ML", "profit": "40.00", "list_price": "700.750", "discount": "0", "iva": "21.00"},
+        {"name": "SHAMPOO PERRO ANTIPULGAS", "pack": "500ML", "profit": "40.00", "list_price": "1200.990", "discount": "20.00", "iva": "21.00"},
+        {"name": "SHAMPOO GATO", "pack": "500ML", "profit": "40.00", "list_price": "900.600", "discount": "0", "iva": "21.00"},
+        {"name": "ACONDICIONADOR PERRO", "pack": "500ML", "profit": "40.00", "list_price": "850.340", "discount": "0", "iva": "21.00"},
+        {"name": "SHAMPOO SECO PERRO", "pack": "400ML", "profit": "45.00", "list_price": "1100.880", "discount": "0", "iva": "21.00"},
+        {"name": "SHAMPOO SECO GATO", "pack": "400ML", "profit": "45.00", "list_price": "1200.450", "discount": "10.00", "iva": "21.00"},
+        {"name": "PERFUME MASCOTAS", "pack": "250ML", "profit": "50.00", "list_price": "600.990", "discount": "0", "iva": "21.00"},
+        {"name": "CEPILLO DENTAL PERRO", "pack": "UNIDAD", "profit": "45.00", "list_price": "400.500", "discount": "0", "iva": "21.00"},
+        {"name": "PASTA DENTAL PERRO", "pack": "100G", "profit": "45.00", "list_price": "800.750", "discount": "0", "iva": "21.00"},
+        {"name": "CORTAUÑAS PERRO", "pack": "UNIDAD", "profit": "40.00", "list_price": "600.600", "discount": "0", "iva": "21.00"},
+        {"name": "CORTAUÑAS GATO", "pack": "UNIDAD", "profit": "40.00", "list_price": "550.880", "discount": "0", "iva": "21.00"},
         
         # # Antiparasitarios
-        # {"name": "ANTIPULGAS PERRO 0-10KG", "pack": "PIPETA X3", "profit": "30", "list_price": "1500.750", "discount": "0", "iva": "21"},
-        # {"name": "ANTIPULGAS PERRO 10-20KG", "pack": "PIPETA X3", "profit": "30", "list_price": "1800.990", "discount": "0", "iva": "21"},
-        # {"name": "ANTIPULGAS PERRO 20-40KG", "pack": "PIPETA X3", "profit": "30", "list_price": "2200.600", "discount": "10", "iva": "21"},
-        # {"name": "ANTIPULGAS PERRO +40KG", "pack": "PIPETA X3", "profit": "30", "list_price": "2500.880", "discount": "0", "iva": "21"},
-        # {"name": "ANTIPULGAS GATO", "pack": "PIPETA X3", "profit": "30", "list_price": "1600.450", "discount": "0", "iva": "21"},
-        # {"name": "COLLAR ANTIPULGAS PERRO", "pack": "UNIDAD", "profit": "35", "list_price": "2000.340", "discount": "15", "iva": "21"},
-        # {"name": "COLLAR ANTIPULGAS GATO", "pack": "UNIDAD", "profit": "35", "list_price": "1800.500", "discount": "0", "iva": "21"},
-        # {"name": "DESPARASITARIO INTERNO PERRO", "pack": "COMP X4", "profit": "35", "list_price": "1200.750", "discount": "0", "iva": "21"},
-        # {"name": "DESPARASITARIO INTERNO GATO", "pack": "COMP X4", "profit": "35", "list_price": "1100.990", "discount": "0", "iva": "21"},
+        {"name": "ANTIPULGAS PERRO 0-10KG", "pack": "PIPETA X3", "profit": "30.00", "list_price": "1500.750", "discount": "0", "iva": "21.00"},
+        {"name": "ANTIPULGAS PERRO 10-20KG", "pack": "PIPETA X3", "profit": "30.00", "list_price": "1800.990", "discount": "0", "iva": "21.00"},
+        {"name": "ANTIPULGAS PERRO 20-40KG", "pack": "PIPETA X3", "profit": "30.00", "list_price": "2200.625", "discount": "10.00", "iva": "21.00"},
+        {"name": "ANTIPULGAS PERRO +40KG", "pack": "PIPETA X3", "profit": "30.00", "list_price": "2500.880", "discount": "0", "iva": "21.00"},
+        {"name": "ANTIPULGAS GATO", "pack": "PIPETA X3", "profit": "30.00", "list_price": "1600.450", "discount": "0", "iva": "21.00"},
+        {"name": "COLLAR ANTIPULGAS PERRO", "pack": "UNIDAD", "profit": "35.00", "list_price": "2000.340", "discount": "15.00", "iva": "21.00"},
+        {"name": "COLLAR ANTIPULGAS GATO", "pack": "UNIDAD", "profit": "35.00", "list_price": "1800.500", "discount": "0", "iva": "21.00"},
+        {"name": "DESPARASITARIO INTERNO PERRO", "pack": "COMP X4", "profit": "35.00", "list_price": "1200.750", "discount": "0", "iva": "21.00"},
+        {"name": "DESPARASITARIO INTERNO GATO", "pack": "COMP X4", "profit": "35.00", "list_price": "1100.990", "discount": "0", "iva": "21.00"},
 
         # # Accesorios perros
-        # {"name": "COLLAR PERRO PEQUEÑO", "pack": "UNIDAD", "profit": "40", "list_price": "500.600", "discount": "0", "iva": "21"},
-        # {"name": "COLLAR PERRO MEDIANO", "pack": "UNIDAD", "profit": "40", "list_price": "700.450", "discount": "0", "iva": "21"},
-        # {"name": "COLLAR PERRO GRANDE", "pack": "UNIDAD", "profit": "40", "list_price": "900.880", "discount": "0", "iva": "21"},
-        # {"name": "CORREA PERRO 1.5M", "pack": "UNIDAD", "profit": "40", "list_price": "600.990", "discount": "0", "iva": "21"},
-        # {"name": "CORREA PERRO 3M RETRÁCTIL", "pack": "UNIDAD", "profit": "45", "list_price": "2500.7500", "discount": "20", "iva": "21"},
-        # {"name": "CORREA PERRO 5M RETRÁCTIL", "pack": "UNIDAD", "profit": "45", "list_price": "3200.600", "discount": "0", "iva": "21"},
-        # {"name": "ARNÉS PERRO PEQUEÑO", "pack": "UNIDAD", "profit": "40", "list_price": "1200.340", "discount": "0", "iva": "21"},
-        # {"name": "ARNÉS PERRO MEDIANO", "pack": "UNIDAD", "profit": "40", "list_price": "1500.880", "discount": "0", "iva": "21"},
-        # {"name": "ARNÉS PERRO GRANDE", "pack": "UNIDAD", "profit": "40", "list_price": "1800.500", "discount": "10", "iva": "21"},
-        # {"name": "BOZAL PERRO MEDIANO", "pack": "UNIDAD", "profit": "35", "list_price": "800.750", "discount": "0", "iva": "21"},
-        # {"name": "BOZAL PERRO GRANDE", "pack": "UNIDAD", "profit": "35", "list_price": "1000.990", "discount": "0", "iva": "21"},
-        # {"name": "PRETAL AUTO PERRO", "pack": "UNIDAD", "profit": "40", "list_price": "1500.600", "discount": "0", "iva": "21"},
+        {"name": "COLLAR PERRO PEQUEÑO", "pack": "UNIDAD", "profit": "40.00", "list_price": "500.600", "discount": "0", "iva": "21.00"},
+        {"name": "COLLAR PERRO MEDIANO", "pack": "UNIDAD", "profit": "40.00", "list_price": "700.450", "discount": "0", "iva": "21.00"},
+        {"name": "COLLAR PERRO GRANDE", "pack": "UNIDAD", "profit": "40.00", "list_price": "900.880", "discount": "0", "iva": "21.00"},
+        {"name": "CORREA PERRO 1.5M", "pack": "UNIDAD", "profit": "40.00", "list_price": "600.990", "discount": "0", "iva": "21.00"},
+        {"name": "CORREA PERRO 3M RETRÁCTIL", "pack": "UNIDAD", "profit": "45.00", "list_price": "2500.7500", "discount": "20.00", "iva": "21.00"},
+        {"name": "CORREA PERRO 5M RETRÁCTIL", "pack": "UNIDAD", "profit": "45.00", "list_price": "3200.600", "discount": "0", "iva": "21.00"},
+        {"name": "ARNÉS PERRO PEQUEÑO", "pack": "UNIDAD", "profit": "40.00", "list_price": "1200.340", "discount": "0", "iva": "21.00"},
+        {"name": "ARNÉS PERRO MEDIANO", "pack": "UNIDAD", "profit": "40.00", "list_price": "1500.880", "discount": "0", "iva": "21.00"},
+        {"name": "ARNÉS PERRO GRANDE", "pack": "UNIDAD", "profit": "40.00", "list_price": "1800.500", "discount": "10.00", "iva": "21.00"},
+        {"name": "BOZAL PERRO MEDIANO", "pack": "UNIDAD", "profit": "35.00", "list_price": "800.750", "discount": "0", "iva": "21.00"},
+        {"name": "BOZAL PERRO GRANDE", "pack": "UNIDAD", "profit": "35.00", "list_price": "1000.990", "discount": "0", "iva": "21.00"},
+        {"name": "PRETAL AUTO PERRO", "pack": "UNIDAD", "profit": "40.00", "list_price": "1500.600", "discount": "0", "iva": "21.00"},
         
         # # Accesorios gatos
-        # {"name": "COLLAR GATO CON CASCABEL", "pack": "UNIDAD", "profit": "45", "list_price": "400.750", "discount": "0", "iva": "21"},
-        # {"name": "ARNÉS GATO", "pack": "UNIDAD", "profit": "40", "list_price": "900.600", "discount": "0", "iva": "21"},
-        # {"name": "CORREA GATO", "pack": "UNIDAD", "profit": "40", "list_price": "500.990", "discount": "10", "iva": "21"},
+        {"name": "COLLAR GATO CON CASCABEL", "pack": "UNIDAD", "profit": "45.00", "list_price": "400.750", "discount": "0", "iva": "21.00"},
+        {"name": "ARNÉS GATO", "pack": "UNIDAD", "profit": "40.00", "list_price": "900.600", "discount": "0", "iva": "21.00"},
+        {"name": "CORREA GATO", "pack": "UNIDAD", "profit": "40.00", "list_price": "500.990", "discount": "10.00", "iva": "21.00"},
 
         # # Comederos y bebederos
-        # {"name": "COMEDERO PLÁSTICO PEQUEÑO", "pack": "UNIDAD", "profit": "40", "list_price": "300.500", "discount": "0", "iva": "21"},
-        # {"name": "COMEDERO PLÁSTICO MEDIANO", "pack": "UNIDAD", "profit": "40", "list_price": "450.880", "discount": "0", "iva": "21"},
-        # {"name": "COMEDERO PLÁSTICO GRANDE", "pack": "UNIDAD", "profit": "40", "list_price": "600.750", "discount": "0", "iva": "21"},
-        # {"name": "COMEDERO ACERO INOX PEQUEÑO", "pack": "UNIDAD", "profit": "35", "list_price": "800.340", "discount": "0", "iva": "21"},
-        # {"name": "COMEDERO ACERO INOX MEDIANO", "pack": "UNIDAD", "profit": "35", "list_price": "1200.990", "discount": "15", "iva": "21"},
-        # {"name": "COMEDERO ACERO INOX GRANDE", "pack": "UNIDAD", "profit": "35", "list_price": "1500.600", "discount": "0", "iva": "21"},
-        # {"name": "BEBEDERO AUTOMÁTICO 1.5L", "pack": "UNIDAD", "profit": "35", "list_price": "1000.750", "discount": "0", "iva": "21"},
-        # {"name": "BEBEDERO AUTOMÁTICO 3L", "pack": "UNIDAD", "profit": "35", "list_price": "1500.880", "discount": "0", "iva": "21"},
-        # {"name": "BEBEDERO FUENTE GATO", "pack": "UNIDAD", "profit": "40", "list_price": "3500.990", "discount": "20", "iva": "21"},
-        # {"name": "COMEDERO DOBLE PERRO", "pack": "UNIDAD", "profit": "40", "list_price": "1200.450", "discount": "0", "iva": "21"},
-        # {"name": "COMEDERO ELEVADO PERRO", "pack": "UNIDAD", "profit": "40", "list_price": "2500.7800", "discount": "0", "iva": "21"},
+        {"name": "COMEDERO PLÁSTICO PEQUEÑO", "pack": "UNIDAD", "profit": "40.00", "list_price": "300.500", "discount": "0", "iva": "21.00"},
+        {"name": "COMEDERO PLÁSTICO MEDIANO", "pack": "UNIDAD", "profit": "40.00", "list_price": "450.880", "discount": "0", "iva": "21.00"},
+        {"name": "COMEDERO PLÁSTICO GRANDE", "pack": "UNIDAD", "profit": "40.00", "list_price": "600.750", "discount": "0", "iva": "21.00"},
+        {"name": "COMEDERO ACERO INOX PEQUEÑO", "pack": "UNIDAD", "profit": "35.00", "list_price": "800.340", "discount": "0", "iva": "21.00"},
+        {"name": "COMEDERO ACERO INOX MEDIANO", "pack": "UNIDAD", "profit": "35.00", "list_price": "1200.990", "discount": "15.00", "iva": "21.00"},
+        {"name": "COMEDERO ACERO INOX GRANDE", "pack": "UNIDAD", "profit": "35.00", "list_price": "1500.600", "discount": "0", "iva": "21.00"},
+        {"name": "BEBEDERO AUTOMÁTICO 1.5L", "pack": "UNIDAD", "profit": "35.00", "list_price": "1000.750", "discount": "0", "iva": "21.00"},
+        {"name": "BEBEDERO AUTOMÁTICO 3L", "pack": "UNIDAD", "profit": "35.00", "list_price": "1500.880", "discount": "0", "iva": "21.00"},
+        {"name": "BEBEDERO FUENTE GATO", "pack": "UNIDAD", "profit": "40.00", "list_price": "3500.990", "discount": "20.00", "iva": "21.00"},
+        {"name": "COMEDERO DOBLE PERRO", "pack": "UNIDAD", "profit": "40.00", "list_price": "1200.450", "discount": "0", "iva": "21.00"},
+        {"name": "COMEDERO ELEVADO PERRO", "pack": "UNIDAD", "profit": "40.00", "list_price": "2500.7800", "discount": "0", "iva": "21.00"},
         
         # # Camas y cuchas
-        # {"name": "CAMA PERRO PEQUEÑO", "pack": "UNIDAD", "profit": "35", "list_price": "2500.750", "discount": "0", "iva": "21"},
-        # {"name": "CAMA PERRO MEDIANO", "pack": "UNIDAD", "profit": "35", "list_price": "3500.990", "discount": "10", "iva": "21"},
-        # {"name": "CAMA PERRO GRANDE", "pack": "UNIDAD", "profit": "35", "list_price": "5000.600", "discount": "0", "iva": "21"},
-        # {"name": "CAMA GATO", "pack": "UNIDAD", "profit": "35", "list_price": "2000.880", "discount": "0", "iva": "21"},
-        # {"name": "CUCHA PLÁSTICO PERRO MEDIANO", "pack": "UNIDAD", "profit": "30", "list_price": "4500.340", "discount": "0", "iva": "21"},
-        # {"name": "CUCHA PLÁSTICO PERRO GRANDE", "pack": "UNIDAD", "profit": "30", "list_price": "6500.990", "discount": "15", "iva": "21"},
-        # {"name": "ALMOHADÓN PERRO", "pack": "UNIDAD", "profit": "40", "list_price": "1800.500", "discount": "0", "iva": "21"},
-        # {"name": "MANTA POLAR MASCOTAS", "pack": "UNIDAD", "profit": "40", "list_price": "1200.750", "discount": "0", "iva": "21"},
+        {"name": "CAMA PERRO PEQUEÑO", "pack": "UNIDAD", "profit": "35.00", "list_price": "2500.750", "discount": "0", "iva": "21.00"},
+        {"name": "CAMA PERRO MEDIANO", "pack": "UNIDAD", "profit": "35.00", "list_price": "3500.990", "discount": "10", "iva": "21.00"},
+        {"name": "CAMA PERRO GRANDE", "pack": "UNIDAD", "profit": "35.00", "list_price": "5000.600", "discount": "0", "iva": "21.00"},
+        {"name": "CAMA GATO", "pack": "UNIDAD", "profit": "35.00", "list_price": "2000.880", "discount": "0", "iva": "21.00"},
+        {"name": "CUCHA PLÁSTICO PERRO MEDIANO", "pack": "UNIDAD", "profit": "30.00", "list_price": "4500.340", "discount": "0", "iva": "21.00"},
+        {"name": "CUCHA PLÁSTICO PERRO GRANDE", "pack": "UNIDAD", "profit": "30.00", "list_price": "6500.990", "discount": "15.00", "iva": "21.00"},
+        {"name": "ALMOHADÓN PERRO", "pack": "UNIDAD", "profit": "40.00", "list_price": "1800.500", "discount": "0", "iva": "21.00"},
+        {"name": "MANTA POLAR MASCOTAS", "pack": "UNIDAD", "profit": "40.00", "list_price": "1200.750", "discount": "0", "iva": "21.00"},
 
         # # Juguetes perros
-        # {"name": "PELOTA GOMA PERRO 6CM", "pack": "UNIDAD", "profit": "50", "list_price": "300.600", "discount": "0", "iva": "21"},
-        # {"name": "PELOTA TENIS PERRO", "pack": "UNIDAD", "profit": "50", "list_price": "250.990", "discount": "0", "iva": "21"},
-        # {"name": "HUESO GOMA PERRO", "pack": "UNIDAD", "profit": "50", "list_price": "400.750", "discount": "20", "iva": "21"},
-        # {"name": "CUERDA PERRO 30CM", "pack": "UNIDAD", "profit": "50", "list_price": "350.880", "discount": "0", "iva": "21"},
-        # {"name": "FRISBEE PERRO", "pack": "UNIDAD", "profit": "50", "list_price": "500.450", "discount": "0", "iva": "21"},
-        # {"name": "PELUCHE PERRO PEQUEÑO", "pack": "UNIDAD", "profit": "45", "list_price": "600.990", "discount": "0", "iva": "21"},
-        # {"name": "PELUCHE PERRO MEDIANO", "pack": "UNIDAD", "profit": "45", "list_price": "900.600", "discount": "10", "iva": "21"},
-        # {"name": "KONG PERRO PEQUEÑO", "pack": "UNIDAD", "profit": "40", "list_price": "1500.7500", "discount": "0", "iva": "21"},
-        # {"name": "KONG PERRO MEDIANO", "pack": "UNIDAD", "profit": "40", "list_price": "2000.340", "discount": "0", "iva": "21"},
-        # {"name": "KONG PERRO GRANDE", "pack": "UNIDAD", "profit": "40", "list_price": "2500.880", "discount": "15", "iva": "21"},
+        {"name": "PELOTA GOMA PERRO 6CM", "pack": "UNIDAD", "profit": "50.00", "list_price": "300.600", "discount": "0", "iva": "21.00"},
+        {"name": "PELOTA TENIS PERRO", "pack": "UNIDAD", "profit": "50.00", "list_price": "250.990", "discount": "0", "iva": "21.00"},
+        {"name": "HUESO GOMA PERRO", "pack": "UNIDAD", "profit": "50.00", "list_price": "400.750", "discount": "20.00", "iva": "21.00"},
+        {"name": "CUERDA PERRO 30CM", "pack": "UNIDAD", "profit": "50.00", "list_price": "350.880", "discount": "0", "iva": "21.00"},
+        {"name": "FRISBEE PERRO", "pack": "UNIDAD", "profit": "50.00", "list_price": "500.450", "discount": "0", "iva": "21.00"},
+        {"name": "PELUCHE PERRO PEQUEÑO", "pack": "UNIDAD", "profit": "45.00", "list_price": "600.990", "discount": "0", "iva": "21.00"},
+        {"name": "PELUCHE PERRO MEDIANO", "pack": "UNIDAD", "profit": "45.00", "list_price": "900.600", "discount": "10.00", "iva": "21.00"},
+        {"name": "KONG PERRO PEQUEÑO", "pack": "UNIDAD", "profit": "40.00", "list_price": "1500.7500", "discount": "0", "iva": "21.00"},
+        {"name": "KONG PERRO MEDIANO", "pack": "UNIDAD", "profit": "40.00", "list_price": "2000.340", "discount": "0", "iva": "21.00"},
+        {"name": "KONG PERRO GRANDE", "pack": "UNIDAD", "profit": "40.00", "list_price": "2500.880", "discount": "15.00", "iva": "21.00"},
         
         # # Juguetes gatos
-        # {"name": "RATÓN JUGUETE GATO", "pack": "UNIDAD", "profit": "50", "list_price": "200.750", "discount": "0", "iva": "21"},
-        # {"name": "VARITA PLUMAS GATO", "pack": "UNIDAD", "profit": "50", "list_price": "350.990", "discount": "0", "iva": "21"},
-        # {"name": "PELOTA CASCABEL GATO", "pack": "UNIDAD", "profit": "50", "list_price": "180.600", "discount": "10", "iva": "21"},
-        # {"name": "RASCADOR VERTICAL GATO", "pack": "UNIDAD", "profit": "35", "list_price": "3500.880", "discount": "0", "iva": "21"},
-        # {"name": "RASCADOR HORIZONTAL GATO", "pack": "UNIDAD", "profit": "35", "list_price": "1500.340", "discount": "0", "iva": "21"},
-        # {"name": "TÚNEL JUEGO GATO", "pack": "UNIDAD", "profit": "40", "list_price": "2000.990", "discount": "15", "iva": "21"},
-        # {"name": "LASER GATO", "pack": "UNIDAD", "profit": "45", "list_price": "600.500", "discount": "0", "iva": "21"},
+        {"name": "RATÓN JUGUETE GATO", "pack": "UNIDAD", "profit": "50.00", "list_price": "200.750", "discount": "0", "iva": "21.00"},
+        {"name": "VARITA PLUMAS GATO", "pack": "UNIDAD", "profit": "50.00", "list_price": "350.990", "discount": "0", "iva": "21.00"},
+        {"name": "PELOTA CASCABEL GATO", "pack": "UNIDAD", "profit": "50.00", "list_price": "180.600", "discount": "10.00", "iva": "21.00"},
+        {"name": "RASCADOR VERTICAL GATO", "pack": "UNIDAD", "profit": "35.00", "list_price": "3500.880", "discount": "0", "iva": "21.00"},
+        {"name": "RASCADOR HORIZONTAL GATO", "pack": "UNIDAD", "profit": "35.00", "list_price": "1500.340", "discount": "0", "iva": "21.00"},
+        {"name": "TÚNEL JUEGO GATO", "pack": "UNIDAD", "profit": "40.00", "list_price": "2000.990", "discount": "15.00", "iva": "21.00"},
+        {"name": "LASER GATO", "pack": "UNIDAD", "profit": "45.00", "list_price": "600.500", "discount": "0", "iva": "21.00"},
 
         # # Transportadoras
-        # {"name": "TRANSPORTADORA GATO PEQUEÑA", "pack": "UNIDAD", "profit": "30", "list_price": "3000.750", "discount": "0", "iva": "21"},
-        # {"name": "TRANSPORTADORA GATO MEDIANA", "pack": "UNIDAD", "profit": "30", "list_price": "4000.600", "discount": "0", "iva": "21"},
-        # {"name": "TRANSPORTADORA PERRO PEQUEÑO", "pack": "UNIDAD", "profit": "30", "list_price": "3500.880", "discount": "10", "iva": "21"},
-        # {"name": "TRANSPORTADORA PERRO MEDIANO", "pack": "UNIDAD", "profit": "30", "list_price": "5500.990", "discount": "0", "iva": "21"},
-        # {"name": "MOCHILA TRANSPORTE GATO", "pack": "UNIDAD", "profit": "35", "list_price": "4500.340", "discount": "0", "iva": "21"},
+        {"name": "TRANSPORTADORA GATO PEQUEÑA", "pack": "UNIDAD", "profit": "30.00", "list_price": "3000.750", "discount": "0", "iva": "21.00"},
+        {"name": "TRANSPORTADORA GATO MEDIANA", "pack": "UNIDAD", "profit": "30.00", "list_price": "4000.600", "discount": "0", "iva": "21.00"},
+        {"name": "TRANSPORTADORA PERRO PEQUEÑO", "pack": "UNIDAD", "profit": "30.00", "list_price": "3500.880", "discount": "10.00", "iva": "21.00"},
+        {"name": "TRANSPORTADORA PERRO MEDIANO", "pack": "UNIDAD", "profit": "30.00", "list_price": "5500.990", "discount": "0", "iva": "21.00"},
+        {"name": "MOCHILA TRANSPORTE GATO", "pack": "UNIDAD", "profit": "35.00", "list_price": "4500.340", "discount": "0", "iva": "21.00"},
 
         # # Sanitarios gatos
-        # {"name": "BANDEJA SANITARIA SIMPLE", "pack": "UNIDAD", "profit": "35", "list_price": "1200.750", "discount": "0", "iva": "21"},
-        # {"name": "BANDEJA SANITARIA CON TAPA", "pack": "UNIDAD", "profit": "35", "list_price": "2500.880", "discount": "0", "iva": "21"},
-        # {"name": "BANDEJA SANITARIA AUTOLIMPIANTE", "pack": "UNIDAD", "profit": "30", "list_price": "15000.990", "discount": "20", "iva": "21"},
-        # {"name": "PALA SANITARIA", "pack": "UNIDAD", "profit": "45", "list_price": "300.600", "discount": "0", "iva": "21"},
-        # {"name": "ALFOMBRA SANITARIA", "pack": "UNIDAD", "profit": "40", "list_price": "800.450", "discount": "0", "iva": "21"},
+        {"name": "BANDEJA SANITARIA SIMPLE", "pack": "UNIDAD", "profit": "35.00", "list_price": "1200.750", "discount": "0", "iva": "21.00"},
+        {"name": "BANDEJA SANITARIA CON TAPA", "pack": "UNIDAD", "profit": "35.00", "list_price": "2500.880", "discount": "0", "iva": "21.00"},
+        {"name": "BANDEJA SANITARIA AUTOLIMPIANTE", "pack": "UNIDAD", "profit": "30.00", "list_price": "15000.990", "discount": "20.00", "iva": "21.00"},
+        {"name": "PALA SANITARIA", "pack": "UNIDAD", "profit": "45.00", "list_price": "300.600", "discount": "0", "iva": "21.00"},
+        {"name": "ALFOMBRA SANITARIA", "pack": "UNIDAD", "profit": "40.00", "list_price": "800.450", "discount": "0", "iva": "21.00"},
         
         # # Snacks y premios
-        # {"name": "SNACK PERRO DENTAL", "pack": "CAJA 200G", "profit": "40", "list_price": "800.750", "discount": "0", "iva": "21"},
-        # {"name": "SNACK PERRO HUESOS", "pack": "BOLSA 500G", "profit": "40", "list_price": "1200.990", "discount": "10", "iva": "21"},
-        # {"name": "SNACK PERRO TIRAS POLLO", "pack": "BOLSA 250G", "profit": "40", "list_price": "900.600", "discount": "0", "iva": "21"},
-        # {"name": "SNACK GATO CREMOSO", "pack": "CAJA X12", "profit": "40", "list_price": "1500.880", "discount": "0", "iva": "21"},
-        # {"name": "SNACK GATO CRUJIENTE", "pack": "BOLSA 300G", "profit": "40", "list_price": "1000.340", "discount": "0", "iva": "21"},
-        # {"name": "HUESO CARNAZA PERRO", "pack": "UNIDAD", "profit": "45", "list_price": "600.990", "discount": "15", "iva": "21"},
-        # {"name": "OREJA CERDO PERRO", "pack": "UNIDAD", "profit": "45", "list_price": "400.500", "discount": "0", "iva": "21"},
+        {"name": "SNACK PERRO DENTAL", "pack": "CAJA 200G", "profit": "40.00", "list_price": "800.750", "discount": "0", "iva": "21.00"},
+        {"name": "SNACK PERRO HUESOS", "pack": "BOLSA 500G", "profit": "40.00", "list_price": "1200.990", "discount": "10.00", "iva": "21.00"},
+        {"name": "SNACK PERRO TIRAS POLLO", "pack": "BOLSA 250G", "profit": "40.00", "list_price": "900.600", "discount": "0", "iva": "21.00"},
+        {"name": "SNACK GATO CREMOSO", "pack": "CAJA X12", "profit": "40.00", "list_price": "1500.880", "discount": "0", "iva": "21.00"},
+        {"name": "SNACK GATO CRUJIENTE", "pack": "BOLSA 300G", "profit": "40.00", "list_price": "1000.340", "discount": "0", "iva": "21.00"},
+        {"name": "HUESO CARNAZA PERRO", "pack": "UNIDAD", "profit": "45.00", "list_price": "600.990", "discount": "15.00", "iva": "21.00"},
+        {"name": "OREJA CERDO PERRO", "pack": "UNIDAD", "profit": "45.00", "list_price": "400.500", "discount": "0", "iva": "21.00"},
 
         # # Vitaminas y suplementos
-        # {"name": "VITAMINAS PERRO CACHORROS", "pack": "CAJA X30", "profit": "35", "list_price": "1500.750", "discount": "0", "iva": "21"},
-        # {"name": "VITAMINAS PERRO ADULTOS", "pack": "CAJA X30", "profit": "35", "list_price": "1300.880", "discount": "0", "iva": "21"},
-        # {"name": "VITAMINAS GATO", "pack": "CAJA X30", "profit": "35", "list_price": "1400.990", "discount": "10", "iva": "21"},
-        # {"name": "SUPLEMENTO ARTICULACIONES", "pack": "FRASCO X60", "profit": "35", "list_price": "2500.340", "discount": "0", "iva": "21"},
-        # {"name": "OMEGA 3 MASCOTAS", "pack": "FRASCO X60", "profit": "35", "list_price": "2000.880", "discount": "0", "iva": "21"},
-        # {"name": "PROBIÓTICOS MASCOTAS", "pack": "FRASCO X30", "profit": "40", "list_price": "2200.7500", "discount": "20", "iva": "21"},
+        {"name": "VITAMINAS PERRO CACHORROS", "pack": "CAJA X30", "profit": "35.00", "list_price": "1500.750", "discount": "0", "iva": "21.00"},
+        {"name": "VITAMINAS PERRO ADULTOS", "pack": "CAJA X30", "profit": "35.00", "list_price": "1300.880", "discount": "0", "iva": "21.00"},
+        {"name": "VITAMINAS GATO", "pack": "CAJA X30", "profit": "35.00", "list_price": "1400.990", "discount": "10.00", "iva": "21.00"},
+        {"name": "SUPLEMENTO ARTICULACIONES", "pack": "FRASCO X60", "profit": "35.00", "list_price": "2500.340", "discount": "0", "iva": "21.00"},
+        {"name": "OMEGA 3 MASCOTAS", "pack": "FRASCO X60", "profit": "35.00", "list_price": "2000.880", "discount": "0", "iva": "21.00"},
+        {"name": "PROBIÓTICOS MASCOTAS", "pack": "FRASCO X30", "profit": "40.00", "list_price": "2200.7500", "discount": "20.00", "iva": "21.00"},
         
         # # Identificación
-        # {"name": "PLACA IDENTIFICACIÓN PERRO", "pack": "UNIDAD", "profit": "50", "list_price": "350.750", "discount": "0", "iva": "21"},
-        # {"name": "PLACA IDENTIFICACIÓN GATO", "pack": "UNIDAD", "profit": "50", "list_price": "300.990", "discount": "10", "iva": "21"},
-        # {"name": "CHIP IDENTIFICACIÓN", "pack": "UNIDAD", "profit": "30", "list_price": "1200.600", "discount": "0", "iva": "21"},
+        {"name": "PLACA IDENTIFICACIÓN PERRO", "pack": "UNIDAD", "profit": "50.00", "list_price": "350.750", "discount": "0", "iva": "21.00"},
+        {"name": "PLACA IDENTIFICACIÓN GATO", "pack": "UNIDAD", "profit": "50.00", "list_price": "300.990", "discount": "10.00", "iva": "21.00"},
+        {"name": "CHIP IDENTIFICACIÓN", "pack": "UNIDAD", "profit": "30.00", "list_price": "1200.600", "discount": "0", "iva": "21.00"},
 
-        # # Limpieza y hogar
-        # {"name": "PAÑOS HÚMEDOS MASCOTAS", "pack": "PAQUETE X50", "profit": "45", "list_price": "600.880", "discount": "0", "iva": "21"},
-        # {"name": "REPELENTE MASCOTAS", "pack": "SPRAY 250ML", "profit": "40", "list_price": "800.340", "discount": "0", "iva": "21"},
-        # {"name": "NEUTRALIZADOR OLORES", "pack": "SPRAY 500ML", "profit": "40", "list_price": "1000.990", "discount": "15", "iva": "21"},
-        # {"name": "LIMPIADOR PATAS", "pack": "FRASCO 250ML", "profit": "45", "list_price": "700.500", "discount": "0", "iva": "21"},
-        # {"name": "BOLSAS RESIDUOS PERRO", "pack": "ROLLO X100", "profit": "50", "list_price": "400.750", "discount": "0", "iva": "21"},
-        # {"name": "PAÑALES PERRO M", "pack": "PAQUETE X12", "profit": "40", "list_price": "1200.880", "discount": "0", "iva": "21"},
-        # {"name": "PAÑALES PERRO L", "pack": "PAQUETE X12", "profit": "40", "list_price": "1500.340", "discount": "20", "iva": "21"},
-        # {"name": "EMPAPADORES MASCOTAS", "pack": "PAQUETE X30", "profit": "40", "list_price": "2000.7500", "discount": "0", "iva": "21"},
+        # Limpieza y hogar
+        {"name": "PAÑOS HÚMEDOS MASCOTAS", "pack": "PAQUETE X50", "profit": "45.00", "list_price": "600.880", "discount": "0", "iva": "21.00"},
+        {"name": "REPELENTE MASCOTAS", "pack": "SPRAY 250ML", "profit": "40.00", "list_price": "800.340", "discount": "0", "iva": "21.00"},
+        {"name": "NEUTRALIZADOR OLORES", "pack": "SPRAY 500ML", "profit": "40.00", "list_price": "1000.990", "discount": "15.00", "iva": "21.00"},
+        {"name": "LIMPIADOR PATAS", "pack": "FRASCO 250ML", "profit": "45.00", "list_price": "700.500", "discount": "0", "iva": "21.00"},
+        {"name": "BOLSAS RESIDUOS PERRO", "pack": "ROLLO X100", "profit": "50.00", "list_price": "400.750", "discount": "0", "iva": "21.00"},
+        {"name": "PAÑALES PERRO M", "pack": "PAQUETE X12", "profit": "40.00", "list_price": "1200.880", "discount": "0", "iva": "21.00"},
+        {"name": "PAÑALES PERRO L", "pack": "PAQUETE X12", "profit": "40.00", "list_price": "1500.340", "discount": "20.00", "iva": "21.00"},
+        {"name": "EMPAPADORES MASCOTAS", "pack": "PAQUETE X30", "profit": "40.00", "list_price": "2000.7500", "discount": "0", "iva": "21.00"},
     ]
     
     # Obtener proveedores para asignar aleatoriamente
@@ -209,26 +209,30 @@ def seed_stock():
     # Insertar productos asignando proveedores al azar
     for p in productos_base:
         quantity = randint(5, 50)
-        list_price = convert_to_decimal(p['list_price'])
-        discount = convert_to_decimal(p['discount'])
-        iva = convert_to_decimal(p['iva'])
+        list_price = Decimal(p['list_price'])
+        discount = Decimal(p['discount'])
+        iva = Decimal(p['iva'])
         profit = Decimal(p['profit'])
 
         # Precio costo
         discount_rate = discount / Decimal('100')
         unit_d_amount = list_price * discount_rate
-        cost_price = convert_to_decimal(list_price - unit_d_amount)
+        cost_price = list_price - unit_d_amount
 
         # Precio venta
         profit_rate = profit / Decimal('100')
         profit_amount = cost_price * profit_rate
-        sale_price = convert_to_decimal(cost_price + profit_amount)
+        sale_price = cost_price + profit_amount
         
         # Precio de venta con IVA
         iva_rate = iva / Decimal('100')
         iva_amount = sale_price * iva_rate
         price_with_iva = sale_price + iva_amount        
         
+        cost_price = convert_to_decimal(cost_price)
+        sale_price = convert_to_decimal(sale_price)
+        price_with_iva = convert_to_decimal(price_with_iva)
+
         cursor.execute("""
             INSERT OR REPLACE INTO stock
             (name, pack, profit, list_price, discount, cost_price, price, iva, price_with_iva, quantity, created_at, last_price_update)
@@ -673,7 +677,7 @@ def seed_sales_with_products():
         sale_id = cur.lastrowid
 
         # Agregar productos aleatorios
-        total_venta = 0
+        total_venta = Decimal('0.00')
         num_productos = randint(2, 5)
         
         for _ in range(num_productos):
@@ -752,7 +756,7 @@ def seed_suppliers():
         "Rivadavia", "Ruta 8", "Ruta 158", "Ruta A005"
     ]
 
-    condicion_iva = ["RESP. INS", "MONOTRIBUTISTA", "EXENTO"]
+    condicion_iva = ["RESP. INS", "MONOTRIBUTISTA", "EXENTO", "NO RESPONSABLE"]
     
     suppliers = []
     
@@ -788,12 +792,6 @@ def seed_suppliers():
         # Email
         nombre_email = nombre.lower().replace(" ", "").replace("&", "")[:15]
         email = f"{nombre_email}@example.com"
-        
-        # Deuda aleatoria (70% sin deuda, 30% con deuda)
-        if randint(1, 100) <= 70:
-            debt = 0
-        else:
-            debt = randint(5000, 150000)
 
         iva_condition = choice(condicion_iva)            
         
@@ -804,7 +802,6 @@ def seed_suppliers():
             "phone": phone,
             "email": email,
             "iva_condition": iva_condition,
-            "debt": debt
         })
     
     supplier_mdl = SupplierModel()
@@ -821,9 +818,8 @@ if __name__ == "__main__":
     seed_company_data()
     seed_suppliers()
     seed_client()
-    #seed_clients()
+    seed_clients()
     seed_stock()
-    #seed_sales_with_fiados()
     #seed_sales_with_products()
     
     print("-" * 50)

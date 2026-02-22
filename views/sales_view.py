@@ -231,6 +231,7 @@ class SalesView:
             messagebox.showerror("Error", f"No se pudo agregar el producto: {e}")
 
     def open_today_sales_window(self, rows):
+        print('aca')
         """Ventana con tabla para mostrar ventas del día"""
         width_win = 700
         height_win = 600
@@ -343,6 +344,7 @@ class SalesView:
                 _, _, qty, price, _ = item
             else:  # Producto normal
                 _, _, qty, price = item
+
             total += qty * price
         
         total = normalize_to_2_decimals(total)
@@ -531,7 +533,6 @@ class SalesView:
             if len(item) == 5:
                 pid, name, qty, price, observations = item
                 product_name = f"{name}\n({observations[:50]}...)" if len(observations) > 50 else f"{name}\n({observations})"
-                print(price)
             else:
                 pid, name, qty, price = item
                 product_name = name
@@ -874,15 +875,18 @@ class SalesView:
                 )
 
                 # Llenar tabla
-                total_ventas = 0
-                total_pagado = 0
-                total_saldo = 0
+                total_ventas = Decimal('0.00')
+                total_pagado = Decimal('0.00')
+                total_saldo = Decimal('0.00')
 
                 for venta in ventas:
                     sale_id, fecha, total, cliente_nombre, estado_venta, pagado = venta
                     
+                    total_d = Decimal(total)
+                    pagado_d = Decimal(pagado)
+
                     # Calcular saldo
-                    saldo = max(0, total - pagado)
+                    saldo = max(Decimal('0.00'), Decimal(total_d - pagado_d))
                     
                     # Formatear fecha y hora
                     try:
@@ -909,13 +913,13 @@ class SalesView:
                         hora_str,
                         cliente_nombre if cliente_nombre else "Consumidor Final",
                         estado_texto,
-                        f"${total:,.2f}",
-                        f"${pagado:,.2f}",
-                        f"${saldo:,.2f}"
+                        f"${total_d}",
+                        f"${pagado_d}",
+                        f"${saldo}"
                     ), tags=(tag,))
                     
-                    total_ventas += total
-                    total_pagado += pagado
+                    total_ventas += total_d
+                    total_pagado += pagado_d
                     total_saldo += saldo
 
                 # Actualizar resumen
@@ -923,7 +927,7 @@ class SalesView:
                     text=f"📊 {len(ventas)} ventas encontradas"
                 )
                 total_label.configure(
-                    text=f"Total: ${total_ventas:,.2f} | Pagado: ${total_pagado:,.2f} | Saldo: ${total_saldo:,.2f}"
+                    text=f"Total: ${total_ventas} | Pagado: ${total_pagado} | Saldo: ${total_saldo}"
                 )
 
             except Exception as e:
