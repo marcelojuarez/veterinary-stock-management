@@ -8,8 +8,8 @@ from datetime import datetime, timedelta
 from models.customer import CustomerModel
 from views.client_selector import ClientSelectorDialog
 from services.daily_sales_report import DailySalesReportService
-from utils.utils import norm_string_to_2_dec, normalize_to_2_decimals
-from views.view_helpers import center_window, show_error, show_warning, show_success, ask_confirmation
+from utils.view_helpers import center_window
+from utils.utils import norm_to_2_dec, format_currency
 
 
 ctk.set_appearance_mode("light")
@@ -89,7 +89,7 @@ class SalesView:
             font=ctk.CTkFont(size=12, weight="bold"),
             command=lambda: self.controller.show_today_sales()
         )
-        today_btn.grid(row=0, column=3, padx=10)
+        today_btn.grid(row=0, column=2, padx=10)
 
     # --------------------------------------------------------------------
     # PANEL IZQUIERDO - STOCK DISPONIBLE
@@ -200,7 +200,14 @@ class SalesView:
                 return
 
             item = self.product_tree.item(selected[0])["values"]
-            product_id, name, price, stock = item
+            p_data = self.stock_model.get_product_by_id(item[0])
+
+            product_id, name, _, _, _, _ ,_ , _, _, \
+            price_with_iva, _, _, stock = p_data
+            
+            price = norm_to_2_dec(price_with_iva)
+
+            print(product_id, name, price, stock)
 
             # Ventana emergente para cantidad
             qty_win = ctk.CTkToplevel(self.frame)
@@ -317,7 +324,7 @@ class SalesView:
                 pid, name, qty, price = item
                 display_name = name if name else self._get_product_name(pid)
             
-            subtotal = normalize_to_2_decimals(price * qty)
+            subtotal = norm_to_2_dec(price * qty)
             self.sale_tree.insert("", "end", values=(pid, display_name, qty, price, subtotal))
 
     def _get_product_name(self, pid):
@@ -336,9 +343,10 @@ class SalesView:
                 _, _, qty, price, _ = item
             else:  # Producto normal
                 _, _, qty, price = item
+
             total += qty * price
         
-        total = normalize_to_2_decimals(total)
+        total = norm_to_2_dec(total)
         self.total_var.set(f"TOTAL: ${total}")
 
     def clear_sale(self):
@@ -366,16 +374,6 @@ class SalesView:
         except IndexError:
             messagebox.showwarning("Advertencia", "Seleccione un producto para eliminar.")
 
-    def delete_item(self):
-        """Eliminar item seleccionado de la venta"""
-        if not self.sales_view.ask_confirmation("¿Eliminar artículo?"):
-            return
-
-        if self.sales_view.delete_selected_product():
-            self.sales_view.show_success("Artículo eliminado correctamente.")
-        else:
-            self.sales_view.show_warning("Seleccione el artículo que desea eliminar.")
-
     def load_available_products(self):
         """Cargar productos disponibles y guardar en caché"""
         try:
@@ -400,22 +398,8 @@ class SalesView:
                 self.product_tree.insert(
                     "", 
                     "end", 
-                    values=(pid, name, norm_string_to_2_dec(price_with_iva), qty)
+                    values=(pid, name, format_currency(price_with_iva), qty)
                 )
-
-
-    def on_client_selected(self, selected_name):
-        """Actualizar datos del cliente al cambiar selección"""
-        try:
-            data = self.controller.get_client_data(selected_name)
-            if data:
-                self.client_cuit_var.set(data.get("cuit", ""))
-                self.client_address_var.set(data.get("domicilio", ""))
-            else:
-                self.client_cuit_var.set("")
-                self.client_address_var.set("")
-        except Exception as e:
-            self.show_error(f"No se pudieron cargar los datos del cliente: {e}")
 
     def refresh_client_list(self, event=None):
         names = self.controller.get_client_names()
@@ -518,7 +502,6 @@ class SalesView:
             if len(item) == 5:
                 pid, name, qty, price, observations = item
                 product_name = f"{name}\n({observations[:50]}...)" if len(observations) > 50 else f"{name}\n({observations})"
-                print(price)
             else:
                 pid, name, qty, price = item
                 product_name = name
@@ -529,7 +512,7 @@ class SalesView:
                             product_name = values[1]
                             break
             
-            subtotal = normalize_to_2_decimals(price * qty)
+            subtotal = norm_to_2_dec(price * qty)
             total += subtotal
             
             preview_tree.insert("", "end", values=(
@@ -540,7 +523,7 @@ class SalesView:
             ))
 
         # Se normaliza el total
-        total = normalize_to_2_decimals(total)
+        total = norm_to_2_dec(total)
         preview_tree.pack(padx=8, pady=5, fill="both", expand=True)  # Reducido padding
         
         # Frame de totales - MÁS COMPACTO
@@ -855,15 +838,18 @@ class SalesView:
                 )
 
                 # Llenar tabla
-                total_ventas = 0
-                total_pagado = 0
-                total_saldo = 0
+                total_ventas = Decimal('0.00')
+                total_pagado = Decimal('0.00')
+                total_saldo = Decimal('0.00')
 
                 for venta in ventas:
                     sale_id, fecha, total, cliente_nombre, estado_venta, pagado = venta
                     
+                    total_d = Decimal(total)
+                    pagado_d = Decimal(pagado)
+
                     # Calcular saldo
-                    saldo = max(0, total - pagado)
+                    saldo = max(Decimal('0.00'), Decimal(total_d - pagado_d))
                     
                     # Formatear fecha y hora
                     try:
@@ -890,13 +876,13 @@ class SalesView:
                         hora_str,
                         cliente_nombre if cliente_nombre else "Consumidor Final",
                         estado_texto,
-                        f"${total:,.2f}",
-                        f"${pagado:,.2f}",
-                        f"${saldo:,.2f}"
+                        f"${total_d}",
+                        f"${pagado_d}",
+                        f"${saldo}"
                     ), tags=(tag,))
                     
-                    total_ventas += total
-                    total_pagado += pagado
+                    total_ventas += total_d
+                    total_pagado += pagado_d
                     total_saldo += saldo
 
                 # Actualizar resumen
@@ -904,7 +890,7 @@ class SalesView:
                     text=f"📊 {len(ventas)} ventas encontradas"
                 )
                 total_label.configure(
-                    text=f"Total: ${total_ventas:,.2f} | Pagado: ${total_pagado:,.2f} | Saldo: ${total_saldo:,.2f}"
+                    text=f"Total: ${total_ventas} | Pagado: ${total_pagado} | Saldo: ${total_saldo}"
                 )
 
             except Exception as e:
@@ -1066,7 +1052,6 @@ class SalesView:
         )
         self.radio_credit.grid(row=0, column=1)
 
-
     def open_client_selector(self):
         """Abrir diálogo de selección de cliente"""        
         customer_model = CustomerModel()
@@ -1085,6 +1070,7 @@ class SalesView:
     
     def on_client_selected(self, selected_name):
         try:
+            print('se ejecuta')
             if selected_name == "Consumidor Final":
                 self.client_cuit_var.set("")
                 self.client_address_var.set("")

@@ -1,6 +1,6 @@
 from datetime import datetime
 from utils.utils import traditional_to_iso
-from views.view_helpers import close_win, show_error
+from utils.view_helpers import close_win, show_error
 
 class SupplierReceiptController():
     def __init__(self):

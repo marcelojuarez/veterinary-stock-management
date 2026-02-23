@@ -1,7 +1,7 @@
+from decimal import Decimal
 from datetime import datetime
 from models.stock import StockModel
-from views.view_helpers import show_error, show_warning, show_success, close_win
-from decimal import Decimal
+from utils.view_helpers import show_error, show_warning, show_success, close_win
 
 class PurchaseController():
     def __init__(self, event_bus):

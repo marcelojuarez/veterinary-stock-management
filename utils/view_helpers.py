@@ -1,4 +1,3 @@
-import tkinter as tk
 from tkinter import messagebox
 
 def close_win( win, parent, callback=None):

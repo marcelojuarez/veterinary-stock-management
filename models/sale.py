@@ -1,5 +1,7 @@
 from db.database import db
 from datetime import datetime
+from decimal import Decimal
+from utils.utils import norm_to_2_dec
 
 class SalesModel:
     def __init__(self):
@@ -27,17 +29,17 @@ class SalesModel:
                 # OBTENER IVA DEL PRODUCTO
                 cursor.execute("SELECT iva FROM stock WHERE id = ?", (product_id,))
                 row = cursor.fetchone()
-                iva_rate = float(row[0]) if row and row[0] else 21.0
+                iva_rate = Decimal(row[0]) if row and row[0] else Decimal*('21.00')
                 
                 # CALCULAR MONTOS
-                subtotal = round(price * quantity, 2)
-                iva_amount = round(subtotal * (iva_rate / 100), 2)
+                subtotal = norm_to_2_dec(price * quantity)
+                iva_amount = norm_to_2_dec(subtotal * (iva_rate / Decimal('100')))
                 
                 # GUARDAR CON IVA
                 cursor.execute("""
                     INSERT INTO sale_items (sale_id, product_id, quantity, price, subtotal, iva_rate, iva_amount, observations)
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                """, (sale_id, product_id, quantity, price, subtotal, iva_rate, iva_amount, observations))
+                """, (sale_id, product_id, quantity, str(price), str(subtotal), str(iva_rate), str(iva_amount), observations))
 
                 # Solo descontar stock si NO es honorarios
                 cursor.execute("SELECT name FROM stock WHERE id = ?", (product_id,))
@@ -59,7 +61,7 @@ class SalesModel:
                 s.estado
             FROM sales s
             LEFT JOIN clientes c ON s.cliente_id = c.id
-            WHERE date(s.date) = date('now')
+            WHERE date(s.date) = date('now','localtime')
             ORDER BY s.date DESC
         """
         return db.fetch_all(query)

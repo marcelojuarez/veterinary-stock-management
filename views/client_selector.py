@@ -1,7 +1,7 @@
 import customtkinter as ctk
 from tkinter import ttk
 import tkinter as tk
-from views.view_helpers import center_window
+from utils.view_helpers import center_window
 class ClientSelectorDialog:
     """Diálogo mejorado para selección de clientes con búsqueda"""
     

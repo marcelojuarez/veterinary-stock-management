@@ -2,8 +2,8 @@ import tkinter as tk
 import customtkinter as ctk
 
 from decimal import Decimal
-from utils.utils import convert_to_decimal, normalize_string_to_dec, norm_string_to_2_dec
-from views.view_helpers import close_win, ask_confirmation
+from utils.view_helpers import close_win, ask_confirmation
+from utils.utils import flex_dec, string_to_flex_dec, string_to_2_dec
 
 class NewProductForm():
     def __init__(self, controller):
@@ -152,9 +152,9 @@ class NewProductForm():
 
         def recalc(*args):
             try:
-                self.list_price = normalize_string_to_dec(self.list_price_var.get())
-                self.profit = norm_string_to_2_dec(self.profit_var.get())
-                self.iva = normalize_string_to_dec(self.iva_var.get())
+                self.list_price = string_to_flex_dec(self.list_price_var.get())
+                self.profit = string_to_2_dec(self.profit_var.get())
+                self.iva = string_to_flex_dec(self.iva_var.get())
                 
                 if self.list_price is None or self.profit is None or self.iva is None:
                     return
@@ -170,9 +170,9 @@ class NewProductForm():
                 sale_price_with_iva = sale_price + iva_amount
 
                 # normalizacion final
-                sale_price = convert_to_decimal(sale_price)
-                iva_amount = convert_to_decimal(iva_amount)
-                sale_price_with_iva = convert_to_decimal(sale_price_with_iva)
+                sale_price = flex_dec(sale_price)
+                iva_amount = flex_dec(iva_amount)
+                sale_price_with_iva = flex_dec(sale_price_with_iva)
 
                 self.iva_amount.set(iva_amount)
                 self.sale_price_var.set(sale_price)

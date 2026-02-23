@@ -1,6 +1,6 @@
 # controllers/supplier_controller.py
-from views.view_helpers import show_warning, show_error, show_success
 import re
+from utils.view_helpers import show_warning, show_error, show_success
 
 class SupplierController():
     def __init__(self):

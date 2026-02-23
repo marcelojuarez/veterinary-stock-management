@@ -1,7 +1,7 @@
 from datetime import datetime
 from utils.utils import traditional_to_iso
 from decimal import Decimal
-from utils.utils import normalize_to_2_decimals
+from utils.utils import norm_to_2_dec
 
 class SupplierInvoice():
     def __init__(self, db):
@@ -115,7 +115,7 @@ class SupplierInvoice():
         for row in rows:
             amount += Decimal(row[0])
 
-        return normalize_to_2_decimals(amount)
+        return norm_to_2_dec(amount)
     
     ## -- Obtiene el monto de las percepciones IIBB -- ##
     def get_iibb_per_amount(self, invoice_id):
@@ -133,7 +133,7 @@ class SupplierInvoice():
             return Decimal('0.00')
         
         else:
-            return normalize_to_2_decimals(amount[0])
+            return norm_to_2_dec(amount[0])
 
     ## -- Obtiene el monto de las percepciones IVA -- ##
     def get_iva_per_amount(self, invoice_id):
@@ -151,7 +151,7 @@ class SupplierInvoice():
             return Decimal('0.00')
         
         else:
-            return normalize_to_2_decimals(amount[0])
+            return norm_to_2_dec(amount[0])
 
     ## -- Elimina un registro de factura -- ##
     def delete_invoice(self, invoice_id, conn=None, commit=True):

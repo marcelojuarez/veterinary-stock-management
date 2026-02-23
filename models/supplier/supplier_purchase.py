@@ -5,7 +5,7 @@ from models.stock import StockModel
 from .supplier_invoice import SupplierInvoice
 from .supplier_receipt import SupplierReceipt
 from decimal import Decimal
-from utils.utils import normalize_to_2_decimals, traditional_to_iso, convert_to_decimal
+from utils.utils import norm_to_2_dec, traditional_to_iso, flex_dec
 
 class SupplierPurchase():
     def __init__(self, db):
@@ -213,17 +213,17 @@ class SupplierPurchase():
             iva_amount = self.get_iva_amount_of_p_items(purchase_id, conn=conn)
 
             iva_discount = (iva_amount * discount) / Decimal('100')
-            iva_amount =  normalize_to_2_decimals(iva_amount - iva_discount)
+            iva_amount =  norm_to_2_dec(iva_amount - iva_discount)
 
             ## Subtotal
             orig_subtotal = self.get_subtotal_of_items(purchase_id, conn=conn)
             
             ## Descuento
-            discount_amount = normalize_to_2_decimals(
+            discount_amount = norm_to_2_dec(
                 (orig_subtotal * discount) / Decimal('100')
             )
 
-            subtotal = normalize_to_2_decimals(orig_subtotal - discount_amount)
+            subtotal = norm_to_2_dec(orig_subtotal - discount_amount)
 
             perceptions_amount = self.supplier_invoice.get_invoice_perceptions_amount(doc_id)
             
@@ -299,7 +299,7 @@ class SupplierPurchase():
         for row in rows:
             subtotal += Decimal(row[0])
 
-        return normalize_to_2_decimals(subtotal)
+        return norm_to_2_dec(subtotal)
 
     ## -- Obtener suma de iva de items -- ##
     def get_iva_amount_of_p_items(self, purchase_id, conn=None):
@@ -315,7 +315,7 @@ class SupplierPurchase():
         for row in rows:
             iva_amount += Decimal(row[0])
 
-        return normalize_to_2_decimals(iva_amount)
+        return norm_to_2_dec(iva_amount)
 
     ## -- Obtener todos los productos de un proveedor a traves de las compras
     def get_all_products_by_supplier_id(self, supplier_id):
@@ -480,9 +480,9 @@ class SupplierPurchase():
             else:
                 price_with_iva = sale_price
 
-            cost_price = convert_to_decimal(cost_price)
-            sale_price = convert_to_decimal(sale_price)
-            price_with_iva = convert_to_decimal(price_with_iva)
+            cost_price = flex_dec(cost_price)
+            sale_price = flex_dec(sale_price)
+            price_with_iva = flex_dec(price_with_iva)
 
             product_data = {
                 'id': id, # id producto
@@ -571,7 +571,7 @@ class SupplierPurchase():
         for row in rows:
             pending += Decimal(row[0])
 
-        return normalize_to_2_decimals(pending)
+        return norm_to_2_dec(pending)
     
     def update_last_debt_update(self, supplier_id, conn=None, commit=True):
         date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")

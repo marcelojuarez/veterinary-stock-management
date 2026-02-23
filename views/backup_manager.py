@@ -12,7 +12,7 @@ import shutil
 import logging
 from pathlib import Path
 from views.stock_view import StockView
-from views.view_helpers import center_window
+from utils.view_helpers import center_window
 
 class BackupManagerView(ctk.CTkFrame):
     """Vista para gestionar backups de la base de datos"""

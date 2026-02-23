@@ -3,8 +3,8 @@ import customtkinter as ctk
 from decimal import Decimal
 from models.stock import StockModel
 from tkinter import ttk, messagebox
-from views.view_helpers import center_window, close_win, show_warning
-from utils.utils import iso_to_traditional, norm_string_to_2_dec, normalize_to_2_decimals, convert_to_decimal, normalize_string_to_dec
+from utils.view_helpers import center_window, close_win, show_warning
+from utils.utils import iso_to_traditional, format_currency, string_to_2_dec, string_to_flex_dec, norm_to_2_dec, flex_dec
 
 # Configurar tema y colores
 ctk.set_appearance_mode("light")  # "light" o "dark"
@@ -261,7 +261,7 @@ class StockView():
             info_label = ctk.CTkLabel(
                 window, 
                 text=f"Producto: {name} | Código: {product_id} \n" \
-                    f"Costo Real: ${cost_price} | Costo Final: ${normalize_to_2_decimals(cost_price)} ",
+                    f"Costo Real: ${cost_price} | Costo Final: ${norm_to_2_dec(cost_price)} ",
                 font=ctk.CTkFont(size=14, weight="bold")
             )
             info_label.pack(pady=20)
@@ -316,7 +316,7 @@ class StockView():
                     profit_entry.configure(state="disabled")
                     profit_var.set(profit)
                     try:
-                        self.new_cost = normalize_string_to_dec(cost_var.get())
+                        self.new_cost = string_to_flex_dec(cost_var.get())
 
                         if self.new_cost is None:
                             raise ValueError
@@ -335,8 +335,8 @@ class StockView():
                             self.price_with_iva = self.new_sale_price
 
                         # Normalizacion
-                        self.new_sale_price = convert_to_decimal(self.new_sale_price)
-                        self.price_with_iva = convert_to_decimal(self.price_with_iva)
+                        self.new_sale_price = flex_dec(self.new_sale_price)
+                        self.price_with_iva = flex_dec(self.price_with_iva)
                         
                         result_var.set(
                             f"Precio De Costo: ${self.new_cost} | "\
@@ -353,7 +353,7 @@ class StockView():
                     cost_var.set(cost_price)
                     try:
                         
-                        self.new_profit = norm_string_to_2_dec(profit_var.get())
+                        self.new_profit = string_to_2_dec(profit_var.get())
 
                         if self.new_profit is None:
                             raise ValueError
@@ -372,8 +372,8 @@ class StockView():
                             self.price_with_iva = self.new_sale_price
                             
                         # Normalizacion
-                        self.new_sale_price = convert_to_decimal(self.new_sale_price)
-                        self.price_with_iva = convert_to_decimal(self.price_with_iva)
+                        self.new_sale_price = flex_dec(self.new_sale_price)
+                        self.price_with_iva = flex_dec(self.price_with_iva)
 
                         result_var.set(
                             f"Precio De Costo: ${self.cost} | "\
@@ -764,8 +764,8 @@ class StockView():
             self.stock_tree.insert(
                 "", "end", 
                 values=(
-                    id, name, pack, norm_string_to_2_dec(list_price), discount, norm_string_to_2_dec(cost_price), 
-                    profit, norm_string_to_2_dec(price), iva, norm_string_to_2_dec(price_with_iva), 
+                    id, name, pack, format_currency(list_price), discount, format_currency(cost_price), 
+                    profit, format_currency(price), iva, format_currency(price_with_iva), 
                     iso_to_traditional(created_at), iso_to_traditional(last_price_update), quantity), 
                 tags=(tag,)
             )

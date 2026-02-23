@@ -1,7 +1,7 @@
-from views.view_helpers import show_success, show_error, show_warning, close_win
-from datetime import datetime
-from utils.utils import normalize_string_to_dec, traditional_to_iso
 from decimal import Decimal
+from datetime import datetime
+from utils.utils import string_to_flex_dec, traditional_to_iso
+from utils.view_helpers import show_success, show_error, show_warning, close_win
 
 class SupplierInvoiceController():
     def __init__(self):
@@ -29,9 +29,9 @@ class SupplierInvoiceController():
                 win.focus_force()
                 return
 
-            iibb_per = normalize_string_to_dec(data['iibb_per'])
-            iva_per = normalize_string_to_dec(data['iva_per'])
-            discount = normalize_string_to_dec(data['discount'])
+            iibb_per = string_to_flex_dec(data['iibb_per'])
+            iva_per = string_to_flex_dec(data['iva_per'])
+            discount = string_to_flex_dec(data['discount'])
 
             state = 'BORRADOR'
 
@@ -108,7 +108,7 @@ class SupplierInvoiceController():
             show_error('Error. Formato incorrecto en la Percepcion IIBB')
             return False
         
-        iibb_per = normalize_string_to_dec(data['iibb_per'])
+        iibb_per = string_to_flex_dec(data['iibb_per'])
 
         if iibb_per < Decimal('0.00'):
             show_error('Error. El monto de Percepcion IIBB debe ser positivo')
@@ -119,7 +119,7 @@ class SupplierInvoiceController():
             show_error('Error. Formato incorrecto en la Percepcion IVA')
             return False
 
-        iva_per = normalize_string_to_dec(data['iva_per'])
+        iva_per = string_to_flex_dec(data['iva_per'])
 
         if iva_per < Decimal('0.00'):
             show_error('Error. El monto de Percepcion IVA debe ser positivo')
@@ -130,7 +130,7 @@ class SupplierInvoiceController():
             show_error('Error. Formato incorrecto en el descuento.')
             return False
 
-        discount = normalize_string_to_dec(data['discount'])
+        discount = string_to_flex_dec(data['discount'])
 
         if discount < Decimal('0.00') \
         or discount > Decimal('99.00'):
@@ -151,7 +151,7 @@ class SupplierInvoiceController():
     ## -- Valida si un dato es un decimal o se puede normalizar -- ##
     @staticmethod
     def is_decimal(value):
-        value = normalize_string_to_dec(value)
+        value = string_to_flex_dec(value)
         if value is None:
             return False
         else:    

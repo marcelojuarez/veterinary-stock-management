@@ -1,7 +1,6 @@
-import customtkinter as ctk
 from tksheet import Sheet
-from views.view_helpers import close_win
-
+import customtkinter as ctk
+from utils.view_helpers import close_win
 
 class PaymentInfo():
     def __init__(self, model):

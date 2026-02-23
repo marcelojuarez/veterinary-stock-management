@@ -1,14 +1,12 @@
 from decimal import Decimal, ROUND_HALF_UP, InvalidOperation
 from datetime import datetime
 
-# Funciones auxiliares para precios
-## Convierte un valor en un objeto Decimal redondeado 2 decimales
-## Usado para dinero, deuda, subtotales, monto_iva y totales
-def normalize_to_2_decimals(value):
+## Redondea value a un valor con 2 decimales
+def norm_to_2_dec(value):
     return Decimal(value).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
 
-## Convierte un valor en un objeto Decimal redondeado 4 decimales
-def normalize_to_4_decimals(value):
+## Redondea value a un valor con 4 decimales
+def norm_to_4_dec(value):
     return Decimal(value).quantize(Decimal("0.0001"), rounding=ROUND_HALF_UP)
 
 # Dado un decimal determina si tiene mas de 4 decimales 
@@ -32,9 +30,8 @@ def trim_trailing_zeros_to_min_2(dec: Decimal) -> Decimal:
 
     return normalized
     
-## Convierte un valor a decimal de hasta 4 decimales
-## Usado para precios de productos
-def convert_to_decimal(value):
+## Dado un valor retorna un Obj Decimal manteniendo entre 2 y 4 decimales
+def flex_dec(value):
     try:
         if isinstance(value, Decimal):
             dec = value
@@ -42,7 +39,7 @@ def convert_to_decimal(value):
             dec = Decimal(str(value))  
         
         if has_more_than_4_decimals(dec):
-            dec = normalize_to_4_decimals(dec)
+            dec = norm_to_4_dec(dec)
 
         dec = trim_trailing_zeros_to_min_2(dec)
         return dec
@@ -51,7 +48,7 @@ def convert_to_decimal(value):
         return None
 
 ## Dado un string devuelve su representacion como entero
-def normalize_int_to_dec(value):
+def string_to_dec(value):
     if value.strip() == "":
         return None
     
@@ -60,30 +57,39 @@ def normalize_int_to_dec(value):
     except:
         return None
 
-## Dado un string devuelve su representacion en decimal
-## Usado para las StringVars
-def normalize_string_to_dec(value):
+## Dado un string devuelve su representacion en decimal flexible
+def string_to_flex_dec(value):
     if value.strip() == "":
         return None
 
     # reemplazar ',' por '.'
     value = value.replace(",", ".")
     try:
-        return convert_to_decimal(value)
+        return flex_dec(value)
     except:
         return None
     
-# normaliza un string a dos decimales
-def norm_string_to_2_dec(value):
+## Dado un string devuelve su representacion con 2 decimales
+def string_to_2_dec(value):
     if value.strip() == "":
         return None
 
     # reemplazar ',' por '.'
     value = value.replace(",", ".")
     try:
-        return normalize_to_2_decimals(value)
+        return norm_to_2_dec(value)
     except:
         return None
+
+## Convierte un Decimal a string con formato monetario
+def format_currency(value):
+    number = norm_to_2_dec(value)
+    
+    formatted = f"{number:,.2f}"
+    
+    formatted = formatted.replace(",", "X").replace(".", ",").replace("X", ".")
+    
+    return formatted
 
 ## Formato de fechas ##
 ## -- Convierte de "YYYY-MM-DD" a "DD/MM/YYYY" -- ##

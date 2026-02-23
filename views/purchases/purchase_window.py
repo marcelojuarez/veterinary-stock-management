@@ -1,16 +1,15 @@
 import tkinter as tk
+from tkinter import ttk
 import customtkinter as ctk
 
-from tkinter import ttk
-
-from .purchase_info_receipt_view import PurchaseInfoReceiptView
-from .purchase_info_invoice_view import PurchaseInfoInvoiceView
 from .purchase_form import PurchaseForm
 from utils.utils import iso_to_traditional
-from controllers.purchase_filter_controller import PurchaseFilterController
-from views.view_helpers import center_window, close_win, show_warning, show_error
+from utils.view_helpers import center_window, close_win, show_warning, show_error
+from .purchase_info_invoice_view import PurchaseInfoInvoiceView
+from .purchase_info_receipt_view import PurchaseInfoReceiptView
 from views.supplier_doc.supplier_invoice_form import SupplierInvoiceForm
 from views.supplier_doc.supplier_receipt_form import SupplierReceiptForm
+from controllers.purchase_filter_controller import PurchaseFilterController
 
 class PurchaseWindow():
     def __init__(self, model, stock_model, frame, controller, invoice_controller, receipt_controller):
