@@ -24,13 +24,13 @@ class IVAModel:
                 si.iva_rate as alicuota_iva,
 
                 -- Neto real
-                SUM(si.subtotal) as neto,
+                SUM(si.subtotal - si.iva_amount) as neto,
 
                 -- IVA real
                 SUM(si.iva_amount) as iva,
 
                 -- Total CORRECTO
-                SUM(si.subtotal + si.iva_amount) as total
+                SUM(si.subtotal) as total
 
             FROM sales s
             LEFT JOIN clientes c ON c.id = s.cliente_id
