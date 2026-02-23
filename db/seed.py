@@ -33,6 +33,9 @@ def seed_company_data():
 def seed_stock():
     # Categorías base de productos
     productos_base = [
+        #Honorarios
+        {"name": "HONORARIOS PROFESIONALES", "pack": "-", "profit": "0.00", "list_price": "0.00", "discount": "0.00", "iva": "0.00"},
+
         # Alimentos perros
         {"name": "ALIMENTO CANINO CACHORRO", "pack": "BOLSA 3KG", "profit": "30.00", "list_price": "2500.9358", "discount": "0", "iva": "21.00"},
         {"name": "ALIMENTO CANINO CACHORRO", "pack": "BOLSA 15KG", "profit": "28.00", "list_price": "11000.088", "discount": "0", "iva": "21.00"},
@@ -208,7 +211,11 @@ def seed_stock():
     
     # Insertar productos asignando proveedores al azar
     for p in productos_base:
-        quantity = randint(5, 50)
+        if p['name'] == "HONORARIOS":
+            quantity = int(1)
+        else:
+            quantity = randint(5, 50)
+            
         list_price = Decimal(p['list_price'])
         discount = Decimal(p['discount'])
         iva = Decimal(p['iva'])

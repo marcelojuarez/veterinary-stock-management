@@ -25,8 +25,6 @@ class SalesController:
         """Validar y agregar producto a la venta"""
         try:
             quantity = int(qty_input)
-            stock = int(stock)
-            price = Decimal(price)
 
             if quantity <= 0:
                 self.sales_view.show_warning("La cantidad debe ser mayor a 0.")
@@ -54,15 +52,9 @@ class SalesController:
                     self.sales_view.show_warning("Stock insuficiente.")
                     return False
 
-                # Actualizar manteniendo la estructura original (4 o 5 elementos)
-                if len(current_item) == 5:  # Tiene observaciones (honorario)
-                    self.sales_view.items_in_sale[existing_item] = (
-                        product_id, name, new_qty, price, current_item[4]
-                    )
-                else:  # Producto normal
-                    self.sales_view.items_in_sale[existing_item] = (
+                self.sales_view.items_in_sale[existing_item] = (
                         product_id, name, new_qty, price
-                    )
+                )
             else:
                 # Nuevo producto (siempre 4 elementos, sin observaciones)
                 self.sales_view.items_in_sale.append((product_id, name, quantity, price))
@@ -125,8 +117,7 @@ class SalesController:
 
             sale_id = self.sales_model.register_sale(total, items, cliente_id, estado)
 
-            invoice = InvoiceController()
-
+            #invoice = InvoiceController()
             #pdf = invoice.generate_invoice(cliente_id, items)
             #self.sales_view.show_success(f"Venta registrada.\nFactura creada: {pdf}")
 
@@ -138,6 +129,7 @@ class SalesController:
         except Exception as e:
             self.sales_view.show_error(f"Error al procesar venta: {e}")
 
+    ## -- Permite renderizar la ventana de ventas del dia-- ##
     def show_today_sales(self):
         """Mostrar ventas del día en una vista con tabla"""
         try:

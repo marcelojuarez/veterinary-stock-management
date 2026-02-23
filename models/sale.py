@@ -21,9 +21,9 @@ class SalesModel:
 
             for item in items:
                 if len(item) == 5:
-                    product_id, name, quantity, price, observations = item
+                    product_id, _, qty, price, observations = item
                 else:
-                    product_id, name, quantity, price = item
+                    product_id, _, qty, price = item
                     observations = None
                 
                 # OBTENER IVA DEL PRODUCTO
@@ -32,14 +32,14 @@ class SalesModel:
                 iva_rate = Decimal(row[0]) if row and row[0] else Decimal*('21.00')
                 
                 # CALCULAR MONTOS
-                subtotal = norm_to_2_dec(price * quantity)
+                subtotal = norm_to_2_dec(price * qty)
                 iva_amount = norm_to_2_dec(subtotal * (iva_rate / Decimal('100')))
                 
                 # GUARDAR CON IVA
                 cursor.execute("""
                     INSERT INTO sale_items (sale_id, product_id, quantity, price, subtotal, iva_rate, iva_amount, observations)
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                """, (sale_id, product_id, quantity, str(price), str(subtotal), str(iva_rate), str(iva_amount), observations))
+                """, (sale_id, product_id, qty, str(price), str(subtotal), str(iva_rate), str(iva_amount), observations))
 
                 # Solo descontar stock si NO es honorarios
                 cursor.execute("SELECT name FROM stock WHERE id = ?", (product_id,))
@@ -49,7 +49,7 @@ class SalesModel:
                     cursor.execute("""
                         UPDATE stock SET quantity = quantity - ?
                         WHERE id = ?
-                    """, (quantity, product_id))
+                    """, (qty, product_id))
 
             conn.commit()
             return sale_id
