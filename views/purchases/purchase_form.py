@@ -2,8 +2,8 @@ import tkinter as tk
 from tkinter import ttk
 import customtkinter as ctk
 
-from views.view_helpers import  show_error, close_win
 from .new_product_form import NewProductForm
+from utils.view_helpers import  show_error, close_win
 from .new_purchase_item_form import NewPurchaseItemForm
 
 class PurchaseForm():

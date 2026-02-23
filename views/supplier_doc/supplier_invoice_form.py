@@ -1,9 +1,9 @@
 import tkinter as tk
 import customtkinter as ctk
 from datetime import datetime
-from utils.invoice_utils import pay_period_control, calculate_exp_date
 from utils.utils import iso_to_traditional
-from views.view_helpers import close_win, show_warning
+from utils.view_helpers import close_win, show_warning
+from utils.invoice_utils import pay_period_control, calculate_exp_date
 
 class SupplierInvoiceForm():
     def __init__(self, view, frame, invoice_controller, supp_mdl):

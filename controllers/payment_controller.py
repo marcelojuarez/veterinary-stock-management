@@ -1,6 +1,6 @@
-from utils.utils import norm_string_to_2_dec
 from decimal import Decimal
-from views.view_helpers import show_warning, show_error, close_win
+from utils.utils import string_to_2_dec
+from utils.view_helpers import show_warning, show_error, close_win
 
 class PaymentController():
     def __init__(self):
@@ -36,7 +36,7 @@ class PaymentController():
             if not self.validate_data(payment_data):
                 return 
             
-            amount = norm_string_to_2_dec(payment_data['amount'])
+            amount = string_to_2_dec(payment_data['amount'])
 
             if purchase_id is not None:
                 ## Se paga una compra en concreto
@@ -109,7 +109,7 @@ class PaymentController():
             show_error('Error. Monto invalido')
             return False
         
-        amount = norm_string_to_2_dec(data['amount'])
+        amount = string_to_2_dec(data['amount'])
 
         if amount <= Decimal('0.00'):
             show_error('Error. El monto debe ser un valor positivo')
@@ -165,7 +165,7 @@ class PaymentController():
     ## -- Valida si un dato es un decimal o se puede normalizar -- ##
     @staticmethod
     def is_decimal(value):
-        value = norm_string_to_2_dec(value)
+        value = string_to_2_dec(value)
         if value is None:
             return False
         else:    

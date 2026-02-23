@@ -2,7 +2,7 @@
 
 from datetime import datetime
 from .supplier_purchase import SupplierPurchase
-from utils.utils import normalize_to_2_decimals
+from utils.utils import norm_to_2_dec
 from decimal import Decimal
 
 class SupplierPayment():
@@ -155,7 +155,7 @@ class SupplierPayment():
                     id = purchase_data[3]
 
                 # normalizacion
-                new_debt = normalize_to_2_decimals(new_debt)
+                new_debt = norm_to_2_dec(new_debt)
 
                 # cambios en la compra
                 self.purchase.set_new_debt_purchase(purchase_id.get(), id, doc_type, new_debt, conn=conn, commit=False)
@@ -185,7 +185,7 @@ class SupplierPayment():
 
                     if debt <= total_amount:
                         # monto restante
-                        total_amount = normalize_to_2_decimals(total_amount - debt)
+                        total_amount = norm_to_2_dec(total_amount - debt)
 
                         # monto del pago 
                         amount_in_pay = debt
@@ -212,7 +212,7 @@ class SupplierPayment():
                         id = p[4]
 
                     # normalizacion
-                    new_debt = normalize_to_2_decimals(new_debt)
+                    new_debt = norm_to_2_dec(new_debt)
 
                     #cambios en la compra
                     self.purchase.set_new_debt_purchase(p[0], id, doc_type, new_debt, conn=conn, commit=False)

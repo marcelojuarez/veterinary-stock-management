@@ -5,7 +5,7 @@ import customtkinter as ctk
 from services.purchase_detail import PurchaseDetail
 
 from utils.utils import iso_to_traditional
-from views.view_helpers import close_win, ask_confirmation, show_success, show_warning, show_error
+from utils.view_helpers import close_win, ask_confirmation, show_success, show_warning, show_error
 
 class PurchaseInfoReceiptView():
     def __init__(self, model, controller):

@@ -6,7 +6,7 @@ from models.supplier.__init__ import SupplierModel
 from models.stock import StockModel
 from views.payments.payment_window import PaymentWindow
 from views.purchases.purchase_window import PurchaseWindow
-from views.view_helpers import close_win, show_warning
+from utils.view_helpers import close_win
 from utils.utils import iso_to_traditional
 
 # Configurar tema y colores

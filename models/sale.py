@@ -1,7 +1,7 @@
 from db.database import db
 from datetime import datetime
 from decimal import Decimal
-from utils.utils import normalize_to_2_decimals
+from utils.utils import norm_to_2_dec
 
 class SalesModel:
     def __init__(self):
@@ -32,8 +32,8 @@ class SalesModel:
                 iva_rate = Decimal(row[0]) if row and row[0] else Decimal*('21.00')
                 
                 # CALCULAR MONTOS
-                subtotal = normalize_to_2_decimals(price * quantity)
-                iva_amount = Decimal(subtotal * (iva_rate / Decimal('100')))
+                subtotal = norm_to_2_dec(price * quantity)
+                iva_amount = norm_to_2_dec(subtotal * (iva_rate / Decimal('100')))
                 
                 # GUARDAR CON IVA
                 cursor.execute("""
@@ -61,7 +61,7 @@ class SalesModel:
                 s.estado
             FROM sales s
             LEFT JOIN clientes c ON s.cliente_id = c.id
-            WHERE date(s.date) = date('now')
+            WHERE date(s.date) = date('now','localtime')
             ORDER BY s.date DESC
         """
         return db.fetch_all(query)

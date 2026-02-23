@@ -1,11 +1,11 @@
-from tkinter import messagebox
 from decimal import Decimal
+from tkinter import messagebox
 from models.sale import SalesModel
 from models.stock import StockModel
 from models.remito import RemitoModel
 from models.customer import CustomerModel
 from services.remito_pdf import RemitoPDF
-from utils.utils import normalize_to_2_decimals
+from utils.utils import norm_to_2_dec
 from controllers.invoice_controller import InvoiceController
 
 class SalesController:
@@ -20,41 +20,6 @@ class SalesController:
     def set_view(self, view):
         self.sales_view = view
         self.event_bus.subscribe('refresh_stock_in_sale_view', self.sales_view.load_available_products)
-
-    def search_product_for_sale(self, search_term: str):
-        """Buscar productos para la SalesView y llenar la tabla de disponibles"""
-        try:
-            term = (search_term or "").strip()
-            if not term:
-                self.sales_view.show_warning("Ingrese nombre o código para buscar")
-                return
-
-            rows = self.stock_model.search_products(term)
-            # llenar tabla de disponibles (solo productos con stock > 0)
-            self.sales_view.product_tree.delete(*self.sales_view.product_tree.get_children())
-
-            count = 0
-            for row in rows:
-                pid = row[0]
-                name = row[2]
-                price_w_iva = row[8]
-                qty = row[11]
-
-                if qty and int(qty) > 0:
-                    count += 1
-                    self.sales_view.product_tree.insert(
-                        "",
-                        "end",
-                        values=(pid, name, f"{price_w_iva:.2f}", int(qty))
-                    )
-
-            if count == 0:
-                self.sales_view.show_warning("No se encontraron productos disponibles")
-            else:
-                self.sales_view.show_success(f"Se encontraron {count} productos")
-
-        except Exception as e:
-            self.sales_view.show_error(f"Error al buscar producto: {e}")
 
     def add_product_to_sale(self, product_id, name, price, stock, qty_input):
         """Validar y agregar producto a la venta"""
@@ -108,16 +73,6 @@ class SalesController:
             self.sales_view.show_error("Ingrese una cantidad válida.")
             return False
 
-    def delete_item(self):
-        """Eliminar item seleccionado de la venta"""
-        if not self.sales_view.ask_confirmation("¿Eliminar artículo?"):
-            return
-
-        if self.sales_view.delete_selected_product():
-            self.sales_view.show_success("Artículo eliminado correctamente.")
-        else:
-            self.sales_view.show_warning("Seleccione el artículo que desea eliminar.")
-
     def search_products_live(self):
         """Buscar productos en tiempo real mientras se escribe"""
         search_text = self.sales_view.search_var.get().strip().lower()
@@ -131,13 +86,11 @@ class SalesController:
         filtered_products = []
         
         for product in self.sales_view.all_products:
-            (pid, name, pack, profit, cost, price, 
-            iva, price_with_iva, created_at, last_update, qty) = product
-            
-            # Buscar en: ID, nombre y envase
+            pid, name, _, _, _, _, _, _, _, _, _, _, _, = product
+
+            # Buscar en: ID, nombre 
             if (search_text in str(pid).lower() or 
-                search_text in str(name).lower() or 
-                search_text in str(pack).lower()):
+                search_text in str(name).lower()):
                 filtered_products.append(product)
         
         # Actualizar tabla con resultados filtrados
@@ -161,7 +114,7 @@ class SalesController:
                 total += qty * price
 
             # total normalizado
-            total = normalize_to_2_decimals(total)
+            total = norm_to_2_dec(total)
             cliente_nombre = self.sales_view.client_var.get()
             cliente_id = self.customer_model.get_client_id_by_name(cliente_nombre)
 
@@ -189,6 +142,7 @@ class SalesController:
         """Mostrar ventas del día en una vista con tabla"""
         try:
             rows = self.sales_model.get_today_sales()
+            print(rows)
             if not rows:
                 self.sales_view.show_warning("No hay ventas registradas hoy.")
                 return

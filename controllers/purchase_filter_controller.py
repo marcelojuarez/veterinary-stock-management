@@ -1,6 +1,5 @@
 from datetime import datetime
-import locale
-from views.view_helpers import show_error
+from utils.view_helpers import show_error
 from utils.utils import traditional_to_iso, iso_to_traditional
 
 class PurchaseFilterController():

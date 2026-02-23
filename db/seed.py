@@ -8,7 +8,7 @@ from models.company import CompanyModel
 from models.user import User
 from models.supplier.__init__ import SupplierModel
 from models.security import gen_password
-from utils.utils import normalize_to_2_decimals, convert_to_decimal
+from utils.utils import norm_to_2_dec, flex_dec
 from decimal import Decimal
 
 DB_PATH = "db/stock.db"
@@ -229,9 +229,9 @@ def seed_stock():
         iva_amount = sale_price * iva_rate
         price_with_iva = sale_price + iva_amount        
         
-        cost_price = convert_to_decimal(cost_price)
-        sale_price = convert_to_decimal(sale_price)
-        price_with_iva = convert_to_decimal(price_with_iva)
+        cost_price = flex_dec(cost_price)
+        sale_price = flex_dec(sale_price)
+        price_with_iva = flex_dec(price_with_iva)
 
         cursor.execute("""
             INSERT OR REPLACE INTO stock
@@ -683,8 +683,8 @@ def seed_sales_with_products():
         for _ in range(num_productos):
             prod_id, price = choice(productos)
             cantidad = randint(1, 4)
-            price_decimal = normalize_to_2_decimals(price)
-            subtotal = normalize_to_2_decimals(price_decimal * cantidad)
+            price_decimal = norm_to_2_dec(price)
+            subtotal = norm_to_2_dec(price_decimal * cantidad)
             total_venta += subtotal
             
             cur.execute("""
@@ -693,7 +693,7 @@ def seed_sales_with_products():
             """, (sale_id, prod_id, cantidad, str(price_decimal), str(subtotal)))
 
         # Actualizar total de la venta
-        total_venta = normalize_to_2_decimals(total_venta)
+        total_venta = norm_to_2_dec(total_venta)
         cur.execute("UPDATE sales SET total = ? WHERE id = ?", (str(total_venta), sale_id))
 
         # 🔹 CREAR PAGOS según el estado
@@ -707,7 +707,7 @@ def seed_sales_with_products():
         
         elif venta["estado"] == "partial":
             # Venta parcial: pago entre 30% y 70% del total
-            monto_pagado = normalize_to_2_decimals(float(total_venta) * uniform(0.3, 0.7))
+            monto_pagado = norm_to_2_dec(float(total_venta) * uniform(0.3, 0.7))
             fecha_pago = fecha_venta + timedelta(days=randint(1, 3))
 
             cur.execute("""

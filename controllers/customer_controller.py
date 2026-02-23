@@ -1,18 +1,18 @@
-from models.customer import CustomerModel
-from models.payment_model import PaymentModel
-from tkinter import messagebox
-from views.view_helpers import show_error, show_warning, show_success
+import os
 import re
 import customtkinter as ctk
 from datetime import datetime
-import os
+from tkinter import messagebox
+from models.customer import CustomerModel
+from models.payment_model import PaymentModel
+from utils.view_helpers import show_error, show_warning, show_success
 
 from utils.receipts.pdf_generator import generate_payment_receipt, generate_global_payment_receipt
 from utils.receipts.ticket_pos import generate_payment_ticket, generate_global_payment_ticket
 from utils.receipts.manager import generate_receipts_for_payment
 from utils.receipts.account_statement import generate_account_statement
 from utils.receipts.paths import a4_pago_global
-from utils.utils import normalize_to_2_decimals
+from utils.utils import norm_to_2_dec
 from decimal import Decimal, InvalidOperation
 
 
@@ -158,9 +158,9 @@ class CustomerController:
 
             debts = self.model.get_customer_debts(cliente_id)
             total = self.model.get_total_debt(cliente_id)
-            credit = normalize_to_2_decimals(self.payment_model.get_customer_credit(cliente_id))
+            credit = norm_to_2_dec(self.payment_model.get_customer_credit(cliente_id))
 
-            net = normalize_to_2_decimals(max(Decimal('0.00'), total - credit))
+            net = norm_to_2_dec(max(Decimal('0.00'), total - credit))
             self.view.open_debt_window(cliente_id, cliente_nombre, debts, total, credit, net)
 
             if changes:
@@ -195,7 +195,7 @@ class CustomerController:
             # Detectar si cambió a paid
             if estado_antes != 'paid' and nuevo_estado == 'paid':
                 total_final = self.payment_model.get_sale_total(sale_id)
-                sobrepago = normalize_to_2_decimals(paid - total_final)
+                sobrepago = norm_to_2_dec(paid - total_final)
                 
                 if sobrepago > Decimal('0.01'):
                     changes.append(
@@ -235,7 +235,7 @@ class CustomerController:
             show_warning("Selecciona un cliente primero.")
             return
 
-        total_debt = normalize_to_2_decimals(self.model.get_total_debt(customer_id))
+        total_debt = norm_to_2_dec(self.model.get_total_debt(customer_id))
 
         if total_debt == Decimal('0.00'):
             self.view.show_warning("El cliente no tiene deudas pendientes")
@@ -337,7 +337,7 @@ class CustomerController:
                     show_warning("Ingrese un monto.")
                     return
                 
-                amount = normalize_to_2_decimals(val)
+                amount = norm_to_2_dec(val)
 
                 if amount <= Decimal('0.00'):
                     show_warning("El monto debe ser mayor a 0.")
@@ -375,8 +375,8 @@ class CustomerController:
                 # Necesitamos volver a pedir los datos actualizados
                 debts = self.model.get_customer_debts(customer_id)
                 total = self.model.get_total_debt(customer_id)
-                credit = normalize_to_2_decimals(self.payment_model.get_customer_credit(customer_id))
-                net = normalize_to_2_decimals(max(Decimal('0.00'), total - credit))
+                credit = norm_to_2_dec(self.payment_model.get_customer_credit(customer_id))
+                net = norm_to_2_dec(max(Decimal('0.00'), total - credit))
                 self.view.update_debt_window(debts, total, credit, net)
 
                 # 3. Generar comprobante
@@ -496,14 +496,14 @@ class CustomerController:
         """Aplica el saldo a favor del cliente a sus deudas pendientes"""
         try:
             # Obtener crédito disponible
-            credit = normalize_to_2_decimals(self.payment_model.get_customer_credit(customer_id))
+            credit = norm_to_2_dec(self.payment_model.get_customer_credit(customer_id))
 
             if credit <= Decimal('0.00'):
                 self.view.show_warning("El cliente no tiene saldo a favor.")
                 return
             
             # Obtener deuda total
-            total_debt = normalize_to_2_decimals(self.model.get_total_debt(customer_id))
+            total_debt = norm_to_2_dec(self.model.get_total_debt(customer_id))
 
             if total_debt <= Decimal('0.00'):
                 self.view.show_warning("El cliente no tiene deudas pendientes.")
@@ -556,8 +556,8 @@ class CustomerController:
                     break
 
                 sale_id, total_variable, paid = row
-                balance = normalize_to_2_decimals(normalize_to_2_decimals(total_variable) - normalize_to_2_decimals(paid))
-                pay_amount = normalize_to_2_decimals(min(remaining, balance))
+                balance = norm_to_2_dec(norm_to_2_dec(total_variable) - norm_to_2_dec(paid))
+                pay_amount = norm_to_2_dec(min(remaining, balance))
                 
                 if pay_amount > Decimal('0.009'):
                     # Registrar el pago
@@ -572,7 +572,7 @@ class CustomerController:
                     # Actualizar estado de la venta
                     self.payment_model.update_sale_status(sale_id, skip_credit_generation=True)
                     
-                    remaining = normalize_to_2_decimals(remaining - pay_amount)
+                    remaining = norm_to_2_dec(remaining - pay_amount)
                     payments_applied.append((sale_id, pay_amount))
             
             # 🔹 PASO 3: Si sobra crédito, devolverlo
@@ -588,8 +588,8 @@ class CustomerController:
             credit_used = actual_used - remaining
             
             # Obtener valores actualizados
-            new_credit = normalize_to_2_decimals(self.payment_model.get_customer_credit(customer_id))
-            remaining_debt = normalize_to_2_decimals(self.model.get_total_debt(customer_id))
+            new_credit = norm_to_2_dec(self.payment_model.get_customer_credit(customer_id))
+            remaining_debt = norm_to_2_dec(self.model.get_total_debt(customer_id))
 
             
             # Actualizar la UI
@@ -599,7 +599,7 @@ class CustomerController:
             
             # Actualizar ventana de deudas
             debts = self.model.get_customer_debts(customer_id)
-            net = normalize_to_2_decimals(max(Decimal('0.00'), remaining_debt - new_credit))       
+            net = norm_to_2_dec(max(Decimal('0.00'), remaining_debt - new_credit))       
             self.view.update_debt_window(debts, remaining_debt, new_credit, net)
             
             self.view.show_success(
@@ -623,8 +623,8 @@ class CustomerController:
         try:
             # Verificar que no tenga deudas
             total_debt = self.model.get_total_debt(cliente_id)
-            credit = normalize_to_2_decimals(self.payment_model.get_customer_credit(cliente_id))
-            net = normalize_to_2_decimals(max(Decimal('0.00'), total_debt - credit))
+            credit = norm_to_2_dec(self.payment_model.get_customer_credit(cliente_id))
+            net = norm_to_2_dec(max(Decimal('0.00'), total_debt - credit))
 
             if net > Decimal('0.01'):
                 self.view.show_error(

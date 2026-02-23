@@ -1,7 +1,7 @@
 import sqlite3
 from db.database import db
 
-from utils.utils import normalize_to_2_decimals, convert_to_decimal, iso_to_traditional
+from utils.utils import norm_to_2_dec, flex_dec, iso_to_traditional
 from decimal import Decimal
 class CustomerModel:
     def __init__(self, db_connection=None):
@@ -167,7 +167,7 @@ class CustomerModel:
             total = total
             pagado = pagado
             estado_es = state_map.get(estado, estado)
-            saldo = max(Decimal('0.00'), normalize_to_2_decimals(total) - normalize_to_2_decimals(pagado))
+            saldo = max(Decimal('0.00'), norm_to_2_dec(total) - norm_to_2_dec(pagado))
 
             fecha_formateada = iso_to_traditional(date.split()[0]) if date else ""
 
@@ -229,11 +229,11 @@ class CustomerModel:
 
         total_pending = Decimal('0.00')
         for _, total_variable, paid in rows:
-            saldo = max(Decimal('0.00'), normalize_to_2_decimals(total_variable) - normalize_to_2_decimals(paid))
+            saldo = max(Decimal('0.00'), norm_to_2_dec(total_variable) - norm_to_2_dec(paid))
             if saldo > Decimal('0.01'):
                 total_pending += saldo
 
-        return normalize_to_2_decimals(total_pending)
+        return norm_to_2_dec(total_pending)
 
     def _is_cash_sale(self, sale_id, fecha_venta):
         """
@@ -309,7 +309,7 @@ class CustomerModel:
             if sale_id in contado_sales:
                 continue
                 
-            total = normalize_to_2_decimals(total)
+            total = norm_to_2_dec(total)
             cant_prod = int(cant_prod) if cant_prod else 0
             
             estado_map = {
@@ -367,7 +367,7 @@ class CustomerModel:
             if sale_id in contado_sales:
                 continue
                 
-            monto = normalize_to_2_decimals(monto)
+            monto = norm_to_2_dec(monto)
             method_txt = method_map.get(method.lower() if method else "", method.capitalize() if method else "Efectivo")
             
             if sale_id:
@@ -409,7 +409,7 @@ class CustomerModel:
                 credits = self.db.fetch_all(credits_query, (cliente_id,))
                 
                 for credit_id, fecha, monto, reason, sale_id in credits:
-                    monto = normalize_to_2_decimals(monto)
+                    monto = norm_to_2_dec(monto)
                     
                     if monto > Decimal('0.00'):
                         desc = f"Nota de crédito"
@@ -461,14 +461,14 @@ class CustomerModel:
         saldo_acumulado = Decimal('0.00')
         for mov in movements:
             saldo_acumulado += mov["debe"] - mov["haber"]
-            mov["saldo"] = normalize_to_2_decimals(saldo_acumulado)
+            mov["saldo"] = norm_to_2_dec(saldo_acumulado)
         
         # ================================================================
         # PASO 7: RESUMEN (solo cuenta ventas a crédito)
         # ================================================================
-        total_debe = sum(normalize_to_2_decimals(m["debe"]) for m in movements)
-        total_haber = sum(normalize_to_2_decimals(m["haber"]) for m in movements)
-        saldo_final = normalize_to_2_decimals(saldo_acumulado)
+        total_debe = sum(norm_to_2_dec(m["debe"]) for m in movements)
+        total_haber = sum(norm_to_2_dec(m["haber"]) for m in movements)
+        saldo_final = norm_to_2_dec(saldo_acumulado)
 
         ventas_totales = len([m for m in movements if m["tipo"] == "VENTA"])
         
@@ -485,8 +485,8 @@ class CustomerModel:
         ventas_pagadas = ventas_credito_pagadas
 
         summary = {
-            'total_comprado': normalize_to_2_decimals(total_debe),
-            'total_pagado': normalize_to_2_decimals(total_haber),
+            'total_comprado': norm_to_2_dec(total_debe),
+            'total_pagado': norm_to_2_dec(total_haber),
             'saldo_a_favor': abs(saldo_final) if saldo_final < Decimal('0.00') else Decimal('0.00'),
             'deuda_pendiente': saldo_final if saldo_final > Decimal('0.00') else Decimal('0.00'),
             'ventas_pagadas': ventas_pagadas,

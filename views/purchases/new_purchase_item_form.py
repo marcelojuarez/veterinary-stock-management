@@ -1,8 +1,8 @@
 import tkinter as tk
 import customtkinter as ctk
 from decimal import Decimal
-from utils.utils import norm_string_to_2_dec, normalize_string_to_dec, normalize_int_to_dec, normalize_to_2_decimals, convert_to_decimal
-from views.view_helpers import close_win, ask_confirmation
+from utils.view_helpers import close_win, ask_confirmation
+from utils.utils import string_to_2_dec, string_to_flex_dec, string_to_dec, norm_to_2_dec, flex_dec
 
 class NewPurchaseItemForm():
     def __init__(self, controller, stock_model):
@@ -157,12 +157,12 @@ class NewPurchaseItemForm():
 
         def recalc(*args):
             ## stock
-            self.qty = normalize_int_to_dec(self.quantity.get())
+            self.qty = string_to_dec(self.quantity.get())
 
             ## precio - iva - descuento
-            self.list_price = normalize_string_to_dec(self.list_price_var.get())
-            self.iva = normalize_string_to_dec(self.iva_rate.get())
-            self.discount = norm_string_to_2_dec(self.discount_var.get())
+            self.list_price = string_to_flex_dec(self.list_price_var.get())
+            self.iva = string_to_flex_dec(self.iva_rate.get())
+            self.discount = string_to_2_dec(self.discount_var.get())
 
             if self.list_price is None or self.iva is None or self.discount is None or self.qty is None:
                 return
@@ -173,15 +173,15 @@ class NewPurchaseItemForm():
             unit_d_amount = self.list_price * discount_rate
 
             cost_price = self.list_price - unit_d_amount
-            subtotal = normalize_to_2_decimals(self.qty * cost_price)
-            iva_amount = normalize_to_2_decimals(subtotal * (self.iva / Decimal('100')))
+            subtotal = norm_to_2_dec(self.qty * cost_price)
+            iva_amount = norm_to_2_dec(subtotal * (self.iva / Decimal('100')))
             discount_amount = base_amount - subtotal  
             total = subtotal + iva_amount
 
             # normalizacion final
-            cost_price = convert_to_decimal(cost_price)
-            discount_amount = normalize_to_2_decimals(discount_amount)
-            total = normalize_to_2_decimals(total)
+            cost_price = flex_dec(cost_price)
+            discount_amount = norm_to_2_dec(discount_amount)
+            total = norm_to_2_dec(total)
 
             self.cost_price_var.set(cost_price)
             self.discount_amount.set(discount_amount)

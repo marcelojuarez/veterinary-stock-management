@@ -1,6 +1,6 @@
 from db.database import db 
 from datetime import datetime
-from utils.utils import normalize_to_2_decimals
+from utils.utils import norm_to_2_dec
 
 class PaymentModel:
     def __init__(self):
@@ -9,7 +9,7 @@ class PaymentModel:
     def create_payment(self, sale_id, client_id, amount, method=None, notes=None):
         """Registra un pago en la tabla payments."""
         date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        amount = str(normalize_to_2_decimals(amount))
+        amount = str(norm_to_2_dec(amount))
         query = """
             INSERT INTO payments (sale_id, client_id, amount, method, notes, date)
             VALUES (?, ?, ?, ?, ?, ?)
@@ -26,7 +26,7 @@ class PaymentModel:
             """,
             (sale_id, )
         )
-        return normalize_to_2_decimals(row[0]) if row else normalize_to_2_decimals(0.0)
+        return norm_to_2_dec(row[0]) if row else norm_to_2_dec(0.0)
     
     def get_sale_total(self, sale_id):
         row = self.db.fetch_one(
@@ -34,29 +34,29 @@ class PaymentModel:
             (sale_id,)
         )
         if not row:
-            return normalize_to_2_decimals(0.0)
+            return norm_to_2_dec(0.0)
 
         estado, total_cerrado = row
         if estado == 'paid' and total_cerrado is not None:
-            return normalize_to_2_decimals(total_cerrado)
+            return norm_to_2_dec(total_cerrado)
 
-        return normalize_to_2_decimals(self.get_sale_total_variable(sale_id))
+        return norm_to_2_dec(self.get_sale_total_variable(sale_id))
         
     def get_sale_paid(self, sale_id):
         row = self.db.fetch_one(
             "SELECT COALESCE(SUM(amount), 0) FROM payments where sale_id = ?", 
             (sale_id, )
             )
-        return normalize_to_2_decimals(row[0]) if row else normalize_to_2_decimals(0.0)
+        return norm_to_2_dec(row[0]) if row else norm_to_2_dec(0.0)
     
     def get_sale_balance(self, sale_id):
         sale = self.db.fetch_one("SELECT id FROM sales WHERE id = ?", (sale_id,))
         if sale is None: 
             return None
         
-        total = normalize_to_2_decimals(self.get_sale_total(sale_id))
-        paid = normalize_to_2_decimals(self.get_sale_paid(sale_id))
-        balance = normalize_to_2_decimals(max(normalize_to_2_decimals(0.0), total - paid))
+        total = norm_to_2_dec(self.get_sale_total(sale_id))
+        paid = norm_to_2_dec(self.get_sale_paid(sale_id))
+        balance = norm_to_2_dec(max(norm_to_2_dec(0.0), total - paid))
 
         return {"total" : total, "paid": paid, "balance": balance}
     
@@ -71,13 +71,13 @@ class PaymentModel:
         
         client_id, current_status, total_cerrado = row_sale
 
-        total = normalize_to_2_decimals(self.get_sale_total(sale_id))
-        paid = normalize_to_2_decimals(self.get_sale_paid(sale_id))
+        total = norm_to_2_dec(self.get_sale_total(sale_id))
+        paid = norm_to_2_dec(self.get_sale_paid(sale_id))
 
 
         if paid <= 0:
             status = "pending"
-        elif paid + normalize_to_2_decimals(0.009) < total:
+        elif paid + norm_to_2_dec(0.009) < total:
             status = "partial"
         else:
             status = "paid"
@@ -100,10 +100,10 @@ class PaymentModel:
                 )
 
         # 🔹 CAMBIO: Solo generar crédito si NO viene de aplicación de saldo a favor
-        overpay = normalize_to_2_decimals(paid - total)
+        overpay = norm_to_2_dec(paid - total)
         
         if not skip_credit_generation:
-            if overpay > normalize_to_2_decimals(0.01):
+            if overpay > norm_to_2_dec(0.01):
                 exists = self.db.fetch_one(
                     """
                     SELECT 1
@@ -154,7 +154,7 @@ class PaymentModel:
         """
         rows = self.db.fetch_all(query, (customer_id,))
         
-        remaining = normalize_to_2_decimals(amount)
+        remaining = norm_to_2_dec(amount)
         updated_debts = []
 
         for row in rows:
@@ -162,11 +162,11 @@ class PaymentModel:
                 break
 
             sale_id, total_variable, paid = row
-            balance = normalize_to_2_decimals(total_variable) - normalize_to_2_decimals(paid)
+            balance = norm_to_2_dec(total_variable) - norm_to_2_dec(paid)
             # Determinar cuánto pagar de esta venta
-            pay_amount = normalize_to_2_decimals(min(remaining, balance))
+            pay_amount = norm_to_2_dec(min(remaining, balance))
             
-            if pay_amount > normalize_to_2_decimals(0.009):
+            if pay_amount > norm_to_2_dec(0.009):
                 # Registrar el pago
                 self.create_payment(
                     sale_id=sale_id,
@@ -179,7 +179,7 @@ class PaymentModel:
                 # Actualizar estado de la venta
                 self.update_sale_status(sale_id, skip_credit_generation=True)
                 
-                remaining = normalize_to_2_decimals(remaining - pay_amount)
+                remaining = norm_to_2_dec(remaining - pay_amount)
                 updated_debts.append((sale_id, pay_amount))
 
         # Calcular cuánto queda adeudado en total después del pago global
@@ -195,26 +195,26 @@ class PaymentModel:
             GROUP BY s.id
         """
         all_sales = self.db.fetch_all(total_debt_query, (customer_id,))
-        still_owed = normalize_to_2_decimals(sum(
-            max(normalize_to_2_decimals(0.0), normalize_to_2_decimals(total_variable) - normalize_to_2_decimals(paid))
+        still_owed = norm_to_2_dec(sum(
+            max(norm_to_2_dec(0.0), norm_to_2_dec(total_variable) - norm_to_2_dec(paid))
             for _, total_variable, paid in all_sales
         ))
 
 
-        if remaining > normalize_to_2_decimals(0.01):
+        if remaining > norm_to_2_dec(0.01):
             self.add_customer_credit(
                 client_id=customer_id,
-                amount=normalize_to_2_decimals(remaining),
+                amount=norm_to_2_dec(remaining),
                 reason="SALDO A FAVOR: sobrante de pago global",
                 sale_id=None
             )
 
         return {
-            "used": normalize_to_2_decimals(normalize_to_2_decimals(amount) - remaining),
-            "remaining": normalize_to_2_decimals(remaining),
+            "used": norm_to_2_dec(norm_to_2_dec(amount) - remaining),
+            "remaining": norm_to_2_dec(remaining),
             "updated_debts": updated_debts,
             "still_owed": still_owed,
-            "credit_added": normalize_to_2_decimals(remaining) if remaining > normalize_to_2_decimals(0.01) else normalize_to_2_decimals(0.0),
+            "credit_added": norm_to_2_dec(remaining) if remaining > norm_to_2_dec(0.01) else norm_to_2_dec(0.0),
         }
 
     def get_customer_credit(self, client_id) -> float:
@@ -223,11 +223,11 @@ class PaymentModel:
             (client_id,)
         )
 
-        return normalize_to_2_decimals(row[0]) if row else normalize_to_2_decimals(0.0)
+        return norm_to_2_dec(row[0]) if row else norm_to_2_dec(0.0)
 
     def add_customer_credit(self, client_id: int, amount: float, reason: str, sale_id: int | None = None):
-        amount = normalize_to_2_decimals(amount)
-        if abs(amount) <= normalize_to_2_decimals(0.01):
+        amount = norm_to_2_dec(amount)
+        if abs(amount) <= norm_to_2_dec(0.01):
             return None
 
         query = """
@@ -241,14 +241,14 @@ class PaymentModel:
         Consume crédito guardándolo como movimiento NEGATIVO.
         (customer_credit: amount < 0)
         """
-        amount = normalize_to_2_decimals(amount)
-        if amount <= normalize_to_2_decimals(0.01):
-            return normalize_to_2_decimals(0.0)
+        amount = norm_to_2_dec(amount)
+        if amount <= norm_to_2_dec(0.01):
+            return norm_to_2_dec(0.0)
 
-        available = normalize_to_2_decimals(self.get_customer_credit(client_id))
-        used = normalize_to_2_decimals(min(available, amount))
-        if used <= normalize_to_2_decimals(0.01):
-            return normalize_to_2_decimals(0.0)
+        available = norm_to_2_dec(self.get_customer_credit(client_id))
+        used = norm_to_2_dec(min(available, amount))
+        if used <= norm_to_2_dec(0.01):
+            return norm_to_2_dec(0.0)
 
         self.add_customer_credit(
             client_id=client_id,
@@ -283,13 +283,13 @@ class PaymentModel:
             return "paid"
 
         # Recalcular con precios actuales
-        total = normalize_to_2_decimals(self.get_sale_total_variable(sale_id))
-        paid = normalize_to_2_decimals(self.get_sale_paid(sale_id))
+        total = norm_to_2_dec(self.get_sale_total_variable(sale_id))
+        paid = norm_to_2_dec(self.get_sale_paid(sale_id))
 
         # Determinar nuevo estado
-        if paid <= normalize_to_2_decimals(0.01):
+        if paid <= norm_to_2_dec(0.01):
             status = "pending"
-        elif paid + normalize_to_2_decimals(0.009) < total:
+        elif paid + norm_to_2_dec(0.009) < total:
             status = "partial"
         else:
             status = "paid"
@@ -312,8 +312,8 @@ class PaymentModel:
                 (str(total), sale_id)
             )
 
-        overpay = normalize_to_2_decimals(paid - total)
-        if overpay > normalize_to_2_decimals(0.01):
+        overpay = norm_to_2_dec(paid - total)
+        if overpay > norm_to_2_dec(0.01):
             # Verificar si ya existe un ajuste de sobrepago para esta venta
             exists = self.db.fetch_one(
                 """
