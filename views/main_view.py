@@ -23,6 +23,7 @@ from controllers.payment_controller import PaymentController
 from controllers.supplier_invoice_controller import SupplierInvoiceController
 from controllers.supplier_receipt_controller import SupplierReceiptController
 from controllers.iva_reports_controller import ReportsController
+import platform
 
 class App():
     def __init__(self):
@@ -34,10 +35,18 @@ class App():
     def setup_window(self):
         view_config = settings['VIEW_CONFIG']
         self.root.title(view_config['window-title'])
-        self.root.geometry(view_config['window-size'])
-        self.root.resizable(False, False)
+
+        sistema = platform.system()
+
+        if sistema == 'Windows':
+            self.root.state('zoomed')
+        else:
+            width = self.root.winfo_screenwidth()
+            height = self.root.winfo_screenheight()
+            self.root.geometry(f"{width}x{height}+0+0")
+
+        self.root.resizable(True, True)
         self.root.withdraw()
-        self.root.update_idletasks()
         
     def setup_variables(self):
         self.user_var = tk.StringVar()
@@ -93,8 +102,8 @@ class App():
                 
             self.create_views_and_controllers()
             self.root.after(100, self.load_initial_data) 
-
-            self.root.deiconify()
+            
+            self.root.deiconify() 
             self.root.update_idletasks()
 
             self.login_win.destroy() 
@@ -102,6 +111,8 @@ class App():
     def create_views_and_controllers(self):
         self.notebook = ttk.Notebook(self.root)
         self.notebook.pack(fill='both', expand=True)
+        self.notebook.bind("<<NotebookTabChanged>>", self.on_tab_change)
+        self.root.update() 
 
         # Event bus 
         event_bus = EventBus()
@@ -129,14 +140,12 @@ class App():
         self.stock_view = StockView(self.notebook, controller=self.stock_controller)
         self.stock_controller.set_view(self.stock_view)
 
-        self.stock_view.frame.pack(fill='both', expand=True)
         self.notebook.add(self.stock_view.frame, text='Inventario')
 
         # --- SALES ---
         self.sales_view = SalesView(self.notebook, controller=self.sales_controller)
         self.sales_controller.set_view(self.sales_view)
 
-        self.sales_view.frame.pack(fill='both', expand=True)
         self.notebook.add(self.sales_view.frame, text='Venta')
 
         # --- SUPPLIERS ---
@@ -146,7 +155,6 @@ class App():
         self.supplier_controller.set_view(self.supplier_view)
         self.supplier_controller.set_model(self.supplier_view.model)
 
-        self.supplier_view.frame.pack(fill='both', expand=True)
         self.notebook.add(self.supplier_view.frame, text='Proveedores')
 
         # --- CUSTOMERS ---
@@ -154,20 +162,17 @@ class App():
         self.customer_controller.set_view(self.customers_view)
 
         self.customers_view.attach_controller(self.customer_controller)
-        self.customers_view.frame.pack(fill='both', expand=True)
         self.notebook.add(self.customers_view.frame, text='Clientes')
 
         # --- BACKUPS ---
         from views.backup_manager import BackupManagerView
         self.backup_view = BackupManagerView(self.notebook, controller=self.stock_controller)
-        self.backup_view.frame.pack(fill='both', expand=True)
         self.notebook.add(self.backup_view.frame, text='Backups')
 
         # --- REPORTES ---
         self.reports_view = ReportsView(self.notebook, controller=self.iva_reports_controller)
         self.iva_reports_controller.set_view(self.reports_view)
 
-        self.reports_view.frame.pack(fill='both', expand=True)
         self.notebook.add(self.reports_view.frame, text='Reportes')
 
         # Cargar mes actual automáticamente
@@ -176,6 +181,8 @@ class App():
             datetime.now().year
         )
 
+    def on_tab_change(self, event):
+        self.root.update_idletasks()
 
     def load_initial_data(self):
         try:

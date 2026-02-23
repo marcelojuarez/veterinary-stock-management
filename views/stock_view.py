@@ -3,6 +3,7 @@ import customtkinter as ctk
 from decimal import Decimal
 from models.stock import StockModel
 from tkinter import ttk, messagebox
+from utils.view_helpers import center_window, close_win, show_warning
 from utils.utils import iso_to_traditional, format_currency, string_to_2_dec, string_to_flex_dec, norm_to_2_dec, flex_dec
 
 # Configurar tema y colores
@@ -38,7 +39,7 @@ class StockView():
         """Crear frame para botones de stock"""
         manage_frame = ctk.CTkFrame(self.frame)
         manage_frame.grid(row=2, column=0, padx=10, pady=20, sticky="ew")
-        manage_frame.grid_columnconfigure((0, 1, 2, 3), weight=1)
+        manage_frame.grid_columnconfigure((0, 1, 2), weight=1)
 
         W = 250
         H = 40
@@ -92,9 +93,9 @@ class StockView():
         )
 
         #new_btn.grid(row=1, column=0, padx=10, pady=10)
-        delete_btn.grid(row=1, column=1, padx=10, pady=10)
-        update_btn.grid(row=1, column=2, padx=10, pady=10)
-        bulk_update_btn.grid(row=1, column=3, padx=10, pady=10)
+        delete_btn.grid(row=1, column=0, padx=10, pady=10)
+        update_btn.grid(row=1, column=1, padx=10, pady=10)
+        bulk_update_btn.grid(row=1, column=2, padx=10, pady=10)
     
     def create_find_frame(self):
         """Crear frame para formulario de producto"""
@@ -181,17 +182,17 @@ class StockView():
 
         # Definición de columnas
         self.stock_tree.column("Id", anchor=tk.W, width=60, stretch=False)
-        self.stock_tree.column("Name", anchor=tk.W, width=250, stretch=False)
-        self.stock_tree.column("Package", anchor=tk.W, width=120, stretch=False)
-        self.stock_tree.column("ListPrice", anchor=tk.E, width=100, stretch=False)
-        self.stock_tree.column("Discount", anchor=tk.E, width=100, stretch=False)
-        self.stock_tree.column("CostPrice", anchor=tk.E, width=100, stretch=False)
+        self.stock_tree.column("Name", anchor=tk.W, width=250, stretch=True)
+        self.stock_tree.column("Package", anchor=tk.W, width=120, stretch=True)
+        self.stock_tree.column("ListPrice", anchor=tk.E, width=100, stretch=True)
+        self.stock_tree.column("Discount", anchor=tk.E, width=100, stretch=True)
+        self.stock_tree.column("CostPrice", anchor=tk.E, width=100, stretch=True)
         self.stock_tree.column("Profit", anchor=tk.CENTER, width=80, stretch=False)
-        self.stock_tree.column("SalePrice", anchor=tk.E, width=100, stretch=False)
+        self.stock_tree.column("SalePrice", anchor=tk.E, width=100, stretch=True)
         self.stock_tree.column("Iva", anchor=tk.CENTER, width=60, stretch=False)
-        self.stock_tree.column("SalePriceWithIva", anchor=tk.E, width=120, stretch=False)
-        self.stock_tree.column("ValidityDate", anchor=tk.CENTER, width=160, stretch=False)
-        self.stock_tree.column("LastPriceUpdate", anchor=tk.CENTER, width=160, stretch=False)
+        self.stock_tree.column("SalePriceWithIva", anchor=tk.E, width=120, stretch=True)
+        self.stock_tree.column("ValidityDate", anchor=tk.CENTER, width=160, stretch=True)
+        self.stock_tree.column("LastPriceUpdate", anchor=tk.CENTER, width=160, stretch=True)
         self.stock_tree.column("Stock", anchor=tk.CENTER, width=80, stretch=False)
 
         # Encabezados
@@ -252,11 +253,9 @@ class StockView():
 
             window = ctk.CTkToplevel(self.frame)
             window.title(f"Actualizar Precio - {name}")
-            
-            window.geometry("550x480+{}+{}".format(window.winfo_screenwidth()//2 - 225, window.winfo_screenheight()//2 - 225))
-
             window.transient(parent)
             window.grab_set()
+            center_window(window, 550, 480)
 
             # Información básica
             info_label = ctk.CTkLabel(
@@ -462,10 +461,7 @@ class StockView():
             window = ctk.CTkToplevel(self.frame)
             window.title("Actualización Masiva de Precios")
             window.grab_set()
-            window.geometry("500x450+{}+{}".format(
-                window.winfo_screenwidth()//2 - 250,
-                window.winfo_screenheight()//2 - 200
-            ))
+            center_window(window, 500, 450)
 
             # Título
             title_label = ctk.CTkLabel(

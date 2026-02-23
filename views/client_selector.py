@@ -1,7 +1,7 @@
 import customtkinter as ctk
 from tkinter import ttk
 import tkinter as tk
-
+from utils.view_helpers import center_window
 class ClientSelectorDialog:
     """Diálogo mejorado para selección de clientes con búsqueda"""
     
@@ -17,21 +17,18 @@ class ClientSelectorDialog:
         self.dialog.withdraw() 
         
         self.dialog.title("Seleccionar Cliente")
-        #parent.update_idletasks()
+
 
         self.dialog.transient(parent)
         self.dialog.grab_set()
         self.dialog.resizable(False, False)
-        
-        # Centrar ventana
-        x = (parent.winfo_screenwidth() // 2) - 300
-        y = (parent.winfo_screenheight() // 2) - 250
-        self.dialog.geometry(f"600x600+{x}+{y}")
-        
+        center_window(self.dialog, 600, 600)
+
         self.create_ui()
         self.load_clients()
 
         self.dialog.update_idletasks()
+         
         self.dialog.deiconify()
         
     def create_ui(self):
@@ -135,7 +132,7 @@ class ClientSelectorDialog:
             text="Consumidor Final",
             width=160,
             height=38,
-            font=ctk.CTkFont(size=13),
+            font=ctk.CTkFont(size=13, weight="bold"),
             fg_color="#009688",
             hover_color="#00796B",
             command=self.select_consumidor_final
@@ -146,7 +143,7 @@ class ClientSelectorDialog:
             text="Cancelar",
             width=120,
             height=38,
-            font=ctk.CTkFont(size=13),
+            font=ctk.CTkFont(size=13, weight="bold"),
             fg_color="#757575",
             hover_color="#616161",
             command=self.dialog.destroy

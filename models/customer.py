@@ -44,37 +44,40 @@ class CustomerModel:
             return None
 
     def check_duplicate_customer(self, customer_data, exclude_id=None):
-        """
-        Verifica si ya existe un cliente con el mismo nombre o CUIT.
-        exclude_id: ID a excluir (útil para edición de cliente existente)
-        """
-        nombre = customer_data['nombre'].upper().strip()
         cuit = customer_data['cuit'].strip() if customer_data.get('cuit') else ''
-        
-        # Verificar por nombre
-        if exclude_id:
-            query_nombre = "SELECT id, nombre FROM clientes WHERE UPPER(TRIM(nombre)) = ? AND id != ?"
-            existing_by_name = db.fetch_one(query_nombre, (nombre, exclude_id))
-        else:
-            query_nombre = "SELECT id, nombre FROM clientes WHERE UPPER(TRIM(nombre)) = ?"
-            existing_by_name = db.fetch_one(query_nombre, (nombre,))
-        
-        if existing_by_name:
-            return f"Ya existe un cliente con el nombre '{existing_by_name[1]}'"
-        
-        # Verificar por CUIT (si no está vacío)
+        telefono = customer_data['telefono'].strip() if customer_data.get('telefono') else ''
+
+        # Verificar CUIT duplicado
         if cuit:
             if exclude_id:
-                query_cuit = "SELECT id, nombre, cuit FROM clientes WHERE cuit = ? AND id != ?"
-                existing_by_cuit = db.fetch_one(query_cuit, (cuit, exclude_id))
+                existing = db.fetch_one(
+                    "SELECT id, nombre FROM clientes WHERE cuit = ? AND id != ?", 
+                    (cuit, exclude_id)
+                )
             else:
-                query_cuit = "SELECT id, nombre, cuit FROM clientes WHERE cuit = ?"
-                existing_by_cuit = db.fetch_one(query_cuit, (cuit,))
-            
-            if existing_by_cuit:
-                return f"Ya existe un cliente con el CUIT '{cuit}': {existing_by_cuit[1]}"
-        
-        return None  # No hay duplicados
+                existing = db.fetch_one(
+                    "SELECT id, nombre FROM clientes WHERE cuit = ?", 
+                    (cuit,)
+                )
+            if existing:
+                return f"Ya existe un cliente con el CUIT '{cuit}': {existing[1]}"
+
+        # Verificar teléfono duplicado
+        if telefono:
+            if exclude_id:
+                existing = db.fetch_one(
+                    "SELECT id, nombre FROM clientes WHERE telefono = ? AND id != ?", 
+                    (telefono, exclude_id)
+                )
+            else:
+                existing = db.fetch_one(
+                    "SELECT id, nombre FROM clientes WHERE telefono = ?", 
+                    (telefono,)
+                )
+            if existing:
+                return f"Ya existe un cliente con el teléfono '{telefono}': {existing[1]}"
+
+        return None
 
     def add_customer(self, customer_data):
         # Verificar duplicados ANTES de insertar

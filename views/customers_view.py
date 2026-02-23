@@ -1,5 +1,6 @@
 import customtkinter as ctk
 from tkinter import ttk, messagebox
+from utils.view_helpers import center_window
 from utils.utils import norm_to_2_dec
 ctk.set_appearance_mode("light")
 ctk.set_default_color_theme("blue")
@@ -226,21 +227,12 @@ class CustomersView:
     def open_add_customer_window(self):
         width_win = 450
         height_win = 580
-
-        x_root = self.frame.winfo_x()
-        y_root = self.frame.winfo_y()
-        width_root = self.frame.winfo_width()
-        height_root = self.frame.winfo_height()
-
-        x = x_root + (width_root // 2) - (width_win // 2)
-        y = y_root + (height_root // 2) - (height_win // 2)
-
         win = ctk.CTkToplevel(self.frame)
-        win.geometry(f"{width_win}x{height_win}+{x}+{y}")
         win.configure(fg_color="#e0e0e0")
         win.title("Agregar nuevo cliente")
         win.transient(self.frame)
         win.grab_set()
+        center_window(win, width_win, height_win)
 
         name_var = ctk.StringVar()
         cuit_var = ctk.StringVar()
@@ -327,13 +319,16 @@ class CustomersView:
                 ok = self.controller.add_new_customer_window(data, win)
                 if ok:
                     self.show_success("Cliente agregado correctamente.")
-                    cleanup_and_close()
 
         def cleanup_and_close():
             """Limpia eventos antes de cerrar"""
-            win.unbind("<Return>")
-            win.grab_release()
-            win.destroy()
+            try:
+                if win.winfo_exists():    
+                    win.unbind("<Return>")
+                    win.grab_release()
+                win.destroy()
+            except Exception:
+                pass
 
         save_btn = ctk.CTkButton(
             btn_frame,
@@ -467,21 +462,11 @@ class CustomersView:
         """Muestra una ventana con las deudas del cliente"""
         width_win = 750
         height_win = 640
-
-        x_root = self.frame.winfo_x()
-        y_root = self.frame.winfo_y()
-        width_root = self.frame.winfo_width()
-        height_root = self.frame.winfo_height()
-
-        x = x_root + (width_root // 2) - (width_win // 2)
-        y = y_root + (height_root // 2) - (height_win // 2)
-
         win = ctk.CTkToplevel(self.frame)
         win.title(f"💳 Deudas de {cliente_nombre}")
-        win.geometry(f"{width_win}x{height_win}+{x}+{y}")
-
         win.transient(self.frame)
         win.grab_set()
+        center_window(win, width_win, height_win)
 
         self.debt_window = win
 
@@ -696,29 +681,12 @@ class CustomersView:
         width_win = 950
         height_win = 700
 
-        x_root = self.frame.winfo_x()
-        y_root = self.frame.winfo_y()
-        width_root = self.frame.winfo_width()
-        height_root = self.frame.winfo_height()
-
-        x = x_root + (width_root // 2) - (width_win // 2)
-        y = y_root + (height_root // 2) - (height_win // 2)
-
-        offset_percentage = 0.1  
-        y_offset = int(height_win * offset_percentage)
-        
-        x = x_root + (width_root // 2) - (width_win // 2)
-        y = y_root + (height_root // 2) - (height_win // 2) - y_offset
-
-        if y < 0:
-            y = max(20, y_root + 50) 
-
         win = ctk.CTkToplevel(self.frame)
         win.title(f"📊 Estado de Cuenta - {cliente_nombre}")
-        win.geometry(f"{width_win}x{height_win}+{x}+{y}")
         win.transient(self.frame)
         win.grab_set()
-
+        center_window(win, width_win, height_win)
+        
         # ----------------------------------------------------------------
         # HEADER
         # ----------------------------------------------------------------
