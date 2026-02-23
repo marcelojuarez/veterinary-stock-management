@@ -246,7 +246,7 @@ class CustomerController:
         win.title("Pago Global a Cuenta")
         win.transient(self.view.frame)
         win.grab_set()
-        center_window(win, 450, 410)
+        center_window(win, 450, 500)
 
         # Header
         header = ctk.CTkFrame(win, fg_color="#009688", height=60, corner_radius=0)
