@@ -48,6 +48,8 @@ class ReportsView:
         help_btn = ctk.CTkButton(
             header,
             text="❓ Ayuda",
+            text_color="#ffffff",
+            font=ctk.CTkFont(size=13, weight="bold"),
             width=100,
             height=35,
             fg_color="#2196F3",
@@ -132,6 +134,7 @@ class ReportsView:
         ctk.CTkButton(
             period_frame,
             text="📄 Exportar PDF",
+            text_color="#ffffff",
             width=130,
             height=35,
             fg_color="#FF9800",
@@ -217,7 +220,9 @@ class ReportsView:
         
         self.tabview = ctk.CTkTabview(tabs_frame)
         self.tabview.pack(fill="both", expand=True)
-        
+        self.tabview._segmented_button.configure(
+        font=ctk.CTkFont(family="Segoe UI", size=13, weight="bold")
+        )
         # Tabs
         self.tabview.add("📈 Resumen por Alícuota")
         self.tabview.add("💰 Detalle Ventas")
