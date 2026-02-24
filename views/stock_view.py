@@ -39,7 +39,7 @@ class StockView():
         """Crear frame para botones de stock"""
         manage_frame = ctk.CTkFrame(self.frame)
         manage_frame.grid(row=2, column=0, padx=10, pady=20, sticky="ew")
-        manage_frame.grid_columnconfigure((0, 1, 2), weight=1)
+        manage_frame.grid_columnconfigure((0, 1, 2, 3), weight=1)
 
         W = 250
         H = 40
@@ -92,10 +92,23 @@ class StockView():
             command=lambda: self.open_bulk_update_window()
         )
 
+        edit_btn = ctk.CTkButton(
+            manage_frame,
+            text="✏️ Editar producto",
+            width=W,
+            height=H,
+            font=ctk.CTkFont(size=12, weight="bold"),
+            fg_color=btn_color,
+            hover_color=btn_hover,
+            command=self.open_edit_product_window
+        )
+
+
         #new_btn.grid(row=1, column=0, padx=10, pady=10)
         delete_btn.grid(row=1, column=0, padx=10, pady=10)
         update_btn.grid(row=1, column=1, padx=10, pady=10)
         bulk_update_btn.grid(row=1, column=2, padx=10, pady=10)
+        edit_btn.grid(row=1, column=3, padx=10, pady=10)
     
     def create_find_frame(self):
         """Crear frame para formulario de producto"""
@@ -249,7 +262,7 @@ class StockView():
                 self.show_error(f"Producto {product_id} no encontrado")
                 return
 
-            _, name, pack, profit, _, _, cost_price, _, iva, _, _, _, stock = product
+            _, name, _, profit, _, _, cost_price, _, iva, _, _, _, _ = product
 
             window = ctk.CTkToplevel(self.frame)
             window.title(f"Actualizar Precio - {name}")
@@ -421,19 +434,15 @@ class StockView():
                     if final_profit < Decimal('0.00'):
                         raise ValueError('El nuevo porcentaje de RENTABILIDAD no puede ser un valor NEGATIVO')
 
-
                     product_data = {
-                        "Name": name,
-                        "Package": pack,
                         "Profit": str(final_profit),
                         "CostPrice": str(final_cost),
                         "SalePrice": str(self.new_sale_price),
-                        "Iva": str(iva),
                         "PriceWIva": str(self.price_with_iva),
-                        "Stock": int(stock),
                     }
 
-                    self.stock_model.update_product(product_id, product_data)
+                    self.stock_model.update_p_price_and_related_sales_amount(
+                        product_id, product_data)
                     self.controller.refresh_stock_table()
                     window.destroy()
                     self.show_success("Precio actualizado correctamente")
@@ -616,7 +625,7 @@ class StockView():
         try:
             selected_item = self.stock_tree.selection()[0]
             values = self.stock_tree.item(selected_item)['values']
-            product_id = str(values[0]).zfill(4)
+            product_id = str(values[0])
             return product_id
         except (IndexError, ValueError):
             return None
@@ -644,7 +653,8 @@ class StockView():
         column_name = self.stock_tree['columns'][column_index]
         
         # No permitir editar el ID
-        if column_name in ['Id', 'Profit', 'CostPrice', 'SalePrice', 'Iva', 'SalePriceWithIva', 'ValidityDate', 'LastPriceUpdate', 'Stock']:
+        if column_name in ['Id', 'ListPrice', 'Discount','CostPrice', 'Profit', 'SalePrice', \
+                           'Iva', 'SalePriceWithIva', 'ValidityDate', 'LastPriceUpdate', 'Stock']:
             return
             
         self.start_edit(item, column_name, column)
@@ -871,3 +881,142 @@ class StockView():
             
             self.stock_tree.heading(col, text=text)
 
+    def open_edit_product_window(self):
+        """Ventana para editar nombre y envase del producto"""
+        try:
+            product_id = self.get_selected_product()
+            if not product_id:
+                self.show_warning("Seleccione un producto para editar")
+                return
+
+            product = self.stock_model.get_product_by_id(product_id)
+            if not product:
+                self.show_error(f"Producto {product_id} no encontrado")
+                return
+
+            _, name, pack, _, _, _, _, _, _, _, _, _, _ = product
+
+            window = ctk.CTkToplevel(self.frame)
+            window.title(f"Editar Producto - {name}")
+            window.grab_set()
+            window.resizable(False, False)
+            center_window(window, 480, 320)
+
+            # Card blanca
+            card = ctk.CTkFrame(window, fg_color="white", corner_radius=20)
+            card.pack(fill="both", expand=True, padx=20, pady=20)
+
+            ctk.CTkLabel(
+                card,
+                text="Editar Producto",
+                font=ctk.CTkFont(size=18, weight="bold")
+            ).pack(pady=(20, 10))
+
+            # Form
+            form_frame = ctk.CTkFrame(card, fg_color="#f9f9f9", corner_radius=10)
+            form_frame.pack(pady=10, padx=20, fill="x")
+
+            name_var = tk.StringVar(value=name)
+            pack_var = tk.StringVar(value=pack)
+
+            def add_field(row, label, widget):
+                ctk.CTkLabel(
+                    form_frame,
+                    text=label,
+                    font=ctk.CTkFont(size=13, weight="bold"),
+                    text_color="black"
+                ).grid(row=row, column=0, sticky="e", padx=(10, 10), pady=10)
+                widget.grid(row=row, column=1, sticky="w", padx=(10, 10), pady=10)
+
+            add_field(
+                0, "Nombre:", 
+                ctk.CTkEntry(
+                    form_frame,
+                    textvariable=name_var,
+                    width=250,
+                    height=35
+                )
+            )
+            add_field(
+                1,"Envase: ",
+                ctk.CTkComboBox(
+                    form_frame,
+                    values=[
+                        "UNIDAD",
+                        "10 ML",
+                        "20 ML",
+                        "25 ML",
+                        "50 ML",
+                        "90 ML",
+                        "100 ML",
+                        "200 ML",
+                        "250 ML",
+                        "300 ML",
+                        "500 ML",
+                        "400 GR",
+                        "5 KG",
+                        "10 KG",
+                        "12 KG",
+                        "15 KG",
+                        "20 KG",
+                        "25 KG",
+                        "40 DS",
+                    ],
+                    variable=pack_var,
+                    width=200,
+                    height=35
+                )
+            )
+
+            # Botones
+            btn_frame = ctk.CTkFrame(card, fg_color="transparent")
+            btn_frame.pack(pady=20)
+
+            def save():
+                new_name = name_var.get().strip()
+                new_pack = pack_var.get().strip()
+
+                if not new_name:
+                    self.show_error("El nombre no puede estar vacío")
+                    return
+                if not new_pack:
+                    self.show_error("El envase no puede estar vacío")
+                    return
+
+                # Verificar si ya existe otro producto con ese nombre
+                existing = self.stock_model.get_all_product_by_name(new_name)
+                if existing:
+                    for product in existing: 
+                        if str(product[0]) != str(product_id) and product[1] == new_pack:
+                            messagebox.showwarning("Error", f"Ya existe un producto con el nombre '{new_name}'.\n\n"
+                            f"Código: {product[0]}\n"
+                            f"Envase: {product[1]}\n\n"
+                            "Elija un nombre diferente.")
+                            return
+                    
+                
+                self.controller.update_product_field(product_id, "Name", new_name)
+                self.controller.update_product_field(product_id, "Package", new_pack)
+                self.controller.refresh_stock_table()
+                window.destroy()
+                self.show_success("Producto actualizado correctamente")
+
+            ctk.CTkButton(
+                btn_frame, text="Guardar", width=150, height=40,
+                fg_color="#009688", hover_color="#00796B",
+                font=ctk.CTkFont(size=13, weight="bold"),
+                command=save
+            ).grid(row=0, column=0, padx=15)
+
+            ctk.CTkButton(
+                btn_frame, text="Cancelar", width=150, height=40,
+                fg_color="#E74C3C", hover_color="#C0392B",
+                font=ctk.CTkFont(size=13, weight="bold"),
+                command=window.destroy
+            ).grid(row=0, column=1, padx=15)
+
+            window.bind("<Return>", lambda e: save())
+
+        except Exception as e:
+            self.show_error(f"Error al abrir ventana de edición: {str(e)}")
+        

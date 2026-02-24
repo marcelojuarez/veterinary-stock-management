@@ -1,7 +1,8 @@
+from db.database import db
+from decimal import Decimal
+from tkinter import messagebox
 from models.stock import StockModel
 from models.supplier import SupplierModel
-from tkinter import messagebox
-from db.database import db
 from models.payment_model import PaymentModel
 class StockController:
     def __init__(self, event_bus):
@@ -51,30 +52,6 @@ class StockController:
         except Exception as e:
             self.view.show_error(f"Error al eliminar producto: {str(e)}")
 
-    def find_product(self, find_entry=None):
-        """Buscar producto por ID o nombre"""
-        try:
-            form_data = self.view.get_find_data()
-            name = form_data['name']
-            
-            if not (name):
-                self.view.show_warning("Ingrese ID o nombre para buscar")
-                return
-            
-            search_term = name
-            results = self.stock_model.search_products(search_term)
-            if results:
-                find_entry.set("")
-                self.view.refresh_stock_table(results)
-            
-                if len(results) >= 1:
-                    self.view.show_success(f"Se encontraron {len(results)} productos")
-            else:
-                self.view.show_warning("No se encontraron productos")
-                
-        except Exception as e:
-            self.view.show_error(f"Error al buscar producto: {str(e)}")
-
     def find_product_live(self, search_text):
         search_text = search_text.strip().lower()
 
@@ -91,7 +68,6 @@ class StockController:
 
         self.view.refresh_stock_table(filtered)
 
-
     def update_product_field(self, product_id, field, new_value):
         """Actualizar un campo específico de un producto"""
         try:
@@ -99,22 +75,13 @@ class StockController:
             field_mapping = {
                 'Name': 'name',
                 'Package': 'pack',
-                'Profit': 'profit', 
-                'Price': 'price',
-                'Stock': 'quantity'
             }
             
             db_field = field_mapping.get(field)
             if not db_field:
                 return False
             
-            # Convertir tipos si es necesario
-            if field == 'CostPrice':
-                new_value = float(new_value)
-            elif field == 'Stock':
-                new_value = int(new_value)
-            elif field == 'Name':
-                new_value = new_value.upper()
+            new_value = new_value.upper()
             
             # Actualizar en base de datos
             self.stock_model.update_field(db_field, new_value, product_id)
@@ -182,8 +149,9 @@ class StockController:
 
     ## -- -- ##
     def _reconcile_sales_with_product(self, product_id, old_price, new_price):
+        print('Se USA ESTA FUNCION?')
         """Actualizar precios en ventas que contengan el producto modificado"""
-        if abs(old_price - new_price) < 0.01:
+        if abs(old_price - new_price) < Decimal('0.01'):
             return
         
         try: 
@@ -202,7 +170,7 @@ class StockController:
             reconciled_count = 0
             credits_generate = 0
 
-            for sale_id, cliente_id, cliente_nombre in affected_sales:
+            for sale_id, _, _ in affected_sales:
                 old_status = db.fetch_one("SELECT estado FROM sales WHERE id = ?", (sale_id,))[0]
                 new_status = self.payment_model.reconcile_sale(sale_id)
                 reconciled_count += 1
