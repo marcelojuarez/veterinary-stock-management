@@ -8,8 +8,8 @@ from datetime import datetime, timedelta
 from models.customer import CustomerModel
 from views.client_selector import ClientSelectorDialog
 from services.daily_sales_report import DailySalesReportService
-from utils.view_helpers import center_window
-from utils.utils import norm_to_2_dec, format_currency
+from utils.view_helpers import center_window, show_error
+from utils.utils import norm_to_2_dec, format_currency, string_to_2_dec
 
 
 ctk.set_appearance_mode("light")
@@ -136,6 +136,7 @@ class SalesView:
         )
         honorarios_btn.grid(row=0, column=1, padx=5)
 
+    ## -- Crea la tabla de productos en la venta -- ##
     def create_sales_table(self):
         table_frame = ctk.CTkFrame(self.frame)
         table_frame.grid(row=2, column=1, padx=10, pady=10, sticky="nsew")
@@ -204,17 +205,14 @@ class SalesView:
 
             product_id, name, _, _, _, _ ,_ , _, _, \
             price_with_iva, _, _, stock = p_data
-            
             price = norm_to_2_dec(price_with_iva)
-
-            print(product_id, name, price, stock)
 
             # Ventana emergente para cantidad
             qty_win = ctk.CTkToplevel(self.frame)
             qty_win.title(f"Agregar {name}")
             qty_win.transient(self.frame)
             qty_win.grab_set()
-            center_window(qty_win, 320, 220)
+            center_window(qty_win, 320, 240)
 
             ctk.CTkLabel(qty_win, text=f"Agregar '{name}'", font=ctk.CTkFont(size=15, weight="bold")).pack(pady=(15, 5))
             ctk.CTkLabel(qty_win, text=f"Stock disponible: {stock}", font=ctk.CTkFont(size=13)).pack()
@@ -238,68 +236,11 @@ class SalesView:
         except Exception as e:
             messagebox.showerror("Error", f"No se pudo agregar el producto: {e}")
 
-    def open_today_sales_window(self, rows):
-        """Ventana con tabla para mostrar ventas del día"""
-        width_win = 700
-        height_win = 600
-        win = ctk.CTkToplevel(self.frame)
-        win.title("Ventas del día")
-        win.transient(self.frame)
-        win.grab_set()
-        center_window(win, width_win, height_win)
-
-        title = ctk.CTkLabel(win, text="📅 Ventas del día",
-                            font=ctk.CTkFont(size=18, weight="bold"))
-        title.pack(pady=10)
-
-        # Tabla
-        tree = ttk.Treeview(win, show="headings", height=10)
-        tree["columns"] = ("ID", "Fecha", "Cliente", "Estado", "Total")
-
-        widths = [60, 150, 250, 100, 100]
-        for col, w in zip(tree["columns"], widths):
-            tree.column(col, width=w, anchor="center")
-            tree.heading(col, text=col)
-
-        for sale_id, date, total, cliente, estado in rows:
-            tree.insert("", "end", values=(
-                sale_id,
-                date,
-                cliente if cliente else "Consumidor Final",
-                estado.upper(),
-                f"${total:.2f}"
-            ))
-
-        tree.pack(padx=15, pady=10, fill="both", expand=True)
-
-        # Botones
-        btn_frame = ctk.CTkFrame(win)
-        btn_frame.pack(pady=10)
-
-        export_btn = ctk.CTkButton(
-            btn_frame,
-            text="🖨 Imprimir / Exportar",
-            width=180,
-            fg_color="#0078D4",
-            hover_color="#005A9E",
-            command=lambda: self.export_sales_day(rows)
-        )
-        export_btn.grid(row=0, column=0, padx=5)
-
-        close_btn = ctk.CTkButton(
-            btn_frame,
-            text="Cerrar",
-            width=140,
-            fg_color="#757575",
-            hover_color="#616161",
-            command=win.destroy
-        )
-        close_btn.grid(row=0, column=1, padx=5)
-
     def export_sales_day(self, rows):
         pdf = DailySalesReportService().generate(rows)
         messagebox.showinfo("PDF generado", f"Archivo guardado:\n\n{pdf}\n\nPuedes imprimirlo.")
 
+    ## -- Permite generar el remito asociado a una venta -- ##
     def generate_delivery_note(self):
         if not self.last_sale_id:
             self.show_warning("Primero debe procesar una venta.")
@@ -311,6 +252,7 @@ class SalesView:
         except Exception as e:
             self.show_error(f"Error al generar remito: {e}")
 
+    ## -- Refresca la tabla de productos en la venta -- ##
     def refresh_sale_table(self):
         self.sale_tree.delete(*self.sale_tree.get_children())
         
@@ -335,9 +277,10 @@ class SalesView:
                 return values[1]
         return "Producto desconocido"
 
+    ## -- Actualiza el monto total en la tabla de productos en la venta -- ##
     def update_total(self):
         """Calcular total manejando items con y sin observaciones"""
-        total = 0
+        total = Decimal('0.00')
         for item in self.items_in_sale:
             if len(item) == 5:  # Tiene observaciones (honorarios)
                 _, _, qty, price, _ = item
@@ -349,6 +292,7 @@ class SalesView:
         total = norm_to_2_dec(total)
         self.total_var.set(f"TOTAL: ${total}")
 
+    ## -- Elimina todos los productos de la tabla de productos en la venta -- ##
     def clear_sale(self):
         if not self.last_sale_id:
             if not self.ask_confirmation("¿Eliminar todos los artículos agregados?"):
@@ -358,6 +302,7 @@ class SalesView:
         self.items_in_sale.clear()
         self.total_var.set("TOTAL: $0.00")
 
+    ## -- Elimina un producto seleccionado en la tabla de productos en la venta -- ##
     def delete_selected_product(self):
         try:
             
@@ -368,7 +313,7 @@ class SalesView:
             pid = self.sale_tree.item(selected_item)["values"][0]
             self.sale_tree.delete(selected_item)
             self.items_in_sale = [
-                (p, n, q, pr) for (p, n, q, pr) in self.items_in_sale if p != pid
+                item for item in self.items_in_sale if item[0] != pid
             ]
             self.update_total()
         except IndexError:
@@ -400,14 +345,6 @@ class SalesView:
                     "end", 
                     values=(pid, name, format_currency(price_with_iva), qty)
                 )
-
-    def refresh_client_list(self, event=None):
-        names = self.controller.get_client_names()
-        self.client_combo.configure(values=names)
-
-        # Mantiene selección válida
-        if self.client_var.get() not in names:
-            self.client_combo.set("Consumidor Final")
 
     def show_sale_confirmation(self):
         """Mostrar ventana de confirmación con preview de la venta"""
@@ -472,22 +409,22 @@ class SalesView:
         ctk.CTkLabel(
             client_frame,
             text=f"Estado de pago: {is_paid}",
-            font=ctk.CTkFont(size=12, weight="bold"),  # Reducido de 13 a 12
+            font=ctk.CTkFont(size=12, weight="bold"),
             text_color="#009688" if self.payment_type_var.get() == "PAID" else "#f44336"
-        ).pack(anchor="w", padx=15, pady=(1, 8))  # Reducido padding
+        ).pack(anchor="w", padx=15, pady=(1, 8))
         
         # Frame de productos - MÁS COMPACTO
         products_frame = ctk.CTkFrame(confirm_win)
-        products_frame.pack(padx=15, pady=5, fill="both", expand=True)  # Reducido padding
+        products_frame.pack(padx=15, pady=5, fill="both", expand=True)  
         
         ctk.CTkLabel(
             products_frame,
             text="📦 Productos",
-            font=ctk.CTkFont(size=14, weight="bold")  # Reducido de 15 a 14
-        ).pack(pady=(8, 3))  # Reducido padding
+            font=ctk.CTkFont(size=14, weight="bold")  
+        ).pack(pady=(8, 3))  
         
-        # Tabla de productos - ALTURA REDUCIDA
-        preview_tree = ttk.Treeview(products_frame, show="headings", height=6)  # Reducido de 8 a 6
+        # Tabla de productos
+        preview_tree = ttk.Treeview(products_frame, show="headings", height=6)
         preview_tree["columns"] = ("Cant.", "Producto", "P. Unit.", "Subtotal")
         
         widths = [60, 280, 100, 100]
@@ -524,11 +461,11 @@ class SalesView:
 
         # Se normaliza el total
         total = norm_to_2_dec(total)
-        preview_tree.pack(padx=8, pady=5, fill="both", expand=True)  # Reducido padding
+        preview_tree.pack(padx=8, pady=5, fill="both", expand=True)
         
         # Frame de totales - MÁS COMPACTO
         totals_frame = ctk.CTkFrame(confirm_win, fg_color="#e8f5e9")
-        totals_frame.pack(padx=15, pady=5, fill="x")  # Reducido padding
+        totals_frame.pack(padx=15, pady=5, fill="x")
         
         # Cantidad total de items
         total_items = sum(item[2] for item in self.items_in_sale)
@@ -536,22 +473,22 @@ class SalesView:
         ctk.CTkLabel(
             totals_frame,
             text=f"Total de productos: {len(self.items_in_sale)} | Total de unidades: {total_items}",
-            font=ctk.CTkFont(size=12)  # Reducido y combinado en una línea
+            font=ctk.CTkFont(size=12)
         ).pack(pady=(8, 3))
         
         ctk.CTkLabel(
             totals_frame,
             text=f"TOTAL A PAGAR: ${total}",
-            font=ctk.CTkFont(size=20, weight="bold"),  # Reducido de 22 a 20
+            font=ctk.CTkFont(size=20, weight="bold"),
             text_color="#2e7d32"
         ).pack(pady=(3, 10))  # Reducido padding
         
         # Variable para capturar la respuesta
         result = {"confirmed": False}
         
-        # Frame de botones - SIEMPRE VISIBLE
+        # Frame de botones
         button_frame = ctk.CTkFrame(confirm_win, fg_color="transparent")
-        button_frame.pack(pady=10, side="bottom")  # Cambio importante: side="bottom"
+        button_frame.pack(pady=10, side="bottom")
         
         def confirm():
             result["confirmed"] = True
@@ -876,9 +813,9 @@ class SalesView:
                         hora_str,
                         cliente_nombre if cliente_nombre else "Consumidor Final",
                         estado_texto,
-                        f"${total_d}",
-                        f"${pagado_d}",
-                        f"${saldo}"
+                        f"${format_currency(total_d)}",
+                        f"${format_currency(pagado_d)}",
+                        f"${format_currency(saldo)}"
                     ), tags=(tag,))
                     
                     total_ventas += total_d
@@ -890,7 +827,8 @@ class SalesView:
                     text=f"📊 {len(ventas)} ventas encontradas"
                 )
                 total_label.configure(
-                    text=f"Total: ${total_ventas} | Pagado: ${total_pagado} | Saldo: ${total_saldo}"
+                    text=f"Total: ${format_currency(total_ventas)} | Pagado: ${format_currency(total_pagado)}" \
+                         f" | Saldo: ${format_currency(total_saldo)}"
                 )
 
             except Exception as e:
@@ -947,7 +885,6 @@ class SalesView:
             # Si el usuario confirma, proceder con la venta
             self.controller.confirm_sale()
 
-
     # Client Selector
     def create_client_section(self):
         """Sección de cliente MEJORADA"""
@@ -988,6 +925,7 @@ class SalesView:
         search_client_btn.grid(row=0, column=1)
 
         # --- Campos de datos ---
+        # --- Cuit/Dni ---
         ctk.CTkLabel(
             client_frame, 
             text="CUIT / DNI:",
@@ -1003,6 +941,7 @@ class SalesView:
             state="disabled"
         ).grid(row=1, column=1, padx=10, pady=5, sticky="w")
 
+        # --- Dirección ---
         ctk.CTkLabel(
             client_frame, 
             text="Dirección:",
@@ -1017,12 +956,6 @@ class SalesView:
             height=35, 
             state="disabled"
         ).grid(row=2, column=1, padx=10, pady=5, sticky="w")
-        
-        ctk.CTkLabel(
-            client_frame, 
-            text="Forma de pago:",
-            font=ctk.CTkFont(size=13, weight="bold")
-        ).grid(row=3, column=0, padx=10, pady=10, sticky="w")
 
         # --- Forma de pago ---
         ctk.CTkLabel(
@@ -1070,7 +1003,6 @@ class SalesView:
     
     def on_client_selected(self, selected_name):
         try:
-            print('se ejecuta')
             if selected_name == "Consumidor Final":
                 self.client_cuit_var.set("")
                 self.client_address_var.set("")
@@ -1104,7 +1036,8 @@ class SalesView:
         honorarios_id = self.stock_model.get_honorarios_id()
         
         if not honorarios_id:
-            self.show_error("No se encontró el producto 'HONORARIOS' en el stock.\n\nPor favor, contacte al administrador.")
+            self.show_error("No se encontró el producto 'HONORARIOS PROFESIONALES' en el stock." \
+                            "\n\nPor favor, contacte al administrador.")
             return
         
         self.show_honorarios_dialog(honorarios_id)
@@ -1195,10 +1128,15 @@ class SalesView:
         
         def confirm_honorarios():
             try:
-                price = float(price_var.get())  # Este es el precio que el usuario ingresa
+                price = string_to_2_dec(price_var.get())  # Precio que el usuario ingresa
+
+                if price is None:
+                    show_error("Valor Invalido")
+                    return
+
                 observations = obs_text.get("1.0", tk.END).strip()
                 
-                if price <= 0:
+                if price <= Decimal('0.00'):
                     messagebox.showwarning("Error", "El monto debe ser mayor a 0")
                     return
                 
@@ -1207,10 +1145,9 @@ class SalesView:
                     honorarios_id, 
                     'HONORARIOS', 
                     1,
-                    price,           # ← Este precio debe ser > 0
+                    price,           
                     observations
                 ))
-                
                 self.refresh_sale_table()
                 self.update_total()
                 self.show_success("Honorarios agregados correctamente")
@@ -1244,7 +1181,6 @@ class SalesView:
             hover_color="#616161",
             command=dialog.destroy
         ).grid(row=0, column=1, padx=10)
-
 
     # Utilidades
     def show_success(self, msg): messagebox.showinfo("Éxito", msg)

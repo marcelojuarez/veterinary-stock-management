@@ -10,6 +10,7 @@ class StockModel:
             SELECT id, name, pack, list_price, discount, cost_price, profit, price, iva, 
                    price_with_iva, created_at, last_price_update, quantity
             FROM stock 
+            WHERE name != "HONORARIOS"
             ORDER BY name
         """
         return db.fetch_all(query)
@@ -140,6 +141,6 @@ class StockModel:
     
     def get_honorarios_id(self):
         """Obtener el ID del producto honorarios"""
-        query = "SELECT id FROM stock WHERE name = 'HONORARIOS'"
+        query = "SELECT id FROM stock WHERE name = 'HONORARIOS PROFESIONALES'"
         row = db.fetch_one(query)
         return row[0] if row else None
