@@ -9,7 +9,7 @@ from models.customer import CustomerModel
 from views.client_selector import ClientSelectorDialog
 from services.daily_sales_report import DailySalesReportService
 from utils.view_helpers import center_window, show_error
-from utils.utils import norm_to_2_dec, format_currency, string_to_2_dec
+from utils.utils import iso_to_traditional, norm_to_2_dec, format_currency, string_to_2_dec, traditional_to_iso
 
 
 ctk.set_appearance_mode("light")
@@ -561,8 +561,8 @@ class SalesView:
         filter_frame.pack(fill="x", padx=15, pady=10)
 
         # Variables para filtros
-        fecha_desde_var = tk.StringVar(value=(datetime.now() - timedelta(days=30)).strftime("%Y-%m-%d"))
-        fecha_hasta_var = tk.StringVar(value=datetime.now().strftime("%Y-%m-%d"))
+        fecha_desde_var = tk.StringVar(value=iso_to_traditional((datetime.now() - timedelta(days=30)).strftime("%Y-%m-%d")))
+        fecha_hasta_var = tk.StringVar(value=iso_to_traditional(datetime.now().strftime("%Y-%m-%d")))
         estado_var = tk.StringVar(value="Todos")
 
         # --- Fila 1: Fechas ---
@@ -582,7 +582,7 @@ class SalesView:
             background='#009688',
             foreground='white',
             borderwidth=2,
-            date_pattern='yyyy-mm-dd'
+            date_pattern='dd/mm/yyyy'
         )
         fecha_desde_entry.pack(side="left", padx=5)
 
@@ -599,7 +599,7 @@ class SalesView:
             background='#009688',
             foreground='white',
             borderwidth=2,
-            date_pattern='yyyy-mm-dd'
+            date_pattern='dd/mm/yyyy'
         )
         fecha_hasta_entry.pack(side="left", padx=5)
 
@@ -608,27 +608,30 @@ class SalesView:
         quick_btns.pack(side="left", padx=20)
 
         def set_today():
-            hoy = datetime.now().strftime("%Y-%m-%d")
+            hoy = datetime.now().strftime("%d/%m/%Y")
             fecha_desde_var.set(hoy)
             fecha_hasta_var.set(hoy)
             fecha_desde_entry.set_date(datetime.now())
             fecha_hasta_entry.set_date(datetime.now())
+            load_sales()
 
         def set_this_week():
             hoy = datetime.now()
             inicio_semana = hoy - timedelta(days=hoy.weekday())
-            fecha_desde_var.set(inicio_semana.strftime("%Y-%m-%d"))
-            fecha_hasta_var.set(hoy.strftime("%Y-%m-%d"))
+            fecha_desde_var.set(inicio_semana.strftime("%d/%m/%Y"))
+            fecha_hasta_var.set(hoy.strftime("%d/%m/%Y"))
             fecha_desde_entry.set_date(inicio_semana)
             fecha_hasta_entry.set_date(hoy)
+            load_sales()
 
         def set_this_month():
             hoy = datetime.now()
             inicio_mes = hoy.replace(day=1)
-            fecha_desde_var.set(inicio_mes.strftime("%Y-%m-%d"))
-            fecha_hasta_var.set(hoy.strftime("%Y-%m-%d"))
+            fecha_desde_var.set(inicio_mes.strftime("%d/%m/%Y"))
+            fecha_hasta_var.set(hoy.strftime("%d/%m/%Y"))
             fecha_desde_entry.set_date(inicio_mes)
             fecha_hasta_entry.set_date(hoy)
+            load_sales()
 
         ctk.CTkButton(
             quick_btns, text="Hoy", width=60, height=28,
@@ -756,8 +759,8 @@ class SalesView:
                     sales_tree.delete(item)
 
                 # Obtener filtros
-                fecha_desde = fecha_desde_var.get()
-                fecha_hasta = fecha_hasta_var.get()
+                fecha_desde = traditional_to_iso(fecha_desde_var.get())
+                fecha_hasta = traditional_to_iso(fecha_hasta_var.get())
                 estado = estado_var.get()
 
                 # Mapeo de estados
@@ -791,7 +794,7 @@ class SalesView:
                     # Formatear fecha y hora
                     try:
                         fecha_dt = datetime.strptime(fecha, "%Y-%m-%d %H:%M:%S")
-                        fecha_str = fecha_dt.strftime("%Y-%m-%d")
+                        fecha_str = fecha_dt.strftime("%d/%m/%Y")
                         hora_str = fecha_dt.strftime("%H:%M")
                     except:
                         fecha_str = fecha[:10] if len(fecha) >= 10 else fecha
