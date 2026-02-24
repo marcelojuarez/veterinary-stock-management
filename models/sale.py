@@ -21,31 +21,36 @@ class SalesModel:
 
             for item in items:
                 if len(item) == 5:
-                    product_id, name, quantity, price, observations = item
+                    product_id, name, quantity, price_with_iva, observations = item
                 else:
-                    product_id, name, quantity, price = item
+                    product_id, name, quantity, price_with_iva = item
                     observations = None
                 
                 # OBTENER IVA DEL PRODUCTO
                 cursor.execute("SELECT iva FROM stock WHERE id = ?", (product_id,))
                 row = cursor.fetchone()
-                iva_rate = Decimal(row[0]) if row and row[0] else Decimal*('21.00')
+                iva_rate = Decimal(row[0]) if row and row[0] else Decimal('21.00')
+                
+                # DESCOMPONER EL PRECIO (price_with_iva → price sin IVA)
+                price_with_iva_decimal = Decimal(str(price_with_iva))
+                divisor = Decimal('1') + (iva_rate / Decimal('100'))
+                price_without_iva = norm_to_2_dec(price_with_iva_decimal / divisor)
                 
                 # CALCULAR MONTOS
-                subtotal = norm_to_2_dec(price * quantity)
-                iva_amount = norm_to_2_dec(subtotal * (iva_rate / Decimal('100')))
+                subtotal = norm_to_2_dec(price_without_iva * quantity)  # Sin IVA
+                iva_amount = norm_to_2_dec(subtotal * (iva_rate / Decimal('100')))  # IVA
                 
-                # GUARDAR CON IVA
+                # GUARDAR
                 cursor.execute("""
                     INSERT INTO sale_items (sale_id, product_id, quantity, price, subtotal, iva_rate, iva_amount, observations)
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                """, (sale_id, product_id, quantity, str(price), str(subtotal), str(iva_rate), str(iva_amount), observations))
+                """, (sale_id, product_id, quantity, str(price_without_iva), str(subtotal), str(iva_rate), str(iva_amount), observations))
 
                 # Solo descontar stock si NO es honorarios
                 cursor.execute("SELECT name FROM stock WHERE id = ?", (product_id,))
                 row = cursor.fetchone()
                 
-                if row and row[0] != 'HONORARIOS PROFESIONALES':
+                if row and row[0] != 'HONORARIOS':
                     cursor.execute("""
                         UPDATE stock SET quantity = quantity - ?
                         WHERE id = ?

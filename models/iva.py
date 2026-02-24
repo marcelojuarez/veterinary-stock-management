@@ -10,10 +10,7 @@ class IVAModel:
     # ================================================================
     
     def get_iva_ventas(self, fecha_desde, fecha_hasta):
-        """
-        Obtener IVA cobrado en ventas (débito fiscal)
-        ACTUALIZADO: Usa campos iva_rate e iva_amount guardados
-        """
+        """Obtener IVA cobrado en ventas (débito fiscal)"""
         query = """
             SELECT 
                 s.id as venta_id,
@@ -22,22 +19,22 @@ class IVAModel:
                 COALESCE(c.cuit, '') as cuit_cliente,
                 COALESCE(c.condicion_iva, 'Consumidor Final') as condicion_iva,
                 si.iva_rate as alicuota_iva,
-
-                -- Neto real
-                SUM(si.subtotal - si.iva_amount) as neto,
-
-                -- IVA real
+                
+                -- Neto (sin IVA) - DIRECTO desde subtotal
+                SUM(si.subtotal) as neto,
+                
+                -- IVA - DIRECTO desde iva_amount
                 SUM(si.iva_amount) as iva,
-
-                -- Total CORRECTO
-                SUM(si.subtotal) as total
-
+                
+                -- Total = Neto + IVA
+                SUM(si.subtotal + si.iva_amount) as total
+                
             FROM sales s
             LEFT JOIN clientes c ON c.id = s.cliente_id
             JOIN sale_items si ON si.sale_id = s.id
             WHERE s.date BETWEEN ? AND ?
             GROUP BY s.id, si.iva_rate
-            ORDER BY s.date, s.id;
+            ORDER BY s.date, s.id
         """
         return self.db.fetch_all(query, (fecha_desde, fecha_hasta))
     
