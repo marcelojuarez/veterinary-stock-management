@@ -312,6 +312,17 @@ class Database:
                 );
             ''')
 
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS sale_retentions (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    sale_id INTEGER NOT NULL,
+                    tax_type TEXT NOT NULL,
+                    amount TEXT NOT NULL,
+                    certificate_number TEXT,
+                    FOREIGN KEY(sale_id) REFERENCES sales(id) ON DELETE CASCADE
+                );
+            ''')
+
             # Remito
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS delivery_note (

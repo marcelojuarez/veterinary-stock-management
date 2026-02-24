@@ -887,7 +887,7 @@ class SalesView:
 
     # Client Selector
     def create_client_section(self):
-        """Sección de cliente MEJORADA"""
+        """Sección de cliente MEJORADA con retenciones"""
         client_frame = ctk.CTkFrame(self.frame, fg_color="#fafafa")
         client_frame.grid(row=1, column=1, sticky="ew", padx=10, pady=5)
 
@@ -924,8 +924,7 @@ class SalesView:
         )
         search_client_btn.grid(row=0, column=1)
 
-        # --- Campos de datos ---
-        # --- Cuit/Dni ---
+        # --- CUIT / DNI ---
         ctk.CTkLabel(
             client_frame, 
             text="CUIT / DNI:",
@@ -984,7 +983,124 @@ class SalesView:
             value="CREDIT"
         )
         self.radio_credit.grid(row=0, column=1)
+        
+        # Checkbox para mostrar/ocultar retenciones
+        self.tiene_retenciones_var = tk.BooleanVar(value=False)
+        retenciones_check = ctk.CTkCheckBox(
+            client_frame,
+            text="El cliente realiza retenciones",
+            variable=self.tiene_retenciones_var,
+            font=ctk.CTkFont(size=13, weight="bold"),
+            command=self.toggle_retenciones
+        )
+        retenciones_check.grid(row=4, column=0, columnspan=2, padx=10, pady=(15, 5), sticky="w")
+        
+        # Frame de retenciones (oculto por defecto)
+        self.retenciones_frame = ctk.CTkFrame(client_frame, fg_color="#e8f5e9")
+        self.retenciones_frame.grid(row=5, column=0, columnspan=2, padx=10, pady=5, sticky="ew")
+        self.retenciones_frame.grid_remove()  # Ocultar inicialmente
+        
+        # Retención IVA
+        ret_iva_container = ctk.CTkFrame(self.retenciones_frame, fg_color="transparent")
+        ret_iva_container.pack(fill="x", padx=10, pady=5)
+        
+        ctk.CTkLabel(
+            ret_iva_container,
+            text="Retención IVA $:",
+            font=ctk.CTkFont(size=12)
+        ).pack(side="left", padx=(0, 10))
+        
+        self.retencion_iva_var = tk.StringVar(value="0")
+        ctk.CTkEntry(
+            ret_iva_container,
+            textvariable=self.retencion_iva_var,
+            width=120,
+            height=30
+        ).pack(side="left")
+        
+        # Retención IIBB
+        ret_iibb_container = ctk.CTkFrame(self.retenciones_frame, fg_color="transparent")
+        ret_iibb_container.pack(fill="x", padx=10, pady=5)
+        
+        ctk.CTkLabel(
+            ret_iibb_container,
+            text="Retención IIBB $:",
+            font=ctk.CTkFont(size=12)
+        ).pack(side="left", padx=(0, 10))
+        
+        self.retencion_iibb_var = tk.StringVar(value="0")
+        ctk.CTkEntry(
+            ret_iibb_container,
+            textvariable=self.retencion_iibb_var,
+            width=120,
+            height=30
+        ).pack(side="left")
+        
+        # Retención Ganancias
+        ret_ganancias_container = ctk.CTkFrame(self.retenciones_frame, fg_color="transparent")
+        ret_ganancias_container.pack(fill="x", padx=10, pady=5)
+        
+        ctk.CTkLabel(
+            ret_ganancias_container,
+            text="Retención Ganancias $:",
+            font=ctk.CTkFont(size=12)
+        ).pack(side="left", padx=(0, 10))
+        
+        self.retencion_ganancias_var = tk.StringVar(value="0")
+        ctk.CTkEntry(
+            ret_ganancias_container,
+            textvariable=self.retencion_ganancias_var,
+            width=120,
+            height=30
+        ).pack(side="left")
+        
+        # Número de certificado
+        cert_container = ctk.CTkFrame(self.retenciones_frame, fg_color="transparent")
+        cert_container.pack(fill="x", padx=10, pady=5)
+        
+        ctk.CTkLabel(
+            cert_container,
+            text="Nº Certificado:",
+            font=ctk.CTkFont(size=12)
+        ).pack(side="left", padx=(0, 10))
+        
+        self.certificado_var = tk.StringVar()
+        ctk.CTkEntry(
+            cert_container,
+            textvariable=self.certificado_var,
+            width=200,
+            height=30,
+            placeholder_text="Ej: 001-00123456"
+        ).pack(side="left")
 
+    def toggle_retenciones(self):
+        """Mostrar/ocultar frame de retenciones"""
+        if self.tiene_retenciones_var.get():
+            self.retenciones_frame.grid()
+        else:
+            self.retenciones_frame.grid_remove()
+            # Limpiar valores
+            self.retencion_iva_var.set("0")
+            self.retencion_iibb_var.set("0")
+            self.retencion_ganancias_var.set("0")
+            self.certificado_var.set("")
+
+    def get_retenciones(self):
+        """Obtener datos de retenciones del formulario"""
+        if not self.tiene_retenciones_var.get():
+            return None
+        
+        try:
+            return {
+                'IVA': float(self.retencion_iva_var.get() or 0),
+                'IIBB': float(self.retencion_iibb_var.get() or 0),
+                'GAN': float(self.retencion_ganancias_var.get() or 0),
+                'certificado': self.certificado_var.get().strip()
+            }
+        except ValueError:
+            self.show_error("Ingrese valores numéricos válidos para las retenciones")
+            return None
+        
     def open_client_selector(self):
         """Abrir diálogo de selección de cliente"""        
         customer_model = CustomerModel()

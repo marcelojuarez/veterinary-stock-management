@@ -7,7 +7,7 @@ class SalesModel:
     def __init__(self):
         self.db = db
 
-    def register_sale(self, total, items, cliente_id, estado):
+    def register_sale(self, total, items, cliente_id, estado, retenciones=None):
         with self.db.get_connection() as conn:
             cursor = conn.cursor()
             date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -18,6 +18,15 @@ class SalesModel:
             """, (date, str(total), cliente_id, estado))
 
             sale_id = cursor.lastrowid
+    
+            # Guardar retenciones SI EXISTEN
+            if retenciones:
+                for tipo, monto in retenciones.items():
+                    if tipo != 'certificado' and monto > 0:
+                        cursor.execute("""
+                            INSERT INTO sale_retentions (sale_id, tax_type, amount, certificate_number)
+                            VALUES (?, ?, ?, ?)
+                        """, (sale_id, tipo, str(monto), retenciones.get('certificado', '')))
 
             for item in items:
                 if len(item) == 5:

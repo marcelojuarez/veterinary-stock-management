@@ -115,7 +115,9 @@ class SalesController:
 
             estado = "paid" if self.sales_view.payment_type_var.get() == "PAID" else "pending"
 
-            sale_id = self.sales_model.register_sale(total, items, cliente_id, estado)
+            retenciones = self.sales_view.get_retenciones()
+
+            sale_id = self.sales_model.register_sale(total, items, cliente_id, estado, retenciones)
 
             #invoice = InvoiceController()
             #pdf = invoice.generate_invoice(cliente_id, items)
