@@ -19,7 +19,7 @@ class ReportsView:
         self.anio_var = tk.StringVar()
         
         # Configurar grid
-        self.frame.grid_rowconfigure(2, weight=1)
+        self.frame.grid_rowconfigure(3, weight=1)
         self.frame.grid_columnconfigure(0, weight=1)
         
         # Crear layout
@@ -148,6 +148,7 @@ class ReportsView:
         summary_frame = ctk.CTkFrame(self.frame, fg_color="transparent")
         summary_frame.grid(row=2, column=0, sticky="ew", padx=10, pady=10)
         summary_frame.grid_columnconfigure((0, 1, 2), weight=1)
+        summary_frame.propagate(True)
         
         # Card IVA Ventas
         self.card_ventas = self.create_card(
@@ -214,7 +215,7 @@ class ReportsView:
         tabs_frame.grid_rowconfigure(0, weight=1)
         tabs_frame.grid_columnconfigure(0, weight=1)
         
-        self.tabview = ctk.CTkTabview(tabs_frame, height=400)
+        self.tabview = ctk.CTkTabview(tabs_frame)
         self.tabview.pack(fill="both", expand=True)
         
         # Tabs
