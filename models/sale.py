@@ -117,7 +117,66 @@ class SalesModel:
             }
             for r in rows
         ]
+    
+    def get_total_of_sale_items(self, sale_id, conn=None):
+        query = """
+        SELECT total FROM sales WHERE id = ?
+        """
 
+        rows = self.db.fetch_all(query, (sale_id, ), conn=conn)
 
+        total = Decimal('0.00')
 
+        for row in rows:
+            total += Decimal(row[0])
 
+        return norm_to_2_dec(total)
+
+    ## -- Obtiene todos los datos de un item de venta -- ##
+    def get_sale_item(self, sale_id, p_id, conn=None):
+        query = """
+        SELECT * FROM sale_items WHERE sale_id = ? AND product_id = ?
+        """
+
+        return self.db.fetch_one(query, (sale_id, p_id), conn=conn)
+
+    ## -- Actualiza los valores de un item de compra al aumentar el precio de un producto -- ##
+    def update_sale_item(self, sale_id, p_id, new_sale_price, conn=None, commit=True):
+        sale_item_data = self.get_sale_item(sale_id, p_id)
+        qty = sale_item_data[3]
+        iva_rate = Decimal(sale_item_data[6])
+
+        new_sale_price = norm_to_2_dec(new_sale_price)
+        new_iva_amount = norm_to_2_dec(new_sale_price * (iva_rate / Decimal('100')))
+        new_price_with_iva = new_sale_price + new_iva_amount
+
+        new_subtotal = norm_to_2_dec(new_price_with_iva * qty)
+
+        query = """
+        UPDATE sale_items
+        SET
+            price = ?,
+            subtotal = ?,
+            iva_amount = ?
+        WHERE sale_id = ? AND product_id = ?
+        """
+
+        params = [
+            str(new_price_with_iva),
+            str(new_subtotal),
+            str(new_iva_amount),
+            sale_id,
+            p_id
+        ]
+
+        self.db.execute_query(query, params, conn=conn, commit=commit)
+
+    ## -- Recalcula el monto total de una venta -- ##
+    def recalculate_sale_total(self, sale_id, conn=None, commit=True):
+        new_total = self.get_total_of_sale_items(sale_id)
+
+        query = """
+        UPDATE sales SET total = ? WHERE id = ?
+        """
+
+        self.db.execute_query(query, (str(new_total), sale_id), conn=conn, commit=commit)

@@ -1,8 +1,10 @@
 from db.database import db
+from models.sale import SalesModel
 
 class StockModel: 
     def __init__(self, db_conection=None):
         self.db = db_conection or db
+        self.sale_model = SalesModel()
     
     def get_all_products(self):
         """Obtener todos los productos del stock"""
@@ -17,7 +19,7 @@ class StockModel:
     
     def get_product_by_name(self, product_name):
         """Obtener un producto por su ID"""
-        query = "SELECT id FROM stock WHERE name = ?"
+        query = "SELECT id, pack FROM stock WHERE LOWER(name) = LOWER(?)"
         return db.fetch_one(query, (product_name,))
     
     def get_product_by_id(self, product_id):
@@ -30,29 +32,75 @@ class StockModel:
         """
         return db.fetch_one(query, (product_id,))
         
-    def update_product(self, product_id, product_data):
+    def update_product_price(self, product_id, product_data, conn=None, commit=True):
         """Actualizar un producto existente"""
         query = """
             UPDATE stock 
-            SET name = ?, pack = ?, profit = ?, cost_price = ?, price = ?, 
-                iva = ?, price_with_iva = ?, quantity = ?, last_price_update = CURRENT_DATE
+            SET profit = ?, cost_price = ?, price = ?, 
+                price_with_iva = ?, last_price_update = CURRENT_DATE
             WHERE id = ?
         """
         params = (
-            product_data['Name'],
-            product_data['Package'],
             product_data['Profit'],
             product_data['CostPrice'],
             product_data['SalePrice'],
-            product_data['Iva'],
             product_data['PriceWIva'],
-            product_data['Stock'],
             product_id
         )
-        return db.execute_query(query, params)
+        self.db.execute_query(query, params, conn=conn, commit=commit)
+    
+    ## -- Transaccion para actualizar precio de productos -- ##
+    # Y montos de ventas relacionadas#
+    def update_p_price_and_related_sales_amount(self, product_id, product_data):
+        try:
+            conn = self.db.get_connection()
+
+            conn.execute("BEGIN")
+            
+            # Se actualiza el precio del producto
+            self.update_product_price(product_id, product_data, conn=conn, commit=False)
+
+            # Se obtienen las ventas pendientes o parciales, en donde el producto actualizado, participa
+            query = """
+                SELECT DISTINCT s.id, s.cliente_id, c.nombre
+                FROM sales s
+                JOIN sale_items si ON si.sale_id = s.id
+                LEFT JOIN clientes c ON c.id = s.cliente_id
+                WHERE si.product_id = ? AND s.estado IN ('pending', 'partial')
+            """
+            # Ventas afectadas por la actualizacion de precio
+            affected_sales = db.fetch_all(query, (product_id,), conn=conn)            
+
+            if not affected_sales:
+                conn.commit()
+                return True
+
+            for sale_id, _, _ in affected_sales:
+                # Por cada venta afecta se obtiene su estado actual
+                status = db.fetch_one("SELECT estado FROM sales WHERE id = ?", (sale_id,), conn=conn)[0]
+
+                if status != 'paid':
+
+                    self.sale_model.update_sale_item(sale_id, product_id, product_data['SalePrice'], conn=conn, commit=False)
+                    self.sale_model.recalculate_sale_total(sale_id, conn=conn, commit=False)
+                    ## -- Falta el saldo a favor y demas -- ##
+                    #new_status = self.payment_model.reconcile_sale(sale_id)
+
+
+            conn.commit()
+            return True
+
+        except Exception as e:
+            conn.rollback()
+            print(f'Hubo un error {e}')
+            return False
+        
+        finally:
+            conn.close() 
+
     
     def update_field(self, db_field, new_value, product_id):
-        query = f"UPDATE stock SET {db_field} = ?, last_price_update = CURRENT_DATE WHERE id = ?"
+        query = f"UPDATE stock SET {db_field} = ?, id = ?"
         db.execute_query(query, (new_value, product_id))
         
     def delete_product(self, product_id):

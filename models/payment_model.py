@@ -1,5 +1,6 @@
 from db.database import db 
 from datetime import datetime
+from decimal import Decimal
 from utils.utils import norm_to_2_dec
 
 class PaymentModel:
@@ -16,18 +17,20 @@ class PaymentModel:
         """
         return self.db.execute_query(query, (sale_id, client_id, amount, method, notes, date))
     
-    def get_sale_total_variable(self, sale_id):
-        row = self.db.fetch_one(
-            """
-            SELECT COALESCE(SUM(si.quantity * st.price_with_iva), 0)
-            FROM sale_items si
-            JOIN stock st ON st.id = si.product_id
-            WHERE si.sale_id = ?
-            """,
-            (sale_id, )
-        )
-        return norm_to_2_dec(row[0]) if row else norm_to_2_dec(0.0)
+    ## -- -- ##
+    # def get_sale_total_variable(self, sale_id):
+    #     row = self.db.fetch_one(
+    #         """
+    #         SELECT COALESCE(SUM(si.quantity * st.price_with_iva), 0)
+    #         FROM sale_items si
+    #         JOIN stock st ON st.id = si.product_id
+    #         WHERE si.sale_id = ?
+    #         """,
+    #         (sale_id, )
+    #     )
+    #     return norm_to_2_dec(row[0]) if row else norm_to_2_dec(0.0)
     
+    ## -- Obtiene el monto total de una venta -- ##
     def get_sale_total(self, sale_id):
         row = self.db.fetch_one(
             "SELECT estado, total_cerrado FROM sales WHERE id = ?",
@@ -41,24 +44,31 @@ class PaymentModel:
             return norm_to_2_dec(total_cerrado)
 
         return norm_to_2_dec(self.get_sale_total_variable(sale_id))
-        
+
+    ## -- Obtiene el monto total de pagos a una venta -- ##   
     def get_sale_paid(self, sale_id):
+
+        query = """
+        SELECT amount FROM payments WHERE sale_id = ?
+        """
+        rows = self.db.fetch_all(query, sale_id,  )
+
         row = self.db.fetch_one(
             "SELECT COALESCE(SUM(amount), 0) FROM payments where sale_id = ?", 
             (sale_id, )
             )
         return norm_to_2_dec(row[0]) if row else norm_to_2_dec(0.0)
     
-    def get_sale_balance(self, sale_id):
-        sale = self.db.fetch_one("SELECT id FROM sales WHERE id = ?", (sale_id,))
-        if sale is None: 
-            return None
+    # def get_sale_balance(self, sale_id):
+    #     sale = self.db.fetch_one("SELECT id FROM sales WHERE id = ?", (sale_id,))
+    #     if sale is None: 
+    #         return None
         
-        total = norm_to_2_dec(self.get_sale_total(sale_id))
-        paid = norm_to_2_dec(self.get_sale_paid(sale_id))
-        balance = norm_to_2_dec(max(norm_to_2_dec(0.0), total - paid))
+    #     total = norm_to_2_dec(self.get_sale_total(sale_id))
+    #     paid = norm_to_2_dec(self.get_sale_paid(sale_id))
+    #     balance = norm_to_2_dec(max(norm_to_2_dec(0.0), total - paid))
 
-        return {"total" : total, "paid": paid, "balance": balance}
+    #     return {"total" : total, "paid": paid, "balance": balance}
     
     def update_sale_status(self, sale_id, skip_credit_generation=False):
         row_sale = self.db.fetch_one(
@@ -75,9 +85,9 @@ class PaymentModel:
         paid = norm_to_2_dec(self.get_sale_paid(sale_id))
 
 
-        if paid <= 0:
+        if paid <= Decimal('0.00'):
             status = "pending"
-        elif paid + norm_to_2_dec(0.009) < total:
+        elif paid + Decimal('0.009') < total:
             status = "partial"
         else:
             status = "paid"
@@ -103,7 +113,7 @@ class PaymentModel:
         overpay = norm_to_2_dec(paid - total)
         
         if not skip_credit_generation:
-            if overpay > norm_to_2_dec(0.01):
+            if overpay > Decimal('0.01'):
                 exists = self.db.fetch_one(
                     """
                     SELECT 1
@@ -258,12 +268,12 @@ class PaymentModel:
         )
         return used
 
+    ## -- Obtiene el id de cliente de una venta -- ##
+    # def get_sale_client_id(self, sale_id: int) -> int | None:
+    #     row = self.db.fetch_one("SELECT cliente_id FROM sales WHERE id = ?", (sale_id,))
+    #     return int(row[0]) if row else None
 
-    def get_sale_client_id(self, sale_id: int) -> int | None:
-        row = self.db.fetch_one("SELECT cliente_id FROM sales WHERE id = ?", (sale_id,))
-        return int(row[0]) if row else None
-
-    def reconcile_sale(self, sale_id: int) -> str | None:
+    def reconcile_sale(self, sale_id, conn=None, commit=True):
         """
         Recalcula una venta con los precios actuales.
         - Si con lo pagado ya alcanza: la pasa a paid (y congela total_cerrado)
@@ -336,7 +346,6 @@ class PaymentModel:
                 )
 
         return status
-
 
     def reconcile_customer_sales(self, client_id: int):
         """

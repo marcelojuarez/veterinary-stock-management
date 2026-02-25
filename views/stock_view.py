@@ -3,7 +3,7 @@ import customtkinter as ctk
 from decimal import Decimal
 from models.stock import StockModel
 from tkinter import ttk, messagebox
-from utils.view_helpers import center_window, close_win, show_warning
+from utils.view_helpers import center_window, close_win, show_error
 from utils.utils import iso_to_traditional, format_currency, string_to_2_dec, string_to_flex_dec, norm_to_2_dec, flex_dec
 
 # Configurar tema y colores
@@ -249,7 +249,7 @@ class StockView():
                 self.show_error(f"Producto {product_id} no encontrado")
                 return
 
-            _, name, pack, profit, _, _, cost_price, _, iva, _, _, _, stock = product
+            _, name, _, profit, _, _, cost_price, _, iva, _, _, _, _ = product
 
             window = ctk.CTkToplevel(self.frame)
             window.title(f"Actualizar Precio - {name}")
@@ -421,22 +421,22 @@ class StockView():
                     if final_profit < Decimal('0.00'):
                         raise ValueError('El nuevo porcentaje de RENTABILIDAD no puede ser un valor NEGATIVO')
 
-
                     product_data = {
-                        "Name": name,
-                        "Package": pack,
                         "Profit": str(final_profit),
                         "CostPrice": str(final_cost),
                         "SalePrice": str(self.new_sale_price),
-                        "Iva": str(iva),
                         "PriceWIva": str(self.price_with_iva),
-                        "Stock": int(stock),
                     }
 
-                    self.stock_model.update_product(product_id, product_data)
-                    self.controller.refresh_stock_table()
+                    result = self.stock_model.update_p_price_and_related_sales_amount(
+                        product_id, product_data)
+                    if result:
+                        self.controller.refresh_stock_table()
+                        self.show_success("Precio actualizado correctamente")
+
+                    else:
+                        show_error('Ocurrio un error')
                     window.destroy()
-                    self.show_success("Precio actualizado correctamente")
 
                 except ValueError as e:
                     self.show_error(f"Error. {e}")
@@ -644,7 +644,8 @@ class StockView():
         column_name = self.stock_tree['columns'][column_index]
         
         # No permitir editar el ID
-        if column_name in ['Id', 'Profit', 'CostPrice', 'SalePrice', 'Iva', 'SalePriceWithIva', 'ValidityDate', 'LastPriceUpdate', 'Stock']:
+        if column_name in ['Id', 'ListPrice', 'Discount','CostPrice', 'Profit', 'SalePrice', \
+                           'Iva', 'SalePriceWithIva', 'ValidityDate', 'LastPriceUpdate', 'Stock']:
             return
             
         self.start_edit(item, column_name, column)

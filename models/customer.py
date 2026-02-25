@@ -139,14 +139,9 @@ class CustomerModel:
             CASE 
                 WHEN s.estado = 'paid' AND s.total_cerrado IS NOT NULL 
                 THEN s.total_cerrado
-                ELSE COALESCE(SUM(
-                    si.quantity * 
-                    CASE 
-                        WHEN st.name = 'HONORARIOS' 
-                        THEN si.price
-                        ELSE st.price_with_iva
-                    END
-                ), 0)
+                ELSE COALESCE(
+                SUM(si.quantity * 
+                    si.price), 0)
             END AS total,
             COALESCE((SELECT SUM(p.amount) FROM payments p WHERE p.sale_id = s.id), 0) AS pagado,
             s.estado
@@ -182,23 +177,13 @@ class CustomerModel:
         """Detalle de productos vendidos en una venta fiada"""
         query = """
             SELECT 
-                st.name, 
-                si.quantity, 
-                CASE 
-                    WHEN st.name = 'HONORARIOS' 
-                    THEN si.price
-                    ELSE st.price_with_iva
-                END AS precio,
-                si.quantity * 
-                CASE 
-                    WHEN st.name = 'HONORARIOS' 
-                    THEN si.price
-                    ELSE st.price_with_iva
-                END AS subtotal,
-                si.observations
-            FROM sale_items si
-            JOIN stock st ON st.id = si.product_id
-            WHERE si.sale_id = ?
+                name, 
+                quantity, 
+                price,
+                subtotal,
+                observations
+            FROM sale_items
+            WHERE sale_id = ?
         """
         return self.db.fetch_all(query, (sale_id,))
 
