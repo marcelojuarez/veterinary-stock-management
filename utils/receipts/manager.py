@@ -31,7 +31,6 @@ def _open_file(path: str):
     except Exception:
         pass
 
-
 def generate_receipts_for_payment(
     *,
     mode: str,                 # "sale" | "global"

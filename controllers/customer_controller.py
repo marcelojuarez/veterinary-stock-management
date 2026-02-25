@@ -329,7 +329,7 @@ class CustomerController:
                     show_warning("Ingrese un monto.")
                     return
                 
-                amount = string_to_2_dec(val)
+                amount = string_to_2_dec(val) 
 
                 if amount <= Decimal('0.00'):
                     show_warning("El monto debe ser mayor a 0.")
@@ -339,7 +339,6 @@ class CustomerController:
                 show_error("Monto inválido. Ingrese solo números.")
                 return
 
-            
             if amount > total_debt:
                 show_warning(
                     f"El monto ingresado (${amount}) supera la deuda total del cliente (${total_debt})."
@@ -350,7 +349,12 @@ class CustomerController:
 
             try:
                 method = method_var.get()
-                result = self.payment_model.apply_global_payment(customer_id, str(amount), method=method)
+
+                result = self.payment_model.apply_global_payment(customer_id, amount, method=method)
+
+                if not result:
+                    show_error('Ocurrio un error al registar el pago.')
+                    return
 
                 # Construir mensaje de resultado
                 msg = ("Pago registrado con éxito.")
@@ -372,33 +376,31 @@ class CustomerController:
                 self.view.update_debt_window(debts, total, credit, net)
 
                 # 3. Generar comprobante
-                if result['used'] > 0:
-                    fmt = self.ask_receipt_format()
-                    if not fmt:
-                        return
+                fmt = self.ask_receipt_format()
+                if not fmt:
+                    return
 
-                    client_name = "Cliente"
-                    for c in self.all_customers:
-                        if c[0] == customer_id:
-                            client_name = c[1]
-                            break
+                client_name = "Cliente"
+                for c in self.all_customers:
+                    if c[0] == customer_id:
+                        client_name = c[1]
+                        break
 
-                    sale_items = {}
-                    for sale_id, _ in result['updated_debts']:
-                        items = self.model.get_sale_items(sale_id)
-                        sale_items[sale_id] = items
+                sale_items = {}
+                for sale_id, _ in result['updated_debts']:
+                    items = self.model.get_sale_items(sale_id)
+                    sale_items[sale_id] = items
 
-                    generate_receipts_for_payment(
-                        mode="global",
-                        format=fmt,
-                        client_name=client_name,
-                        method=method,
-                        amount=amount,
-                        customer_id=customer_id,
-                        result_data=result,
-                        sale_items=sale_items
-                    )
-
+                generate_receipts_for_payment(
+                    mode="global",
+                    format=fmt,
+                    client_name=client_name,
+                    method=method,
+                    amount=amount,
+                    customer_id=customer_id,
+                    result_data=result,
+                    sale_items=sale_items
+                )
 
             except Exception as e:
                 show_error(f"Error al procesar el pago: {e}")

@@ -245,30 +245,18 @@ class CustomerModel:
             SELECT 
                 s.id,
                 s.date,
-                CASE 
-                    WHEN s.estado = 'paid' AND s.total_cerrado IS NOT NULL 
-                    THEN s.total_cerrado
-                    ELSE COALESCE(SUM(
-                        si.quantity * 
-                        CASE 
-                            WHEN st.name = 'HONORARIOS' 
-                            THEN si.price
-                            ELSE st.price_with_iva
-                        END
-                    ), 0)
-                END AS total,
+                s.total,
                 s.estado,
                 COUNT(si.id) AS cant_productos
             FROM sales s
             LEFT JOIN sale_items si ON si.sale_id = s.id
-            LEFT JOIN stock st ON st.id = si.product_id
             WHERE s.cliente_id = ? 
             AND s.estado IN ('pending', 'partial', 'paid')
             GROUP BY s.id
             ORDER BY s.date, s.id
         """
         sales = self.db.fetch_all(sales_query, (cliente_id,))
-        
+    
         # Identificar ventas de contado
         for sale_id, fecha_venta, total, estado, cant_prod in sales:
             if estado == 'paid' and self._is_cash_sale(sale_id, fecha_venta):
@@ -282,7 +270,7 @@ class CustomerModel:
             if sale_id in contado_sales:
                 continue
                 
-            total = norm_to_2_dec(total)
+            total = Decimal(total)
             cant_prod = int(cant_prod) if cant_prod else 0
             
             estado_map = {
@@ -417,6 +405,7 @@ class CustomerModel:
                             "sale_id": sale_id,
                             "referencia": reason or ""
                         })
+                        
         except Exception as e:
             print(f"Tabla customer_credit no disponible: {e}")
         

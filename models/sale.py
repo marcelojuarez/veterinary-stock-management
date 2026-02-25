@@ -26,6 +26,8 @@ class SalesModel:
                     product_id, _, quantity, price_with_iva = item
                     observations = None
                 
+                print(f'tipo de precio: {type(price_with_iva)}')
+
                 # OBTENER IVA DEL PRODUCTO
                 cursor.execute("SELECT iva FROM stock WHERE id = ?", (product_id,))
                 row = cursor.fetchone()
@@ -37,14 +39,15 @@ class SalesModel:
                 price_without_iva = norm_to_2_dec(price_with_iva_decimal / divisor)
                 
                 # CALCULAR MONTOS
-                subtotal = norm_to_2_dec(price_without_iva * quantity)  # Sin IVA
-                iva_amount = norm_to_2_dec(subtotal * (iva_rate / Decimal('100')))  # IVA
+                subtotal_with_iva = norm_to_2_dec(price_with_iva_decimal * quantity) # con IVA
+                subtotal_without_iva = norm_to_2_dec(price_without_iva * quantity)  # Sin IVA
+                iva_amount = norm_to_2_dec(subtotal_without_iva * (iva_rate / Decimal('100')))  # IVA
                 
                 # GUARDAR
                 cursor.execute("""
                     INSERT INTO sale_items (sale_id, product_id, quantity, price, subtotal, iva_rate, iva_amount, observations)
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                """, (sale_id, product_id, quantity, str(price_without_iva), str(subtotal), str(iva_rate), str(iva_amount), observations))
+                """, (sale_id, product_id, quantity, str(price_with_iva), str(subtotal_with_iva), str(iva_rate), str(iva_amount), observations))
 
                 # Solo descontar stock si NO es honorarios
                 cursor.execute("SELECT name FROM stock WHERE id = ?", (product_id,))
@@ -92,6 +95,30 @@ class SalesModel:
             "estado": row[4]
         }
 
+    ## -- Obtiene el monto total de una venta -- ##
+    def get_sale_total(self, sale_id, conn=None):
+
+        query = """
+        SELECT total FROM sales WHERE id = ?
+        """
+
+        return self.db.fetch_one(query, (sale_id, ), conn=conn)
+    
+
+    ## -- Obtiene el monto total de todas las ventas asociadas a un cliente -- ##
+    def get_total_of_all_sales(self, client_id, conn=None):
+
+        query = """
+        SELECT
+            id,
+            total
+        FROM sales
+        WHERE cliente_id = ? AND estado IN ('pending', 'partial')
+        GROUP BY id
+        """
+
+        return self.db.fetch_all(query, (client_id, ), conn=conn)
+    
     def get_sale_items(self, sale_id):
         query = """
             SELECT 
