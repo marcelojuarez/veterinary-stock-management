@@ -411,9 +411,10 @@ class Database:
         if conn is None:
             conn = self.get_connection()
             own_conn = True
-
+    
         cursor = conn.cursor()
-        if params:
+
+        if params is not None:
             cursor.execute(query, params)
         else:
             cursor.execute(query)
@@ -440,7 +441,7 @@ class Database:
             own_conn = True
 
         cursor = conn.cursor()
-        if params:
+        if params is not None:
             cursor.execute(query, params)
         else:
             cursor.execute(query)

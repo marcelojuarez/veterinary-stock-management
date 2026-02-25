@@ -32,18 +32,26 @@ class PaymentModel:
     
     ## -- Obtiene el monto total de una venta -- ##
     def get_sale_total(self, sale_id):
-        row = self.db.fetch_one(
-            "SELECT estado, total_cerrado FROM sales WHERE id = ?",
-            (sale_id,)
-        )
-        if not row:
-            return norm_to_2_dec(0.0)
 
-        estado, total_cerrado = row
-        if estado == 'paid' and total_cerrado is not None:
-            return norm_to_2_dec(total_cerrado)
+        query = """
+        SELECT total FROM sales WHERE id = ?
+        """
 
-        return norm_to_2_dec(self.get_sale_total_variable(sale_id))
+        return self.db.fetch_one(query, (sale_id, ))
+        
+
+        # row = self.db.fetch_one(
+        #     "SELECT estado, total_cerrado FROM sales WHERE id = ?",
+        #     (sale_id,)
+        # )
+        # if not row:
+        #     return norm_to_2_dec(0.0)
+
+        # estado, total_cerrado = row
+        # if estado == 'paid' and total_cerrado is not None:
+        #     return norm_to_2_dec(total_cerrado)
+
+        # return norm_to_2_dec(self.get_sale_total_variable(sale_id))
 
     ## -- Obtiene el monto total de pagos a una venta -- ##   
     def get_sale_paid(self, sale_id):
@@ -136,13 +144,28 @@ class PaymentModel:
 
         return status
     
-    def get_payments_for_sale(self, sale_id):
-        """Devuelve todos los pagos registrados para esta venta."""
-        rows = self.db.fetch_all(
-            "SELECT id, date, amount, method FROM payments WHERE sale_id = ? ORDER BY date ASC",
-            (sale_id,)
-        )
-        return rows
+    # def get_payments_for_sale(self, sale_id):
+    #     """Devuelve todos los pagos registrados para esta venta."""
+    #     rows = self.db.fetch_all(
+    #         "SELECT id, date, amount, method FROM payments WHERE sale_id = ? ORDER BY date ASC",
+    #         (sale_id,)
+    #     )
+    #     return rows
+
+    ## -- Devuelve el monto total de pagos asociados a una venta -- ##
+    def get_total_amount_of_pay_for_a_sale(self, sale_id):
+        query = """
+        SELECT amount FROM payments WHERE sale_id = ?
+        """
+
+        rows = self.db.fetch_all(query, (sale_id, ))
+
+        amount = Decimal('0.00')
+
+        for row in rows:
+            amount += Decimal(row[0])
+
+        return norm_to_2_dec(amount)
 
     def apply_global_payment(self, customer_id, amount, method="Efectivo"):
         """

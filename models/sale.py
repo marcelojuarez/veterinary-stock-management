@@ -21,9 +21,9 @@ class SalesModel:
 
             for item in items:
                 if len(item) == 5:
-                    product_id, name, quantity, price_with_iva, observations = item
+                    product_id, _, quantity, price_with_iva, observations = item
                 else:
-                    product_id, name, quantity, price_with_iva = item
+                    product_id, _, quantity, price_with_iva = item
                     observations = None
                 
                 # OBTENER IVA DEL PRODUCTO
@@ -120,15 +120,17 @@ class SalesModel:
     
     def get_total_of_sale_items(self, sale_id, conn=None):
         query = """
-        SELECT total FROM sales WHERE id = ?
+        SELECT subtotal, iva_amount FROM sale_items WHERE sale_id = ?
         """
 
         rows = self.db.fetch_all(query, (sale_id, ), conn=conn)
 
+        print(rows)
+
         total = Decimal('0.00')
 
-        for row in rows:
-            total += Decimal(row[0])
+        for subtotal, iva in rows:
+            total += Decimal(subtotal) + Decimal(iva)
 
         return norm_to_2_dec(total)
 
@@ -148,9 +150,8 @@ class SalesModel:
 
         new_sale_price = norm_to_2_dec(new_sale_price)
         new_iva_amount = norm_to_2_dec(new_sale_price * (iva_rate / Decimal('100')))
-        new_price_with_iva = new_sale_price + new_iva_amount
 
-        new_subtotal = norm_to_2_dec(new_price_with_iva * qty)
+        new_subtotal = norm_to_2_dec(new_sale_price * qty)
 
         query = """
         UPDATE sale_items
@@ -162,7 +163,7 @@ class SalesModel:
         """
 
         params = [
-            str(new_price_with_iva),
+            str(new_sale_price),
             str(new_subtotal),
             str(new_iva_amount),
             sale_id,
@@ -173,7 +174,7 @@ class SalesModel:
 
     ## -- Recalcula el monto total de una venta -- ##
     def recalculate_sale_total(self, sale_id, conn=None, commit=True):
-        new_total = self.get_total_of_sale_items(sale_id)
+        new_total = self.get_total_of_sale_items(sale_id, conn=conn)
 
         query = """
         UPDATE sales SET total = ? WHERE id = ?

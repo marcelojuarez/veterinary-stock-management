@@ -12,7 +12,7 @@ from utils.receipts.ticket_pos import generate_payment_ticket, generate_global_p
 from utils.receipts.manager import generate_receipts_for_payment
 from utils.receipts.account_statement import generate_account_statement
 from utils.receipts.paths import a4_pago_global
-from utils.utils import norm_to_2_dec
+from utils.utils import norm_to_2_dec, string_to_2_dec
 from decimal import Decimal, InvalidOperation
 
 
@@ -154,7 +154,7 @@ class CustomerController:
         try:
             self.current_client_id = cliente_id
 
-            changes = self.reconcile_and_detect_changes(cliente_id)
+            #changes = self.reconcile_and_detect_changes(cliente_id)
 
             debts = self.model.get_customer_debts(cliente_id)
             total = self.model.get_total_debt(cliente_id)
@@ -163,11 +163,11 @@ class CustomerController:
             net = norm_to_2_dec(max(Decimal('0.00'), total - credit))
             self.view.open_debt_window(cliente_id, cliente_nombre, debts, total, credit, net)
 
-            if changes:
-                self.view.show_warning(
-                f"⚠️ Se detectaron cambios de precio en {len(changes)} venta(s):\n\n" +
-                "\n".join(changes)
-                )
+            # if changes:
+            #     self.view.show_warning(
+            #     f"⚠️ Se detectaron cambios de precio en {len(changes)} venta(s):\n\n" +
+            #     "\n".join(changes)
+            #     )
         except Exception as e:
             show_error(f"Error al obtener las deudas: {e}")
 
@@ -209,7 +209,7 @@ class CustomerController:
     def load_sale_items_for_debt(self, sale_id):
         """Carga el detalle de productos de una venta fiada en la vista"""
         try:
-            items = self.model.get_sale_items(sale_id)
+            items = self.model.get_sale_items(sale_id)            
             self.view.update_debt_items_table(items)
         except Exception as e:
             show_error(f"Error al obtener los productos de la venta: {e}")
@@ -235,7 +235,7 @@ class CustomerController:
             show_warning("Selecciona un cliente primero.")
             return
 
-        total_debt = norm_to_2_dec(self.model.get_total_debt(customer_id))
+        total_debt = self.model.get_total_debt(customer_id)
 
         if total_debt == Decimal('0.00'):
             self.view.show_warning("El cliente no tiene deudas pendientes")
@@ -317,7 +317,7 @@ class CustomerController:
 
         ctk.CTkLabel(
             deuda_frame,
-            text=f"${total_debt:,.2f}",
+            text=f"${total_debt}",
             font=ctk.CTkFont(size=20, weight="bold"),
             text_color="#D32F2F"
         ).pack(pady=(0, 8))
@@ -329,7 +329,7 @@ class CustomerController:
                     show_warning("Ingrese un monto.")
                     return
                 
-                amount = norm_to_2_dec(val)
+                amount = string_to_2_dec(val)
 
                 if amount <= Decimal('0.00'):
                     show_warning("El monto debe ser mayor a 0.")
@@ -342,10 +342,10 @@ class CustomerController:
             
             if amount > total_debt:
                 show_warning(
-                    f"El monto ingresado (${amount:.2f}) supera la deuda total del cliente (${total_debt:.2f})."
+                    f"El monto ingresado (${amount}) supera la deuda total del cliente (${total_debt})."
                 )
                 amount = total_debt
-                amount_var.set(f"{total_debt:.2f}")
+                amount_var.set(f"{total_debt}")
                 return
 
             try:
@@ -415,7 +415,7 @@ class CustomerController:
             height=40,
             font=ctk.CTkFont(weight="bold"),
             command=process
-        ).pack(side="right", padx=5, expand=True, fill="x")
+        ).pack(side="left", padx=5, expand=True, fill="x")
 
         ctk.CTkButton(
             btn_frame,
@@ -426,7 +426,7 @@ class CustomerController:
             hover_color="#616161",
             font=ctk.CTkFont(size=13, weight="bold"),
             command=win.destroy
-        ).pack(side="left", padx=5, expand=True, fill="x")
+        ).pack(side="right", padx=5, expand=True, fill="x")
 
 
     def ask_receipt_format(self):
@@ -506,9 +506,9 @@ class CustomerController:
             
             confirm = messagebox.askyesno(
                 "Confirmar",
-                f"¿Aplicar ${amount_to_apply:.2f} del saldo a favor a las deudas pendientes?\n\n"
-                f"Saldo a favor disponible: ${credit:.2f}\n"
-                f"Deuda total: ${total_debt:.2f}"
+                f"¿Aplicar ${amount_to_apply} del saldo a favor a las deudas pendientes?\n\n"
+                f"Saldo a favor disponible: ${credit}\n"
+                f"Deuda total: ${total_debt}"
             )
             
             if not confirm:

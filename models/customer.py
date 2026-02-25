@@ -1,11 +1,13 @@
 import sqlite3
 from db.database import db
 
-from utils.utils import norm_to_2_dec, flex_dec, iso_to_traditional
+from models.payment_model import PaymentModel
 from decimal import Decimal
+from utils.utils import norm_to_2_dec, flex_dec, iso_to_traditional
 class CustomerModel:
     def __init__(self, db_connection=None):
         self.db = db_connection or db 
+        self.pay_model = PaymentModel()
 
     def get_all_customers(self): 
         # Obtener todos los clientes
@@ -131,26 +133,18 @@ class CustomerModel:
     # --------------------------------------------------------------------
     # 💳 GESTIÓN DE DEUDAS DE CLIENTES
     # --------------------------------------------------------------------
+    ## -- Obtiene todas las deudas de un cliente -- ##
     def get_customer_debts(self, cliente_id):
         query = """
-            SELECT 
-            s.id AS sale_id,
-            s.date,
-            CASE 
-                WHEN s.estado = 'paid' AND s.total_cerrado IS NOT NULL 
-                THEN s.total_cerrado
-                ELSE COALESCE(
-                SUM(si.quantity * 
-                    si.price), 0)
-            END AS total,
-            COALESCE((SELECT SUM(p.amount) FROM payments p WHERE p.sale_id = s.id), 0) AS pagado,
-            s.estado
-        FROM sales s
-        JOIN sale_items si ON si.sale_id = s.id
-        JOIN stock st ON st.id = si.product_id
-        WHERE s.cliente_id = ? AND s.estado IN ('pending', 'partial')
-        GROUP BY s.id
-        ORDER BY sale_id DESC;
+        SELECT 
+            id,
+            date,
+            total,
+            estado
+        FROM sales
+        WHERE cliente_id = ? AND estado IN ('pending', 'partial')
+        GROUP BY id
+        ORDER BY id DESC;
         """
         rows = self.db.fetch_all(query, (cliente_id,))
 
@@ -161,11 +155,10 @@ class CustomerModel:
         }
 
         formatted = []
-        for sale_id, date, total, pagado, estado in rows:
-            total = total
-            pagado = pagado
+        for sale_id, date, total, estado in rows:
+            pagado = self.pay_model.get_total_amount_of_pay_for_a_sale(sale_id)
             estado_es = state_map.get(estado, estado)
-            saldo = max(Decimal('0.00'), norm_to_2_dec(total) - norm_to_2_dec(pagado))
+            saldo = Decimal(total) - Decimal(pagado)
 
             fecha_formateada = iso_to_traditional(date.split()[0]) if date else ""
 
@@ -174,16 +167,17 @@ class CustomerModel:
         return formatted
     
     def get_sale_items(self, sale_id):
-        """Detalle de productos vendidos en una venta fiada"""
         query = """
-            SELECT 
-                name, 
-                quantity, 
-                price,
-                subtotal,
-                observations
-            FROM sale_items
-            WHERE sale_id = ?
+            SELECT
+                s.id,
+                s.name, 
+                si.quantity, 
+                si.price,
+                si.subtotal,
+                si.observations
+            FROM sale_items si
+            JOIN stock s ON si.product_id = s.id
+            WHERE si.sale_id = ?
         """
         return self.db.fetch_all(query, (sale_id,))
 
@@ -197,18 +191,8 @@ class CustomerModel:
         query = """
             SELECT 
                 s.id,
-                COALESCE(SUM(
-                    si.quantity * 
-                    CASE 
-                        WHEN st.name = 'HONORARIOS' 
-                        THEN si.price
-                        ELSE st.price_with_iva
-                    END
-                ), 0) AS total_variable,
-                COALESCE((SELECT SUM(p.amount) FROM payments p WHERE p.sale_id = s.id), 0) AS pagado
+                total
             FROM sales s
-            JOIN sale_items si ON si.sale_id = s.id
-            JOIN stock st ON st.id = si.product_id
             WHERE s.cliente_id = ? AND s.estado IN ('pending', 'partial')
             GROUP BY s.id
         """
@@ -216,8 +200,9 @@ class CustomerModel:
         rows = self.db.fetch_all(query, (cliente_id,))
 
         total_pending = Decimal('0.00')
-        for _, total_variable, paid in rows:
-            saldo = max(Decimal('0.00'), norm_to_2_dec(total_variable) - norm_to_2_dec(paid))
+        for sale_id, total in rows:
+            paid = self.pay_model.get_total_amount_of_pay_for_a_sale(sale_id)
+            saldo = Decimal(total) - paid
             if saldo > Decimal('0.01'):
                 total_pending += saldo
 

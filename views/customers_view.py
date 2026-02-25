@@ -68,8 +68,6 @@ class CustomersView:
         )
         search_btn.grid(row=0, column=2, padx=(5, 15), pady=5, sticky="w")
 
-
-
     # --------------------------------------------------------------------
     # TABLE SECTION
     # --------------------------------------------------------------------
@@ -220,7 +218,6 @@ class CustomersView:
                 text_color="white"
             )
 
-
     # --------------------------------------------------------------------
     # MODAL PARA AGREGAR CLIENTE
     # --------------------------------------------------------------------
@@ -364,8 +361,6 @@ class CustomersView:
         # Cleanup al cerrar con X
         win.protocol("WM_DELETE_WINDOW", cleanup_and_close)
 
-
-
     # --------------------------------------------------------------------
     # CONTROLLER & HELPERS
     # --------------------------------------------------------------------
@@ -491,7 +486,6 @@ class CustomersView:
 
         self.debt_table.pack(padx=10, pady=10, fill="x")
 
-
         for d in debts:
             self.debt_table.insert("", "end", values=d)
 
@@ -515,7 +509,7 @@ class CustomersView:
         # ----------------------------------------------------------------
         self.debt_total_label = ctk.CTkLabel(
             win,
-            text=f"Total adeudado: ${total:.2f}",
+            text=f"Total adeudado: ${total}",
             font=ctk.CTkFont(size=15, weight="bold"),
             text_color="#333333"
         )
@@ -523,7 +517,7 @@ class CustomersView:
 
         self.credit_label = ctk.CTkLabel(
             win,
-            text=f"Saldo a favor: ${credit:.2f}",
+            text=f"Saldo a favor: ${credit}",
             font=ctk.CTkFont(size=14, weight="bold"),
             text_color="#333333"
         )
@@ -531,7 +525,7 @@ class CustomersView:
 
         self.net_label = ctk.CTkLabel(
             win,
-            text=f"Deuda neta: ${net:.2f}",
+            text=f"Deuda neta: ${net}",
             font=ctk.CTkFont(size=14, weight="bold"),
             text_color="#333333"
         )
@@ -642,8 +636,8 @@ class CustomersView:
             for item in items:
                 # Manejar items con 4 o 5 elementos (con o sin observaciones)
                 if len(item) == 5:
-                    name, quantity, price, subtotal, observations = item
-                    
+                    _, name, quantity, price, subtotal, observations = item
+                    print('entro aca ?')
                     # Si tiene observaciones, mostrarlas
                     if observations and observations.strip():
                         display_name = f"{name}\n  → {observations[:50]}..." if len(observations) > 50 else f"{name}\n  → {observations}"
@@ -651,7 +645,7 @@ class CustomersView:
                         display_name = name
                 else:
                     # Compatibilidad con consulta antigua (sin observaciones)
-                    name, quantity, price, subtotal = item
+                    _, name, quantity, price, subtotal, _  = item
                     display_name = name
                 print(price)
                 print(subtotal)
@@ -659,8 +653,8 @@ class CustomersView:
                 self.debt_items_table.insert("", "end", values=(
                     display_name,
                     quantity,
-                    f"${norm_to_2_dec(price):.2f}",
-                    f"${norm_to_2_dec(subtotal):.2f}"
+                    f"${price}",
+                    f"${subtotal}"
                 ))
 
         except Exception as e:
