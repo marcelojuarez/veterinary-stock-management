@@ -73,7 +73,7 @@ class InvoiceInternalPDFService:
 
     # ---------------------------------------------------
 
-    def generate_pdf(self, number, customer, items, subtotal, iva, total):
+    def generate_pdf(self, number, customer, items, subtotal, iva_breakdown, total):
         """Genera la factura interna PDF con estilo moderno."""
 
         os.makedirs("comprobantes/facturas", exist_ok=True)
@@ -111,7 +111,7 @@ class InvoiceInternalPDFService:
         # ===============================
 
         # COLUMNA IZQUIERDA: Logo + Datos empresa
-        logo_path = "assets/logo.jpg"
+        logo_path = "assets/logo.png"
         if os.path.exists(logo_path):
             logo_img = Image(logo_path, width=25*mm, height=25*mm)
         else:
@@ -197,43 +197,47 @@ class InvoiceInternalPDFService:
         #           TABLA ITEMS
         # ===============================
 
-        table_data = [["Descripción", "Cant.", "P. Unit.", "Subtotal"]]
-        
-        # MODIFICADO: Manejar items con 4 o 5 elementos
+        # Encabezado de tabla: precio neto + columna IVA%
+        table_data = [["Descripción", "Cant.", "P. Neto Unit.", "IVA %", "Subtotal Neto"]]
+
         for item in items:
-            if len(item) == 5:
-                # Item con observaciones (honorario)
-                _, name, q, price, observations = item
-                # Crear descripción completa con observaciones
-                full_description = f"{name}\n{observations}"
+            # Formato enriquecido: (id, name, qty, net_unit, [observations,] rate)
+            if len(item) == 6:
+                # con observaciones (honorarios)
+                _, name, q, net_unit, observations, rate = item
+                full_description = f"{name}\n{observations}" if observations else name
                 description_para = Paragraph(full_description, self.styles["NormalSmall"])
             else:
-                # Item normal (producto)
-                _, name, q, price = item
+                # producto normal
+                _, name, q, net_unit, rate = item
                 description_para = Paragraph(name, self.styles["NormalSmall"])
-            
-            subtotal_item = q * price
+
+            line_net = q * net_unit
+            iva_pct_str = f"{rate * 100:.1f}%" if rate > 0 else "Exento"
+
             table_data.append([
-                description_para,  # Usar Paragraph para permitir texto multilínea
-                str(q),
-                f"${price:.2f}",
-                f"${subtotal_item:.2f}"
+                description_para,
+                str(int(q)),
+                f"${net_unit:.2f}",
+                iva_pct_str,
+                f"${line_net:.2f}"
             ])
 
-        table = Table(table_data, colWidths=[90*mm, 20*mm, 30*mm, 30*mm])
+        table = Table(table_data, colWidths=[80*mm, 18*mm, 32*mm, 20*mm, 30*mm])
 
         table_style = TableStyle([
             ("BACKGROUND", (0, 0), (-1, 0), colors.lightgrey),
             ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
             ("ALIGN", (1, 0), (-1, 0), "CENTER"),
-            ("ALIGN", (1, 1), (1, -1), "CENTER"),
-            ("ALIGN", (2, 1), (2, -1), "RIGHT"),
-            ("ALIGN", (3, 1), (3, -1), "RIGHT"),
+            ("ALIGN", (1, 1), (1, -1), "CENTER"),   # Cant.
+            ("ALIGN", (2, 1), (2, -1), "RIGHT"),    # P. Neto Unit.
+            ("ALIGN", (3, 1), (3, -1), "CENTER"),   # IVA %
+            ("ALIGN", (4, 1), (4, -1), "RIGHT"),    # Subtotal Neto
             ("GRID", (0,0), (-1,-1), 0.5, colors.grey),
-            ("VALIGN", (0, 0), (-1, -1), "TOP"),  # Cambiado de MIDDLE a TOP
+            ("VALIGN", (0, 0), (-1, -1), "TOP"),
             ("LEFTPADDING", (0,0), (-1,-1), 4),
             ("RIGHTPADDING", (0,0), (-1,-1), 4),
-            ("TOPPADDING", (0,1), (-1,-1), 6),      # Más padding para items
+            ("TOPPADDING", (0,1), (-1,-1), 6),
             ("BOTTOMPADDING", (0,1), (-1,-1), 6),
         ])
         
@@ -244,19 +248,36 @@ class InvoiceInternalPDFService:
         # ===============================
         #            TOTALES
         # ===============================
-        totals_data = [
-            ["Subtotal:", f"${subtotal:.2f}"],
-            ["IVA 21%:", f"${iva:.2f}"],
-            ["TOTAL:", f"${total:.2f}"]
-        ]
+
+        # Subtotal neto
+        totals_data = [["Subtotal neto:", f"${subtotal:.2f}"]]
+
+        # Una línea por cada alícuota que tenga monto > 0
+        sorted_rates = sorted(
+            [(k, v) for k, v in iva_breakdown.items() if v > 0],
+            key=lambda x: float(x[0]),
+            reverse=True
+        )
+        for pct_key, iva_amount in sorted_rates:
+            pct = float(pct_key)
+            if pct == 0:
+                label = "IVA Exento:"
+            else:
+                label = f"IVA {pct:.0f}%:"
+            totals_data.append([label, f"${iva_amount:.2f}"])
+
+        # Total final
+        totals_data.append(["TOTAL:", f"${total:.2f}"])
+
+        total_row_idx = len(totals_data) - 1
 
         totals_table = Table(totals_data, colWidths=[120*mm, 40*mm])
         totals_table.setStyle(TableStyle([
-            ("FONTNAME", (0,2), (-1,2), "Helvetica-Bold"),
-            ("FONTSIZE", (0,0), (-1,-1), 11),
-            ("ALIGN", (1,0), (1,-1), "RIGHT"),
-            ("LINEABOVE", (0,2), (-1,2), 1.5, colors.black),
-            ("TOPPADDING", (0,2), (-1,2), 6),
+            ("FONTNAME", (0, total_row_idx), (-1, total_row_idx), "Helvetica-Bold"),
+            ("FONTSIZE", (0, 0), (-1, -1), 11),
+            ("ALIGN", (1, 0), (1, -1), "RIGHT"),
+            ("LINEABOVE", (0, total_row_idx), (-1, total_row_idx), 1.5, colors.black),
+            ("TOPPADDING", (0, total_row_idx), (-1, total_row_idx), 6),
         ]))
         elements.append(totals_table)
 

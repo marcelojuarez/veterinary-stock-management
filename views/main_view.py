@@ -164,16 +164,16 @@ class App():
         self.customers_view.attach_controller(self.customer_controller)
         self.notebook.add(self.customers_view.frame, text='Clientes')
 
-        # --- BACKUPS ---
-        from views.backup_manager import BackupManagerView
-        self.backup_view = BackupManagerView(self.notebook, controller=self.stock_controller)
-        self.notebook.add(self.backup_view.frame, text='Backups')
-
         # --- REPORTES ---
         self.reports_view = ReportsView(self.notebook, controller=self.iva_reports_controller)
         self.iva_reports_controller.set_view(self.reports_view)
 
         self.notebook.add(self.reports_view.frame, text='Reportes')
+
+        # --- BACKUPS ---
+        from views.backup_manager import BackupManagerView
+        self.backup_view = BackupManagerView(self.notebook, controller=self.stock_controller)
+        self.notebook.add(self.backup_view.frame, text='Backups')
 
         # Cargar mes actual automáticamente
         self.iva_reports_controller.load_period_reports(
@@ -182,7 +182,14 @@ class App():
         )
 
     def on_tab_change(self, event):
-        self.root.update_idletasks()
+        selected_tab = event.widget.tab(event.widget.select(), "text")
+
+        if selected_tab == "Reportes":
+            self.reports_view.load_reports()
+
+        if selected_tab == "Venta":
+            self.sales_view.load_available_products()
+
 
     def load_initial_data(self):
         try:

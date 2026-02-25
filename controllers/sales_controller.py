@@ -119,9 +119,9 @@ class SalesController:
 
             sale_id = self.sales_model.register_sale(total, items, cliente_id, estado, retenciones)
 
-            #invoice = InvoiceController()
-            #pdf = invoice.generate_invoice(cliente_id, items)
-            #self.sales_view.show_success(f"Venta registrada.\nFactura creada: {pdf}")
+            invoice = InvoiceController()
+            pdf = invoice.generate_invoice(cliente_id, items)
+            self.sales_view.show_success(f"Venta registrada.\nFactura creada: {pdf}")
 
             self.sales_view.last_sale_id = sale_id
             # self.ask_remito(f"¿Desea generar remito?")

@@ -259,9 +259,9 @@ class Database:
                     number TEXT,
                     date TEXT DEFAULT CURRENT_TIMESTAMP,
                     customer_id INTEGER,
-                    subtotal REAL,
-                    iva REAL,
-                    total REAL,
+                    subtotal TEXT NOT NULL,
+                    iva TEXT NOT NULL,
+                    total TEXT NOT NULL,
                     estado TEXT DEFAULT 'borrador',  -- o 'emitida'
                     FOREIGN KEY(customer_id) REFERENCES clientes(id)
                 );
@@ -274,8 +274,8 @@ class Database:
                     invoice_id INTEGER,
                     product_id TEXT,
                     quantity INTEGER,
-                    price REAL,
-                    subtotal REAL,
+                    price TEXT NOT NULL,
+                    subtotal TEXT NOT NULL,
                     FOREIGN KEY(invoice_id) REFERENCES invoice(id),
                     FOREIGN KEY(product_id) REFERENCES stock(id)
                 );
