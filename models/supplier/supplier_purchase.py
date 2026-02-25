@@ -202,18 +202,33 @@ class SupplierPurchase():
 
         self.db.execute_query(query, params, conn=conn, commit=commit)
        
+
+    ## -- Obtener tipo de factura para saber si discrimina IVA -- ##
+    def get_invoice_type(self, doc_id):
+        """Retorna True si la factura discrimina IVA (tipo A o M)"""
+        query = """
+        SELECT invoice_type FROM supplier_invoice WHERE id = ?
+        """
+        row = self.db.fetch_one(query, (doc_id,))
+        if row:
+            return row[0] in ('A', 'M')
+        return True  # por defecto asumir que sí discrimina
+
     ## -- Recalcular los valores del doc asociado a la compra -- ##
     def recalc_doc_values(self, purchase_id, doc_type, doc_id, conn=None, commit=True):
 
         if doc_type == 'FACTURA':
             ## Factura
             discount = Decimal(self.supplier_invoice.get_invoice_discount(doc_id))
+            discrimina_iva = self.get_invoice_type(doc_id)
 
-            ## Monto_iva
-            iva_amount = self.get_iva_amount_of_p_items(purchase_id, conn=conn)
-
-            iva_discount = (iva_amount * discount) / Decimal('100')
-            iva_amount =  norm_to_2_dec(iva_amount - iva_discount)
+            ## Monto IVA: solo si la factura discrimina (tipo A o M)
+            if discrimina_iva:
+                iva_amount = self.get_iva_amount_of_p_items(purchase_id, conn=conn)
+                iva_discount = (iva_amount * discount) / Decimal('100')
+                iva_amount = norm_to_2_dec(iva_amount - iva_discount)
+            else:
+                iva_amount = Decimal('0.00')
 
             ## Subtotal
             orig_subtotal = self.get_subtotal_of_items(purchase_id, conn=conn)
@@ -743,5 +758,4 @@ class SupplierPurchase():
             return False
         
         finally:
-            conn.close() 
-   
+            conn.close()
