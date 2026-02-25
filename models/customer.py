@@ -373,6 +373,10 @@ class CustomerModel:
                     monto = norm_to_2_dec(monto)
                     
                     if monto > Decimal('0.00'):
+                        # Ignorar créditos de sobrepago — ya están reflejados en el pago
+                        if reason and reason.startswith("AJUSTE:"):
+                            continue
+                        
                         desc = f"Nota de crédito"
                         if reason:
                             desc += f" · {reason}"
@@ -390,6 +394,7 @@ class CustomerModel:
                             "referencia": reason or ""
                         })
                     else:
+                        # USO CRÉDITO se mantiene igual
                         desc = f"Aplicación de saldo"
                         if sale_id:
                             desc += f" · Venta #{sale_id}"
@@ -405,7 +410,7 @@ class CustomerModel:
                             "sale_id": sale_id,
                             "referencia": reason or ""
                         })
-                        
+                                        
         except Exception as e:
             print(f"Tabla customer_credit no disponible: {e}")
         

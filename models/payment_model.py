@@ -65,7 +65,6 @@ class PaymentModel:
         overpay = paid - total
         
         if not skip_credit_generation:
-            print('se ejecuta?')
             if overpay > Decimal('0.01'):
                 exists = self.db.fetch_one(
                     """
@@ -76,15 +75,19 @@ class PaymentModel:
                     AND reason LIKE 'AJUSTE:%'
                     LIMIT 1
                     """,
-                    (sale_id, client_id)
+                    (sale_id, client_id),
+                    conn=conn
                 )
-                
+                print(f"DEBUG CREDIT: overpay={overpay}, sale={sale_id}, skip={skip_credit_generation}")
+                print(f"DEBUG CREDIT: exists={exists}")
                 if not exists:
                     self.add_customer_credit(
                         client_id=client_id,
                         amount=overpay,
                         reason=f"AJUSTE: Sobrepago en venta #{sale_id}",
-                        sale_id=sale_id
+                        sale_id=sale_id,
+                        conn=conn,
+                        commit=commit
                     )
 
         return status
@@ -192,13 +195,12 @@ class PaymentModel:
 
         return norm_to_2_dec(row[0]) if row else norm_to_2_dec(0.0)
 
-    def add_customer_credit(self, client_id: int, amount: Decimal, reason: str, sale_id: int | None = None): 
-        
+    def add_customer_credit(self, client_id: int, amount: Decimal, reason: str, sale_id: int, conn=None, commit=True): 
         query = """
             INSERT INTO customer_credit (client_id, amount, reason, sale_id)
             VALUES (?, ?, ?, ?)
         """
-        return self.db.execute_query(query, (client_id, str(amount), reason, sale_id))
+        return self.db.execute_query(query, (client_id, str(amount), reason, sale_id), conn=conn, commit=commit)
 
     def use_customer_credit(self, client_id: int, amount: float, reason: str, sale_id: int | None = None):
         """
