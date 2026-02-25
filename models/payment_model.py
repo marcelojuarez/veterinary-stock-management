@@ -88,14 +88,6 @@ class PaymentModel:
                     )
 
         return status
-    
-    # def get_payments_for_sale(self, sale_id):
-    #     """Devuelve todos los pagos registrados para esta venta."""
-    #     rows = self.db.fetch_all(
-    #         "SELECT id, date, amount, method FROM payments WHERE sale_id = ? ORDER BY date ASC",
-    #         (sale_id,)
-    #     )
-    #     return rows
 
     ## -- Devuelve el monto total de pagos asociados a una venta -- ##
     def get_total_amount_of_pay_for_a_sale(self, sale_id, conn=None):
@@ -168,17 +160,16 @@ class PaymentModel:
 
             # Obtener el total de todas las ventas
             all_sales = self.sale_model.get_total_of_all_sales(customer_id, conn=conn)
-
             still_owed = Decimal('0.00')
 
             for sale_id, total in all_sales:
-                payment_amount = self.get_total_amount_of_pay_for_a_sale(sale_id)
+                payment_amount = self.get_total_amount_of_pay_for_a_sale(sale_id, conn=conn)
                 still_owed += Decimal(total) - payment_amount
 
             conn.commit()
 
             return {
-                "used": norm_to_2_dec(norm_to_2_dec(amount) - remaining),
+                "used": norm_to_2_dec(amount - remaining),
                 "remaining": norm_to_2_dec(remaining),
                 "updated_debts": updated_debts,
                 "still_owed": still_owed,
@@ -201,11 +192,8 @@ class PaymentModel:
 
         return norm_to_2_dec(row[0]) if row else norm_to_2_dec(0.0)
 
-    def add_customer_credit(self, client_id: int, amount: float, reason: str, sale_id: int | None = None):
-        amount = norm_to_2_dec(amount)
-        if abs(amount) <= norm_to_2_dec(0.01):
-            return None
-
+    def add_customer_credit(self, client_id: int, amount: Decimal, reason: str, sale_id: int | None = None): 
+        
         query = """
             INSERT INTO customer_credit (client_id, amount, reason, sale_id)
             VALUES (?, ?, ?, ?)
@@ -234,11 +222,6 @@ class PaymentModel:
         )
         return used
 
-    ## -- Obtiene el id de cliente de una venta -- ##
-    # def get_sale_client_id(self, sale_id: int) -> int | None:
-    #     row = self.db.fetch_one("SELECT cliente_id FROM sales WHERE id = ?", (sale_id,))
-    #     return int(row[0]) if row else None
-
     def reconcile_sale(self, sale_id, conn=None, commit=True):
         """
         Recalcula una venta con los precios actuales.
@@ -246,26 +229,24 @@ class PaymentModel:
         - Si hay sobrepago: crea saldo a favor (customer_credit)
         """
         row_sale = self.db.fetch_one(
-            "SELECT cliente_id, estado, total_cerrado FROM sales WHERE id = ?",
-            (sale_id,)
+            "SELECT cliente_id, estado, total FROM sales WHERE id = ?",
+            (sale_id,),
+            conn=conn
         )
+
         if not row_sale:
             return None
 
-        client_id, current_status, total_cerrado = row_sale
-
-        if current_status == "paid" and total_cerrado is not None:
-            # Ya está cerrada, no tocar
-            return "paid"
+        client_id, current_status, total = row_sale
 
         # Recalcular con precios actuales
-        total = norm_to_2_dec(self.get_sale_total_variable(sale_id))
-        paid = norm_to_2_dec(self.get_sale_paid(sale_id))
+        total = Decimal(self.get_sale_total(sale_id, conn=conn))
+        paid = self.get_total_amount_of_pay_for_a_sale(sale_id, conn=conn)
 
         # Determinar nuevo estado
-        if paid <= norm_to_2_dec(0.01):
+        if paid <= Decimal('0.00'):
             status = "pending"
-        elif paid + norm_to_2_dec(0.009) < total:
+        elif Decimal('0.00') < paid < total:
             status = "partial"
         else:
             status = "paid"
@@ -273,23 +254,13 @@ class PaymentModel:
         # Guardar nuevo estado
         self.db.execute_query(
             "UPDATE sales SET estado = ? WHERE id = ?",
-            (status, sale_id)
+            (status, sale_id),
+            conn=conn,
+            commit=commit
         )
 
-        # Si quedó paid: congelar total
-        if status == "paid" and total_cerrado is None:
-            self.db.execute_query(
-                """
-                UPDATE sales
-                SET total_cerrado = ?,
-                    fecha_cierre = CURRENT_TIMESTAMP
-                WHERE id = ? AND total_cerrado IS NULL
-                """,
-                (str(total), sale_id)
-            )
-
-        overpay = norm_to_2_dec(paid - total)
-        if overpay > norm_to_2_dec(0.01):
+        overpay = Decimal(paid - total)
+        if overpay > Decimal('0.00'):
             # Verificar si ya existe un ajuste de sobrepago para esta venta
             exists = self.db.fetch_one(
                 """
@@ -310,6 +281,10 @@ class PaymentModel:
                     reason=f"AJUSTE: Diferencia por cambio de precio (venta #{sale_id})",
                     sale_id=sale_id
                 )
+
+            else:
+                # Se actualiza uno ?
+                pass
 
         return status
 

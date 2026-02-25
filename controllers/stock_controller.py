@@ -92,60 +92,60 @@ class StockController:
             print(f"Error updating product field: {e}")
             return False
     
-    def update_product_price(self, product_id, product_data):
-        """Actualizar un producto existente (manejo híbrido de rentabilidad/precio)"""
+    # def update_product_price(self, product_id, product_data):
+    #     """Actualizar un producto existente (manejo híbrido de rentabilidad/precio)"""
         
-        current_product = self.stock_model.get_product_by_id(product_id)
-        if not current_product:
-            raise ValueError(f"Producto {product_id} no encontrado")
+    #     current_product = self.stock_model.get_product_by_id(product_id)
+    #     if not current_product:
+    #         raise ValueError(f"Producto {product_id} no encontrado")
 
-        (
-            _,
-            _,
-            _,
-            old_profit,
-            old_cost,
-            old_sale_price,
-            iva,
-            _,
-            _,
-            created_at,
-            quantity
-        ) = current_product
+    #     (
+    #         _,
+    #         _,
+    #         _,
+    #         old_profit,
+    #         old_cost,
+    #         old_sale_price,
+    #         iva,
+    #         _,
+    #         _,
+    #         created_at,
+    #         quantity
+    #     ) = current_product
 
-        # Nuevos valores
-        new_cost = float(product_data['CostPrice'])
-        new_sale_price = float(product_data['SalePrice'])
-        new_profit = float(product_data['Profit']) if product_data.get('Profit') else old_profit
+    #     # Nuevos valores
+    #     new_cost = float(product_data['CostPrice'])
+    #     new_sale_price = float(product_data['SalePrice'])
+    #     new_profit = float(product_data['Profit']) if product_data.get('Profit') else old_profit
 
-        # Lógica híbrida
-        if new_cost != old_cost and new_sale_price == old_sale_price:
-            new_sale_price = round(new_cost * (1 + old_profit / 100), 2)
-        elif new_sale_price != old_sale_price:
-            new_profit = round(((new_sale_price - new_cost) / new_cost) * 100, 2)
+    #     # Lógica híbrida
+    #     if new_cost != old_cost and new_sale_price == old_sale_price:
+    #         new_sale_price = round(new_cost * (1 + old_profit / 100), 2)
+    #     elif new_sale_price != old_sale_price:
+    #         new_profit = round(((new_sale_price - new_cost) / new_cost) * 100, 2)
 
-        # Recalcular Precio con IVA
-        if iva == "21%":
-            price_with_iva = round(new_sale_price * 1.21, 2)
-        elif iva == "10.5%":
-            price_with_iva = round(new_sale_price * 1.105, 2)
-        else:
-            price_with_iva = new_sale_price
+    #     # Recalcular Precio con IVA
+    #     if iva == "21%":
+    #         price_with_iva = round(new_sale_price * 1.21, 2)
+    #     elif iva == "10.5%":
+    #         price_with_iva = round(new_sale_price * 1.105, 2)
+    #     else:
+    #         price_with_iva = new_sale_price
 
-        complete_product_data = {
-            'Name': product_data['Name'],
-            'Package': product_data['Package'],
-            'Profit': new_profit,
-            'CostPrice': new_cost,
-            'SalePrice': new_sale_price,
-            'Iva': iva,
-            'PriceWIva': price_with_iva,
-            'Stock': quantity,
-        }
+    #     complete_product_data = {
+    #         'Name': product_data['Name'],
+    #         'Package': product_data['Package'],
+    #         'Profit': new_profit,
+    #         'CostPrice': new_cost,
+    #         'SalePrice': new_sale_price,
+    #         'Iva': iva,
+    #         'PriceWIva': price_with_iva,
+    #         'Stock': quantity,
+    #     }
     
-        self.stock_model.update_product(product_id, complete_product_data)
-        self._reconcile_sales_with_product(product_id, old_sale_price, new_sale_price)
-        self.refresh_stock_table()
+    #     self.stock_model.update_product(product_id, complete_product_data)
+    #     self._reconcile_sales_with_product(product_id, old_sale_price, new_sale_price)
+    #     self.refresh_stock_table()
 
     ## -- -- ##
     def _reconcile_sales_with_product(self, product_id, old_price, new_price):
