@@ -176,7 +176,8 @@ class SalesController:
                     "id": client[0],
                     "nombre": client[1],
                     "cuit": client[2],
-                    "domicilio": client[3]
+                    "domicilio": client[3],
+                    "condicion_iva": client[4] if len(client) > 4 else ""
                 }
             return None
         except Exception as e:
@@ -262,4 +263,3 @@ class SalesController:
         from datetime import datetime
         hoy = datetime.now().strftime("%Y-%m-%d")
         return self.get_sales_by_date_range(hoy, hoy)
-
