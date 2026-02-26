@@ -26,7 +26,7 @@ class CustomerModel:
     def get_client_by_name(self, name):
         """Buscar cliente por nombre exacto"""
         query = """
-            SELECT id, nombre, cuit, domicilio
+            SELECT id, nombre, cuit, domicilio, condicion_iva
             FROM clientes
             WHERE nombre = ?
         """

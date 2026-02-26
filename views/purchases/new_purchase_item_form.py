@@ -36,9 +36,10 @@ class NewPurchaseItemForm():
         self.total_item_var = tk.StringVar()
 
     # Formulario para agregar items en la compra
-    def open_add_purchase_item(self, purchase_id, parent):
+    def open_add_purchase_item(self, purchase_id, parent, discrimina_iva=True):
 
         self.setup_purchase_items_variables(purchase_id)
+        self.discrimina_iva = discrimina_iva
 
         # self.list_price = Decimal('0.00')
         # self.iva = Decimal('0.00')
@@ -139,9 +140,22 @@ class NewPurchaseItemForm():
         add_field(0, 2, "Precio Costo:",
                 ctk.CTkEntry(form_frame, textvariable=self.cost_price_var, state='readonly', width=200))
 
-        add_field(1, 2, "Porcentaje Iva:",
-                ctk.CTkComboBox(form_frame, values=["21.00", "10.50", "0.00"], 
-                                variable=self.iva_rate, state='readonly', width=200))
+        iva_combo = ctk.CTkComboBox(
+                form_frame, values=["21.00", "10.50", "0.00"],
+                variable=self.iva_rate,
+                state='readonly' if self.discrimina_iva else 'disabled',
+                width=200
+            )
+        add_field(1, 2, "Porcentaje Iva:", iva_combo)
+
+        # Indicador visual si no discrimina IVA
+        if not self.discrimina_iva:
+            ctk.CTkLabel(
+                form_frame,
+                text="⚠ Factura sin IVA discriminado",
+                font=ctk.CTkFont(size=11, weight="bold"),
+                text_color="#E65100"
+            ).grid(row=2, column=2, columnspan=2, sticky="w", padx=10, pady=2)
 
         add_field(2, 2, "Total Descuento:",
                 ctk.CTkEntry(form_frame, textvariable=self.discount_amount, state='readonly', width=200))
@@ -155,14 +169,22 @@ class NewPurchaseItemForm():
         add_field(5, 2, "Total:",
                 ctk.CTkEntry(form_frame, textvariable=self.total_item_var, state='readonly', width=200))
 
+        # Si el proveedor NO discrimina IVA (factura B/C), bloquear el campo
+        if not self.discrimina_iva:
+            self.iva_rate.set("0.00")
+
         def recalc(*args):
             ## stock
             self.qty = string_to_dec(self.quantity.get())
 
             ## precio - iva - descuento
             self.list_price = string_to_flex_dec(self.list_price_var.get())
-            self.iva = string_to_flex_dec(self.iva_rate.get())
             self.discount = string_to_2_dec(self.discount_var.get())
+
+            # Si no discrimina IVA, forzar siempre a 0
+            if not self.discrimina_iva:
+                self.iva_rate.set("0.00")
+            self.iva = string_to_flex_dec(self.iva_rate.get())
 
             if self.list_price is None or self.iva is None or self.discount is None or self.qty is None:
                 return
@@ -174,8 +196,14 @@ class NewPurchaseItemForm():
 
             cost_price = self.list_price - unit_d_amount
             subtotal = norm_to_2_dec(self.qty * cost_price)
-            iva_amount = norm_to_2_dec(subtotal * (self.iva / Decimal('100')))
-            discount_amount = base_amount - subtotal  
+
+            # IVA solo se discrimina en facturas A/M
+            if self.discrimina_iva:
+                iva_amount = norm_to_2_dec(subtotal * (self.iva / Decimal('100')))
+            else:
+                iva_amount = Decimal('0.00')
+
+            discount_amount = base_amount - subtotal
             total = subtotal + iva_amount
 
             # normalizacion final

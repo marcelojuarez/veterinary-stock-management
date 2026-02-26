@@ -52,6 +52,9 @@ class SupplierView():
         self.name_var = tk.StringVar()
         self.cuit_var = tk.StringVar()
         self.home_var = tk.StringVar()
+        self.city_var = tk.StringVar()
+        self.province_var = tk.StringVar()
+        self.country_var = tk.StringVar()
         self.phone_var = tk.StringVar()
         self.email_var = tk.StringVar()
         self.iva_condition = tk.StringVar()
@@ -155,26 +158,26 @@ class SupplierView():
         self.supplier_tree.configure(yscrollcommand=scrl_bar.set)
                            
         self.supplier_tree['columns'] = (
-            "Id", "Nombre", "Cuit", "Domicilio", "Telefono", "Email", "Condicion Iva", "Ultima actualizacion deuda"
+            "Id", "Nombre", "Cuit", "Domicilio", "Ciudad", "Provincia", "Telefono", "Email", "Condicion Iva", "Últ. Act. deuda"
         )
         self.supplier_tree['displaycolumns'] = self.supplier_tree['columns']
         self.supplier_tree.column("Id", anchor=tk.W, width=50,stretch=True)
         self.supplier_tree.column("Nombre", anchor=tk.W, width=200,stretch=True)
         self.supplier_tree.column("Cuit", anchor=tk.W, width=130,stretch=True)
         self.supplier_tree.column("Domicilio", anchor=tk.W, width=180,stretch=True)
+        self.supplier_tree.column("Ciudad", anchor=tk.W, width=150,stretch=True)
+        self.supplier_tree.column("Provincia", anchor=tk.W, width=150,stretch=True)
         self.supplier_tree.column("Telefono", anchor=tk.W, width=110,stretch=True)
         self.supplier_tree.column("Email", anchor=tk.W, width=180, stretch=True)
         self.supplier_tree.column("Condicion Iva", anchor=tk.W, width=120, stretch=True)
-        self.supplier_tree.column("Ultima actualizacion deuda", anchor=tk.W, width=150, stretch=True)
+        self.supplier_tree.column("Últ. Act. deuda", anchor=tk.W, width=150, stretch=True)
 
-        self.supplier_tree.heading('Id', text='Cód ↕')
-        self.supplier_tree.heading('Nombre', text='Nombre↕')
-        self.supplier_tree.heading('Cuit', text='Cuit ↕')
-        self.supplier_tree.heading('Domicilio', text='Domicilio ↕')
-        self.supplier_tree.heading('Telefono', text='Telefono ↕')
-        self.supplier_tree.heading('Email', text='Email ↕')
-        self.supplier_tree.heading('Condicion Iva', text='Condicion Iva ↕')
-        self.supplier_tree.heading('Ultima actualizacion deuda', text='Ultima actualizacion deuda ↕')
+        for col in self.supplier_tree["columns"]:
+            self.supplier_tree.heading(
+                col,
+                text=col,
+                command=lambda c=col: self.sort_by_column(c)
+            )
 
         self.supplier_tree.tag_configure('orow', background="#FFFFFF")
         scrl_bar.pack(side="right", fill="y")
@@ -267,14 +270,23 @@ class SupplierView():
         
         add_field(2, "Domicilio: ",
                   ctk.CTkEntry(form_frame, textvariable=self.home_var, width=200))
+        
+        add_field(3, "Ciudad: ",
+                  ctk.CTkEntry(form_frame, textvariable=self.city_var, width=200))
 
-        add_field(3, "Telefono: ",
+        add_field(4, "Provincia: ",
+                  ctk.CTkEntry(form_frame, textvariable=self.province_var, width=200))
+        
+        add_field(5, "País: ",
+                  ctk.CTkEntry(form_frame, textvariable=self.country_var, width=200))
+        
+        add_field(6, "Telefono: ",
                   ctk.CTkEntry(form_frame, textvariable=self.phone_var, width=200))
 
-        add_field(4, "Email: ",
+        add_field(7, "Email: ",
                   ctk.CTkEntry(form_frame, textvariable=self.email_var, width=200))
         
-        add_field(5, "Condicion IVA: ",
+        add_field(8, "Condicion IVA: ",
                   ctk.CTkComboBox(
                       form_frame,  
                       values=["RESP. INS", "MONOTRIBUTISTA", "EXENTO", "NO RESPONSABLE"], 
@@ -341,7 +353,7 @@ class SupplierView():
 
         # --- Panel de deuda ---
         self.debt = tk.StringVar(value=f'{debt}')
-        self.last_update_debt = tk.StringVar(value=f'Ultima actualizacion deuda: \n {supplier[7]}')
+        self.last_update_debt = tk.StringVar(value=f'Ultima actualizacion deuda: \n {supplier[9]}')
         right_frame = ctk.CTkFrame(info_win, corner_radius=10)
         right_frame.grid(row=0, column=1, sticky="nsew", padx=10, pady=(10, 0))
 
@@ -518,11 +530,13 @@ class SupplierView():
                     s[0],   # id
                     s[2],   # name
                     s[1],   # cuit
-                    s[3],   # home
-                    s[4],   # phone
-                    s[5],   # email
-                    s[6],   # condicion iva
-                    iso_to_traditional(s[7])    # last act debt
+                    s[3],   # address
+                    s[4],   # city
+                    s[5],   # province
+                    s[7],   # phone
+                    s[8],   # email
+                    s[9],   # condicion iva
+                    iso_to_traditional(s[10])    # last act debt
                 ),
                 tag="orow"
             )
@@ -540,11 +554,13 @@ class SupplierView():
                     supplier[0],   # id
                     supplier[2],   # name
                     supplier[1],   # cuit
-                    supplier[3],   # home
-                    supplier[4],   # phone
-                    supplier[5],   # email
-                    supplier[6],    # condicion iva
-                    iso_to_traditional(supplier[7])    # last act debt
+                    supplier[3],   # address
+                    supplier[4],   # city
+                    supplier[5],   # province
+                    supplier[7],   # phone
+                    supplier[8],   # email
+                    supplier[9],    # condicion iva
+                    iso_to_traditional(supplier[10])    # last act debt
                 ),
                 tag="orow"
             )
@@ -557,6 +573,9 @@ class SupplierView():
         self.name_var.set('')
         self.cuit_var.set('')
         self.home_var.set('')
+        self.city_var.set('')
+        self.province_var.set('')
+        self.country_var.set('')
         self.phone_var.set('')
         self.iva_condition.set('')
 
@@ -564,8 +583,49 @@ class SupplierView():
         return {
             'name': self.name_var.get().strip(),
             'cuit': self.cuit_var.get().strip(),
-            'home': self.home_var.get().strip(),
+            'address': self.home_var.get().strip(),
+            'city': self.city_var.get().strip(),
+            'province': self.province_var.get().strip(),
+            'country': self.country_var.get().strip(),
             'phone': self.phone_var.get().strip(),
             'email': self.email_var.get().strip(),
             'iva_condition': self.iva_condition.get().strip()
         }
+    
+    def sort_by_column(self, col):
+        # Si es la misma columna, invertimos el orden
+        if self.sort_column == col:
+            self.sort_reverse = not self.sort_reverse
+        else:
+            self.sort_reverse = False
+
+        self.sort_column = col
+
+        # Obtener datos visibles
+        data = [
+            (self.supplier_tree.set(k, col), k)
+            for k in self.supplier_tree.get_children('')
+        ]
+
+        # Intentar ordenar como número
+        try:
+            data.sort(
+                key=lambda t: float(t[0].replace(",", "").replace("$", "")),
+                reverse=self.sort_reverse
+            )
+        except ValueError:
+            data.sort(
+                key=lambda t: t[0].lower(),
+                reverse=self.sort_reverse
+            )
+
+        # Reordenar filas
+        for index, (val, k) in enumerate(data):
+            self.supplier_tree.move(k, '', index)
+
+        # Actualizar flechas en encabezados
+        for c in self.supplier_tree["columns"]:
+            self.supplier_tree.heading(c, text=c)
+
+        arrow = " ↓" if self.sort_reverse else " ↑"
+        self.supplier_tree.heading(col, text=col + arrow)

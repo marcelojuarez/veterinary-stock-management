@@ -87,7 +87,10 @@ class Database:
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     cuit TEXT UNIQUE,
                     name TEXT NOT NULL,
-                    home TEXT,
+                    address TEXT,
+                    city TEXT,
+                    province TEXT,
+                    country TEXT,
                     phone TEXT,
                     email TEXT,
                     iva_condition TEXT,
@@ -259,9 +262,9 @@ class Database:
                     number TEXT,
                     date TEXT DEFAULT CURRENT_TIMESTAMP,
                     customer_id INTEGER,
-                    subtotal REAL,
-                    iva REAL,
-                    total REAL,
+                    subtotal TEXT NOT NULL,
+                    iva TEXT NOT NULL,
+                    total TEXT NOT NULL,
                     estado TEXT DEFAULT 'borrador',  -- o 'emitida'
                     FOREIGN KEY(customer_id) REFERENCES clientes(id)
                 );
@@ -274,8 +277,8 @@ class Database:
                     invoice_id INTEGER,
                     product_id TEXT,
                     quantity INTEGER,
-                    price REAL,
-                    subtotal REAL,
+                    price TEXT NOT NULL,
+                    subtotal TEXT NOT NULL,
                     FOREIGN KEY(invoice_id) REFERENCES invoice(id),
                     FOREIGN KEY(product_id) REFERENCES stock(id)
                 );
@@ -309,6 +312,17 @@ class Database:
                     observations TEXT,
                     FOREIGN KEY(sale_id) REFERENCES sales(id) ON DELETE CASCADE,
                     FOREIGN KEY(product_id) REFERENCES stock(id)
+                );
+            ''')
+
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS sale_retentions (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    sale_id INTEGER NOT NULL,
+                    tax_type TEXT NOT NULL,
+                    amount TEXT NOT NULL,
+                    certificate_number TEXT,
+                    FOREIGN KEY(sale_id) REFERENCES sales(id) ON DELETE CASCADE
                 );
             ''')
 

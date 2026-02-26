@@ -196,31 +196,31 @@ class StockView():
         self.stock_tree.column("Stock", anchor=tk.CENTER, width=80, stretch=False)
 
         # Encabezados
-        self.stock_tree.heading("Id", text="Cód. ↕", anchor=tk.W,
+        self.stock_tree.heading("Id", text="Cód.", anchor=tk.W,
                                 command=lambda: self.sort_tree("Id"))
-        self.stock_tree.heading("Name", text="Nombre Artículo ↕", anchor=tk.W,
+        self.stock_tree.heading("Name", text="Nombre Artículo", anchor=tk.W,
                                 command=lambda: self.sort_tree("Name"))
-        self.stock_tree.heading("Package", text="Envase ↕", anchor=tk.W,
+        self.stock_tree.heading("Package", text="Envase", anchor=tk.W,
                                 command=lambda: self.sort_tree("Package"))
-        self.stock_tree.heading("ListPrice", text="P. Lista ↕", anchor=tk.E,
+        self.stock_tree.heading("ListPrice", text="P. Lista", anchor=tk.E,
                                 command=lambda: self.sort_tree("ListPrice"))
-        self.stock_tree.heading("Discount", text="% Dto. ↕", anchor=tk.E,
+        self.stock_tree.heading("Discount", text="% Dto.", anchor=tk.E,
                                 command=lambda: self.sort_tree("Discount"))                
-        self.stock_tree.heading("CostPrice", text="P. Costo ↕", anchor=tk.E,
+        self.stock_tree.heading("CostPrice", text="P. Costo", anchor=tk.E,
                                 command=lambda: self.sort_tree("CostPrice"))
-        self.stock_tree.heading("Profit", text="% Rent. ↕", anchor=tk.CENTER,
+        self.stock_tree.heading("Profit", text="% Rent.", anchor=tk.CENTER,
                                 command=lambda: self.sort_tree("Profit"))
-        self.stock_tree.heading("SalePrice", text="P. Venta ↕", anchor=tk.E,
+        self.stock_tree.heading("SalePrice", text="P. Venta", anchor=tk.E,
                                 command=lambda: self.sort_tree("SalePrice"))
         self.stock_tree.heading("Iva", text="% Iva", anchor=tk.CENTER,
                                 command=lambda: self.sort_tree("Iva"))
-        self.stock_tree.heading("SalePriceWithIva", text="P. Venta C/Iva ↕", anchor=tk.E,
+        self.stock_tree.heading("SalePriceWithIva", text="P. Venta C/Iva", anchor=tk.E,
                                 command=lambda: self.sort_tree("SalePriceWithIva"))
-        self.stock_tree.heading("ValidityDate", text="Fecha Vig. ↕", anchor=tk.CENTER,
+        self.stock_tree.heading("ValidityDate", text="Fecha Vig.", anchor=tk.CENTER,
                                 command=lambda: self.sort_tree("ValidityDate"))
-        self.stock_tree.heading("LastPriceUpdate", text="F. Ult. Modif. ↕", anchor=tk.CENTER,
+        self.stock_tree.heading("LastPriceUpdate", text="F. Ult. Modif.", anchor=tk.CENTER,
                                 command=lambda: self.sort_tree("LastPriceUpdate"))
-        self.stock_tree.heading("Stock", text="Stock ↕", anchor=tk.CENTER,
+        self.stock_tree.heading("Stock", text="Stock", anchor=tk.CENTER,
                                 command=lambda: self.sort_tree("Stock"))
         
         # Bind para doble click
@@ -868,7 +868,7 @@ class StockView():
                 indicator = ' ↑' if not self.sort_reverse else ' ↓'
                 text = base_text + indicator
             else:
-                text = base_text + ' ↕'
+                text = base_text
             
             self.stock_tree.heading(col, text=text)
 

@@ -405,6 +405,14 @@ class SalesView:
                 text=f"Dirección: {client_address}",
                 font=ctk.CTkFont(size=12)
             ).pack(anchor="w", padx=15, pady=1)
+
+        client_iva = self.client_iva_var.get()
+        if client_iva:
+            ctk.CTkLabel(
+                client_frame,
+                text=f"Cond. IVA: {client_iva}",
+                font=ctk.CTkFont(size=12)
+            ).pack(anchor="w", padx=15, pady=1)
         
         ctk.CTkLabel(
             client_frame,
@@ -463,25 +471,118 @@ class SalesView:
         total = norm_to_2_dec(total)
         preview_tree.pack(padx=8, pady=5, fill="both", expand=True)
         
-        # Frame de totales - MÁS COMPACTO
+        # Frame de totales
         totals_frame = ctk.CTkFrame(confirm_win, fg_color="#e8f5e9")
         totals_frame.pack(padx=15, pady=5, fill="x")
-        
+
         # Cantidad total de items
         total_items = sum(item[2] for item in self.items_in_sale)
-        
+
         ctk.CTkLabel(
             totals_frame,
             text=f"Total de productos: {len(self.items_in_sale)} | Total de unidades: {total_items}",
             font=ctk.CTkFont(size=12)
         ).pack(pady=(8, 3))
-        
-        ctk.CTkLabel(
-            totals_frame,
-            text=f"TOTAL A PAGAR: ${total}",
-            font=ctk.CTkFont(size=20, weight="bold"),
-            text_color="#2e7d32"
-        ).pack(pady=(3, 10))  # Reducido padding
+
+        # Desglose neto + IVA por alícuota
+        total_neto = Decimal('0.00')
+        iva_breakdown = {}  # { "21.0": Decimal, ... }
+
+        for item in self.items_in_sale:
+            if len(item) == 5:
+                pid, _, qty, price, _ = item
+            else:
+                pid, _, qty, price = item
+
+            qty_d   = Decimal(str(qty))
+            price_d = Decimal(str(price))
+
+            try:
+                product = self.stock_model.get_product_by_id(pid)
+                iva_pct = Decimal(str(product[8])) if product and product[8] else Decimal('0')
+            except Exception:
+                iva_pct = Decimal('0')
+
+            divisor   = Decimal('1') + iva_pct / Decimal('100')
+            net_unit  = price_d / divisor
+            line_net  = norm_to_2_dec(net_unit * qty_d)
+            line_iva  = norm_to_2_dec(line_net * (iva_pct / Decimal('100')))
+
+            total_neto += line_net
+
+            key = f"{iva_pct:.1f}"
+            if key not in iva_breakdown:
+                iva_breakdown[key] = Decimal('0.00')
+            iva_breakdown[key] += line_iva
+
+        total_neto = norm_to_2_dec(total_neto)
+
+        # Separador
+        sep_frame = ctk.CTkFrame(totals_frame, fg_color="#c8e6c9", height=1)
+        sep_frame.pack(fill="x", padx=15, pady=(4, 0))
+
+        # Subtotal neto
+        neto_frame = ctk.CTkFrame(totals_frame, fg_color="transparent")
+        neto_frame.pack(fill="x", padx=20, pady=(4, 0))
+        ctk.CTkLabel(neto_frame, text="Subtotal neto:",
+                     font=ctk.CTkFont(size=12)).pack(side="left")
+        ctk.CTkLabel(neto_frame, text=f"${format_currency(total_neto)}",
+                     font=ctk.CTkFont(size=12)).pack(side="right")
+
+        # IVA por alícuota
+        for pct_key in sorted(iva_breakdown.keys(), key=lambda x: float(x), reverse=True):
+            iva_val = norm_to_2_dec(iva_breakdown[pct_key])
+            if iva_val == Decimal('0.00'):
+                continue
+            pct_f = float(pct_key)
+            label = f"IVA {pct_f:.0f}%:" if pct_f > 0 else "Exento:"
+            iva_row = ctk.CTkFrame(totals_frame, fg_color="transparent")
+            iva_row.pack(fill="x", padx=20, pady=1)
+            ctk.CTkLabel(iva_row, text=label,
+                         font=ctk.CTkFont(size=12)).pack(side="left")
+            ctk.CTkLabel(iva_row, text=f"${format_currency(iva_val)}",
+                         font=ctk.CTkFont(size=12)).pack(side="right")
+
+        # Retenciones (si aplica)
+        retenciones = self.get_retenciones()
+        total_ret = Decimal('0.00')
+        if retenciones:
+            sep2 = ctk.CTkFrame(totals_frame, fg_color="#c8e6c9", height=1)
+            sep2.pack(fill="x", padx=15, pady=(4, 0))
+            for concepto, monto in [
+                ("Ret. IVA:", retenciones.get('IVA', 0)),
+                ("Ret. IIBB:", retenciones.get('IIBB', 0)),
+                ("Ret. Ganancias:", retenciones.get('GAN', 0)),
+            ]:
+                monto_d = norm_to_2_dec(Decimal(str(monto)))
+                if monto_d > Decimal('0.00'):
+                    total_ret += monto_d
+                    ret_row = ctk.CTkFrame(totals_frame, fg_color="transparent")
+                    ret_row.pack(fill="x", padx=20, pady=1)
+                    ctk.CTkLabel(ret_row, text=concepto,
+                                 font=ctk.CTkFont(size=12),
+                                 text_color="#c62828").pack(side="left")
+                    ctk.CTkLabel(ret_row, text=f"-${format_currency(monto_d)}",
+                                 font=ctk.CTkFont(size=12),
+                                 text_color="#c62828").pack(side="right")
+
+        # Separador final
+        sep3 = ctk.CTkFrame(totals_frame, fg_color="#388e3c", height=2)
+        sep3.pack(fill="x", padx=15, pady=(6, 0))
+
+        # Total a pagar (descontando retenciones)
+        total_a_pagar = norm_to_2_dec(total - total_ret)
+
+        total_row = ctk.CTkFrame(totals_frame, fg_color="transparent")
+        total_row.pack(fill="x", padx=20, pady=(4, 10))
+        ctk.CTkLabel(total_row,
+                     text="TOTAL A PAGAR:",
+                     font=ctk.CTkFont(size=16, weight="bold"),
+                     text_color="#2e7d32").pack(side="left")
+        ctk.CTkLabel(total_row,
+                     text=f"${format_currency(total_a_pagar)}",
+                     font=ctk.CTkFont(size=16, weight="bold"),
+                     text_color="#2e7d32").pack(side="right")
         
         # Variable para capturar la respuesta
         result = {"confirmed": False}
@@ -521,7 +622,7 @@ class SalesView:
             command=cancel
         )
         cancel_btn.grid(row=0, column=1, padx=10)
-        center_window(confirm_win, 650, 650)
+        center_window(confirm_win, 650, 850)
 
         # Esperar a que se cierre la ventana
         confirm_win.deiconify()
@@ -785,6 +886,11 @@ class SalesView:
                     total_d = Decimal(total)
                     pagado_d = Decimal(pagado)
 
+                    # Si la venta está pagada y no tiene registro de cobro posterior
+                    # (contado), el monto pagado es el total
+                    if estado_venta == 'paid' and pagado_d == Decimal('0.00'):
+                        pagado_d = total_d
+
                     # Calcular saldo
                     saldo = max(Decimal('0.00'), Decimal(total_d - pagado_d))
                     
@@ -887,7 +993,7 @@ class SalesView:
 
     # Client Selector
     def create_client_section(self):
-        """Sección de cliente MEJORADA"""
+        """Sección de cliente MEJORADA con retenciones"""
         client_frame = ctk.CTkFrame(self.frame, fg_color="#fafafa")
         client_frame.grid(row=1, column=1, sticky="ew", padx=10, pady=5)
 
@@ -924,8 +1030,7 @@ class SalesView:
         )
         search_client_btn.grid(row=0, column=1)
 
-        # --- Campos de datos ---
-        # --- Cuit/Dni ---
+        # --- CUIT / DNI ---
         ctk.CTkLabel(
             client_frame, 
             text="CUIT / DNI:",
@@ -957,17 +1062,33 @@ class SalesView:
             state="disabled"
         ).grid(row=2, column=1, padx=10, pady=5, sticky="w")
 
+        # --- Condición IVA ---
+        ctk.CTkLabel(
+            client_frame,
+            text="Cond. IVA:",
+            font=ctk.CTkFont(size=13, weight="bold")
+        ).grid(row=3, column=0, padx=10, pady=5, sticky="w")
+
+        self.client_iva_var = tk.StringVar()
+        ctk.CTkEntry(
+            client_frame,
+            textvariable=self.client_iva_var,
+            width=250,
+            height=35,
+            state="disabled"
+        ).grid(row=3, column=1, padx=10, pady=5, sticky="w")
+
         # --- Forma de pago ---
         ctk.CTkLabel(
             client_frame, 
             text="Forma de pago:",
             font=ctk.CTkFont(size=13, weight="bold")
-        ).grid(row=3, column=0, padx=10, pady=10, sticky="w")
+        ).grid(row=4, column=0, padx=10, pady=10, sticky="w")
 
         self.payment_type_var = tk.StringVar(value="PAID")
 
         payment_frame = ctk.CTkFrame(client_frame, fg_color="transparent")
-        payment_frame.grid(row=3, column=1, padx=10, pady=10, sticky="w")
+        payment_frame.grid(row=4, column=1, padx=10, pady=10, sticky="w")
 
         self.radio_paid = ctk.CTkRadioButton(
             payment_frame,
@@ -984,7 +1105,124 @@ class SalesView:
             value="CREDIT"
         )
         self.radio_credit.grid(row=0, column=1)
+        
+        # Checkbox para mostrar/ocultar retenciones
+        self.tiene_retenciones_var = tk.BooleanVar(value=False)
+        retenciones_check = ctk.CTkCheckBox(
+            client_frame,
+            text="El cliente realiza retenciones",
+            variable=self.tiene_retenciones_var,
+            font=ctk.CTkFont(size=13, weight="bold"),
+            command=self.toggle_retenciones
+        )
+        retenciones_check.grid(row=5, column=0, columnspan=2, padx=10, pady=(15, 5), sticky="w")
+        
+        # Frame de retenciones (oculto por defecto)
+        self.retenciones_frame = ctk.CTkFrame(client_frame, fg_color="#e8f5e9")
+        self.retenciones_frame.grid(row=6, column=0, columnspan=2, padx=10, pady=5, sticky="ew")
+        self.retenciones_frame.grid_remove()  # Ocultar inicialmente
+        
+        # Retención IVA
+        ret_iva_container = ctk.CTkFrame(self.retenciones_frame, fg_color="transparent")
+        ret_iva_container.pack(fill="x", padx=10, pady=5)
+        
+        ctk.CTkLabel(
+            ret_iva_container,
+            text="Retención IVA $:",
+            font=ctk.CTkFont(size=12)
+        ).pack(side="left", padx=(0, 10))
+        
+        self.retencion_iva_var = tk.StringVar(value="0")
+        ctk.CTkEntry(
+            ret_iva_container,
+            textvariable=self.retencion_iva_var,
+            width=120,
+            height=30
+        ).pack(side="left")
+        
+        # Retención IIBB
+        ret_iibb_container = ctk.CTkFrame(self.retenciones_frame, fg_color="transparent")
+        ret_iibb_container.pack(fill="x", padx=10, pady=5)
+        
+        ctk.CTkLabel(
+            ret_iibb_container,
+            text="Retención IIBB $:",
+            font=ctk.CTkFont(size=12)
+        ).pack(side="left", padx=(0, 10))
+        
+        self.retencion_iibb_var = tk.StringVar(value="0")
+        ctk.CTkEntry(
+            ret_iibb_container,
+            textvariable=self.retencion_iibb_var,
+            width=120,
+            height=30
+        ).pack(side="left")
+        
+        # Retención Ganancias
+        ret_ganancias_container = ctk.CTkFrame(self.retenciones_frame, fg_color="transparent")
+        ret_ganancias_container.pack(fill="x", padx=10, pady=5)
+        
+        ctk.CTkLabel(
+            ret_ganancias_container,
+            text="Retención Ganancias $:",
+            font=ctk.CTkFont(size=12)
+        ).pack(side="left", padx=(0, 10))
+        
+        self.retencion_ganancias_var = tk.StringVar(value="0")
+        ctk.CTkEntry(
+            ret_ganancias_container,
+            textvariable=self.retencion_ganancias_var,
+            width=120,
+            height=30
+        ).pack(side="left")
+        
+        # Número de certificado
+        cert_container = ctk.CTkFrame(self.retenciones_frame, fg_color="transparent")
+        cert_container.pack(fill="x", padx=10, pady=5)
+        
+        ctk.CTkLabel(
+            cert_container,
+            text="Nº Certificado:",
+            font=ctk.CTkFont(size=12)
+        ).pack(side="left", padx=(0, 10))
+        
+        self.certificado_var = tk.StringVar()
+        ctk.CTkEntry(
+            cert_container,
+            textvariable=self.certificado_var,
+            width=200,
+            height=30,
+            placeholder_text="Ej: 001-00123456"
+        ).pack(side="left")
 
+    def toggle_retenciones(self):
+        """Mostrar/ocultar frame de retenciones"""
+        if self.tiene_retenciones_var.get():
+            self.retenciones_frame.grid()
+        else:
+            self.retenciones_frame.grid_remove()
+            # Limpiar valores
+            self.retencion_iva_var.set("0")
+            self.retencion_iibb_var.set("0")
+            self.retencion_ganancias_var.set("0")
+            self.certificado_var.set("")
+
+    def get_retenciones(self):
+        """Obtener datos de retenciones del formulario"""
+        if not self.tiene_retenciones_var.get():
+            return None
+        
+        try:
+            return {
+                'IVA': float(self.retencion_iva_var.get() or 0),
+                'IIBB': float(self.retencion_iibb_var.get() or 0),
+                'GAN': float(self.retencion_ganancias_var.get() or 0),
+                'certificado': self.certificado_var.get().strip()
+            }
+        except ValueError:
+            self.show_error("Ingrese valores numéricos válidos para las retenciones")
+            return None
+        
     def open_client_selector(self):
         """Abrir diálogo de selección de cliente"""        
         customer_model = CustomerModel()
@@ -1006,6 +1244,7 @@ class SalesView:
             if selected_name == "Consumidor Final":
                 self.client_cuit_var.set("")
                 self.client_address_var.set("")
+                self.client_iva_var.set("Consumidor Final")
 
                 # Forzar Pagada
                 self.payment_type_var.set("PAID")
@@ -1023,9 +1262,11 @@ class SalesView:
             if client_data:
                 self.client_cuit_var.set(client_data[2] or "")
                 self.client_address_var.set(client_data[3] or "")
+                self.client_iva_var.set(client_data[4] or "")
             else:
                 self.client_cuit_var.set("")
                 self.client_address_var.set("")
+                self.client_iva_var.set("")
 
         except Exception as e:
             self.show_error(f"No se pudieron cargar los datos del cliente: {e}")

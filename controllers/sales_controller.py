@@ -115,11 +115,13 @@ class SalesController:
 
             estado = "paid" if self.sales_view.payment_type_var.get() == "PAID" else "pending"
 
-            sale_id = self.sales_model.register_sale(total, items, cliente_id, estado)
+            retenciones = self.sales_view.get_retenciones()
 
-            #invoice = InvoiceController()
-            #pdf = invoice.generate_invoice(cliente_id, items)
-            #self.sales_view.show_success(f"Venta registrada.\nFactura creada: {pdf}")
+            sale_id = self.sales_model.register_sale(total, items, cliente_id, estado, retenciones)
+
+            invoice = InvoiceController()
+            pdf = invoice.generate_invoice(cliente_id, items)
+            self.sales_view.show_success(f"Venta registrada.\nFactura creada: {pdf}")
 
             self.sales_view.last_sale_id = sale_id
             # self.ask_remito(f"¿Desea generar remito?")
@@ -174,7 +176,8 @@ class SalesController:
                     "id": client[0],
                     "nombre": client[1],
                     "cuit": client[2],
-                    "domicilio": client[3]
+                    "domicilio": client[3],
+                    "condicion_iva": client[4] if len(client) > 4 else ""
                 }
             return None
         except Exception as e:
@@ -260,4 +263,3 @@ class SalesController:
         from datetime import datetime
         hoy = datetime.now().strftime("%Y-%m-%d")
         return self.get_sales_by_date_range(hoy, hoy)
-

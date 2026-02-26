@@ -174,7 +174,13 @@ class PurchaseForm():
             
             iid = selected[0]
             values = self.product_tree.item(iid, "values")
-            self.new_purchase_i_form.open_add_purchase_item(purchase_id, parent=parent)
+
+            # Determinar si la factura discrimina IVA consultando el modelo
+            discrimina_iva = self.controller.get_discrimina_iva(purchase_id)
+
+            self.new_purchase_i_form.open_add_purchase_item(
+                purchase_id, parent=parent, discrimina_iva=discrimina_iva
+            )
             self.new_purchase_i_form.load_item_info(product_id=values[0])
 
         except ValueError as e:
@@ -221,5 +227,4 @@ class PurchaseForm():
                 tags='orow'
             )
 
-        self.product_tree.tag_configure('orow', background="white", foreground='black')   
-    
+        self.product_tree.tag_configure('orow', background="white", foreground='black')
