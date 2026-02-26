@@ -462,12 +462,15 @@ class CustomersView:
         win.transient(self.frame)
         win.grab_set()
         center_window(win, width_win, height_win)
+        win.minsize(750,500)
 
         self.debt_window = win
 
+        scroll = ctk.CTkScrollableFrame(win, height=480)
+        scroll.pack(padx=10, pady=(5, 0), fill="both", expand=True)
         # Título
         ctk.CTkLabel(
-            win,
+            scroll,
             text=f"Deudas pendientes de {cliente_nombre}",
             font=ctk.CTkFont(size=17, weight="bold")
         ).pack(pady=(15, 10))
@@ -476,7 +479,7 @@ class CustomersView:
         # Tabla de deudas
         # ----------------------------------------------------------------
         cols = ("ID Venta", "Fecha", "Total", "Pagado", "Saldo", "Estado")
-        self.debt_table = ttk.Treeview(win, columns=cols, show="headings", height=6)
+        self.debt_table = ttk.Treeview(scroll, columns=cols, show="headings", height=6)
 
         col_widths = [80, 160, 100, 100, 100, 100]
 
@@ -493,12 +496,12 @@ class CustomersView:
         # Detalle de productos (vacío al inicio)
         # ----------------------------------------------------------------
         ctk.CTkLabel(
-            win, text="📦 Detalle de productos de la venta seleccionada:",
+            scroll, text="📦 Detalle de productos de la venta seleccionada:",
             font=ctk.CTkFont(size=14, weight="bold")
         ).pack(pady=(10, 5))
 
         cols_items = ("Producto", "Cantidad", "Precio", "Subtotal")
-        self.debt_items_table = ttk.Treeview(win, columns=cols_items, show="headings", height=6)
+        self.debt_items_table = ttk.Treeview(scroll, columns=cols_items, show="headings", height=6)
         for col, w in zip(cols_items, [250, 100, 100, 100]):
             self.debt_items_table.column(col, width=w, anchor="center")
             self.debt_items_table.heading(col, text=col, anchor="center")
@@ -508,7 +511,7 @@ class CustomersView:
         # Total adeudado
         # ----------------------------------------------------------------
         self.debt_total_label = ctk.CTkLabel(
-            win,
+            scroll,
             text=f"Total adeudado: ${total}",
             font=ctk.CTkFont(size=15, weight="bold"),
             text_color="#333333"
@@ -516,7 +519,7 @@ class CustomersView:
         self.debt_total_label.pack(pady=(10, 15))
 
         self.credit_label = ctk.CTkLabel(
-            win,
+            scroll,
             text=f"Saldo a favor: ${credit}",
             font=ctk.CTkFont(size=14, weight="bold"),
             text_color="#333333"
@@ -524,7 +527,7 @@ class CustomersView:
         self.credit_label.pack(pady=(0, 5))
 
         self.net_label = ctk.CTkLabel(
-            win,
+            scroll,
             text=f"Deuda neta: ${net}",
             font=ctk.CTkFont(size=14, weight="bold"),
             text_color="#333333"
@@ -536,7 +539,7 @@ class CustomersView:
         # Botones inferiores
         # ----------------------------------------------------------------
         btn_frame = ctk.CTkFrame(win, fg_color="transparent")
-        btn_frame.pack(pady=10)
+        btn_frame.pack(pady=10, side="bottom")
 
         btn_pago_global = ctk.CTkButton(
             btn_frame,
