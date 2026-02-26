@@ -9,7 +9,7 @@ from models.customer import CustomerModel
 from views.client_selector import ClientSelectorDialog
 from services.daily_sales_report import DailySalesReportService
 from utils.view_helpers import center_window, show_error
-from utils.utils import norm_to_2_dec, format_currency, string_to_2_dec
+from utils.utils import iso_to_traditional, norm_to_2_dec, format_currency, string_to_2_dec, traditional_to_iso
 
 
 ctk.set_appearance_mode("light")
@@ -140,10 +140,12 @@ class SalesView:
     def create_sales_table(self):
         table_frame = ctk.CTkFrame(self.frame)
         table_frame.grid(row=2, column=1, padx=10, pady=10, sticky="nsew")
+        table_frame.rowconfigure(1, weight=1)  # el treeview ocupa el espacio
+        table_frame.columnconfigure(0, weight=1)
 
         label = ctk.CTkLabel(table_frame, text="🧾 Productos en la venta",
-                             font=ctk.CTkFont(size=15, weight="bold"))
-        label.pack(pady=(10, 5))
+                            font=ctk.CTkFont(size=15, weight="bold"))
+        label.grid(row=0, column=0, pady=(10, 5))
 
         self.sale_tree = ttk.Treeview(table_frame, show="headings", height=10)
         self.sale_tree["columns"] = ("Cód.", "Nombre", "Cant.", "Precio Unit.", "Subtotal")
@@ -152,7 +154,7 @@ class SalesView:
             self.sale_tree.column(col, width=w, anchor="center")
             self.sale_tree.heading(col, text=col)
 
-        self.sale_tree.pack(padx=10, pady=10, fill="x")
+        self.sale_tree.grid(row=1, column=0, padx=10, pady=10, sticky="nsew")
 
         total_label = ctk.CTkLabel(
             table_frame,
@@ -160,7 +162,7 @@ class SalesView:
             font=ctk.CTkFont(size=20, weight="bold"),
             text_color="#333333"
         )
-        total_label.pack(pady=(5, 15))
+        total_label.grid(row=2, column=0, pady=(5, 15))
 
     # --------------------------------------------------------------------
     # FOOTER - ACCIONES
@@ -363,16 +365,18 @@ class SalesView:
         confirm_win.grab_set()
         confirm_win.resizable(False, False) 
         confirm_win.update_idletasks()
+        scroll_frame = ctk.CTkScrollableFrame(confirm_win, height=420)
+        scroll_frame.pack(padx=10, pady=(5,0), fill="both", expand=True)
         
         
         title = ctk.CTkLabel(
-            confirm_win,
+            scroll_frame,
             text="🧾 Resumen de la Venta",
             font=ctk.CTkFont(size=18, weight="bold")
         )
         title.pack(pady=(15, 8)) 
         
-        client_frame = ctk.CTkFrame(confirm_win, fg_color="#f5f5f5")
+        client_frame = ctk.CTkFrame(scroll_frame, fg_color="#f5f5f5", corner_radius=10)
         client_frame.pack(padx=15, pady=5, fill="x")
         
         client_name = self.client_var.get()
@@ -422,8 +426,8 @@ class SalesView:
         ).pack(anchor="w", padx=15, pady=(1, 8))
         
         # Frame de productos - MÁS COMPACTO
-        products_frame = ctk.CTkFrame(confirm_win)
-        products_frame.pack(padx=15, pady=5, fill="both", expand=True)  
+        products_frame = ctk.CTkFrame(scroll_frame)
+        products_frame.pack(padx=15, pady=5, fill="x")  
         
         ctk.CTkLabel(
             products_frame,
@@ -431,8 +435,9 @@ class SalesView:
             font=ctk.CTkFont(size=14, weight="bold")  
         ).pack(pady=(8, 3))  
         
-        # Tabla de productos
-        preview_tree = ttk.Treeview(products_frame, show="headings", height=6)
+        n_items = len(self.items_in_sale)
+        tree_height = min(max(n_items, 2), 5)  # mínimo 2 filas, máximo 5
+        preview_tree = ttk.Treeview(products_frame, show="headings", height=tree_height)
         preview_tree["columns"] = ("Cant.", "Producto", "P. Unit.", "Subtotal")
         
         widths = [60, 280, 100, 100]
@@ -469,10 +474,10 @@ class SalesView:
 
         # Se normaliza el total
         total = norm_to_2_dec(total)
-        preview_tree.pack(padx=8, pady=5, fill="both", expand=True)
+        preview_tree.pack(padx=8, pady=5, fill="x")
         
         # Frame de totales
-        totals_frame = ctk.CTkFrame(confirm_win, fg_color="#e8f5e9")
+        totals_frame = ctk.CTkFrame(scroll_frame, fg_color="#e8f5e9")
         totals_frame.pack(padx=15, pady=5, fill="x")
 
         # Cantidad total de items
@@ -622,7 +627,7 @@ class SalesView:
             command=cancel
         )
         cancel_btn.grid(row=0, column=1, padx=10)
-        center_window(confirm_win, 650, 850)
+        center_window(confirm_win, 620, 620)
 
         # Esperar a que se cierre la ventana
         confirm_win.deiconify()
@@ -662,8 +667,8 @@ class SalesView:
         filter_frame.pack(fill="x", padx=15, pady=10)
 
         # Variables para filtros
-        fecha_desde_var = tk.StringVar(value=(datetime.now() - timedelta(days=30)).strftime("%Y-%m-%d"))
-        fecha_hasta_var = tk.StringVar(value=datetime.now().strftime("%Y-%m-%d"))
+        fecha_desde_var = tk.StringVar(value=iso_to_traditional((datetime.now() - timedelta(days=30)).strftime("%Y-%m-%d")))
+        fecha_hasta_var = tk.StringVar(value=iso_to_traditional(datetime.now().strftime("%Y-%m-%d")))
         estado_var = tk.StringVar(value="Todos")
 
         # --- Fila 1: Fechas ---
@@ -683,7 +688,7 @@ class SalesView:
             background='#009688',
             foreground='white',
             borderwidth=2,
-            date_pattern='yyyy-mm-dd'
+            date_pattern='dd/mm/yyyy'
         )
         fecha_desde_entry.pack(side="left", padx=5)
 
@@ -700,7 +705,7 @@ class SalesView:
             background='#009688',
             foreground='white',
             borderwidth=2,
-            date_pattern='yyyy-mm-dd'
+            date_pattern='dd/mm/yyyy'
         )
         fecha_hasta_entry.pack(side="left", padx=5)
 
@@ -709,27 +714,30 @@ class SalesView:
         quick_btns.pack(side="left", padx=20)
 
         def set_today():
-            hoy = datetime.now().strftime("%Y-%m-%d")
+            hoy = datetime.now().strftime("%d/%m/%Y")
             fecha_desde_var.set(hoy)
             fecha_hasta_var.set(hoy)
             fecha_desde_entry.set_date(datetime.now())
             fecha_hasta_entry.set_date(datetime.now())
+            load_sales()
 
         def set_this_week():
             hoy = datetime.now()
             inicio_semana = hoy - timedelta(days=hoy.weekday())
-            fecha_desde_var.set(inicio_semana.strftime("%Y-%m-%d"))
-            fecha_hasta_var.set(hoy.strftime("%Y-%m-%d"))
+            fecha_desde_var.set(inicio_semana.strftime("%d/%m/%Y"))
+            fecha_hasta_var.set(hoy.strftime("%d/%m/%Y"))
             fecha_desde_entry.set_date(inicio_semana)
             fecha_hasta_entry.set_date(hoy)
+            load_sales()
 
         def set_this_month():
             hoy = datetime.now()
             inicio_mes = hoy.replace(day=1)
-            fecha_desde_var.set(inicio_mes.strftime("%Y-%m-%d"))
-            fecha_hasta_var.set(hoy.strftime("%Y-%m-%d"))
+            fecha_desde_var.set(inicio_mes.strftime("%d/%m/%Y"))
+            fecha_hasta_var.set(hoy.strftime("%d/%m/%Y"))
             fecha_desde_entry.set_date(inicio_mes)
             fecha_hasta_entry.set_date(hoy)
+            load_sales()
 
         ctk.CTkButton(
             quick_btns, text="Hoy", width=60, height=28,
@@ -857,8 +865,8 @@ class SalesView:
                     sales_tree.delete(item)
 
                 # Obtener filtros
-                fecha_desde = fecha_desde_var.get()
-                fecha_hasta = fecha_hasta_var.get()
+                fecha_desde = traditional_to_iso(fecha_desde_var.get())
+                fecha_hasta = traditional_to_iso(fecha_hasta_var.get())
                 estado = estado_var.get()
 
                 # Mapeo de estados
@@ -897,7 +905,7 @@ class SalesView:
                     # Formatear fecha y hora
                     try:
                         fecha_dt = datetime.strptime(fecha, "%Y-%m-%d %H:%M:%S")
-                        fecha_str = fecha_dt.strftime("%Y-%m-%d")
+                        fecha_str = fecha_dt.strftime("%d/%m/%Y")
                         hora_str = fecha_dt.strftime("%H:%M")
                     except:
                         fecha_str = fecha[:10] if len(fecha) >= 10 else fecha

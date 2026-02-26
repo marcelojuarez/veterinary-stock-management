@@ -39,11 +39,14 @@ class App():
         sistema = platform.system()
 
         if sistema == 'Windows':
-            self.root.state('zoomed')
+            self.root.geometry("1400x750")      
+            self.root.minsize(1400, 750)        
+            self.root.state('zoomed')           
         else:
             width = self.root.winfo_screenwidth()
             height = self.root.winfo_screenheight()
             self.root.geometry(f"{width}x{height}+0+0")
+            self.root.minsize(1400, 750)
 
         self.root.resizable(True, True)
         self.root.withdraw()
@@ -110,7 +113,7 @@ class App():
 
     def create_views_and_controllers(self):
         self.notebook = ttk.Notebook(self.root)
-        self.notebook.pack(fill='both', expand=True)
+        self.notebook.pack(fill='both')
         self.notebook.bind("<<NotebookTabChanged>>", self.on_tab_change)
         self.root.update() 
 
