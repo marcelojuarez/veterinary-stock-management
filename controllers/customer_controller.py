@@ -57,7 +57,16 @@ class CustomerController:
             if not self.__validate_supplier_cuit(data["cuit"]):
                 return False
             if not self.__validate_supplier_phone(data["telefono"]):
+                return False      
+            if not self.__validate_cv(data["cv"]):
                 return False
+            if not self.__validate_cuig(data["cuig"]):
+                return False
+            if not self.__validate_renspa(data["renspa"]):
+                return False
+
+            data['cuig'] = data['cuig'].strip().replace(" ", "").replace("-", "").upper()
+            data['renspa'] = data['renspa'].replace("-", "").replace("/", "").strip()
 
             # Guardar cliente
             self.model.add_customer(data)
@@ -117,16 +126,17 @@ class CustomerController:
         
         self.view.refresh_customer_table(filtered)
 
-
+    ## -- Validaciones -- ##
     def __validate_customer_data(self, data):
-        # Validar campos obligatorios 
         required_fields = ['nombre', 'cuit', 'domicilio', 'telefono']
         for field in required_fields:
             if not data[field]:
                 show_warning(f'Por favor complete el campo {field}.')
                 return False 
+            
         return True
 
+    ## CUIT ##
     def __validate_supplier_cuit(self, cuit_field):
         pattern = r'^\d{2}-\d{8}-\d$'
         
@@ -136,6 +146,7 @@ class CustomerController:
         
         return True
     
+    ## TELEFONO ##
     def __validate_supplier_phone(self, phone_field):
         pattern = r'^\+?\d{7,15}$'
         
@@ -144,7 +155,48 @@ class CustomerController:
             return False
         
         return True
-    
+
+    ## CV ##
+    def __validate_cv(self, cv):
+        if cv.strip() == '':
+            return True
+
+        pattern = r'^[0-9]{2,8}$'
+
+        if not re.fullmatch(pattern, cv):
+            show_error('Error. Formato de CV incorrecto.')
+            return False
+        
+        return True
+
+    ## CUIG ##
+    def __validate_cuig(self, cuig):
+        if cuig.strip() == '':
+            return True
+        
+        cuig_norm = cuig.strip().replace(" ", "").replace("-", "").upper()
+        pattern = r'^[A-Z]{2}[0-9]{2,8}$'
+
+        if not re.fullmatch(pattern, cuig_norm):
+            show_error('Error. Formato de Cuig incorrecto.')
+            return False
+        
+        return True
+
+    ## RENSPA ##
+    def __validate_renspa(self, renspa):        
+        if renspa.strip() == '':
+            return True
+        
+        renspa_norm = renspa.replace("-", "").replace("/", "").strip()
+        pattern = r'^[0-9]{12,15}$'
+
+        if not re.fullmatch(pattern, renspa_norm):
+            show_error('Error. Formato de Renspa incorrecto.')
+            return False
+        
+        return True
+
     # --------------------------------------------------------------------
     # 💳 DEUDAS DE CLIENTES
     # --------------------------------------------------------------------

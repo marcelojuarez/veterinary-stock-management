@@ -83,11 +83,10 @@ class StockModel:
 
                 if status != 'paid':
 
-                    self.sale_model.update_sale_item(sale_id, product_id, product_data['SalePrice'], conn=conn, commit=False)
+                    self.sale_model.update_sale_item(sale_id, product_id, product_data['PriceWIva'], conn=conn, commit=False)
                     self.sale_model.recalculate_sale_total(sale_id, conn=conn, commit=False)
                     print(f"DEBUG STOCK: llamando update_sale_status para venta {sale_id}")
                     self.payment_model.update_sale_status(sale_id, conn=conn, commit=False)
-
 
             conn.commit()
             return True

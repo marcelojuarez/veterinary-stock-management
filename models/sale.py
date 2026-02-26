@@ -34,8 +34,6 @@ class SalesModel:
                 else:
                     product_id, _, quantity, price_with_iva = item
                     observations = None
-                
-                print(f'tipo de precio: {type(price_with_iva)}')
 
                 # OBTENER IVA DEL PRODUCTO
                 cursor.execute("SELECT iva FROM stock WHERE id = ?", (product_id,))
@@ -43,12 +41,12 @@ class SalesModel:
                 iva_rate = Decimal(row[0]) if row and row[0] else Decimal('21.00')
                 
                 # DESCOMPONER EL PRECIO (price_with_iva → price sin IVA)
-                price_with_iva_decimal = Decimal(str(price_with_iva))
+                print(f'type price_with_iva: {type(price_with_iva)}')
                 divisor = Decimal('1') + (iva_rate / Decimal('100'))
-                price_without_iva = norm_to_2_dec(price_with_iva_decimal / divisor)
+                price_without_iva = norm_to_2_dec(price_with_iva / divisor)
                 
                 # CALCULAR MONTOS
-                subtotal_with_iva = norm_to_2_dec(price_with_iva_decimal * quantity) # con IVA
+                subtotal_with_iva = norm_to_2_dec(price_with_iva * quantity) # con IVA
                 subtotal_without_iva = norm_to_2_dec(price_without_iva * quantity)  # Sin IVA
                 iva_amount = norm_to_2_dec(subtotal_without_iva * (iva_rate / Decimal('100')))  # IVA
                 
@@ -156,7 +154,7 @@ class SalesModel:
     
     def get_total_of_sale_items(self, sale_id, conn=None):
         query = """
-        SELECT subtotal, iva_amount FROM sale_items WHERE sale_id = ?
+        SELECT subtotal FROM sale_items WHERE sale_id = ?
         """
 
         rows = self.db.fetch_all(query, (sale_id, ), conn=conn)
@@ -165,8 +163,8 @@ class SalesModel:
 
         total = Decimal('0.00')
 
-        for subtotal, iva in rows:
-            total += Decimal(subtotal) + Decimal(iva)
+        for subtotal in rows:
+            total += Decimal(subtotal[0])
 
         return norm_to_2_dec(total)
 
@@ -179,15 +177,21 @@ class SalesModel:
         return self.db.fetch_one(query, (sale_id, p_id), conn=conn)
 
     ## -- Actualiza los valores de un item de compra al aumentar el precio de un producto -- ##
-    def update_sale_item(self, sale_id, p_id, new_sale_price, conn=None, commit=True):
+    def update_sale_item(self, sale_id, p_id, new_price_w_iva, conn=None, commit=True):
         sale_item_data = self.get_sale_item(sale_id, p_id)
         qty = sale_item_data[3]
         iva_rate = Decimal(sale_item_data[6])
+        new_price_w_iva = norm_to_2_dec(new_price_w_iva)
 
-        new_sale_price = norm_to_2_dec(new_sale_price)
-        new_iva_amount = norm_to_2_dec(new_sale_price * (iva_rate / Decimal('100')))
+        divisor = Decimal('1') + (iva_rate / Decimal('100'))
+        price_without_iva = norm_to_2_dec(new_price_w_iva / divisor)
 
-        new_subtotal = norm_to_2_dec(new_sale_price * qty)
+        # Subtotales
+        subtotal_with_iva = norm_to_2_dec(new_price_w_iva * qty) # con IVA
+        subtotal_without_iva = norm_to_2_dec(price_without_iva * qty)  # Sin IVA
+
+        new_iva_amount = norm_to_2_dec(subtotal_without_iva * (iva_rate / Decimal('100'))) # Total IVA
+
 
         query = """
         UPDATE sale_items
@@ -199,8 +203,8 @@ class SalesModel:
         """
 
         params = [
-            str(new_sale_price),
-            str(new_subtotal),
+            str(new_price_w_iva),
+            str(subtotal_with_iva),
             str(new_iva_amount),
             sale_id,
             p_id

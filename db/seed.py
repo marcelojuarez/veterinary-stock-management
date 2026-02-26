@@ -295,6 +295,34 @@ CODIGOS_PROVINCIA = {
     "Tucumán": "90"
 }
 
+# Códigos oficiales de provincias argentinas (ISO 3166-2 AR)
+CODIGOS_PROVINCIA_LETRAS = {
+    "Buenos Aires": "BA",
+    "Catamarca": "CA",
+    "Chaco": "CH",
+    "Chubut": "CT",
+    "Córdoba": "CB",
+    "Corrientes": "CR",
+    "Entre Ríos": "ER",
+    "Formosa": "FO",
+    "Jujuy": "JY",
+    "La Pampa": "LP",
+    "La Rioja": "LR",
+    "Mendoza": "MZ",
+    "Misiones": "MI",
+    "Neuquén": "NQ",
+    "Río Negro": "RN",
+    "Salta": "SA",
+    "San Juan": "SJ",
+    "San Luis": "SL",
+    "Santa Cruz": "SC",
+    "Santa Fe": "SF",
+    "Santiago del Estero": "SE",
+    "Tierra del Fuego": "TF",
+    "Tucumán": "TU",
+    "Ciudad Autónoma de Buenos Aires": "CABA"
+}
+
 # Códigos de departamento reales de Córdoba (para ejemplo más realista)
 DEPARTAMENTOS_CORDOBA = {
     "Capital": "014",
@@ -347,55 +375,49 @@ ACTIVIDADES_GANADERAS = [
 ]
 
 
-def generar_cuig(provincia="Córdoba"):
+def generar_cuig(provincia="Córdoba", min_digitos=3, max_digitos=7):
     """
-    Genera un CUIG (Clave Única de Identificación Ganadera) con formato real.
-    Formato: XX-XXX-XXXXX-X (Provincia-Departamento-Número-Dígito verificador)
-    Ejemplo real: 14-091-12345-7
+    Genera un CUIG compatible con formato: 2 letras de provincia + 2 a 8 números
     """
-    cod_provincia = CODIGOS_PROVINCIA.get(provincia, "14")  # Default Córdoba
-    
-    if provincia == "Córdoba":
-        cod_departamento = choice(list(DEPARTAMENTOS_CORDOBA.values()))
-    else:
-        cod_departamento = f"{randint(1, 200):03d}"
-    
-    numero = f"{randint(1, 99999):05d}"
-    digito_verificador = randint(0, 9)
-    
-    return f"{cod_provincia}-{cod_departamento}-{numero}-{digito_verificador}"
 
+    letras = CODIGOS_PROVINCIA_LETRAS.get(provincia, "CB")
+
+    longitud = randint(min_digitos, max_digitos)
+    numero = f"{randint(0, 10**longitud - 1):0{longitud}d}"
+
+    return f"{letras}{numero}"
 
 def generar_renspa(provincia="Córdoba"):
     """
-    Genera un RENSPA (Registro Nacional Sanitario de Productores Agropecuarios) con formato real.
-    Formato: XX.XXX.X.XXXXX/XX (Provincia.Departamento.Actividad.Número/Año)
-    Ejemplo real: 14.091.0.00123/24
+    Genera un RENSPA compatible con formato numérico:
+    12 a 15 dígitos (sin puntos ni barra)
+
     """
+
     cod_provincia = CODIGOS_PROVINCIA.get(provincia, "14")
-    
+
     if provincia == "Córdoba":
         cod_departamento = choice(list(DEPARTAMENTOS_CORDOBA.values()))
     else:
         cod_departamento = f"{randint(1, 200):03d}"
-    
-    # Tipo de actividad (0=Bovinos, 1=Porcinos, 2=Ovinos, 3=Caprinos, 4=Equinos, 5=Avícola)
-    tipo_actividad = randint(0, 5)
-    
-    numero = f"{randint(1, 99999):05d}"
-    
-    # Año de inscripción (últimos 2 dígitos)
-    anio = randint(10, 25)  # Entre 2010 y 2025
-    
-    return f"{cod_provincia}.{cod_departamento}.{tipo_actividad}.{numero}/{anio:02d}"
 
-def generar_cv():
+    tipo_actividad = randint(0, 5)
+    numero = f"{randint(1, 99999):05d}"
+    anio = f"{randint(10, 25):02d}"
+
+    # Concatenado sin separadores
+    renspa = f"{cod_provincia}{cod_departamento}{tipo_actividad}{numero}{anio}"
+
+    return renspa
+
+def generar_cv(min_digitos=3, max_digitos=8):
     """
-    Genera una CV (Clave de Vinculación) con formato real.
-    La CV es un número de 8 dígitos asignado por SENASA.
-    Ejemplo real: 12345678
+    Genera una CV numérica entre 3 y 8 dígitos.
+    Compatible con regex: ^[0-9]{3,8}$
     """
-    return f"{randint(10000000, 99999999)}"
+
+    longitud = randint(min_digitos, max_digitos)
+    return f"{randint(10**(longitud-1), 10**longitud - 1)}"
 
 def generar_establecimiento():
     """

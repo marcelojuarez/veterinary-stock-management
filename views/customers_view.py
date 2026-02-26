@@ -757,7 +757,7 @@ class CustomersView:
             font=("Segoe UI", 10, "bold")
         )
 
-        cols = ("Fecha", "Tipo", "Descripción", "Compra", "Pago", "Deuda/Crédito")
+        cols = ("Fecha", "Tipo", "Descripción", "Compra", "Pago", "(+) Deuda/Crédito (-)")
         history_table = ttk.Treeview(
             table_frame,
             columns=cols,
@@ -766,7 +766,6 @@ class CustomersView:
             style="History.Treeview"
         )
 
-        
         col_widths = [130, 80, 250, 95, 95, 95, 105]
         for col, w in zip(cols, col_widths):
             history_table.column(col, width=w, anchor="center" if col != "Descripción" else "w")

@@ -61,11 +61,11 @@ class PaymentModel:
             commit=commit
         )
 
-        # 🔹 CAMBIO: Solo generar crédito si NO viene de aplicación de saldo a favor
+        # Solo generar crédito si NO viene de aplicación de saldo a favor
         overpay = paid - total
         
         if not skip_credit_generation:
-            if overpay > Decimal('0.01'):
+            if overpay > Decimal('0.00'):
                 exists = self.db.fetch_one(
                     """
                     SELECT 1
