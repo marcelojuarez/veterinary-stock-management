@@ -1,5 +1,7 @@
 from db.database import db
 from datetime import datetime, timedelta
+from decimal import Decimal
+from utils.utils import norm_to_2_dec
 
 class IVAModel:
     def __init__(self, db_connection=None):
@@ -50,9 +52,9 @@ class IVAModel:
         for row in rows:
             result.append({
                 'alicuota': f"{float(row[0]):.1f}%" if row[0] else "0.0%",
-                'neto_gravado': round(float(row[1] or 0), 2),
-                'iva': round(float(row[2] or 0), 2),
-                'total': round(float(row[3] or 0), 2),
+                'neto_gravado': norm_to_2_dec(Decimal(str(row[1] or 0))),
+                'iva': norm_to_2_dec(Decimal(str(row[2] or 0))),
+                'total': norm_to_2_dec(Decimal(str(row[3] or 0))),
                 'operaciones': int(row[4])
             })
         return result
@@ -100,9 +102,9 @@ class IVAModel:
         for row in rows:
             result.append({
                 'alicuota': f"{float(row[0] or 0):.1f}%",
-                'neto_gravado': round(float(row[1] or 0), 2),
-                'iva': round(float(row[2] or 0), 2),
-                'total': round(float(row[3] or 0), 2),
+                'neto_gravado': norm_to_2_dec(Decimal(str(row[1] or 0))),
+                'iva': norm_to_2_dec(Decimal(str(row[2] or 0))),
+                'total': norm_to_2_dec(Decimal(str(row[3] or 0))),
                 'operaciones': int(row[4])
             })
         return result
@@ -134,7 +136,7 @@ class IVAModel:
             iva_compras = compras_alicuota['iva'] if compras_alicuota else 0
             compras_neto = compras_alicuota['neto_gravado'] if compras_alicuota else 0
             
-            saldo_alicuota = round(iva_ventas - iva_compras, 2)
+            saldo_alicuota = norm_to_2_dec(iva_ventas - iva_compras)
             
             detalle.append({
                 'alicuota': alicuota,
@@ -148,12 +150,12 @@ class IVAModel:
             total_ventas += iva_ventas
             total_compras += iva_compras
         
-        saldo_total = round(total_ventas - total_compras, 2)
+        saldo_total = norm_to_2_dec(total_ventas - total_compras)
         
         return {
             'detalle': detalle,
-            'total_iva_ventas': round(total_ventas, 2),
-            'total_iva_compras': round(total_compras, 2),
+            'total_iva_ventas': norm_to_2_dec(total_ventas),
+            'total_iva_compras': norm_to_2_dec(total_compras),
             'saldo_total': saldo_total,
             'tipo': 'A PAGAR' if saldo_total > 0 else ('SALDO A FAVOR' if saldo_total < 0 else 'SIN SALDO')
         }
@@ -165,7 +167,7 @@ class IVAModel:
             JOIN sale_items si ON si.sale_id = s.id
             WHERE s.date BETWEEN ? AND ?
         """
-        iva_ventas = float(self.db.fetch_one(query_ventas, (fecha_desde, fecha_hasta))[0])
+        iva_ventas = norm_to_2_dec(Decimal(str(self.db.fetch_one(query_ventas, (fecha_desde, fecha_hasta))[0])))
         
         query_retenciones = """
             SELECT COALESCE(SUM(CAST(sr.amount AS REAL)), 0)
@@ -174,7 +176,7 @@ class IVAModel:
             WHERE sr.tax_type = 'IVA'
             AND s.date BETWEEN ? AND ?
         """
-        retenciones_iva = float(self.db.fetch_one(query_retenciones, (fecha_desde, fecha_hasta))[0])
+        retenciones_iva = norm_to_2_dec(Decimal(str(self.db.fetch_one(query_retenciones, (fecha_desde, fecha_hasta))[0])))
         
         query_retenciones_iibb = """
             SELECT COALESCE(SUM(CAST(sr.amount AS REAL)), 0)
@@ -183,7 +185,7 @@ class IVAModel:
             WHERE sr.tax_type = 'IIBB'
             AND s.date BETWEEN ? AND ?
         """
-        retenciones_iibb = float(self.db.fetch_one(query_retenciones_iibb, (fecha_desde, fecha_hasta))[0])
+        retenciones_iibb = norm_to_2_dec(Decimal(str(self.db.fetch_one(query_retenciones_iibb, (fecha_desde, fecha_hasta))[0])))
         
         query_compras = """
             SELECT COALESCE(SUM(CAST(pi.iva_amount AS REAL)), 0)
@@ -191,7 +193,7 @@ class IVAModel:
             JOIN purchase_item pi ON pi.purchase_id = p.id
             WHERE p.date BETWEEN ? AND ?
         """
-        iva_compras = float(self.db.fetch_one(query_compras, (fecha_desde, fecha_hasta))[0])
+        iva_compras = norm_to_2_dec(Decimal(str(self.db.fetch_one(query_compras, (fecha_desde, fecha_hasta))[0])))
         
         query_percepciones = """
             SELECT COALESCE(SUM(CAST(ip.amount AS REAL)), 0)
@@ -200,7 +202,7 @@ class IVAModel:
             WHERE ip.tax_type = 'IVA_PER'
             AND si.date BETWEEN ? AND ?
         """
-        percepciones_iva = float(self.db.fetch_one(query_percepciones, (fecha_desde, fecha_hasta))[0])
+        percepciones_iva = norm_to_2_dec(Decimal(str(self.db.fetch_one(query_percepciones, (fecha_desde, fecha_hasta))[0])))
         
         query_percepciones_iibb = """
             SELECT COALESCE(SUM(CAST(ip.amount AS REAL)), 0)
@@ -209,22 +211,22 @@ class IVAModel:
             WHERE ip.tax_type = 'IIBB_PER'
             AND si.date BETWEEN ? AND ?
         """
-        percepciones_iibb = float(self.db.fetch_one(query_percepciones_iibb, (fecha_desde, fecha_hasta))[0])
+        percepciones_iibb = norm_to_2_dec(Decimal(str(self.db.fetch_one(query_percepciones_iibb, (fecha_desde, fecha_hasta))[0])))
         
         debito_fiscal = iva_ventas - retenciones_iva
         credito_fiscal = iva_compras + percepciones_iva
         saldo_iva = debito_fiscal - credito_fiscal
         
         return {
-            'iva_ventas': round(iva_ventas, 2),
-            'retenciones_iva': round(retenciones_iva, 2),
-            'retenciones_iibb': round(retenciones_iibb, 2),
-            'debito_fiscal': round(debito_fiscal, 2),
-            'iva_compras': round(iva_compras, 2),
-            'percepciones_iva': round(percepciones_iva, 2),
-            'percepciones_iibb': round(percepciones_iibb, 2),
-            'credito_fiscal': round(credito_fiscal, 2),
-            'saldo': round(saldo_iva, 2),
+            'iva_ventas': norm_to_2_dec(iva_ventas),
+            'retenciones_iva': norm_to_2_dec(retenciones_iva),
+            'retenciones_iibb': norm_to_2_dec(retenciones_iibb),
+            'debito_fiscal': norm_to_2_dec(debito_fiscal),
+            'iva_compras': norm_to_2_dec(iva_compras),
+            'percepciones_iva': norm_to_2_dec(percepciones_iva),
+            'percepciones_iibb': norm_to_2_dec(percepciones_iibb),
+            'credito_fiscal': norm_to_2_dec(credito_fiscal),
+            'saldo': norm_to_2_dec(saldo_iva),
             'tipo': 'A PAGAR' if saldo_iva > 0 else ('SALDO A FAVOR' if saldo_iva < 0 else 'SIN SALDO')
         }
     
@@ -233,10 +235,6 @@ class IVAModel:
     # ================================================================
 
     def get_percepciones_sufridas(self, fecha_desde, fecha_hasta):
-        """
-        Percepciones que nos cobraron los proveedores en facturas.
-        Retorna: (fecha, invoice_id, proveedor, cuit, tax_type, amount)
-        """
         query = """
             SELECT
                 si.date as fecha,
@@ -254,49 +252,18 @@ class IVAModel:
         return self.db.fetch_all(query, (fecha_desde, fecha_hasta))
 
     def get_percepciones_efectuadas(self, fecha_desde, fecha_hasta):
-        """
-        Percepciones que nosotros cobramos a clientes en ventas.
-        Si aún no tenés tabla propia, retorna lista vacía.
-        Si tenés tabla sale_perceptions, descomentar la query.
-        Retorna: (fecha, sale_id, cliente, cuit, tax_type, amount)
-        """
-        # Si tenés tabla sale_perceptions:
-        # query = """
-        #     SELECT
-        #         s.date,
-        #         s.id,
-        #         COALESCE(c.nombre, 'Consumidor Final'),
-        #         COALESCE(c.cuit, ''),
-        #         sp.tax_type,
-        #         CAST(sp.amount AS REAL)
-        #     FROM sale_perceptions sp
-        #     JOIN sales s ON s.id = sp.sale_id
-        #     LEFT JOIN clientes c ON c.id = s.cliente_id
-        #     WHERE s.date BETWEEN ? AND ?
-        #     ORDER BY s.date, s.id
-        # """
-        # return self.db.fetch_all(query, (fecha_desde, fecha_hasta))
         return []
 
     def get_totales_percepciones(self, fecha_desde, fecha_hasta):
-        """Totales para las cards"""
         sufridas = self.get_percepciones_sufridas(fecha_desde, fecha_hasta)
         efectuadas = self.get_percepciones_efectuadas(fecha_desde, fecha_hasta)
 
-        total_sufridas = sum(float(r[5] or 0) for r in sufridas)
-        total_efectuadas = sum(float(r[5] or 0) for r in efectuadas)
+        total_sufridas = sum(norm_to_2_dec(Decimal(str(r[5] or 0))) for r in sufridas)
+        total_efectuadas = sum(norm_to_2_dec(Decimal(str(r[5] or 0))) for r in efectuadas)
 
-        return round(total_sufridas, 2), round(total_efectuadas, 2)
-
-    # ================================================================
-    # RETENCIONES - DETALLE
-    # ================================================================
+        return norm_to_2_dec(total_sufridas), norm_to_2_dec(total_efectuadas)
 
     def get_retenciones_sufridas(self, fecha_desde, fecha_hasta):
-        """
-        Retenciones que los clientes nos hicieron en ventas.
-        Retorna: (fecha, sale_id, cliente, cuit, tax_type, certificate_number, amount)
-        """
         query = """
             SELECT
                 s.date as fecha,
@@ -315,39 +282,16 @@ class IVAModel:
         return self.db.fetch_all(query, (fecha_desde, fecha_hasta))
 
     def get_retenciones_efectuadas(self, fecha_desde, fecha_hasta):
-        """
-        Retenciones que nosotros le hicimos al proveedor en compras.
-        Si aún no tenés tabla, retorna lista vacía.
-        Retorna: (fecha, purchase_id, proveedor, cuit, tax_type, certificate_number, amount)
-        """
-        # Si tenés tabla purchase_retentions:
-        # query = """
-        #     SELECT
-        #         p.date,
-        #         p.id,
-        #         COALESCE(s.name, 'Proveedor'),
-        #         COALESCE(s.cuit, ''),
-        #         pr.tax_type,
-        #         COALESCE(pr.certificate_number, ''),
-        #         CAST(pr.amount AS REAL)
-        #     FROM purchase_retentions pr
-        #     JOIN purchase p ON p.id = pr.purchase_id
-        #     LEFT JOIN supplier s ON s.id = p.supplier_id
-        #     WHERE p.date BETWEEN ? AND ?
-        #     ORDER BY p.date, p.id
-        # """
-        # return self.db.fetch_all(query, (fecha_desde, fecha_hasta))
         return []
 
     def get_totales_retenciones(self, fecha_desde, fecha_hasta):
-        """Totales para las cards"""
         sufridas = self.get_retenciones_sufridas(fecha_desde, fecha_hasta)
         efectuadas = self.get_retenciones_efectuadas(fecha_desde, fecha_hasta)
 
-        total_sufridas = sum(float(r[6] or 0) for r in sufridas)
-        total_efectuadas = sum(float(r[6] or 0) for r in efectuadas)
+        total_sufridas = sum(norm_to_2_dec(Decimal(str(r[6] or 0))) for r in sufridas)
+        total_efectuadas = sum(norm_to_2_dec(Decimal(str(r[6] or 0))) for r in efectuadas)
 
-        return round(total_sufridas, 2), round(total_efectuadas, 2)
+        return norm_to_2_dec(total_sufridas), norm_to_2_dec(total_efectuadas)
     
     # ================================================================
     # UTILIDADES
