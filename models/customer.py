@@ -4,6 +4,7 @@ from db.database import db
 from models.payment_model import PaymentModel
 from decimal import Decimal
 from utils.utils import norm_to_2_dec, flex_dec, iso_to_traditional
+from datetime import datetime
 class CustomerModel:
     def __init__(self, db_connection=None):
         self.db = db_connection or db 
@@ -420,7 +421,7 @@ class CustomerModel:
         movements.sort(key=lambda x: (x["fecha_original"], x.get("sale_id", 0) or 0))
 
         for mov in movements:
-            mov.pop("fecha_orignal", None)
+            mov.pop("fecha_original", None)
         
         # ================================================================
         # PASO 6: CALCULAR SALDO ACUMULADO

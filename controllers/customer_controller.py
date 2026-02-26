@@ -516,70 +516,76 @@ class CustomerController:
             if not confirm:
                 return
             
-            # 🔹 PASO 1: Descontar TODO el crédito que vamos a intentar usar
-            actual_used = self.payment_model.use_customer_credit(
-                client_id=customer_id,
-                amount=amount_to_apply,
-                reason="Aplicando a deudas pendientes"
-            )
-            
-            if actual_used <= 0:
-                self.view.show_error("No se pudo usar el crédito disponible.")
-                return
-            
-            # 🔹 PASO 2: Aplicar pagos manualmente
-            query = """
-                SELECT s.id,
-                    COALESCE(SUM(si.quantity * st.price_with_iva), 0) AS total_variable,
-                    COALESCE((SELECT SUM(p.amount) FROM payments p WHERE p.sale_id = s.id), 0) AS paid
-                FROM sales s
-                JOIN sale_items si ON si.sale_id = s.id
-                JOIN stock st ON st.id = si.product_id
-                WHERE s.cliente_id = ? AND s.estado IN ('pending', 'partial')
-                GROUP BY s.id
-                HAVING (total_variable - paid) > 0.01
-                ORDER BY s.date DESC
-            """
-            rows = self.payment_model.db.fetch_all(query, (customer_id,))
-
-            remaining = actual_used
-            payments_applied = []
-
-            for row in rows:
-                if remaining <= Decimal('0.01'):
-                    break
-
-                sale_id, total_variable, paid = row
-                balance = norm_to_2_dec(norm_to_2_dec(total_variable) - norm_to_2_dec(paid))
-                pay_amount = norm_to_2_dec(min(remaining, balance))
-                
-                if pay_amount > Decimal('0.009'):
-                    # Registrar el pago
-                    self.payment_model.create_payment(
-                        sale_id=sale_id,
-                        client_id=customer_id,
-                        amount=pay_amount,
-                        method="Saldo a Favor",
-                        notes="Aplicación de crédito disponible"
-                    )
-                    
-                    # Actualizar estado de la venta
-                    self.payment_model.update_sale_status(sale_id, skip_credit_generation=True)
-                    
-                    remaining = norm_to_2_dec(remaining - pay_amount)
-                    payments_applied.append((sale_id, pay_amount))
-            
-            # 🔹 PASO 3: Si sobra crédito, devolverlo
-            if remaining > Decimal('0.01'):
+            conn = self.payment_model.db.get_connection()
+            conn.execute("BEGIN")
+            try:
                 self.payment_model.add_customer_credit(
                     client_id=customer_id,
-                    amount=remaining,
-                    reason="Crédito no utilizado (sin deudas suficientes)",
-                    sale_id=None
+                    amount=-amount_to_apply,
+                    reason="Aplicación de crédito a deudas pendientes",
+                    sale_id=None,
+                    conn=conn,
+                    commit=False
                 )
+                
+                # PASO 2: Obtener ventas pendientes ordenadas por fecha
+                query = """
+                    SELECT id, total
+                    FROM sales
+                    WHERE cliente_id = ? AND estado IN ('pending', 'partial')
+                    ORDER BY date ASC
+                    """
+                rows = self.payment_model.db.fetch_all(query, (customer_id,), conn=conn)
+                remaining = amount_to_apply
+                payment_applied = []
+                for row in rows:
+                    if remaining <= Decimal('0.00'):
+                        break
+                    
+                    sale_id, total = row
+                    paid = self.payment_model.get_total_amount_of_pay_for_a_sale(sale_id, conn=conn)
+                    balance = Decimal(total) - paid
+
+                    if balance <= Decimal('0.00'):
+                        continue
+
+                    pay_amount = norm_to_2_dec(min(balance, remaining))
+
+                    if pay_amount > Decimal('0.00'):
+                        self.payment_model.create_payment(
+                            sale_id=sale_id,
+                            client_id=customer_id,
+                            amount=pay_amount,
+                            method="Saldo a Favor",
+                            notes="Aplicacion de credito disponible",
+                            conn=conn,
+                            commit=False
+                        )
+
+                        self.payment_model.update_sale_status(sale_id,skip_credit_generation=True ,conn=conn, commit=False)
+                        remaining -= pay_amount
+                        payment_applied.append((sale_id, pay_amount))
+                    
+                if remaining > Decimal('0.00'):
+                    self.payment_model.add_customer_credit(
+                        client_id=customer_id,
+                        amount=remaining,
+                        reason="Credito no utilizado (sin deudas restantes)",
+                        sale_id=None,
+                        conn=conn,
+                        commit=False
+                    )
+                conn.commit()
+            except Exception as e:
+                conn.rollback()
+                self.view.show_error(f"Error al aplicar el crédito: {e}")
+                return
             
+            finally: 
+                conn.close()
+                
             # Calcular cuánto se usó realmente
-            credit_used = actual_used - remaining
+            credit_used = amount_to_apply - remaining
             
             # Obtener valores actualizados
             new_credit = norm_to_2_dec(self.payment_model.get_customer_credit(customer_id))
