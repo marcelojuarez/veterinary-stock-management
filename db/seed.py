@@ -763,6 +763,49 @@ def seed_suppliers():
         "Rivadavia", "Ruta 8", "Ruta 158", "Ruta A005"
     ]
 
+    paises = ["Argentina"]
+
+    provincias = [
+        "Buenos Aires", "Catamarca", "Chaco", "Chubut",
+        "Córdoba", "Corrientes", "Entre Ríos", "Formosa", "Jujuy",
+        "La Pampa", "La Rioja", "Mendoza", "Misiones", "Neuquén",
+        "Río Negro", "Salta", "San Juan", "San Luis", "Santa Cruz",
+        "Santa Fe", "Santiago del Estero", "Tierra del Fuego", "Tucumán"
+    ]
+
+    ciudades = [
+        "Buenos Aires",
+        "Córdoba",
+        "Rosario",
+        "Mendoza",
+        "La Plata",
+        "San Miguel de Tucumán",
+        "Salta",
+        "Santa Fe",
+        "Mar del Plata",
+        "San Juan",
+        "Resistencia",
+        "Neuquén",
+        "Formosa",
+        "Corrientes",
+        "Posadas",
+        "Santiago del Estero",
+        "San Salvador de Jujuy",
+        "San Luis",
+        "La Rioja",
+        "Río Gallegos",
+        "Ushuaia",
+        "Paraná",
+        "Viedma",
+        "Rawson",
+        "Trelew",
+        "Villa Carlos Paz",
+        "Rafaela",
+        "Comodoro Rivadavia",
+        "Bahía Blanca",
+        "Río Cuarto"
+    ]
+
     condicion_iva = ["RESP. INS", "MONOTRIBUTISTA", "EXENTO", "NO RESPONSABLE"]
     
     suppliers = []
@@ -792,6 +835,12 @@ def seed_suppliers():
         else:
             numero = str(randint(100, 2500))
         home = f"{calle} {numero}"
+
+        province = choice(provincias)
+
+        country = choice(paises)
+
+        city = choice(ciudades)
         
         # Teléfono
         phone = f"358{randint(4000000, 4999999)}"
@@ -805,7 +854,10 @@ def seed_suppliers():
         suppliers.append({
             "cuit": cuit,
             "name": nombre,
-            "home": home,
+            "address": home,
+            "city": city,
+            "province": province,
+            "country": country,
             "phone": phone,
             "email": email,
             "iva_condition": iva_condition,

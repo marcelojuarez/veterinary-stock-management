@@ -36,13 +36,16 @@ class SupplierCore():
         # Agregar nuevo proveedor a la base de datos
         date = datetime.now().strftime("%Y-%m-%d")
         query = """
-            INSERT INTO supplier (name, cuit, home, phone, email, iva_condition, last_debt_update)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO supplier (name, cuit, address, city, province, country, phone, email, iva_condition, last_debt_update)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """
         params = [
             supplier_data['name'],
             supplier_data['cuit'],
-            supplier_data['home'],
+            supplier_data['address'],
+            supplier_data['city'],
+            supplier_data['province'],
+            supplier_data['country'],
             supplier_data['phone'],
             supplier_data['email'],
             supplier_data['iva_condition'],
