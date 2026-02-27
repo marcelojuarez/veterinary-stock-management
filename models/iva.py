@@ -17,15 +17,15 @@ class IVAModel:
             SELECT 
                 s.id as venta_id,
                 s.date as fecha,
-                COALESCE(c.nombre, 'Consumidor Final') as cliente,
+                COALESCE(c.name, 'Consumidor Final') as cliente,
                 COALESCE(c.cuit, '') as cuit_cliente,
-                COALESCE(c.condicion_iva, 'Consumidor Final') as condicion_iva,
+                COALESCE(c.iva_condition, 'Consumidor Final') as condicion_iva,
                 si.iva_rate as alicuota_iva,
                 SUM(si.subtotal) as neto,
                 SUM(si.iva_amount) as iva,
                 SUM(si.subtotal + si.iva_amount) as total
             FROM sales s
-            LEFT JOIN clientes c ON c.id = s.cliente_id
+            LEFT JOIN customer c ON c.id = s.cliente_id
             JOIN sale_items si ON si.sale_id = s.id
             WHERE s.date BETWEEN ? AND ?
             GROUP BY s.id, si.iva_rate
@@ -268,14 +268,14 @@ class IVAModel:
             SELECT
                 s.date as fecha,
                 s.id as venta_id,
-                COALESCE(c.nombre, 'Consumidor Final') as cliente,
+                COALESCE(c.name, 'Consumidor Final') as cliente,
                 COALESCE(c.cuit, '') as cuit,
                 sr.tax_type,
                 COALESCE(sr.certificate_number, '') as certificado,
                 CAST(sr.amount AS REAL) as monto
             FROM sale_retentions sr
             JOIN sales s ON s.id = sr.sale_id
-            LEFT JOIN clientes c ON c.id = s.cliente_id
+            LEFT JOIN customer c ON c.id = s.cliente_id
             WHERE s.date BETWEEN ? AND ?
             ORDER BY s.date, s.id
         """

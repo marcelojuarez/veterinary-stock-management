@@ -72,10 +72,10 @@ class SalesModel:
     def get_today_sales(self):
         query = """
             SELECT s.id, s.date, s.total,
-                COALESCE(c.nombre, 'Consumidor Final') AS cliente,
+                COALESCE(c.name, 'Consumidor Final') AS cliente,
                 s.estado
             FROM sales s
-            LEFT JOIN clientes c ON s.cliente_id = c.id
+            LEFT JOIN customer c ON s.cliente_id = c.id
             WHERE date(s.date) = date('now','localtime')
             ORDER BY s.date DESC
         """

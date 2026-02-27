@@ -101,10 +101,10 @@ class StockController:
         
         try: 
             query = """
-                SELECT DISTINCT s.id, s.cliente_id, c.nombre
+                SELECT DISTINCT s.id, s.cliente_id, c.name
                 FROM sales s
                 JOIN sale_items si ON si.sale_id = s.id
-                LEFT JOIN clientes c ON c.id = s.cliente_id
+                LEFT JOIN customer c ON c.id = s.cliente_id
                 WHERE si.product_id = ? AND s.estado IN ('pending', 'partial')
             """
             affected_sales = db.fetch_all(query, (product_id,))

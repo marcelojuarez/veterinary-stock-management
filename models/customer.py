@@ -13,34 +13,34 @@ class CustomerModel:
     def get_all_customers(self): 
         # Obtener todos los clientes
         try: 
-            query = "SELECT * FROM clientes ORDER BY id"
+            query = "SELECT * FROM customer ORDER BY id"
             return db.fetch_all(query)
         except ValueError as e: 
             print(f'Error getting customers: {e}')
             return []
         
     def get_all_clients(self):
-        query = "SELECT id, nombre FROM clientes ORDER BY nombre"
+        query = "SELECT id, name FROM customer ORDER BY name"
         return db.fetch_all(query)
     
     def get_client_by_name(self, name):
         """Buscar cliente por nombre exacto"""
         query = """
-            SELECT id, nombre, cuit, domicilio, condicion_iva
-            FROM clientes
-            WHERE nombre = ?
+            SELECT id, name, cuit, home, iva_condition
+            FROM customer
+            WHERE name = ?
         """
         return db.fetch_one(query, (name,))
 
     def get_client_id_by_name(self, name):
-        query = "SELECT id FROM clientes WHERE nombre = ?"
+        query = "SELECT id FROM customer WHERE name = ?"
         row = db.fetch_one(query, (name,))
         return row[0] if row else None
 
 
     def find_customer_by_id(self, customer_id):
         try:
-            query = "SELECT * FROM clientes WHERE id = ?"
+            query = "SELECT * FROM customer WHERE id = ?"
             return db.fetch_one(query, (customer_id,))
         except Exception as e:
             print(f'Error getting customer by ID: {e}')
@@ -48,18 +48,18 @@ class CustomerModel:
 
     def check_duplicate_customer(self, customer_data, exclude_id=None):
         cuit = customer_data['cuit'].strip() if customer_data.get('cuit') else ''
-        telefono = customer_data['telefono'].strip() if customer_data.get('telefono') else ''
+        telefono = customer_data['phone'].strip() if customer_data.get('phone') else ''
 
         # Verificar CUIT duplicado
         if cuit:
             if exclude_id:
                 existing = db.fetch_one(
-                    "SELECT id, nombre FROM clientes WHERE cuit = ? AND id != ?", 
+                    "SELECT id, name FROM customer WHERE cuit = ? AND id != ?", 
                     (cuit, exclude_id)
                 )
             else:
                 existing = db.fetch_one(
-                    "SELECT id, nombre FROM clientes WHERE cuit = ?", 
+                    "SELECT id, name FROM customer WHERE cuit = ?", 
                     (cuit,)
                 )
             if existing:
@@ -69,12 +69,12 @@ class CustomerModel:
         if telefono:
             if exclude_id:
                 existing = db.fetch_one(
-                    "SELECT id, nombre FROM clientes WHERE telefono = ? AND id != ?", 
+                    "SELECT id, name FROM customer WHERE phone = ? AND id != ?", 
                     (telefono, exclude_id)
                 )
             else:
                 existing = db.fetch_one(
-                    "SELECT id, nombre FROM clientes WHERE telefono = ?", 
+                    "SELECT id, name FROM customer WHERE phone = ?", 
                     (telefono,)
                 )
             if existing:
@@ -90,19 +90,19 @@ class CustomerModel:
         
         # Agregar nuevo cliente a la base de datos
         query = """
-            INSERT INTO clientes (nombre, cuit, domicilio, telefono, condicion_iva, cv, cuig, renspa, establecimiento)
+            INSERT INTO customer (name, cuit, home, phone, iva_condition, cv, cuig, renspa, establishment)
             VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)
         """
         params = [
-            customer_data['nombre'].upper(),
+            customer_data['name'].upper(),
             customer_data['cuit'],
-            customer_data['domicilio'].upper(),
-            customer_data['telefono'],
-            customer_data['condicion_iva'],
+            customer_data['home'].upper(),
+            customer_data['phone'],
+            customer_data['iva_condition'],
             customer_data.get('cv', ''),
             customer_data.get('cuig', ''),
             customer_data.get('renspa', ''),
-            customer_data.get('establecimiento', '').upper(),
+            customer_data.get('establishment', '').upper(),
         ]
         try:
             return db.execute_query(query, params)
@@ -112,7 +112,7 @@ class CustomerModel:
     def delete_customer(self, customer_id):
         # Eliminar la informacion del cliente
         try:
-            query = "DELETE FROM clientes where id = ?"
+            query = "DELETE FROM customer where id = ?"
             return db.execute_query(query, (customer_id,))
         except Exception as e: 
             print(f'Error : {e}')
@@ -122,10 +122,10 @@ class CustomerModel:
         # Busco a un cliente por nombre o id 
         try:
             if search_term.isdigit():
-                query = "SELECT * FROM clientes WHERE id = ?"
+                query = "SELECT * FROM customer WHERE id = ?"
                 return self.db.fetch_all(query, (int(search_term),))
             else:
-                query = "SELECT * FROM clientes WHERE nombre LIKE ?"
+                query = "SELECT * FROM customer WHERE name LIKE ?"
                 return self.db.fetch_all(query, (f"%{search_term.upper()}%",))
         except Exception as e:
             print(f"Error searching customer: {e}")

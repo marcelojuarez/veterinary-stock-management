@@ -67,17 +67,17 @@ class Database:
 
             # Tabla de clientes
             cursor.execute('''
-                CREATE TABLE IF NOT EXISTS clientes (
+                CREATE TABLE IF NOT EXISTS customer (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    nombre TEXT NOT NULL,
+                    name TEXT NOT NULL,
                     cuit TEXT UNIQUE,
-                    domicilio TEXT,
-                    telefono TEXT UNIQUE,
-                    condicion_iva TEXT,
+                    home TEXT,
+                    phone TEXT UNIQUE,
+                    iva_condition TEXT,
                     cv TEXT,
                     cuig TEXT,
                     renspa TEXT,
-                    establecimiento TEXT
+                    establishment TEXT
                 )
             ''')
 
@@ -266,7 +266,7 @@ class Database:
                     iva TEXT NOT NULL,
                     total TEXT NOT NULL,
                     estado TEXT DEFAULT 'borrador',  -- o 'emitida'
-                    FOREIGN KEY(customer_id) REFERENCES clientes(id)
+                    FOREIGN KEY(customer_id) REFERENCES customer(id)
                 );
             ''')
 
@@ -294,7 +294,7 @@ class Database:
                     estado TEXT DEFAULT 'paid',
                     total_cerrado TEXT,
                     fecha_cierre TEXT,
-                    FOREIGN KEY(cliente_id) REFERENCES clientes(id) ON DELETE CASCADE
+                    FOREIGN KEY(cliente_id) REFERENCES customer(id) ON DELETE CASCADE
                 );
             ''')
 
@@ -336,7 +336,7 @@ class Database:
                 customer_id INTEGER NOT NULL,
                 status TEXT DEFAULT 'issued',
                 notes TEXT,
-                FOREIGN KEY(customer_id) REFERENCES clientes(id)
+                FOREIGN KEY(customer_id) REFERENCES customer(id)
             );
 
             ''')
@@ -365,7 +365,7 @@ class Database:
                     method TEXT,
                     notes TEXT,
                     FOREIGN KEY(sale_id) REFERENCES sales(id) ON DELETE CASCADE,
-                    FOREIGN KEY(client_id) REFERENCES clientes(id) ON DELETE CASCADE
+                    FOREIGN KEY(client_id) REFERENCES customer(id) ON DELETE CASCADE
                 );
             ''')
 
@@ -377,7 +377,7 @@ class Database:
                            reason TEXT,
                            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
                            sale_id INTEGER,
-                           FOREIGN KEY(client_id) REFERENCES clientes(id) ON DELETE CASCADE,
+                           FOREIGN KEY(client_id) REFERENCES customer(id) ON DELETE CASCADE,
                            FOREIGN KEY(sale_id) REFERENCES sales(id) ON DELETE SET NULL
                     );
             ''')

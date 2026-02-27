@@ -225,7 +225,7 @@ class SalesController:
                     s.id,
                     s.date,
                     s.total,
-                    COALESCE(c.nombre, '') as cliente,
+                    COALESCE(c.name, '') as cliente,
                     s.estado,
                     COALESCE((
                         SELECT SUM(p.amount) 
@@ -233,7 +233,7 @@ class SalesController:
                         WHERE p.sale_id = s.id
                     ), 0) as pagado
                 FROM sales s
-                LEFT JOIN clientes c ON c.id = s.cliente_id
+                LEFT JOIN customer c ON c.id = s.cliente_id
                 WHERE DATE(s.date) BETWEEN ? AND ?
             """
             

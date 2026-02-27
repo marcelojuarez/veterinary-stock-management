@@ -490,15 +490,15 @@ def seed_clients():
     
     clientes = [
         {
-            "nombre": "Consumidor Final", 
+            "name": "Consumidor Final", 
             "cuit": "", 
-            "domicilio": "", 
-            "telefono": "", 
-            "condicion_iva": "Consumidor Final",
+            "home": "", 
+            "phone": "", 
+            "iva_condition": "Consumidor Final",
             "cv": "",
             "cuig": "",
             "renspa": "",
-            "establecimiento": ""
+            "establishment": ""
         }
     ]
     
@@ -546,15 +546,15 @@ def seed_clients():
         establecimiento = generar_establecimiento()
         
         clientes.append({
-            "nombre": nombre,
+            "name": nombre,
             "cuit": cuit,
-            "domicilio": domicilio,
-            "telefono": telefono,
-            "condicion_iva": condicion,
+            "home": domicilio,
+            "phone": telefono,
+            "iva_condition": condicion,
             "cv": cv,
             "cuig": cuig,
             "renspa": renspa,
-            "establecimiento": establecimiento
+            "establishment": establecimiento
         })
     
     # =========================================================================
@@ -589,15 +589,15 @@ def seed_clients():
             establecimiento = ""
         
         clientes.append({
-            "nombre": nombre_negocio,
+            "name": nombre_negocio,
             "cuit": cuit,
-            "domicilio": domicilio,
-            "telefono": telefono,
-            "condicion_iva": condicion,
+            "home": domicilio,
+            "phone": telefono,
+            "iva_condition": condicion,
             "cv": cv,
             "cuig": cuig,
             "renspa": renspa,
-            "establecimiento": establecimiento
+            "establishment": establecimiento
         })
     
     # =========================================================================
@@ -621,15 +621,15 @@ def seed_clients():
         
         # Particulares no tienen datos agropecuarios
         clientes.append({
-            "nombre": nombre,
+            "name": nombre,
             "cuit": cuit,
-            "domicilio": domicilio,
-            "telefono": telefono,
-            "condicion_iva": condicion,
+            "home": domicilio,
+            "phone": telefono,
+            "iva_condition": condicion,
             "cv": "",
             "cuig": "",
             "renspa": "",
-            "establecimiento": ""
+            "establishment": ""
         })
     
     # =========================================================================
@@ -642,18 +642,18 @@ def seed_clients():
     for c in clientes:
         try:
             cursor.execute("""
-                INSERT INTO clientes (nombre, cuit, domicilio, telefono, condicion_iva, cv, cuig, renspa, establecimiento)
+                INSERT INTO customer (name, cuit, home, phone, iva_condition, cv, cuig, renspa, establishment)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, (
-                c['nombre'], 
+                c['name'], 
                 c['cuit'], 
-                c['domicilio'], 
-                c['telefono'], 
-                c['condicion_iva'],
+                c['home'], 
+                c['phone'], 
+                c['iva_condition'],
                 c['cv'],
                 c['cuig'],
                 c['renspa'],
-                c['establecimiento']
+                c['establishment']
             ))
             insertados += 1
         except sqlite3.IntegrityError:
@@ -671,7 +671,7 @@ def seed_sales_with_products():
     cur = conn.cursor()
 
     # Obtener clientes y productos
-    clientes = cur.execute("SELECT id FROM clientes WHERE id > 1").fetchall()  # Excluir Consumidor Final
+    clientes = cur.execute("SELECT id FROM customer WHERE id > 1").fetchall()  # Excluir Consumidor Final
     productos = cur.execute("SELECT id, price_with_iva FROM stock").fetchall()
     
     if not clientes or not productos:
