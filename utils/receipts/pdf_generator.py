@@ -4,12 +4,14 @@ Con detalle de productos vendidos
 Ubicación: utils/receipts/pdf_generator.py
 """
 
-from reportlab.lib.pagesizes import A4
+import os
+from datetime import datetime
+from decimal import Decimal
 from reportlab.lib import colors
 from reportlab.pdfgen import canvas
 from reportlab.lib.units import mm
-from datetime import datetime
-import os
+from utils.utils import format_currency
+from reportlab.lib.pagesizes import A4
 
 from utils.receipts.paths import a4_pago_venta, a4_pago_global
 
@@ -169,12 +171,12 @@ def generate_payment_receipt(*, file_path, client_name, sale_id, payment_amount,
             nombre, cantidad, precio, subtotal = item
             
             # Truncar nombre si es muy largo
-            nombre_display = nombre[:30] + "..." if len(str(nombre)) > 30 else str(nombre)
+            nombre_display = nombre[:30] + "..." if len(nombre) > 30 else nombre
             
-            c.drawString(col_producto, y, nombre_display)
-            c.drawRightString(col_cant + 10*mm, y, str(int(cantidad)))
-            c.drawRightString(col_precio + 15*mm, y, f"${float(precio):,.2f}")
-            c.drawRightString(col_subtotal, y, f"${float(subtotal):,.2f}")
+            c.drawString(col_producto, y, nombre_display)       
+            c.drawRightString(col_cant + 10*mm, y, str(cantidad))
+            c.drawRightString(col_precio + 15*mm, y, f"${precio}")
+            c.drawRightString(col_subtotal, y, f"${subtotal}")
             y -= 14
         
         y -= 6
@@ -186,9 +188,9 @@ def generate_payment_receipt(*, file_path, client_name, sale_id, payment_amount,
     prev_paid = sale_info["paid"] - payment_amount
     prev_balance = sale_info["balance"] + payment_amount
     
-    draw_line_lr("Total Venta:", f"${sale_info['total']:,.2f}", 10, bold_r=True, extra_spacing=4)
-    draw_line_lr("Pagado Anteriormente:", f"${prev_paid:,.2f}", 10, extra_spacing=4)
-    draw_line_lr("Saldo Anterior:", f"${prev_balance:,.2f}", 10, extra_spacing=4)
+    draw_line_lr("Total Venta:", f"${sale_info['total']}", 10, bold_r=True, extra_spacing=4)
+    draw_line_lr("Pagado Anteriormente:", f"${prev_paid}", 10, extra_spacing=4)
+    draw_line_lr("Saldo Anterior:", f"${prev_balance}", 10, extra_spacing=4)
     
     draw_separator(dashed=True, extra_spacing=18)
     
@@ -199,7 +201,7 @@ def generate_payment_receipt(*, file_path, client_name, sale_id, payment_amount,
     c.setFont("Helvetica-Bold", 12)
     c.setFillColor(black)
     c.drawString(margin, y, "MONTO PAGADO:")
-    c.drawRightString(W - margin, y, f"${payment_amount:,.2f}")
+    c.drawRightString(W - margin, y, f"${payment_amount}")
     y -= 22
     
     draw_separator(dashed=True, extra_spacing=18)
@@ -210,7 +212,7 @@ def generate_payment_receipt(*, file_path, client_name, sale_id, payment_amount,
     c.setFont("Helvetica-Bold", 11)
     c.setFillColor(black)
     c.drawString(margin, y, "SALDO RESTANTE:")
-    c.drawRightString(W - margin, y, f"${sale_info['balance']:,.2f}")
+    c.drawRightString(W - margin, y, f"${sale_info['balance']}")
     y -= 18
     
     draw_separator(extra_spacing=18)
@@ -248,7 +250,7 @@ def generate_payment_receipt(*, file_path, client_name, sale_id, payment_amount,
             
             c.drawString(col_fecha, y, date_str)
             c.drawString(col_metodo, y, mth or "-")
-            c.drawRightString(col_monto, y, f"${float(amount):,.2f}")
+            c.drawRightString(col_monto, y, f"${amount}")
             y -= 13
         
         y -= 6
@@ -304,7 +306,7 @@ def generate_payment_receipt(*, file_path, client_name, sale_id, payment_amount,
 # ============================================================
 #               RECIBO DE PAGO GLOBAL 
 # ============================================================
-def generate_global_payment_receipt(*, file_path, client_name, payment_amount, method, result_data, sale_items=None):
+def generate_global_payment_receipt(*, file_path, client_name, payment_amount, method, result_data, sales_with_items=None):
     """
     Genera comprobante A4 de pago global.
     Estilo ticket profesional en blanco y negro.
@@ -428,7 +430,7 @@ def generate_global_payment_receipt(*, file_path, client_name, payment_amount, m
     c.setFont("Helvetica-Bold", 12)
     c.setFillColor(black)
     c.drawString(margin, y, "MONTO ENTREGADO:")
-    c.drawRightString(W - margin, y, f"${payment_amount:,.2f}")
+    c.drawRightString(W - margin, y, f"${payment_amount}")
     y -= 22
     
     draw_separator(dashed=True, extra_spacing=18)
@@ -436,7 +438,7 @@ def generate_global_payment_receipt(*, file_path, client_name, payment_amount, m
     # ================================================================
     # DETALLE DE PRODUCTOS POR VENTA
     # ================================================================
-    if sale_items and len(sale_items) > 0:
+    if sales_with_items and len(sales_with_items) > 0:
         draw_text_left("DETALLE DE PRODUCTOS", 10, bold=True, extra_spacing=4)
         
         # Recorrer cada venta pagada
@@ -446,12 +448,12 @@ def generate_global_payment_receipt(*, file_path, client_name, payment_amount, m
             c.setFont("Helvetica-Bold", 9)
             c.setFillColor(black)
             c.drawString(margin, y, f"■ Venta #{sale_id}")
-            c.drawRightString(W - margin, y, f"Pagado: ${amount_paid:,.2f}")
+            c.drawRightString(W - margin, y, f"Pagado: ${format_currency(amount_paid)}")
             y -= 12
             
             # Verificar si hay items para esta venta
-            if sale_id in sale_items and sale_items[sale_id]:
-                items = sale_items[sale_id]
+            if sale_id in sales_with_items and sales_with_items[sale_id]:
+                items = sales_with_items[sale_id]
                 
                 # Definir posiciones de columnas (ALINEADAS CON PDF COMÚN)
                 col_producto = margin + 5*mm
@@ -478,15 +480,15 @@ def generate_global_payment_receipt(*, file_path, client_name, payment_amount, m
                 c.setFont("Helvetica", 8)
                 c.setFillColor(black)
                 for item in items:
-                    nombre, cantidad, precio, subtotal = item[:4]
+                    _, nombre, cantidad, precio, subtotal, _ = item
                     
                     # Truncar nombre si es muy largo
-                    nombre_display = nombre[:28] + "..." if len(str(nombre)) > 28 else str(nombre)
+                    nombre_display = nombre[:28] + "..." if len(nombre) > 28 else nombre
                     
                     c.drawString(col_producto, y, nombre_display)
-                    c.drawRightString(col_cant + 5*mm, y, str(int(cantidad)))
-                    c.drawRightString(col_precio + 10*mm, y, f"${float(precio):,.2f}")
-                    c.drawRightString(col_subtotal, y, f"${float(subtotal):,.2f}")
+                    c.drawRightString(col_cant + 5*mm, y, str(cantidad))
+                    c.drawRightString(col_precio + 10*mm, y, f"${format_currency(precio)}")
+                    c.drawRightString(col_subtotal, y, f"${format_currency(subtotal)}")
                     y -= 14
                 
                 y -= 4
@@ -503,15 +505,16 @@ def generate_global_payment_receipt(*, file_path, client_name, payment_amount, m
     # ================================================================
     # RESUMEN DEL PAGO
     # ================================================================
-    draw_line_lr("Total Aplicado:", f"${result_data['used']:,.2f}", 10, 
+    draw_line_lr("Total Aplicado:", f"${format_currency(result_data['used'])}", 10, 
                  bold_l=True, bold_r=True, extra_spacing=4)
-    draw_line_lr("Deuda Restante (Cuenta corriente):", f"${result_data['still_owed']:,.2f}", 10, 
+    draw_line_lr("Deuda Restante (Cuenta corriente):", f"${format_currency(result_data['still_owed'])}", 10, 
                  bold_l=True, bold_r=True, extra_spacing=4)
     
     # Saldo a favor si aplica
-    if result_data.get('credit_added', 0) > 0.01:
+    print(result_data)
+    if result_data.get('credit_added', 0) > Decimal('0.00'):
         draw_line_lr("Saldo a Favor Generado:", 
-                    f"${result_data['credit_added']:,.2f}", 10, 
+                    f"${result_data['credit_added']}", 10, 
                     bold_l=True, bold_r=True, extra_spacing=4)
     
     draw_separator(extra_spacing=18)

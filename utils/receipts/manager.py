@@ -1,5 +1,6 @@
 import os
 from datetime import datetime
+from decimal import Decimal
 
 from utils.receipts.ticket_pos import generate_payment_ticket, generate_global_payment_ticket
 from utils.receipts.pdf_generator import generate_payment_receipt, generate_global_payment_receipt
@@ -37,13 +38,13 @@ def generate_receipts_for_payment(
     format: str,               # "ticket" | "a4" | "both"
     client_name: str,
     method: str,
-    amount: float,
+    amount: Decimal,
 
     # Para sale:
     sale_id: int | None = None,
     sale_info=None,
     payments=None,
-    sale_items=None, 
+    sales_with_items=None, 
 
     # Para global:
     customer_id: int | None = None,
@@ -54,6 +55,8 @@ def generate_receipts_for_payment(
     # ================================================================
     # TICKET (80mm) - Simple, solo monto para el cliente
     # ================================================================
+    print(f'format: {format}')
+    print(f'mode: {mode}')
     if format in ("ticket", "both"):
         if mode == "sale":
             ticket_path = ticket_pago_venta(client_name, sale_id)
@@ -80,7 +83,7 @@ def generate_receipts_for_payment(
                 amount=amount,
                 method=method,
                 result_data=result_data,
-                sales_items=sale_items
+                sales_with_items=sales_with_items
             )
             paths.append(ticket_path)
 
@@ -98,7 +101,7 @@ def generate_receipts_for_payment(
                 method=method,
                 sale_info=sale_info,
                 payments=payments,
-                sale_items=sale_items 
+                sales_with_items=sales_with_items 
             )
             paths.append(a4_path)
 
@@ -110,7 +113,7 @@ def generate_receipts_for_payment(
                 payment_amount=amount,
                 method=method,
                 result_data=result_data,
-                sale_items=sale_items
+                sales_with_items=sales_with_items
             )
             paths.append(a4_path)
 

@@ -41,7 +41,6 @@ class SalesModel:
                 iva_rate = Decimal(row[0]) if row and row[0] else Decimal('21.00')
                 
                 # DESCOMPONER EL PRECIO (price_with_iva → price sin IVA)
-                print(f'type price_with_iva: {type(price_with_iva)}')
                 divisor = Decimal('1') + (iva_rate / Decimal('100'))
                 price_without_iva = norm_to_2_dec(price_with_iva / divisor)
                 

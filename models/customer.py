@@ -329,7 +329,7 @@ class CustomerModel:
             if sale_id in contado_sales:
                 continue
                 
-            monto = norm_to_2_dec(monto)
+            monto = Decimal(monto)
             method_txt = method_map.get(method.lower() if method else "", method.capitalize() if method else "Efectivo")
             
             if sale_id:

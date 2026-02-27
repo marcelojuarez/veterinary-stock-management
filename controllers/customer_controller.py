@@ -443,10 +443,10 @@ class CustomerController:
                         client_name = c[1]
                         break
 
-                sale_items = {}
+                sales_with_items = {}
                 for sale_id, _ in result['updated_debts']:
                     items = self.model.get_sale_items(sale_id)
-                    sale_items[sale_id] = items
+                    sales_with_items[sale_id] = items
 
                 generate_receipts_for_payment(
                     mode="global",
@@ -456,7 +456,7 @@ class CustomerController:
                     amount=amount,
                     customer_id=customer_id,
                     result_data=result,
-                    sale_items=sale_items
+                    sales_with_items=sales_with_items
                 )
 
             except Exception as e:

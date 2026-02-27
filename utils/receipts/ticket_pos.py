@@ -1,9 +1,12 @@
-from reportlab.pdfgen import canvas
-from reportlab.lib.units import mm
-from reportlab.lib import colors
-from datetime import datetime
 import os
+from decimal import Decimal
+from datetime import datetime
+from reportlab.lib import colors
+from reportlab.lib.units import mm
+from reportlab.pdfgen import canvas
+from utils.utils import format_currency
 
+## -- Genera un ticket correspondiente a un pago individual -- ##
 def generate_payment_ticket(
     *,
     file_path,
@@ -86,7 +89,7 @@ def generate_payment_ticket(
     sep(True)
     y -= 10
 
-    lr("TOTAL", f"$ {amount:,.2f}", 9, True, True)
+    lr("TOTAL", f"$ {amount}", 9, True, True)
     y -= 10
     sep()
     y -= 14
@@ -104,6 +107,7 @@ def generate_payment_ticket(
     c.showPage()
     c.save()
 
+## -- Genera un ticket correspondiente a un pago global -- ##
 def generate_global_payment_ticket(
     *,
     file_path,
@@ -114,7 +118,7 @@ def generate_global_payment_ticket(
     amount,
     method,
     result_data,
-    sales_items=None,
+    sales_with_items=None,
     ticket_width_mm=80
 ):
     os.makedirs(os.path.dirname(file_path), exist_ok=True)
@@ -122,9 +126,9 @@ def generate_global_payment_ticket(
     W = ticket_width_mm * mm
     # Altura dinámica según cantidad de productos
     base_height = 150
-    if sales_items:
-        total_items = sum(len(items) for items in sales_items.values())
-        base_height += (total_items * 14) + (len(sales_items) * 20)  # Espacio por item y por venta
+    if sales_with_items:
+        total_items = sum(len(items) for items in sales_with_items.values())
+        base_height += (total_items * 14) + (len(sales_with_items) * 20)  # Espacio por item y por venta
     
     H = base_height * mm
     L = 5 * mm
@@ -198,7 +202,7 @@ def generate_global_payment_ticket(
     y -= 2
     sep(True)
 
-    lr("MONTO ENTREGADO", f"$ {amount:,.2f}", 8, True, True)
+    lr("MONTO ENTREGADO", f"$ {format_currency(amount)}", 8, True, True)
     y -= 2
     sep()
     y -= 4
@@ -206,7 +210,7 @@ def generate_global_payment_ticket(
     # ================================================================
     # DETALLE DE PRODUCTOS POR VENTA
     # ================================================================
-    if sales_items and len(sales_items) > 0:
+    if sales_with_items and len(sales_with_items) > 0:
         c.setFont("Helvetica-Bold", 7.5)
         c.drawString(L, y, "DETALLE DE PRODUCTOS")
         y -= 12
@@ -215,27 +219,27 @@ def generate_global_payment_ticket(
             # Encabezado de venta
             c.setFont("Helvetica-Bold", 7)
             c.drawString(L, y, f"Venta #{sale_id}")
-            c.drawRightString(R, y, f"${amount_paid:,.2f}")
+            c.drawRightString(R, y, f"${format_currency(amount_paid)}")
             y -= 12
             
             # Productos
-            if sale_id in sales_items and sales_items[sale_id]:
-                items = sales_items[sale_id]
+            if sale_id in sales_with_items and sales_with_items[sale_id]:
+                items = sales_with_items[sale_id]
                 c.setFont("Helvetica", 6.5)
                 
                 for item in items:
-                    nombre, cantidad, precio, subtotal = item[:4]
+                    _, nombre, cantidad, precio, subtotal, _ = item
                     
                     # Truncar nombre para que entre en el ticket
-                    nombre_display = nombre[:22] + "..." if len(str(nombre)) > 22 else str(nombre)
+                    nombre_display = nombre[:22] + "..." if len(nombre) > 22 else nombre
                     
                     # Línea 1: Nombre del producto
                     c.drawString(L + 2*mm, y, nombre_display)
                     y -= 9
                     
                     # Línea 2: Cantidad x Precio = Subtotal
-                    c.drawString(L + 2*mm, y, f"  {int(cantidad)}u x ${float(precio):,.2f}")
-                    c.drawRightString(R, y, f"${float(subtotal):,.2f}")
+                    c.drawString(L + 2*mm, y, f"  {cantidad}u x ${format_currency(precio)}")
+                    c.drawRightString(R, y, f"${format_currency(subtotal)}")
                     y -= 10
                 
                 y -= 6
@@ -249,11 +253,11 @@ def generate_global_payment_ticket(
     # ================================================================
     # RESUMEN
     # ================================================================
-    lr("Total Aplicado", f"${result_data['used']:,.2f}", 7.5, True, True)
-    lr("Deuda Restante (Cuenta corriente)", f"${result_data['still_owed']:,.2f}", 7.5, True, True)
+    lr("Total Aplicado", f"${format_currency(result_data['used'])}", 7.5, True, True)
+    lr("Deuda Restante (Cuenta corriente)", f"${format_currency(result_data['still_owed'])}", 7.5, True, True)
     
-    if result_data.get('credit_added', 0) > 0.01:
-        lr("Saldo a Favor", f"${result_data['credit_added']:,.2f}", 7.5, True, True)
+    if result_data.get('credit_added', 0)  > Decimal('0.00'):
+        lr("Saldo a Favor", f"${format_currency(result_data['credit_added'])}", 7.5, True, True)
     
     y -= 4
 

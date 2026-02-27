@@ -1,7 +1,7 @@
 import customtkinter as ctk
 from tkinter import ttk, messagebox
+from utils.utils import format_currency
 from utils.view_helpers import center_window
-from utils.utils import norm_to_2_dec
 ctk.set_appearance_mode("light")
 ctk.set_default_color_theme("blue")
 
@@ -510,30 +510,48 @@ class CustomersView:
         # ----------------------------------------------------------------
         # Total adeudado
         # ----------------------------------------------------------------
-        self.debt_total_label = ctk.CTkLabel(
-            scroll,
-            text=f"Total adeudado: ${total}",
-            font=ctk.CTkFont(size=15, weight="bold"),
-            text_color="#333333"
-        )
-        self.debt_total_label.pack(pady=(10, 15))
+        summary_frame = ctk.CTkFrame(scroll, fg_color="transparent")
+        summary_frame.pack(padx=10, pady=(10, 15), fill="x")
 
-        self.credit_label = ctk.CTkLabel(
-            scroll,
-            text=f"Saldo a favor: ${credit}",
-            font=ctk.CTkFont(size=14, weight="bold"),
-            text_color="#333333"
-        )
-        self.credit_label.pack(pady=(0, 5))
+        summary_frame.columnconfigure((0, 1, 2), weight=1)
 
-        self.net_label = ctk.CTkLabel(
-            scroll,
-            text=f"Deuda neta: ${net}",
-            font=ctk.CTkFont(size=14, weight="bold"),
-            text_color="#333333"
-        )
-        self.net_label.pack(pady=(0, 10))
+        def make_card(parent, col, title, value, bg_color, value_color):
+            card = ctk.CTkFrame(parent, fg_color=bg_color, corner_radius=10)
+            card.grid(row=0, column=col, padx=6, sticky="ew")
 
+            ctk.CTkLabel(
+                card,
+                text=title,
+                font=ctk.CTkFont(weight='bold', size=14),
+                text_color="black"
+            ).pack(pady=(12, 2))
+
+            ctk.CTkLabel(
+                card,
+                text=f"${format_currency(value)}",
+                font=ctk.CTkFont(size=18, weight="bold"),
+                text_color=value_color
+            ).pack(pady=(0, 12))
+
+            return card
+
+        self.debt_total_label = make_card(
+            summary_frame, 0,
+            "Total adeudado", total,
+            "#fdecea", "#C62828"
+        )
+
+        self.credit_label = make_card(
+            summary_frame, 1,
+            "Saldo a favor", credit,
+            "#e8f5e9", "#2E7D32"
+        )
+
+        self.net_label = make_card(
+            summary_frame, 2,
+            "Deuda neta", net,
+            "#f5f5f5", "#333333"
+        )
 
         # ----------------------------------------------------------------
         # Botones inferiores
@@ -650,8 +668,6 @@ class CustomersView:
                     # Compatibilidad con consulta antigua (sin observaciones)
                     _, name, quantity, price, subtotal, _  = item
                     display_name = name
-                print(price)
-                print(subtotal)
                 # Insertar en la tabla
                 self.debt_items_table.insert("", "end", values=(
                     display_name,

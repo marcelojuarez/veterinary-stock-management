@@ -9,7 +9,7 @@ from datetime import datetime
 import os
 from config.settings import COMPANY_CONFIG
 from reportlab.platypus import Image
-
+from utils.utils import format_currency
 
 class InvoiceInternalPDFService:
 
@@ -218,9 +218,9 @@ class InvoiceInternalPDFService:
             table_data.append([
                 description_para,
                 str(int(q)),
-                f"${net_unit:.2f}",
+                f"${format_currency(net_unit)}",
                 iva_pct_str,
-                f"${line_net:.2f}"
+                f"${format_currency(line_net)}"
             ])
 
         table = Table(table_data, colWidths=[80*mm, 18*mm, 32*mm, 20*mm, 30*mm])
@@ -250,7 +250,7 @@ class InvoiceInternalPDFService:
         # ===============================
 
         # Subtotal neto
-        totals_data = [["Subtotal neto:", f"${subtotal:.2f}"]]
+        totals_data = [["Subtotal neto:", f"${format_currency(subtotal)}"]]
 
         # Una línea por cada alícuota que tenga monto > 0
         sorted_rates = sorted(
@@ -264,10 +264,10 @@ class InvoiceInternalPDFService:
                 label = "IVA Exento:"
             else:
                 label = f"IVA {pct:.0f}%:"
-            totals_data.append([label, f"${iva_amount:.2f}"])
+            totals_data.append([label, f"${format_currency(iva_amount)}"])
 
         # Total final
-        totals_data.append(["TOTAL:", f"${total:.2f}"])
+        totals_data.append(["TOTAL:", f"${format_currency(total)}"])
 
         total_row_idx = len(totals_data) - 1
 
