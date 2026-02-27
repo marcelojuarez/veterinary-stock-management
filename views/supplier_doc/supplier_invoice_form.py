@@ -18,10 +18,11 @@ class SupplierInvoiceForm():
         self.supplier_var.set(supplier_var)
         
         supplier_data = self.supp_mdl.core.find_supplier_by_cuit(self.supplier_var.get())
+        print(supplier_data)
 
         # Condicion IVA proveedor
         self.s_iva_c_var = tk.StringVar()
-        self.s_iva_c_var.set(supplier_data[6])
+        self.s_iva_c_var.set(supplier_data[9])
 
         self.invoice_id_var = tk.StringVar()
         self.invoice_type_var = tk.StringVar()
@@ -132,6 +133,7 @@ class SupplierInvoiceForm():
         )
 
         # Condicion IVA proveedor
+        print(self.s_iva_c_var.get())
         add_field(
             2, 0, "Cond. IVA Proveedor:", 
             ctk.CTkEntry(

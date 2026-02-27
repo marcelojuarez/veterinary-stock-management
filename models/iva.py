@@ -113,51 +113,92 @@ class IVAModel:
     # POSICIÓN DE IVA
     # ================================================================
     
+    def get_retenciones_iva_por_periodo(self, fecha_desde, fecha_hasta):
+        """Total de retenciones de IVA sufridas en el período (descuento del débito fiscal)"""
+        query = """
+            SELECT COALESCE(SUM(CAST(sr.amount AS REAL)), 0)
+            FROM sale_retentions sr
+            JOIN sales s ON s.id = sr.sale_id
+            WHERE sr.tax_type = 'IVA'
+            AND s.date BETWEEN ? AND ?
+        """
+        result = self.db.fetch_one(query, (fecha_desde, fecha_hasta))
+        return norm_to_2_dec(Decimal(str(result[0] if result else 0)))
+
+    def get_percepciones_iva_por_periodo(self, fecha_desde, fecha_hasta):
+        """Total de percepciones de IVA sufridas en compras (crédito fiscal adicional)"""
+        query = """
+            SELECT COALESCE(SUM(CAST(ip.amount AS REAL)), 0)
+            FROM invoice_perceptions ip
+            JOIN supplier_invoice si ON si.id = ip.invoice_id
+            WHERE ip.tax_type = 'IVA_PER'
+            AND si.date BETWEEN ? AND ?
+        """
+        result = self.db.fetch_one(query, (fecha_desde, fecha_hasta))
+        return norm_to_2_dec(Decimal(str(result[0] if result else 0)))
+
     def get_posicion_iva_detallada(self, fecha_desde, fecha_hasta):
-        resumen_ventas = self.get_resumen_iva_ventas(fecha_desde, fecha_hasta)
+        resumen_ventas  = self.get_resumen_iva_ventas(fecha_desde, fecha_hasta)
         resumen_compras = self.get_resumen_iva_compras(fecha_desde, fecha_hasta)
-        
+
+        # Retenciones IVA sufridas (reducen el débito fiscal)
+        ret_iva = self.get_retenciones_iva_por_periodo(fecha_desde, fecha_hasta)
+        # Percepciones IVA sufridas en compras (aumentan el crédito fiscal)
+        per_iva = self.get_percepciones_iva_por_periodo(fecha_desde, fecha_hasta)
+
         alicuotas = set()
         for v in resumen_ventas:
             alicuotas.add(v['alicuota'])
         for c in resumen_compras:
             alicuotas.add(c['alicuota'])
-        
+
         detalle = []
-        total_ventas = 0
-        total_compras = 0
-        
+        total_iva_ventas  = Decimal('0.00')
+        total_iva_compras = Decimal('0.00')
+
         for alicuota in sorted(alicuotas, reverse=True):
             ventas_alicuota = next((v for v in resumen_ventas if v['alicuota'] == alicuota), None)
-            iva_ventas = ventas_alicuota['iva'] if ventas_alicuota else 0
-            ventas_neto = ventas_alicuota['neto_gravado'] if ventas_alicuota else 0
-            
+            iva_ventas  = Decimal(str(ventas_alicuota['iva'] if ventas_alicuota else 0))
+            ventas_neto = Decimal(str(ventas_alicuota['neto_gravado'] if ventas_alicuota else 0))
+
             compras_alicuota = next((c for c in resumen_compras if c['alicuota'] == alicuota), None)
-            iva_compras = compras_alicuota['iva'] if compras_alicuota else 0
-            compras_neto = compras_alicuota['neto_gravado'] if compras_alicuota else 0
-            
-            saldo_alicuota = norm_to_2_dec(iva_ventas - iva_compras)
-            
+            iva_compras  = Decimal(str(compras_alicuota['iva'] if compras_alicuota else 0))
+            compras_neto = Decimal(str(compras_alicuota['neto_gravado'] if compras_alicuota else 0))
+
+            # Saldo bruto (sin descontar retenciones ni percepciones)
+            saldo_bruto = norm_to_2_dec(iva_ventas - iva_compras)
+
             detalle.append({
-                'alicuota': alicuota,
-                'ventas_neto': ventas_neto,
-                'iva_ventas': iva_ventas,
+                'alicuota':     alicuota,
+                'ventas_neto':  ventas_neto,
+                'iva_ventas':   iva_ventas,
                 'compras_neto': compras_neto,
-                'iva_compras': iva_compras,
-                'saldo': saldo_alicuota
+                'iva_compras':  iva_compras,
+                'saldo':        saldo_bruto,   # bruto (para tabla pantalla)
             })
-            
-            total_ventas += iva_ventas
-            total_compras += iva_compras
-        
-        saldo_total = norm_to_2_dec(total_ventas - total_compras)
-        
+
+            total_iva_ventas  += iva_ventas
+            total_iva_compras += iva_compras
+
+        total_iva_ventas  = norm_to_2_dec(total_iva_ventas)
+        total_iva_compras = norm_to_2_dec(total_iva_compras)
+
+        # Débito y crédito fiscal reales (incluyendo ret/per)
+        debito_fiscal  = norm_to_2_dec(total_iva_ventas  - ret_iva)
+        credito_fiscal = norm_to_2_dec(total_iva_compras + per_iva)
+        saldo_neto     = norm_to_2_dec(debito_fiscal - credito_fiscal)
+
         return {
-            'detalle': detalle,
-            'total_iva_ventas': norm_to_2_dec(total_ventas),
-            'total_iva_compras': norm_to_2_dec(total_compras),
-            'saldo_total': saldo_total,
-            'tipo': 'A PAGAR' if saldo_total > 0 else ('SALDO A FAVOR' if saldo_total < 0 else 'SIN SALDO')
+            'detalle':            detalle,
+            'total_iva_ventas':   total_iva_ventas,
+            'total_iva_compras':  total_iva_compras,
+            'ret_iva':            ret_iva,
+            'per_iva':            per_iva,
+            'debito_fiscal':      debito_fiscal,
+            'credito_fiscal':     credito_fiscal,
+            'saldo_bruto':        norm_to_2_dec(total_iva_ventas - total_iva_compras),
+            'saldo_total':        saldo_neto,
+            'tipo': 'A PAGAR' if saldo_neto > 0 else ('SALDO A FAVOR' if saldo_neto < 0 else 'SIN SALDO')
         }
     
     def get_posicion_iva(self, fecha_desde, fecha_hasta):

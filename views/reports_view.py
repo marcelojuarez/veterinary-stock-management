@@ -268,8 +268,8 @@ class ReportsView:
         frame = ctk.CTkFrame(tab, fg_color="transparent")
         frame.pack(fill="both", expand=True, padx=10, pady=10)
 
-        cols = ("Alícuota", "Ventas Neto", "Ventas IVA", "Compras Neto", "Compras IVA", "Saldo IVA")
-        self.resumen_table = self._make_treeview(frame, cols, [100, 130, 120, 130, 120, 120], height=12)
+        cols = ("Alícuota", "Ventas Neto", "Ventas IVA", "Compras Neto", "Compras IVA", "Saldo Bruto", "Saldo Neto")
+        self.resumen_table = self._make_treeview(frame, cols, [90, 120, 110, 120, 110, 105, 105], height=12)
 
     # ---- Tab: Detalle Ventas ----
 
@@ -438,18 +438,48 @@ class ReportsView:
                 format_money(item.get('iva_ventas', 0)),
                 format_money(item.get('compras_neto', 0)),
                 format_money(item.get('iva_compras', 0)),
-                format_money(item.get('saldo', 0))
+                format_money(item.get('saldo', 0)),   # bruto
+                "—"                                   # neto solo en TOTAL
             ))
 
+        # Fila subtotales brutos
         self.resumen_table.insert("", "end", values=(
-            "TOTAL", "-",
+            "Subtotal", "—",
             format_money(detalle_posicion.get('total_iva_ventas', 0)),
-            "-",
+            "—",
             format_money(detalle_posicion.get('total_iva_compras', 0)),
+            format_money(detalle_posicion.get('saldo_bruto', 0)),
+            "—"
+        ), tags=("subtotal",))
+
+        # Filas de ajustes si existen
+        ret_iva = detalle_posicion.get('ret_iva', 0)
+        per_iva = detalle_posicion.get('per_iva', 0)
+        if ret_iva:
+            self.resumen_table.insert("", "end", values=(
+                "Ret. IVA sufridas", "—", f"-{format_money(ret_iva)}",
+                "—", "—", "—", "—"
+            ), tags=("ajuste",))
+        if per_iva:
+            self.resumen_table.insert("", "end", values=(
+                "Perc. IVA sufridas", "—", "—",
+                "—", f"+{format_money(per_iva)}", "—", "—"
+            ), tags=("ajuste",))
+
+        # Fila TOTAL NETO
+        self.resumen_table.insert("", "end", values=(
+            "TOTAL",
+            "—",
+            format_money(detalle_posicion.get('debito_fiscal', detalle_posicion.get('total_iva_ventas', 0))),
+            "—",
+            format_money(detalle_posicion.get('credito_fiscal', detalle_posicion.get('total_iva_compras', 0))),
+            format_money(detalle_posicion.get('saldo_bruto', 0)),
             format_money(detalle_posicion.get('saldo_total', 0))
         ), tags=("total",))
 
-        self.resumen_table.tag_configure("total", background="#E0E0E0", font=("Segoe UI", 10, "bold"))
+        self.resumen_table.tag_configure("total",    background="#E0E0E0", font=("Segoe UI", 10, "bold"))
+        self.resumen_table.tag_configure("subtotal", background="#F5F5F5", font=("Segoe UI", 9, "bold"))
+        self.resumen_table.tag_configure("ajuste",   background="#FFF9C4", font=("Segoe UI", 9, "italic"))
 
     def update_ventas_table(self, ventas):
         for item in self.ventas_table.get_children():
