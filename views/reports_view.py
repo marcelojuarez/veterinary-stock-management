@@ -46,6 +46,8 @@ class ReportsView:
         ctk.CTkButton(
             header,
             text="❓ Ayuda",
+            text_color="#ffffff",
+            font=ctk.CTkFont(size=13, weight="bold"),
             width=100,
             height=35,
             fg_color="#2196F3",
@@ -121,6 +123,7 @@ class ReportsView:
         ctk.CTkButton(
             period_frame,
             text="📄 Exportar PDF",
+            text_color="#ffffff",
             width=130,
             height=35,
             fg_color="#FF9800",

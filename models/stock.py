@@ -19,10 +19,10 @@ class StockModel:
         """
         return db.fetch_all(query)
     
-    def get_product_by_name(self, product_name):
+    def get_all_product_by_name(self, product_name):
         """Obtener un producto por su ID"""
         query = "SELECT id, pack FROM stock WHERE LOWER(name) = LOWER(?)"
-        return db.fetch_one(query, (product_name,))
+        return db.fetch_all(query, (product_name,))
     
     def get_product_by_id(self, product_id):
         """Obtener un producto por su ID"""
@@ -101,7 +101,7 @@ class StockModel:
 
     
     def update_field(self, db_field, new_value, product_id):
-        query = f"UPDATE stock SET {db_field} = ?, id = ?"
+        query = f"UPDATE stock SET {db_field} = ? WHERE id = ?"
         db.execute_query(query, (new_value, product_id))
         
     def delete_product(self, product_id):
