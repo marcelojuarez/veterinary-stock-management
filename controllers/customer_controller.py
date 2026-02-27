@@ -56,7 +56,7 @@ class CustomerController:
                 return False
             if not self.__validate_supplier_cuit(data["cuit"]):
                 return False
-            if not self.__validate_supplier_phone(data["telefono"]):
+            if not self.__validate_supplier_phone(data["phone"]):
                 return False      
             if not self.__validate_cv(data["cv"]):
                 return False
@@ -128,10 +128,15 @@ class CustomerController:
 
     ## -- Validaciones -- ##
     def __validate_customer_data(self, data):
-        required_fields = ['nombre', 'cuit', 'domicilio', 'telefono']
-        for field in required_fields:
+        required_fields = {
+            'name': 'Nombre', 
+            'cuit': 'Cuit',
+            'home': 'Domicilio', 
+            'phone': 'Telefono'    
+        }
+        for field, label in required_fields.items():
             if not data[field]:
-                show_warning(f'Por favor complete el campo {field}.')
+                show_warning(f'Por favor complete el campo {label}.')
                 return False 
             
         return True

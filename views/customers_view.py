@@ -302,15 +302,15 @@ class CustomersView:
 
         def save_and_close():
             data = {
-                "nombre": name_var.get(),
+                "name": name_var.get(),
                 "cuit": cuit_var.get(),
-                "domicilio": home_var.get(),
-                "telefono": phone_var.get(),
-                "condicion_iva": iva_cond_var.get(),
+                "home": home_var.get(),
+                "phone": phone_var.get(),
+                "iva_condition": iva_cond_var.get(),
                 "cv": cv_var.get(),
                 "cuig": cuig_var.get(),
                 "renspa": renspa_var.get(),
-                "establecimiento": establecimiento_var.get()
+                "establishment": establecimiento_var.get()
             }
             if self.controller:
                 ok = self.controller.add_new_customer_window(data, win)
