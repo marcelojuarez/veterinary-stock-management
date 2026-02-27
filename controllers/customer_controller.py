@@ -12,7 +12,7 @@ from utils.receipts.ticket_pos import generate_payment_ticket, generate_global_p
 from utils.receipts.manager import generate_receipts_for_payment
 from utils.receipts.account_statement import generate_account_statement
 from utils.receipts.paths import a4_pago_global
-from utils.utils import norm_to_2_dec
+from utils.utils import norm_to_2_dec, string_to_2_dec
 from decimal import Decimal, InvalidOperation
 
 
@@ -57,7 +57,16 @@ class CustomerController:
             if not self.__validate_supplier_cuit(data["cuit"]):
                 return False
             if not self.__validate_supplier_phone(data["telefono"]):
+                return False      
+            if not self.__validate_cv(data["cv"]):
                 return False
+            if not self.__validate_cuig(data["cuig"]):
+                return False
+            if not self.__validate_renspa(data["renspa"]):
+                return False
+
+            data['cuig'] = data['cuig'].strip().replace(" ", "").replace("-", "").upper()
+            data['renspa'] = data['renspa'].replace("-", "").replace("/", "").strip()
 
             # Guardar cliente
             self.model.add_customer(data)
@@ -117,16 +126,17 @@ class CustomerController:
         
         self.view.refresh_customer_table(filtered)
 
-
+    ## -- Validaciones -- ##
     def __validate_customer_data(self, data):
-        # Validar campos obligatorios 
         required_fields = ['nombre', 'cuit', 'domicilio', 'telefono']
         for field in required_fields:
             if not data[field]:
                 show_warning(f'Por favor complete el campo {field}.')
                 return False 
+            
         return True
 
+    ## CUIT ##
     def __validate_supplier_cuit(self, cuit_field):
         pattern = r'^\d{2}-\d{8}-\d$'
         
@@ -136,6 +146,7 @@ class CustomerController:
         
         return True
     
+    ## TELEFONO ##
     def __validate_supplier_phone(self, phone_field):
         pattern = r'^\+?\d{7,15}$'
         
@@ -144,7 +155,48 @@ class CustomerController:
             return False
         
         return True
-    
+
+    ## CV ##
+    def __validate_cv(self, cv):
+        if cv.strip() == '':
+            return True
+
+        pattern = r'^[0-9]{2,8}$'
+
+        if not re.fullmatch(pattern, cv):
+            show_error('Error. Formato de CV incorrecto.')
+            return False
+        
+        return True
+
+    ## CUIG ##
+    def __validate_cuig(self, cuig):
+        if cuig.strip() == '':
+            return True
+        
+        cuig_norm = cuig.strip().replace(" ", "").replace("-", "").upper()
+        pattern = r'^[A-Z]{2}[0-9]{2,8}$'
+
+        if not re.fullmatch(pattern, cuig_norm):
+            show_error('Error. Formato de Cuig incorrecto.')
+            return False
+        
+        return True
+
+    ## RENSPA ##
+    def __validate_renspa(self, renspa):        
+        if renspa.strip() == '':
+            return True
+        
+        renspa_norm = renspa.replace("-", "").replace("/", "").strip()
+        pattern = r'^[0-9]{12,15}$'
+
+        if not re.fullmatch(pattern, renspa_norm):
+            show_error('Error. Formato de Renspa incorrecto.')
+            return False
+        
+        return True
+
     # --------------------------------------------------------------------
     # 💳 DEUDAS DE CLIENTES
     # --------------------------------------------------------------------
@@ -154,7 +206,7 @@ class CustomerController:
         try:
             self.current_client_id = cliente_id
 
-            changes = self.reconcile_and_detect_changes(cliente_id)
+            #changes = self.reconcile_and_detect_changes(cliente_id)
 
             debts = self.model.get_customer_debts(cliente_id)
             total = self.model.get_total_debt(cliente_id)
@@ -163,11 +215,11 @@ class CustomerController:
             net = norm_to_2_dec(max(Decimal('0.00'), total - credit))
             self.view.open_debt_window(cliente_id, cliente_nombre, debts, total, credit, net)
 
-            if changes:
-                self.view.show_warning(
-                f"⚠️ Se detectaron cambios de precio en {len(changes)} venta(s):\n\n" +
-                "\n".join(changes)
-                )
+            # if changes:
+            #     self.view.show_warning(
+            #     f"⚠️ Se detectaron cambios de precio en {len(changes)} venta(s):\n\n" +
+            #     "\n".join(changes)
+            #     )
         except Exception as e:
             show_error(f"Error al obtener las deudas: {e}")
 
@@ -209,7 +261,7 @@ class CustomerController:
     def load_sale_items_for_debt(self, sale_id):
         """Carga el detalle de productos de una venta fiada en la vista"""
         try:
-            items = self.model.get_sale_items(sale_id)
+            items = self.model.get_sale_items(sale_id)            
             self.view.update_debt_items_table(items)
         except Exception as e:
             show_error(f"Error al obtener los productos de la venta: {e}")
@@ -235,7 +287,7 @@ class CustomerController:
             show_warning("Selecciona un cliente primero.")
             return
 
-        total_debt = norm_to_2_dec(self.model.get_total_debt(customer_id))
+        total_debt = self.model.get_total_debt(customer_id)
 
         if total_debt == Decimal('0.00'):
             self.view.show_warning("El cliente no tiene deudas pendientes")
@@ -317,7 +369,7 @@ class CustomerController:
 
         ctk.CTkLabel(
             deuda_frame,
-            text=f"${total_debt:,.2f}",
+            text=f"${total_debt}",
             font=ctk.CTkFont(size=20, weight="bold"),
             text_color="#D32F2F"
         ).pack(pady=(0, 8))
@@ -329,7 +381,7 @@ class CustomerController:
                     show_warning("Ingrese un monto.")
                     return
                 
-                amount = norm_to_2_dec(val)
+                amount = string_to_2_dec(val) 
 
                 if amount <= Decimal('0.00'):
                     show_warning("El monto debe ser mayor a 0.")
@@ -339,18 +391,22 @@ class CustomerController:
                 show_error("Monto inválido. Ingrese solo números.")
                 return
 
-            
             if amount > total_debt:
                 show_warning(
-                    f"El monto ingresado (${amount:.2f}) supera la deuda total del cliente (${total_debt:.2f})."
+                    f"El monto ingresado (${amount}) supera la deuda total del cliente (${total_debt})."
                 )
                 amount = total_debt
-                amount_var.set(f"{total_debt:.2f}")
+                amount_var.set(f"{total_debt}")
                 return
 
             try:
                 method = method_var.get()
-                result = self.payment_model.apply_global_payment(customer_id, str(amount), method=method)
+
+                result = self.payment_model.apply_global_payment(customer_id, amount, method=method)
+
+                if not result:
+                    show_error('Ocurrio un error al registar el pago.')
+                    return
 
                 # Construir mensaje de resultado
                 msg = ("Pago registrado con éxito.")
@@ -372,33 +428,31 @@ class CustomerController:
                 self.view.update_debt_window(debts, total, credit, net)
 
                 # 3. Generar comprobante
-                if result['used'] > 0:
-                    fmt = self.ask_receipt_format()
-                    if not fmt:
-                        return
+                fmt = self.ask_receipt_format()
+                if not fmt:
+                    return
 
-                    client_name = "Cliente"
-                    for c in self.all_customers:
-                        if c[0] == customer_id:
-                            client_name = c[1]
-                            break
+                client_name = "Cliente"
+                for c in self.all_customers:
+                    if c[0] == customer_id:
+                        client_name = c[1]
+                        break
 
-                    sale_items = {}
-                    for sale_id, _ in result['updated_debts']:
-                        items = self.model.get_sale_items(sale_id)
-                        sale_items[sale_id] = items
+                sale_items = {}
+                for sale_id, _ in result['updated_debts']:
+                    items = self.model.get_sale_items(sale_id)
+                    sale_items[sale_id] = items
 
-                    generate_receipts_for_payment(
-                        mode="global",
-                        format=fmt,
-                        client_name=client_name,
-                        method=method,
-                        amount=amount,
-                        customer_id=customer_id,
-                        result_data=result,
-                        sale_items=sale_items
-                    )
-
+                generate_receipts_for_payment(
+                    mode="global",
+                    format=fmt,
+                    client_name=client_name,
+                    method=method,
+                    amount=amount,
+                    customer_id=customer_id,
+                    result_data=result,
+                    sale_items=sale_items
+                )
 
             except Exception as e:
                 show_error(f"Error al procesar el pago: {e}")
@@ -415,7 +469,7 @@ class CustomerController:
             height=40,
             font=ctk.CTkFont(weight="bold"),
             command=process
-        ).pack(side="right", padx=5, expand=True, fill="x")
+        ).pack(side="left", padx=5, expand=True, fill="x")
 
         ctk.CTkButton(
             btn_frame,
@@ -426,7 +480,7 @@ class CustomerController:
             hover_color="#616161",
             font=ctk.CTkFont(size=13, weight="bold"),
             command=win.destroy
-        ).pack(side="left", padx=5, expand=True, fill="x")
+        ).pack(side="right", padx=5, expand=True, fill="x")
 
 
     def ask_receipt_format(self):
@@ -506,78 +560,84 @@ class CustomerController:
             
             confirm = messagebox.askyesno(
                 "Confirmar",
-                f"¿Aplicar ${amount_to_apply:.2f} del saldo a favor a las deudas pendientes?\n\n"
-                f"Saldo a favor disponible: ${credit:.2f}\n"
-                f"Deuda total: ${total_debt:.2f}"
+                f"¿Aplicar ${amount_to_apply} del saldo a favor a las deudas pendientes?\n\n"
+                f"Saldo a favor disponible: ${credit}\n"
+                f"Deuda total: ${total_debt}"
             )
             
             if not confirm:
                 return
             
-            # 🔹 PASO 1: Descontar TODO el crédito que vamos a intentar usar
-            actual_used = self.payment_model.use_customer_credit(
-                client_id=customer_id,
-                amount=amount_to_apply,
-                reason="Aplicando a deudas pendientes"
-            )
-            
-            if actual_used <= 0:
-                self.view.show_error("No se pudo usar el crédito disponible.")
-                return
-            
-            # 🔹 PASO 2: Aplicar pagos manualmente
-            query = """
-                SELECT s.id,
-                    COALESCE(SUM(si.quantity * st.price_with_iva), 0) AS total_variable,
-                    COALESCE((SELECT SUM(p.amount) FROM payments p WHERE p.sale_id = s.id), 0) AS paid
-                FROM sales s
-                JOIN sale_items si ON si.sale_id = s.id
-                JOIN stock st ON st.id = si.product_id
-                WHERE s.cliente_id = ? AND s.estado IN ('pending', 'partial')
-                GROUP BY s.id
-                HAVING (total_variable - paid) > 0.01
-                ORDER BY s.date DESC
-            """
-            rows = self.payment_model.db.fetch_all(query, (customer_id,))
-
-            remaining = actual_used
-            payments_applied = []
-
-            for row in rows:
-                if remaining <= Decimal('0.01'):
-                    break
-
-                sale_id, total_variable, paid = row
-                balance = norm_to_2_dec(norm_to_2_dec(total_variable) - norm_to_2_dec(paid))
-                pay_amount = norm_to_2_dec(min(remaining, balance))
-                
-                if pay_amount > Decimal('0.009'):
-                    # Registrar el pago
-                    self.payment_model.create_payment(
-                        sale_id=sale_id,
-                        client_id=customer_id,
-                        amount=pay_amount,
-                        method="Saldo a Favor",
-                        notes="Aplicación de crédito disponible"
-                    )
-                    
-                    # Actualizar estado de la venta
-                    self.payment_model.update_sale_status(sale_id, skip_credit_generation=True)
-                    
-                    remaining = norm_to_2_dec(remaining - pay_amount)
-                    payments_applied.append((sale_id, pay_amount))
-            
-            # 🔹 PASO 3: Si sobra crédito, devolverlo
-            if remaining > Decimal('0.01'):
+            conn = self.payment_model.db.get_connection()
+            conn.execute("BEGIN")
+            try:
                 self.payment_model.add_customer_credit(
                     client_id=customer_id,
-                    amount=remaining,
-                    reason="Crédito no utilizado (sin deudas suficientes)",
-                    sale_id=None
+                    amount=-amount_to_apply,
+                    reason="Aplicación de crédito a deudas pendientes",
+                    sale_id=None,
+                    conn=conn,
+                    commit=False
                 )
+                
+                # PASO 2: Obtener ventas pendientes ordenadas por fecha
+                query = """
+                    SELECT id, total
+                    FROM sales
+                    WHERE cliente_id = ? AND estado IN ('pending', 'partial')
+                    ORDER BY date ASC
+                    """
+                rows = self.payment_model.db.fetch_all(query, (customer_id,), conn=conn)
+                remaining = amount_to_apply
+                payment_applied = []
+                for row in rows:
+                    if remaining <= Decimal('0.00'):
+                        break
+                    
+                    sale_id, total = row
+                    paid = self.payment_model.get_total_amount_of_pay_for_a_sale(sale_id, conn=conn)
+                    balance = Decimal(total) - paid
+
+                    if balance <= Decimal('0.00'):
+                        continue
+
+                    pay_amount = norm_to_2_dec(min(balance, remaining))
+
+                    if pay_amount > Decimal('0.00'):
+                        self.payment_model.create_payment(
+                            sale_id=sale_id,
+                            client_id=customer_id,
+                            amount=pay_amount,
+                            method="Saldo a Favor",
+                            notes="Aplicacion de credito disponible",
+                            conn=conn,
+                            commit=False
+                        )
+
+                        self.payment_model.update_sale_status(sale_id,skip_credit_generation=True ,conn=conn, commit=False)
+                        remaining -= pay_amount
+                        payment_applied.append((sale_id, pay_amount))
+                    
+                if remaining > Decimal('0.00'):
+                    self.payment_model.add_customer_credit(
+                        client_id=customer_id,
+                        amount=remaining,
+                        reason="Credito no utilizado (sin deudas restantes)",
+                        sale_id=None,
+                        conn=conn,
+                        commit=False
+                    )
+                conn.commit()
+            except Exception as e:
+                conn.rollback()
+                self.view.show_error(f"Error al aplicar el crédito: {e}")
+                return
             
+            finally: 
+                conn.close()
+                
             # Calcular cuánto se usó realmente
-            credit_used = actual_used - remaining
+            credit_used = amount_to_apply - remaining
             
             # Obtener valores actualizados
             new_credit = norm_to_2_dec(self.payment_model.get_customer_credit(customer_id))

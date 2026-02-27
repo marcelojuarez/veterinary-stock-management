@@ -3,7 +3,7 @@ import customtkinter as ctk
 from decimal import Decimal
 from models.stock import StockModel
 from tkinter import ttk, messagebox
-from utils.view_helpers import center_window, close_win, show_warning
+from utils.view_helpers import center_window, close_win, show_error
 from utils.utils import iso_to_traditional, format_currency, string_to_2_dec, string_to_flex_dec, norm_to_2_dec, flex_dec
 
 # Configurar tema y colores
@@ -209,31 +209,31 @@ class StockView():
         self.stock_tree.column("Stock", anchor=tk.CENTER, width=80, stretch=False)
 
         # Encabezados
-        self.stock_tree.heading("Id", text="Cód. ↕", anchor=tk.W,
+        self.stock_tree.heading("Id", text="Cód.", anchor=tk.W,
                                 command=lambda: self.sort_tree("Id"))
-        self.stock_tree.heading("Name", text="Nombre Artículo ↕", anchor=tk.W,
+        self.stock_tree.heading("Name", text="Nombre Artículo", anchor=tk.W,
                                 command=lambda: self.sort_tree("Name"))
-        self.stock_tree.heading("Package", text="Envase ↕", anchor=tk.W,
+        self.stock_tree.heading("Package", text="Envase", anchor=tk.W,
                                 command=lambda: self.sort_tree("Package"))
-        self.stock_tree.heading("ListPrice", text="P. Lista ↕", anchor=tk.E,
+        self.stock_tree.heading("ListPrice", text="P. Lista", anchor=tk.E,
                                 command=lambda: self.sort_tree("ListPrice"))
-        self.stock_tree.heading("Discount", text="% Dto. ↕", anchor=tk.E,
+        self.stock_tree.heading("Discount", text="% Dto.", anchor=tk.E,
                                 command=lambda: self.sort_tree("Discount"))                
-        self.stock_tree.heading("CostPrice", text="P. Costo ↕", anchor=tk.E,
+        self.stock_tree.heading("CostPrice", text="P. Costo", anchor=tk.E,
                                 command=lambda: self.sort_tree("CostPrice"))
-        self.stock_tree.heading("Profit", text="% Rent. ↕", anchor=tk.CENTER,
+        self.stock_tree.heading("Profit", text="% Rent.", anchor=tk.CENTER,
                                 command=lambda: self.sort_tree("Profit"))
-        self.stock_tree.heading("SalePrice", text="P. Venta ↕", anchor=tk.E,
+        self.stock_tree.heading("SalePrice", text="P. Venta", anchor=tk.E,
                                 command=lambda: self.sort_tree("SalePrice"))
         self.stock_tree.heading("Iva", text="% Iva", anchor=tk.CENTER,
                                 command=lambda: self.sort_tree("Iva"))
-        self.stock_tree.heading("SalePriceWithIva", text="P. Venta C/Iva ↕", anchor=tk.E,
+        self.stock_tree.heading("SalePriceWithIva", text="P. Venta C/Iva", anchor=tk.E,
                                 command=lambda: self.sort_tree("SalePriceWithIva"))
-        self.stock_tree.heading("ValidityDate", text="Fecha Vig. ↕", anchor=tk.CENTER,
+        self.stock_tree.heading("ValidityDate", text="Fecha Vig.", anchor=tk.CENTER,
                                 command=lambda: self.sort_tree("ValidityDate"))
-        self.stock_tree.heading("LastPriceUpdate", text="F. Ult. Modif. ↕", anchor=tk.CENTER,
+        self.stock_tree.heading("LastPriceUpdate", text="F. Ult. Modif.", anchor=tk.CENTER,
                                 command=lambda: self.sort_tree("LastPriceUpdate"))
-        self.stock_tree.heading("Stock", text="Stock ↕", anchor=tk.CENTER,
+        self.stock_tree.heading("Stock", text="Stock", anchor=tk.CENTER,
                                 command=lambda: self.sort_tree("Stock"))
         
         # Bind para doble click
@@ -441,11 +441,15 @@ class StockView():
                         "PriceWIva": str(self.price_with_iva),
                     }
 
-                    self.stock_model.update_p_price_and_related_sales_amount(
+                    result = self.stock_model.update_p_price_and_related_sales_amount(
                         product_id, product_data)
-                    self.controller.refresh_stock_table()
+                    if result:
+                        self.controller.refresh_stock_table()
+                        self.show_success("Precio actualizado correctamente")
+
+                    else:
+                        show_error('Ocurrio un error')
                     window.destroy()
-                    self.show_success("Precio actualizado correctamente")
 
                 except ValueError as e:
                     self.show_error(f"Error. {e}")
@@ -877,7 +881,7 @@ class StockView():
                 indicator = ' ↑' if not self.sort_reverse else ' ↓'
                 text = base_text + indicator
             else:
-                text = base_text + ' ↕'
+                text = base_text
             
             self.stock_tree.heading(col, text=text)
 

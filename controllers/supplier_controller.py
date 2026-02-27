@@ -38,7 +38,7 @@ class SupplierController():
                 print('Entro al chequeo de nombre del proveedor')
                 return
             
-            if not self.__validate_supplier_address(data['home']):
+            if not self.__validate_supplier_address(data['address']):
                 print('Entro al chequeo de domicilio del proveedor')
                 return
 
@@ -46,11 +46,15 @@ class SupplierController():
             supplier_data = {
                 'name': data['name'],
                 'cuit': data['cuit'],
-                'home': data['home'],
+                'address': data['address'],
+                'city': data['city'],
+                'province': data['province'],
+                'country': data['country'],
                 'phone': data['phone'],
                 'email': data['email'],
                 'iva_condition': data['iva_condition']
             }
+            print("Funciona")
 
             self.model.core.add_supplier(supplier_data)
 
@@ -94,7 +98,7 @@ class SupplierController():
         return suppliers_data 
     
     def __validates_supplier_data(self, form_data):
-        required_files =  ['name', 'cuit', 'home', 'phone', 'email', 'iva_condition']
+        required_files =  ['name', 'cuit', 'address', 'city', 'province', 'country', 'phone', 'email', 'iva_condition']
 
         print(f'Formulario de datos {form_data}')
 

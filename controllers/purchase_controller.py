@@ -487,3 +487,21 @@ class PurchaseController():
         except ValueError as e:
             show_error(f'Error al eliminar item de compra: {e}')
             return 
+        
+    def get_discrimina_iva(self, purchase_id):
+        """
+        Retorna True si la compra tiene una factura A o M (discrimina IVA).
+        Retorna True por defecto si es un remito u otro tipo de comprobante.
+        """
+        purchase = self.model.purchase.get_purchase_by_id(purchase_id)
+        if purchase is None:
+            return True
+
+        doc_type = purchase[2]  # 'FACTURA' o 'REMITO'
+
+        if doc_type != 'FACTURA':
+            return True  # remito: no tiene IVA discriminado en factura, tratar como sin IVA
+            # (o cambiá a True si en remitos sí querés discriminar)
+
+        doc_id = purchase[3]  # invoice_id
+        return self.model.purchase.get_invoice_type(doc_id)

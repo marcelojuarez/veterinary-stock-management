@@ -67,17 +67,17 @@ class Database:
 
             # Tabla de clientes
             cursor.execute('''
-                CREATE TABLE IF NOT EXISTS clientes (
+                CREATE TABLE IF NOT EXISTS customer (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    nombre TEXT NOT NULL,
+                    name TEXT NOT NULL,
                     cuit TEXT UNIQUE,
-                    domicilio TEXT,
-                    telefono TEXT UNIQUE,
-                    condicion_iva TEXT,
+                    home TEXT,
+                    phone TEXT UNIQUE,
+                    iva_condition TEXT,
                     cv TEXT,
                     cuig TEXT,
                     renspa TEXT,
-                    establecimiento TEXT
+                    establishment TEXT
                 )
             ''')
 
@@ -87,7 +87,10 @@ class Database:
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     cuit TEXT UNIQUE,
                     name TEXT NOT NULL,
-                    home TEXT,
+                    address TEXT,
+                    city TEXT,
+                    province TEXT,
+                    country TEXT,
                     phone TEXT,
                     email TEXT,
                     iva_condition TEXT,
@@ -259,11 +262,11 @@ class Database:
                     number TEXT,
                     date TEXT DEFAULT CURRENT_TIMESTAMP,
                     customer_id INTEGER,
-                    subtotal REAL,
-                    iva REAL,
-                    total REAL,
+                    subtotal TEXT NOT NULL,
+                    iva TEXT NOT NULL,
+                    total TEXT NOT NULL,
                     estado TEXT DEFAULT 'borrador',  -- o 'emitida'
-                    FOREIGN KEY(customer_id) REFERENCES clientes(id)
+                    FOREIGN KEY(customer_id) REFERENCES customer(id)
                 );
             ''')
 
@@ -274,8 +277,8 @@ class Database:
                     invoice_id INTEGER,
                     product_id TEXT,
                     quantity INTEGER,
-                    price REAL,
-                    subtotal REAL,
+                    price TEXT NOT NULL,
+                    subtotal TEXT NOT NULL,
                     FOREIGN KEY(invoice_id) REFERENCES invoice(id),
                     FOREIGN KEY(product_id) REFERENCES stock(id)
                 );
@@ -291,7 +294,7 @@ class Database:
                     estado TEXT DEFAULT 'paid',
                     total_cerrado TEXT,
                     fecha_cierre TEXT,
-                    FOREIGN KEY(cliente_id) REFERENCES clientes(id) ON DELETE CASCADE
+                    FOREIGN KEY(cliente_id) REFERENCES customer(id) ON DELETE CASCADE
                 );
             ''')
 
@@ -312,6 +315,17 @@ class Database:
                 );
             ''')
 
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS sale_retentions (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    sale_id INTEGER NOT NULL,
+                    tax_type TEXT NOT NULL,
+                    amount TEXT NOT NULL,
+                    certificate_number TEXT,
+                    FOREIGN KEY(sale_id) REFERENCES sales(id) ON DELETE CASCADE
+                );
+            ''')
+
             # Remito
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS delivery_note (
@@ -322,7 +336,7 @@ class Database:
                 customer_id INTEGER NOT NULL,
                 status TEXT DEFAULT 'issued',
                 notes TEXT,
-                FOREIGN KEY(customer_id) REFERENCES clientes(id)
+                FOREIGN KEY(customer_id) REFERENCES customer(id)
             );
 
             ''')
@@ -351,7 +365,7 @@ class Database:
                     method TEXT,
                     notes TEXT,
                     FOREIGN KEY(sale_id) REFERENCES sales(id) ON DELETE CASCADE,
-                    FOREIGN KEY(client_id) REFERENCES clientes(id) ON DELETE CASCADE
+                    FOREIGN KEY(client_id) REFERENCES customer(id) ON DELETE CASCADE
                 );
             ''')
 
@@ -363,7 +377,7 @@ class Database:
                            reason TEXT,
                            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
                            sale_id INTEGER,
-                           FOREIGN KEY(client_id) REFERENCES clientes(id) ON DELETE CASCADE,
+                           FOREIGN KEY(client_id) REFERENCES customer(id) ON DELETE CASCADE,
                            FOREIGN KEY(sale_id) REFERENCES sales(id) ON DELETE SET NULL
                     );
             ''')
@@ -411,9 +425,10 @@ class Database:
         if conn is None:
             conn = self.get_connection()
             own_conn = True
-
+    
         cursor = conn.cursor()
-        if params:
+
+        if params is not None:
             cursor.execute(query, params)
         else:
             cursor.execute(query)
@@ -440,7 +455,7 @@ class Database:
             own_conn = True
 
         cursor = conn.cursor()
-        if params:
+        if params is not None:
             cursor.execute(query, params)
         else:
             cursor.execute(query)

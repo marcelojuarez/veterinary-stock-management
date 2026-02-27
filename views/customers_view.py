@@ -68,8 +68,6 @@ class CustomersView:
         )
         search_btn.grid(row=0, column=2, padx=(5, 15), pady=5, sticky="w")
 
-
-
     # --------------------------------------------------------------------
     # TABLE SECTION
     # --------------------------------------------------------------------
@@ -220,7 +218,6 @@ class CustomersView:
                 text_color="white"
             )
 
-
     # --------------------------------------------------------------------
     # MODAL PARA AGREGAR CLIENTE
     # --------------------------------------------------------------------
@@ -364,8 +361,6 @@ class CustomersView:
         # Cleanup al cerrar con X
         win.protocol("WM_DELETE_WINDOW", cleanup_and_close)
 
-
-
     # --------------------------------------------------------------------
     # CONTROLLER & HELPERS
     # --------------------------------------------------------------------
@@ -467,12 +462,15 @@ class CustomersView:
         win.transient(self.frame)
         win.grab_set()
         center_window(win, width_win, height_win)
+        win.minsize(750,500)
 
         self.debt_window = win
 
+        scroll = ctk.CTkScrollableFrame(win, height=480)
+        scroll.pack(padx=10, pady=(5, 0), fill="both", expand=True)
         # Título
         ctk.CTkLabel(
-            win,
+            scroll,
             text=f"Deudas pendientes de {cliente_nombre}",
             font=ctk.CTkFont(size=17, weight="bold")
         ).pack(pady=(15, 10))
@@ -481,7 +479,7 @@ class CustomersView:
         # Tabla de deudas
         # ----------------------------------------------------------------
         cols = ("ID Venta", "Fecha", "Total", "Pagado", "Saldo", "Estado")
-        self.debt_table = ttk.Treeview(win, columns=cols, show="headings", height=6)
+        self.debt_table = ttk.Treeview(scroll, columns=cols, show="headings", height=6)
 
         col_widths = [80, 160, 100, 100, 100, 100]
 
@@ -491,7 +489,6 @@ class CustomersView:
 
         self.debt_table.pack(padx=10, pady=10, fill="x")
 
-
         for d in debts:
             self.debt_table.insert("", "end", values=d)
 
@@ -499,12 +496,12 @@ class CustomersView:
         # Detalle de productos (vacío al inicio)
         # ----------------------------------------------------------------
         ctk.CTkLabel(
-            win, text="📦 Detalle de productos de la venta seleccionada:",
+            scroll, text="📦 Detalle de productos de la venta seleccionada:",
             font=ctk.CTkFont(size=14, weight="bold")
         ).pack(pady=(10, 5))
 
         cols_items = ("Producto", "Cantidad", "Precio", "Subtotal")
-        self.debt_items_table = ttk.Treeview(win, columns=cols_items, show="headings", height=6)
+        self.debt_items_table = ttk.Treeview(scroll, columns=cols_items, show="headings", height=6)
         for col, w in zip(cols_items, [250, 100, 100, 100]):
             self.debt_items_table.column(col, width=w, anchor="center")
             self.debt_items_table.heading(col, text=col, anchor="center")
@@ -514,24 +511,24 @@ class CustomersView:
         # Total adeudado
         # ----------------------------------------------------------------
         self.debt_total_label = ctk.CTkLabel(
-            win,
-            text=f"Total adeudado: ${total:.2f}",
+            scroll,
+            text=f"Total adeudado: ${total}",
             font=ctk.CTkFont(size=15, weight="bold"),
             text_color="#333333"
         )
         self.debt_total_label.pack(pady=(10, 15))
 
         self.credit_label = ctk.CTkLabel(
-            win,
-            text=f"Saldo a favor: ${credit:.2f}",
+            scroll,
+            text=f"Saldo a favor: ${credit}",
             font=ctk.CTkFont(size=14, weight="bold"),
             text_color="#333333"
         )
         self.credit_label.pack(pady=(0, 5))
 
         self.net_label = ctk.CTkLabel(
-            win,
-            text=f"Deuda neta: ${net:.2f}",
+            scroll,
+            text=f"Deuda neta: ${net}",
             font=ctk.CTkFont(size=14, weight="bold"),
             text_color="#333333"
         )
@@ -542,7 +539,7 @@ class CustomersView:
         # Botones inferiores
         # ----------------------------------------------------------------
         btn_frame = ctk.CTkFrame(win, fg_color="transparent")
-        btn_frame.pack(pady=10)
+        btn_frame.pack(pady=10, side="bottom")
 
         btn_pago_global = ctk.CTkButton(
             btn_frame,
@@ -642,8 +639,8 @@ class CustomersView:
             for item in items:
                 # Manejar items con 4 o 5 elementos (con o sin observaciones)
                 if len(item) == 5:
-                    name, quantity, price, subtotal, observations = item
-                    
+                    _, name, quantity, price, subtotal, observations = item
+                    print('entro aca ?')
                     # Si tiene observaciones, mostrarlas
                     if observations and observations.strip():
                         display_name = f"{name}\n  → {observations[:50]}..." if len(observations) > 50 else f"{name}\n  → {observations}"
@@ -651,7 +648,7 @@ class CustomersView:
                         display_name = name
                 else:
                     # Compatibilidad con consulta antigua (sin observaciones)
-                    name, quantity, price, subtotal = item
+                    _, name, quantity, price, subtotal, _  = item
                     display_name = name
                 print(price)
                 print(subtotal)
@@ -659,8 +656,8 @@ class CustomersView:
                 self.debt_items_table.insert("", "end", values=(
                     display_name,
                     quantity,
-                    f"${norm_to_2_dec(price):.2f}",
-                    f"${norm_to_2_dec(subtotal):.2f}"
+                    f"${price}",
+                    f"${subtotal}"
                 ))
 
         except Exception as e:
@@ -760,7 +757,7 @@ class CustomersView:
             font=("Segoe UI", 10, "bold")
         )
 
-        cols = ("Fecha", "Tipo", "Descripción", "Compra", "Pago", "Deuda/Crédito")
+        cols = ("Fecha", "Tipo", "Descripción", "Compra", "Pago", "(+) Deuda/Crédito (-)")
         history_table = ttk.Treeview(
             table_frame,
             columns=cols,
@@ -769,7 +766,6 @@ class CustomersView:
             style="History.Treeview"
         )
 
-        
         col_widths = [130, 80, 250, 95, 95, 95, 105]
         for col, w in zip(cols, col_widths):
             history_table.column(col, width=w, anchor="center" if col != "Descripción" else "w")

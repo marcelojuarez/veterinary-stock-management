@@ -39,11 +39,14 @@ class App():
         sistema = platform.system()
 
         if sistema == 'Windows':
-            self.root.state('zoomed')
+            self.root.geometry("1400x750")      
+            self.root.minsize(1400, 750)        
+            self.root.state('zoomed')           
         else:
             width = self.root.winfo_screenwidth()
             height = self.root.winfo_screenheight()
             self.root.geometry(f"{width}x{height}+0+0")
+            self.root.minsize(1400, 750)
 
         self.root.resizable(True, True)
         self.root.withdraw()
@@ -110,7 +113,7 @@ class App():
 
     def create_views_and_controllers(self):
         self.notebook = ttk.Notebook(self.root)
-        self.notebook.pack(fill='both', expand=True)
+        self.notebook.pack(fill='both')
         self.notebook.bind("<<NotebookTabChanged>>", self.on_tab_change)
         self.root.update() 
 
@@ -164,16 +167,16 @@ class App():
         self.customers_view.attach_controller(self.customer_controller)
         self.notebook.add(self.customers_view.frame, text='Clientes')
 
-        # --- BACKUPS ---
-        from views.backup_manager import BackupManagerView
-        self.backup_view = BackupManagerView(self.notebook, controller=self.stock_controller)
-        self.notebook.add(self.backup_view.frame, text='Backups')
-
         # --- REPORTES ---
         self.reports_view = ReportsView(self.notebook, controller=self.iva_reports_controller)
         self.iva_reports_controller.set_view(self.reports_view)
 
         self.notebook.add(self.reports_view.frame, text='Reportes')
+
+        # --- BACKUPS ---
+        from views.backup_manager import BackupManagerView
+        self.backup_view = BackupManagerView(self.notebook, controller=self.stock_controller)
+        self.notebook.add(self.backup_view.frame, text='Backups')
 
         # Cargar mes actual automáticamente
         self.iva_reports_controller.load_period_reports(
@@ -182,7 +185,14 @@ class App():
         )
 
     def on_tab_change(self, event):
-        self.root.update_idletasks()
+        selected_tab = event.widget.tab(event.widget.select(), "text")
+
+        if selected_tab == "Reportes":
+            self.reports_view.load_reports()
+
+        if selected_tab == "Venta":
+            self.sales_view.load_available_products()
+
 
     def load_initial_data(self):
         try:

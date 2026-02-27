@@ -1,43 +1,46 @@
 import sqlite3
 from db.database import db
 
-from utils.utils import norm_to_2_dec, flex_dec, iso_to_traditional
+from models.payment_model import PaymentModel
 from decimal import Decimal
+from utils.utils import norm_to_2_dec, flex_dec, iso_to_traditional
+from datetime import datetime
 class CustomerModel:
     def __init__(self, db_connection=None):
         self.db = db_connection or db 
+        self.pay_model = PaymentModel()
 
     def get_all_customers(self): 
         # Obtener todos los clientes
         try: 
-            query = "SELECT * FROM clientes ORDER BY id"
+            query = "SELECT * FROM customer ORDER BY id"
             return db.fetch_all(query)
         except ValueError as e: 
             print(f'Error getting customers: {e}')
             return []
         
     def get_all_clients(self):
-        query = "SELECT id, nombre FROM clientes ORDER BY nombre"
+        query = "SELECT id, name FROM customer ORDER BY name"
         return db.fetch_all(query)
     
     def get_client_by_name(self, name):
         """Buscar cliente por nombre exacto"""
         query = """
-            SELECT id, nombre, cuit, domicilio
-            FROM clientes
-            WHERE nombre = ?
+            SELECT id, name, cuit, home, iva_condition
+            FROM customer
+            WHERE name = ?
         """
         return db.fetch_one(query, (name,))
 
     def get_client_id_by_name(self, name):
-        query = "SELECT id FROM clientes WHERE nombre = ?"
+        query = "SELECT id FROM customer WHERE name = ?"
         row = db.fetch_one(query, (name,))
         return row[0] if row else None
 
 
     def find_customer_by_id(self, customer_id):
         try:
-            query = "SELECT * FROM clientes WHERE id = ?"
+            query = "SELECT * FROM customer WHERE id = ?"
             return db.fetch_one(query, (customer_id,))
         except Exception as e:
             print(f'Error getting customer by ID: {e}')
@@ -45,18 +48,18 @@ class CustomerModel:
 
     def check_duplicate_customer(self, customer_data, exclude_id=None):
         cuit = customer_data['cuit'].strip() if customer_data.get('cuit') else ''
-        telefono = customer_data['telefono'].strip() if customer_data.get('telefono') else ''
+        telefono = customer_data['phone'].strip() if customer_data.get('phone') else ''
 
         # Verificar CUIT duplicado
         if cuit:
             if exclude_id:
                 existing = db.fetch_one(
-                    "SELECT id, nombre FROM clientes WHERE cuit = ? AND id != ?", 
+                    "SELECT id, name FROM customer WHERE cuit = ? AND id != ?", 
                     (cuit, exclude_id)
                 )
             else:
                 existing = db.fetch_one(
-                    "SELECT id, nombre FROM clientes WHERE cuit = ?", 
+                    "SELECT id, name FROM customer WHERE cuit = ?", 
                     (cuit,)
                 )
             if existing:
@@ -66,12 +69,12 @@ class CustomerModel:
         if telefono:
             if exclude_id:
                 existing = db.fetch_one(
-                    "SELECT id, nombre FROM clientes WHERE telefono = ? AND id != ?", 
+                    "SELECT id, name FROM customer WHERE phone = ? AND id != ?", 
                     (telefono, exclude_id)
                 )
             else:
                 existing = db.fetch_one(
-                    "SELECT id, nombre FROM clientes WHERE telefono = ?", 
+                    "SELECT id, name FROM customer WHERE phone = ?", 
                     (telefono,)
                 )
             if existing:
@@ -87,19 +90,19 @@ class CustomerModel:
         
         # Agregar nuevo cliente a la base de datos
         query = """
-            INSERT INTO clientes (nombre, cuit, domicilio, telefono, condicion_iva, cv, cuig, renspa, establecimiento)
+            INSERT INTO customer (name, cuit, home, phone, iva_condition, cv, cuig, renspa, establishment)
             VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)
         """
         params = [
-            customer_data['nombre'].upper(),
+            customer_data['name'].upper(),
             customer_data['cuit'],
-            customer_data['domicilio'].upper(),
-            customer_data['telefono'],
-            customer_data['condicion_iva'],
+            customer_data['home'].upper(),
+            customer_data['phone'],
+            customer_data['iva_condition'],
             customer_data.get('cv', ''),
             customer_data.get('cuig', ''),
             customer_data.get('renspa', ''),
-            customer_data.get('establecimiento', '').upper(),
+            customer_data.get('establishment', '').upper(),
         ]
         try:
             return db.execute_query(query, params)
@@ -109,7 +112,7 @@ class CustomerModel:
     def delete_customer(self, customer_id):
         # Eliminar la informacion del cliente
         try:
-            query = "DELETE FROM clientes where id = ?"
+            query = "DELETE FROM customer where id = ?"
             return db.execute_query(query, (customer_id,))
         except Exception as e: 
             print(f'Error : {e}')
@@ -119,10 +122,10 @@ class CustomerModel:
         # Busco a un cliente por nombre o id 
         try:
             if search_term.isdigit():
-                query = "SELECT * FROM clientes WHERE id = ?"
+                query = "SELECT * FROM customer WHERE id = ?"
                 return self.db.fetch_all(query, (int(search_term),))
             else:
-                query = "SELECT * FROM clientes WHERE nombre LIKE ?"
+                query = "SELECT * FROM customer WHERE name LIKE ?"
                 return self.db.fetch_all(query, (f"%{search_term.upper()}%",))
         except Exception as e:
             print(f"Error searching customer: {e}")
@@ -131,31 +134,18 @@ class CustomerModel:
     # --------------------------------------------------------------------
     # 💳 GESTIÓN DE DEUDAS DE CLIENTES
     # --------------------------------------------------------------------
+    ## -- Obtiene todas las deudas de un cliente -- ##
     def get_customer_debts(self, cliente_id):
         query = """
-            SELECT 
-            s.id AS sale_id,
-            s.date,
-            CASE 
-                WHEN s.estado = 'paid' AND s.total_cerrado IS NOT NULL 
-                THEN s.total_cerrado
-                ELSE COALESCE(SUM(
-                    si.quantity * 
-                    CASE 
-                        WHEN st.name = 'HONORARIOS' 
-                        THEN si.price
-                        ELSE st.price_with_iva
-                    END
-                ), 0)
-            END AS total,
-            COALESCE((SELECT SUM(p.amount) FROM payments p WHERE p.sale_id = s.id), 0) AS pagado,
-            s.estado
-        FROM sales s
-        JOIN sale_items si ON si.sale_id = s.id
-        JOIN stock st ON st.id = si.product_id
-        WHERE s.cliente_id = ? AND s.estado IN ('pending', 'partial')
-        GROUP BY s.id
-        ORDER BY sale_id DESC;
+        SELECT 
+            id,
+            date,
+            total,
+            estado
+        FROM sales
+        WHERE cliente_id = ? AND estado IN ('pending', 'partial')
+        GROUP BY id
+        ORDER BY id DESC;
         """
         rows = self.db.fetch_all(query, (cliente_id,))
 
@@ -166,11 +156,10 @@ class CustomerModel:
         }
 
         formatted = []
-        for sale_id, date, total, pagado, estado in rows:
-            total = total
-            pagado = pagado
+        for sale_id, date, total, estado in rows:
+            pagado = self.pay_model.get_total_amount_of_pay_for_a_sale(sale_id)
             estado_es = state_map.get(estado, estado)
-            saldo = max(Decimal('0.00'), norm_to_2_dec(total) - norm_to_2_dec(pagado))
+            saldo = Decimal(total) - Decimal(pagado)
 
             fecha_formateada = iso_to_traditional(date.split()[0]) if date else ""
 
@@ -179,25 +168,16 @@ class CustomerModel:
         return formatted
     
     def get_sale_items(self, sale_id):
-        """Detalle de productos vendidos en una venta fiada"""
         query = """
-            SELECT 
-                st.name, 
+            SELECT
+                s.id,
+                s.name, 
                 si.quantity, 
-                CASE 
-                    WHEN st.name = 'HONORARIOS' 
-                    THEN si.price
-                    ELSE st.price_with_iva
-                END AS precio,
-                si.quantity * 
-                CASE 
-                    WHEN st.name = 'HONORARIOS' 
-                    THEN si.price
-                    ELSE st.price_with_iva
-                END AS subtotal,
+                si.price,
+                si.subtotal,
                 si.observations
             FROM sale_items si
-            JOIN stock st ON st.id = si.product_id
+            JOIN stock s ON si.product_id = s.id
             WHERE si.sale_id = ?
         """
         return self.db.fetch_all(query, (sale_id,))
@@ -212,18 +192,8 @@ class CustomerModel:
         query = """
             SELECT 
                 s.id,
-                COALESCE(SUM(
-                    si.quantity * 
-                    CASE 
-                        WHEN st.name = 'HONORARIOS' 
-                        THEN si.price
-                        ELSE st.price_with_iva
-                    END
-                ), 0) AS total_variable,
-                COALESCE((SELECT SUM(p.amount) FROM payments p WHERE p.sale_id = s.id), 0) AS pagado
+                total
             FROM sales s
-            JOIN sale_items si ON si.sale_id = s.id
-            JOIN stock st ON st.id = si.product_id
             WHERE s.cliente_id = ? AND s.estado IN ('pending', 'partial')
             GROUP BY s.id
         """
@@ -231,8 +201,9 @@ class CustomerModel:
         rows = self.db.fetch_all(query, (cliente_id,))
 
         total_pending = Decimal('0.00')
-        for _, total_variable, paid in rows:
-            saldo = max(Decimal('0.00'), norm_to_2_dec(total_variable) - norm_to_2_dec(paid))
+        for sale_id, total in rows:
+            paid = self.pay_model.get_total_amount_of_pay_for_a_sale(sale_id)
+            saldo = Decimal(total) - paid
             if saldo > Decimal('0.01'):
                 total_pending += saldo
 
@@ -275,30 +246,18 @@ class CustomerModel:
             SELECT 
                 s.id,
                 s.date,
-                CASE 
-                    WHEN s.estado = 'paid' AND s.total_cerrado IS NOT NULL 
-                    THEN s.total_cerrado
-                    ELSE COALESCE(SUM(
-                        si.quantity * 
-                        CASE 
-                            WHEN st.name = 'HONORARIOS' 
-                            THEN si.price
-                            ELSE st.price_with_iva
-                        END
-                    ), 0)
-                END AS total,
+                s.total,
                 s.estado,
                 COUNT(si.id) AS cant_productos
             FROM sales s
             LEFT JOIN sale_items si ON si.sale_id = s.id
-            LEFT JOIN stock st ON st.id = si.product_id
             WHERE s.cliente_id = ? 
             AND s.estado IN ('pending', 'partial', 'paid')
             GROUP BY s.id
             ORDER BY s.date, s.id
         """
         sales = self.db.fetch_all(sales_query, (cliente_id,))
-        
+    
         # Identificar ventas de contado
         for sale_id, fecha_venta, total, estado, cant_prod in sales:
             if estado == 'paid' and self._is_cash_sale(sale_id, fecha_venta):
@@ -312,7 +271,7 @@ class CustomerModel:
             if sale_id in contado_sales:
                 continue
                 
-            total = norm_to_2_dec(total)
+            total = Decimal(total)
             cant_prod = int(cant_prod) if cant_prod else 0
             
             estado_map = {
@@ -415,6 +374,10 @@ class CustomerModel:
                     monto = norm_to_2_dec(monto)
                     
                     if monto > Decimal('0.00'):
+                        # Ignorar créditos de sobrepago — ya están reflejados en el pago
+                        if reason and reason.startswith("AJUSTE:"):
+                            continue
+                        
                         desc = f"Nota de crédito"
                         if reason:
                             desc += f" · {reason}"
@@ -432,6 +395,7 @@ class CustomerModel:
                             "referencia": reason or ""
                         })
                     else:
+                        # USO CRÉDITO se mantiene igual
                         desc = f"Aplicación de saldo"
                         if sale_id:
                             desc += f" · Venta #{sale_id}"
@@ -447,6 +411,7 @@ class CustomerModel:
                             "sale_id": sale_id,
                             "referencia": reason or ""
                         })
+                                        
         except Exception as e:
             print(f"Tabla customer_credit no disponible: {e}")
         
@@ -456,7 +421,7 @@ class CustomerModel:
         movements.sort(key=lambda x: (x["fecha_original"], x.get("sale_id", 0) or 0))
 
         for mov in movements:
-            mov.pop("fecha_orignal", None)
+            mov.pop("fecha_original", None)
         
         # ================================================================
         # PASO 6: CALCULAR SALDO ACUMULADO
