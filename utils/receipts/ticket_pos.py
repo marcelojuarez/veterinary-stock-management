@@ -225,19 +225,22 @@ def generate_global_payment_ticket(
             # Productos
             if sale_id in sales_with_items and sales_with_items[sale_id]:
                 items = sales_with_items[sale_id]
-                c.setFont("Helvetica", 6.5)
+                c.setFont("Helvetica", 6)
                 
                 for item in items:
-                    _, nombre, cantidad, precio, subtotal, _ = item
-                    
-                    # Truncar nombre para que entre en el ticket
-                    nombre_display = nombre[:22] + "..." if len(nombre) > 22 else nombre
-                    
+                    _, nombre, pack, cantidad, precio, subtotal, _ = item
+
                     # Línea 1: Nombre del producto
+                    nombre_display = nombre[:45] + "..." if len(nombre) > 45 else nombre
                     c.drawString(L + 2*mm, y, nombre_display)
                     y -= 9
-                    
-                    # Línea 2: Cantidad x Precio = Subtotal
+
+                    # Línea 2: Pack
+                    if pack:
+                        c.drawString(L + 2*mm, y, f"  {pack}")
+                        y -= 9
+
+                    # Línea 3: Cantidad x Precio = Subtotal
                     c.drawString(L + 2*mm, y, f"  {cantidad}u x ${format_currency(precio)}")
                     c.drawRightString(R, y, f"${format_currency(subtotal)}")
                     y -= 10

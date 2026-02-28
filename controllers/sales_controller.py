@@ -195,7 +195,6 @@ class SalesController:
         for it in items:
             self.remito_model.add_item(delivery_note_id, it['product_id'], it['quantity'])
 
-
         pdf_path = RemitoPDF().generate_remito(number, customer, items)
         self.sales_view.last_sale_id = None
 
@@ -219,47 +218,11 @@ class SalesController:
             list: Lista de tuplas (sale_id, fecha, total, cliente, estado, pagado)
         """
         try:
-            # Query base
-            query = """
-                SELECT 
-                    s.id,
-                    s.date,
-                    s.total,
-                    COALESCE(c.name, '') as cliente,
-                    s.estado,
-                    COALESCE((
-                        SELECT SUM(p.amount) 
-                        FROM payments p 
-                        WHERE p.sale_id = s.id
-                    ), 0) as pagado
-                FROM sales s
-                LEFT JOIN customer c ON c.id = s.cliente_id
-                WHERE DATE(s.date) BETWEEN ? AND ?
-            """
-            
-            params = [fecha_desde, fecha_hasta]
-            
-            # Filtro por estado si se especifica
-            if estado:
-                query += " AND s.estado = ?"
-                params.append(estado)
-            
-            query += " ORDER BY s.date DESC"
             
             # Ejecutar query
-            rows = self.sales_model.db.fetch_all(query, tuple(params))
-            
+            rows = self.sales_model.get_sales_by_date_range(fecha_desde, fecha_hasta, estado=estado)            
             return rows
             
         except Exception as e:
             print(f"Error al obtener ventas por rango de fechas: {e}")
             return []
-
-    def get_today_sales(self):
-        """
-        Obtener ventas del día actual
-        Wrapper del nuevo método para compatibilidad
-        """
-        from datetime import datetime
-        hoy = datetime.now().strftime("%Y-%m-%d")
-        return self.get_sales_by_date_range(hoy, hoy)

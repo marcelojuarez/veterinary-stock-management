@@ -457,7 +457,8 @@ def generate_global_payment_receipt(*, file_path, client_name, payment_amount, m
                 
                 # Definir posiciones de columnas (ALINEADAS CON PDF COMÚN)
                 col_producto = margin + 5*mm
-                col_cant = margin + 65*mm
+                col_envase = margin + 65*mm 
+                col_cant = margin + 82.5*mm
                 col_precio = margin + 95*mm
                 col_subtotal = W - margin
                 
@@ -465,6 +466,7 @@ def generate_global_payment_receipt(*, file_path, client_name, payment_amount, m
                 c.setFont("Helvetica-Bold", 8)
                 c.setFillColor(gray)
                 c.drawString(col_producto, y, "Producto")
+                c.drawString(col_envase, y, "Envase") 
                 c.drawRightString(col_cant + 5*mm, y, "Cant.")
                 c.drawRightString(col_precio + 10*mm, y, "Precio")
                 c.drawRightString(col_subtotal, y, "Subtotal")
@@ -477,15 +479,17 @@ def generate_global_payment_receipt(*, file_path, client_name, payment_amount, m
                 y -= 8
                 
                 # Items
-                c.setFont("Helvetica", 8)
+                c.setFont("Helvetica", 7)
                 c.setFillColor(black)
                 for item in items:
-                    _, nombre, cantidad, precio, subtotal, _ = item
+                    _, nombre, pack, cantidad, precio, subtotal, _ = item
                     
                     # Truncar nombre si es muy largo
-                    nombre_display = nombre[:28] + "..." if len(nombre) > 28 else nombre
+                    nombre_display = nombre[:32] + "..." if len(nombre) > 32 else nombre
+                    pack_display = (pack[:12] + "...") if pack and len(pack) > 12 else (pack or "-")
                     
                     c.drawString(col_producto, y, nombre_display)
+                    c.drawString(col_envase, y, pack_display)
                     c.drawRightString(col_cant + 5*mm, y, str(cantidad))
                     c.drawRightString(col_precio + 10*mm, y, f"${format_currency(precio)}")
                     c.drawRightString(col_subtotal, y, f"${format_currency(subtotal)}")

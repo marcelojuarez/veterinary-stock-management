@@ -500,9 +500,9 @@ class CustomersView:
             font=ctk.CTkFont(size=14, weight="bold")
         ).pack(pady=(10, 5))
 
-        cols_items = ("Producto", "Cantidad", "Precio", "Subtotal")
+        cols_items = ("Producto", "Envase", "Cantidad", "Precio", "Subtotal")
         self.debt_items_table = ttk.Treeview(scroll, columns=cols_items, show="headings", height=6)
-        for col, w in zip(cols_items, [250, 100, 100, 100]):
+        for col, w in zip(cols_items, [250, 100, 100, 100, 100]):
             self.debt_items_table.column(col, width=w, anchor="center")
             self.debt_items_table.heading(col, text=col, anchor="center")
         self.debt_items_table.pack(padx=10, pady=5, fill="x")
@@ -526,14 +526,15 @@ class CustomersView:
                 text_color="black"
             ).pack(pady=(12, 2))
 
-            ctk.CTkLabel(
+            value_label = ctk.CTkLabel(
                 card,
                 text=f"${format_currency(value)}",
                 font=ctk.CTkFont(size=18, weight="bold"),
                 text_color=value_color
-            ).pack(pady=(0, 12))
+            )
+            value_label.pack(pady=(0, 12))
 
-            return card
+            return value_label
 
         self.debt_total_label = make_card(
             summary_frame, 0,
@@ -627,17 +628,17 @@ class CustomersView:
 
             # Actualizar label de total
             if hasattr(self, "debt_total_label") and self.debt_total_label.winfo_exists():
-                self.debt_total_label.configure(text=f"Total adeudado: ${total:.2f}")
+                self.debt_total_label.configure(text=f"${total}")
 
             if hasattr(self, "debt_items_table") and self.debt_items_table.winfo_exists():
                 for row in self.debt_items_table.get_children():
                     self.debt_items_table.delete(row)
             
             if hasattr(self, "credit_label") and self.credit_label.winfo_exists():
-                self.credit_label.configure(text=f"Saldo a favor: ${credit:.2f}")
+                self.credit_label.configure(text=f"${credit}")
 
             if hasattr(self, "net_label") and self.net_label.winfo_exists():
-                self.net_label.configure(text=f"Deuda neta: ${net:.2f}")
+                self.net_label.configure(text=f"${net}")
 
             if hasattr(self.controller, "current_client_id"):
                 self.select_customer_in_table(self.controller.current_client_id)
@@ -655,25 +656,24 @@ class CustomersView:
                 self.debt_items_table.delete(row)
 
             for item in items:
-                # Manejar items con 4 o 5 elementos (con o sin observaciones)
-                if len(item) == 5:
-                    _, name, quantity, price, subtotal, observations = item
-                    print('entro aca ?')
+                _, name, pack, quantity, price, subtotal, observations = item
+                if name.strip() == 'HONORARIOS':
+                    ## HONORARIOS
                     # Si tiene observaciones, mostrarlas
                     if observations and observations.strip():
                         display_name = f"{name}\n  → {observations[:50]}..." if len(observations) > 50 else f"{name}\n  → {observations}"
                     else:
                         display_name = name
                 else:
-                    # Compatibilidad con consulta antigua (sin observaciones)
-                    _, name, quantity, price, subtotal, _  = item
+                    ## PRODUCTOS COMUNES
                     display_name = name
                 # Insertar en la tabla
                 self.debt_items_table.insert("", "end", values=(
                     display_name,
+                    pack,
                     quantity,
-                    f"${price}",
-                    f"${subtotal}"
+                    f"${format_currency(price)}",
+                    f"${format_currency(subtotal)}"
                 ))
 
         except Exception as e:
@@ -739,13 +739,13 @@ class CustomersView:
                 text_color=color
             ).pack(pady=(2, 10))
 
-        create_summary_card(summary_frame, 0, 0, "Total Comprado", f"${summary['total_comprado']:,.2f}")
-        create_summary_card(summary_frame, 0, 1, "Total Pagado", f"${summary['total_pagado']:,.2f}", "#4CAF50")
+        create_summary_card(summary_frame, 0, 0, "Total Comprado", f"${summary['total_comprado']}")
+        create_summary_card(summary_frame, 0, 1, "Total Pagado", f"${summary['total_pagado']}", "#4CAF50")
         
         if summary['saldo_a_favor'] > 0:
-            create_summary_card(summary_frame, 0, 2, "Saldo a Favor", f"${summary['saldo_a_favor']:,.2f}", "#2196F3")
+            create_summary_card(summary_frame, 0, 2, "Saldo a Favor", f"${summary['saldo_a_favor']}", "#2196F3")
         else:
-            create_summary_card(summary_frame, 0, 2, "Deuda Pendiente", f"${summary['deuda_pendiente']:,.2f}", "#F44336")
+            create_summary_card(summary_frame, 0, 2, "Deuda Pendiente", f"${summary['deuda_pendiente']}", "#F44336")
         
         create_summary_card(summary_frame, 0, 3, "Ventas", f"{summary['ventas_pagadas']}/{summary['total_ventas']} pagadas")
 

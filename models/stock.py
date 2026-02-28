@@ -190,6 +190,6 @@ class StockModel:
     
     def get_honorarios_id(self):
         """Obtener el ID del producto honorarios"""
-        query = "SELECT id FROM stock WHERE name = 'HONORARIOS PROFESIONALES'"
+        query = "SELECT id FROM stock WHERE name = 'HONORARIOS'"
         row = db.fetch_one(query)
         return row[0] if row else None

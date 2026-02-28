@@ -12,6 +12,9 @@ class SalesModel:
             cursor = conn.cursor()
             date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
+            for i in items:
+                print(i)
+
             cursor.execute("""
                 INSERT INTO sales (date, total, cliente_id, estado)
                 VALUES (?, ?, ?, ?)
@@ -109,8 +112,53 @@ class SalesModel:
         """
 
         return self.db.fetch_one(query, (sale_id, ), conn=conn)
-    
 
+    
+    def get_sales_by_date_range(self, fecha_desde, fecha_hasta, estado=None):
+        # Query base
+            query = """
+                SELECT 
+                    s.id,
+                    s.date,
+                    s.total,
+                    COALESCE(c.name, '') as cliente,
+                    s.estado
+                FROM sales s
+                LEFT JOIN customer c ON c.id = s.cliente_id
+                WHERE DATE(s.date) BETWEEN ? AND ?
+            """
+            
+            params = [fecha_desde, fecha_hasta]
+            
+            # Filtro por estado si se especifica
+            if estado:
+                query += " AND s.estado = ?"
+                params.append(estado)
+            
+            query += " ORDER BY s.date DESC"
+            
+            # Ejecutar query
+            sales = self.db.fetch_all(query, tuple(params))
+
+            for i, s in enumerate(sales):
+                # Se obtiene el monto total de pagos
+                query = """
+                SELECT amount FROM payments WHERE sale_id = ?
+                """
+
+                payments = self.db.fetch_all(query, (s[0], ))
+
+                amount = Decimal('0.00')
+
+                for p in payments:
+                    amount += Decimal(p[0])
+
+                amount = norm_to_2_dec(amount)
+
+                sales[i] = s + (str(amount),)
+            
+            return sales
+    
     ## -- Obtiene el monto total de todas las ventas asociadas a un cliente -- ##
     def get_total_of_all_sales(self, client_id, conn=None):
 

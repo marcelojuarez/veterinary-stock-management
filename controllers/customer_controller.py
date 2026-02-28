@@ -266,7 +266,7 @@ class CustomerController:
     def load_sale_items_for_debt(self, sale_id):
         """Carga el detalle de productos de una venta fiada en la vista"""
         try:
-            items = self.model.get_sale_items(sale_id)            
+            items = self.model.get_sale_items(sale_id)         
             self.view.update_debt_items_table(items)
         except Exception as e:
             show_error(f"Error al obtener los productos de la venta: {e}")

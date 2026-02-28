@@ -34,7 +34,7 @@ def seed_stock():
     # Categorías base de productos
     productos_base = [
         #Honorarios
-        {"name": "HONORARIOS PROFESIONALES", "pack": "-", "profit": "0.00", "list_price": "0.00", "discount": "0.00", "iva": "0.00"},
+        {"name": "HONORARIOS", "pack": "UNIDAD", "profit": "0.00", "list_price": "0.00", "discount": "0.00", "iva": "0.00"},
 
         # Alimentos perros
         {"name": "ALIMENTO CANINO CACHORRO", "pack": "BOLSA 3KG", "profit": "30.00", "list_price": "2500.9358", "discount": "0", "iva": "21.00"},

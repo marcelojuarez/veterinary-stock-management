@@ -171,7 +171,8 @@ class CustomerModel:
         query = """
             SELECT
                 s.id,
-                s.name, 
+                s.name,
+                s.pack,
                 si.quantity, 
                 si.price,
                 si.subtotal,
@@ -204,7 +205,7 @@ class CustomerModel:
         for sale_id, total in rows:
             paid = self.pay_model.get_total_amount_of_pay_for_a_sale(sale_id)
             saldo = Decimal(total) - paid
-            if saldo > Decimal('0.01'):
+            if saldo > Decimal('0.00'):
                 total_pending += saldo
 
         return norm_to_2_dec(total_pending)

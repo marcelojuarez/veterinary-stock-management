@@ -29,7 +29,7 @@ class SalesView:
     # --------------------------------------------------------------------
     def setup_variables(self):
         self.search_var = tk.StringVar()
-        self.total_var = tk.StringVar(value="TOTAL: $0.00")
+        self.total_var = tk.StringVar(value="TOTAL: $0,00")
         self.client_var = tk.StringVar()
         self.items_in_sale = []  # lista de productos (id, qty, price)
         self.sale_paid_var = tk.BooleanVar(value=True)
@@ -292,7 +292,7 @@ class SalesView:
             total += qty * price
         
         total = norm_to_2_dec(total)
-        self.total_var.set(f"TOTAL: ${total}")
+        self.total_var.set(f"TOTAL: ${format_currency(total)}")
 
     ## -- Elimina todos los productos de la tabla de productos en la venta -- ##
     def clear_sale(self):
@@ -302,7 +302,7 @@ class SalesView:
 
         self.sale_tree.delete(*self.sale_tree.get_children())
         self.items_in_sale.clear()
-        self.total_var.set("TOTAL: $0.00")
+        self.total_var.set("TOTAL: $0,00")
 
     ## -- Elimina un producto seleccionado en la tabla de productos en la venta -- ##
     def delete_selected_product(self):
@@ -900,7 +900,7 @@ class SalesView:
                         pagado_d = total_d
 
                     # Calcular saldo
-                    saldo = max(Decimal('0.00'), Decimal(total_d - pagado_d))
+                    saldo = total_d - pagado_d
                     
                     # Formatear fecha y hora
                     try:
@@ -1285,7 +1285,7 @@ class SalesView:
         honorarios_id = self.stock_model.get_honorarios_id()
         
         if not honorarios_id:
-            self.show_error("No se encontró el producto 'HONORARIOS PROFESIONALES' en el stock." \
+            self.show_error("No se encontró el producto 'HONORARIOS' en el stock." \
                             "\n\nPor favor, contacte al administrador.")
             return
         
