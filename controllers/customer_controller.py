@@ -7,8 +7,8 @@ from models.customer import CustomerModel
 from models.payment_model import PaymentModel
 from utils.view_helpers import show_error, show_warning, show_success, center_window
 
-from utils.receipts.pdf_generator import generate_payment_receipt, generate_global_payment_receipt
-from utils.receipts.ticket_pos import generate_payment_ticket, generate_global_payment_ticket
+from utils.receipts.pdf_generator import generate_global_payment_receipt
+from utils.receipts.ticket_pos import generate_global_payment_ticket
 from utils.receipts.manager import generate_receipts_for_payment
 from utils.receipts.account_statement import generate_account_statement
 from utils.receipts.paths import a4_pago_global

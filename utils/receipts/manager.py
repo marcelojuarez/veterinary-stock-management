@@ -2,8 +2,8 @@ import os
 from datetime import datetime
 from decimal import Decimal
 
-from utils.receipts.ticket_pos import generate_payment_ticket, generate_global_payment_ticket
-from utils.receipts.pdf_generator import generate_payment_receipt, generate_global_payment_receipt
+from utils.receipts.ticket_pos import generate_global_payment_ticket
+from utils.receipts.pdf_generator import generate_global_payment_receipt
 from utils.receipts.paths import (
     ticket_pago_venta,
     ticket_pago_global,
@@ -15,7 +15,7 @@ from utils.receipts.paths import (
 COMMERCE = {
     "name": "Agroveterinaria El Fortín",
     "address": "Ruta Nacional N° 8, Km 681 – Chaján, Córdoba",
-    "cuit": "20-12345678-3",
+    "cuit": "20-14221046-1",
 }
 
 
@@ -58,64 +58,65 @@ def generate_receipts_for_payment(
     print(f'format: {format}')
     print(f'mode: {mode}')
     if format in ("ticket", "both"):
-        if mode == "sale":
-            ticket_path = ticket_pago_venta(client_name, sale_id)
-            generate_payment_ticket(
-                file_path=ticket_path,
-                commerce_name=COMMERCE["name"],
-                commerce_address=COMMERCE["address"],
-                commerce_cuit=COMMERCE["cuit"],
-                client_name=client_name,
-                sale_id=sale_id,
-                amount=amount,
-                method=method
-            )
-            paths.append(ticket_path)
+        # if mode == "sale":
+        #     ticket_path = ticket_pago_venta(client_name, sale_id)
+        #     generate_payment_ticket(
+        #         file_path=ticket_path,
+        #         commerce_name=COMMERCE["name"],
+        #         commerce_address=COMMERCE["address"],
+        #         commerce_cuit=COMMERCE["cuit"],
+        #         client_name=client_name,
+        #         sale_id=sale_id,
+        #         amount=amount,
+        #         method=method
+        #     )
+        #     paths.append(ticket_path)
 
-        elif mode == "global":
-            ticket_path = ticket_pago_global(client_name)
-            generate_global_payment_ticket(
-                file_path=ticket_path,
-                commerce_name=COMMERCE["name"],
-                commerce_address=COMMERCE["address"],
-                commerce_cuit=COMMERCE["cuit"],
-                client_name=client_name,
-                amount=amount,
-                method=method,
-                result_data=result_data,
-                sales_with_items=sales_with_items
-            )
-            paths.append(ticket_path)
+        ticket_path = ticket_pago_global(client_name)
+        generate_global_payment_ticket(
+            file_path=ticket_path,
+            commerce_name=COMMERCE["name"],
+            commerce_address=COMMERCE["address"],
+            commerce_cuit=COMMERCE["cuit"],
+            client_name=client_name,
+            amount=amount,
+            method=method,
+            result_data=result_data,
+            sales_with_items=sales_with_items
+        )
+        paths.append(ticket_path)
 
     # ================================================================
     # COMPROBANTE A4 - Completo con detalle de productos
     # ================================================================
     if format in ("a4", "both"):
-        if mode == "sale":
-            a4_path = a4_pago_venta(client_name, sale_id)
-            generate_payment_receipt(
-                file_path=a4_path,
-                client_name=client_name,
-                sale_id=sale_id,
-                payment_amount=amount,
-                method=method,
-                sale_info=sale_info,
-                payments=payments,
-                sales_with_items=sales_with_items 
-            )
-            paths.append(a4_path)
+        # if mode == "sale":
+        #     a4_path = a4_pago_venta(client_name, sale_id)
+        #     generate_payment_receipt(
+        #         file_path=a4_path,
+        #         client_name=client_name,
+        #         sale_id=sale_id,
+        #         payment_amount=amount,
+        #         method=method,
+        #         sale_info=sale_info,
+        #         payments=payments,
+        #         sales_with_items=sales_with_items 
+        #     )
+        #     paths.append(a4_path)
 
-        elif mode == "global":
-            a4_path = a4_pago_global(client_name)
-            generate_global_payment_receipt(
-                file_path=a4_path,
-                client_name=client_name,
-                payment_amount=amount,
-                method=method,
-                result_data=result_data,
-                sales_with_items=sales_with_items
-            )
-            paths.append(a4_path)
+        a4_path = a4_pago_global(client_name)
+        generate_global_payment_receipt(
+            file_path=a4_path,
+            commerce_name=COMMERCE["name"],
+            commerce_address=COMMERCE["address"],
+            commerce_cuit=COMMERCE["cuit"],
+            client_name=client_name,
+            payment_amount=amount,
+            method=method,
+            result_data=result_data,
+            sales_with_items=sales_with_items
+        )
+        paths.append(a4_path)
 
     # Abrir archivos generados
     for p in paths:
