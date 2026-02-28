@@ -1,7 +1,8 @@
 
 import re
 import customtkinter as ctk
-from datetime import datetime
+from datetime import datetime                
+import os
 from tkinter import messagebox
 from models.customer import CustomerModel
 from models.payment_model import PaymentModel
@@ -522,8 +523,6 @@ class CustomerController:
                 "domicilio": cliente_data[3] if cliente_data else "-",
                 "telefono": cliente_data[4] if cliente_data else "-",
             }
-            # Generar PDF (podés usar la misma lógica de tus otros PDFs)
-            from utils.receipts.account_statement import generate_account_statement
             
             filepath = generate_account_statement(
                 cliente_info=cliente_info,
@@ -722,10 +721,6 @@ class CustomerController:
                     'domicilio': cliente_data[3] if cliente_data else '',
                     'telefono': cliente_data[4] if cliente_data else ''
                 }
-                
-                from utils.receipts.account_statement import generate_account_statement
-                from datetime import datetime
-                import os
                 
                 # Generar PDF
                 filepath = generate_account_statement(

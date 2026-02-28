@@ -188,12 +188,16 @@ class PaymentModel:
             conn.close()
 
     def get_customer_credit(self, client_id) -> float:
-        row = self.db.fetch_one(
-            "SELECT COALESCE(SUM(amount), 0) FROM customer_credit WHERE client_id = ?", 
+        rows = self.db.fetch_all(
+            "SELECT amount FROM customer_credit WHERE client_id = ?", 
             (client_id,)
         )
 
-        return norm_to_2_dec(row[0]) if row else norm_to_2_dec(0.0)
+        total = Decimal('0.00')
+        for row in rows:
+            total += Decimal(row[0])
+
+        return norm_to_2_dec(total)
 
     def add_customer_credit(self, client_id: int, amount: Decimal, reason: str, sale_id: int, conn=None, commit=True): 
         query = """

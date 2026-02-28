@@ -396,22 +396,7 @@ class CustomerModel:
                             "referencia": reason or ""
                         })
                     else:
-                        # USO CRÉDITO se mantiene igual
-                        desc = f"Aplicación de saldo"
-                        if sale_id:
-                            desc += f" · Venta #{sale_id}"
-                        fecha_formateada = iso_to_traditional(fecha.split()[0]) if fecha else ""
-                        movements.append({
-                            "fecha": fecha_formateada,
-                            "fecha_original": fecha,
-                            "tipo": "USO CRÉDITO",
-                            "descripcion": desc,
-                            "debe": abs(monto),
-                            "haber": Decimal('0.00'),
-                            "saldo": Decimal('0.00'),
-                            "sale_id": sale_id,
-                            "referencia": reason or ""
-                        })
+                        pass # Créditos de monto negativo (ajustes por sobrepago) se omiten porque ya afectan el saldo en los pagos
                                         
         except Exception as e:
             print(f"Tabla customer_credit no disponible: {e}")
@@ -423,14 +408,22 @@ class CustomerModel:
 
         for mov in movements:
             mov.pop("fecha_original", None)
-        
+
         # ================================================================
         # PASO 6: CALCULAR SALDO ACUMULADO
         # ================================================================
         saldo_acumulado = Decimal('0.00')
+        credito_acumulado = Decimal('0.00')
+
         for mov in movements:
-            saldo_acumulado += mov["debe"] - mov["haber"]
-            mov["saldo"] = norm_to_2_dec(saldo_acumulado)
+            delta = mov["debe"] - mov["haber"]
+            saldo_acumulado += delta
+            
+            if saldo_acumulado < Decimal('0.00'):
+                credito_acumulado += abs(saldo_acumulado)
+                saldo_acumulado = Decimal('0.00')
+    
+        mov["saldo"] = norm_to_2_dec(saldo_acumulado)
         
         # ================================================================
         # PASO 7: RESUMEN (solo cuenta ventas a crédito)
@@ -453,11 +446,14 @@ class CustomerModel:
         
         ventas_pagadas = ventas_credito_pagadas
 
+        saldo_final = norm_to_2_dec(saldo_acumulado)
+        credito_final = norm_to_2_dec(credito_acumulado)
+
         summary = {
             'total_comprado': norm_to_2_dec(total_debe),
             'total_pagado': norm_to_2_dec(total_haber),
-            'saldo_a_favor': abs(saldo_final) if saldo_final < Decimal('0.00') else Decimal('0.00'),
-            'deuda_pendiente': saldo_final if saldo_final > Decimal('0.00') else Decimal('0.00'),
+            'saldo_a_favor': credito_final,        # ← crédito calculado del historial
+            'deuda_pendiente': saldo_final,        # ← nunca baja de 0
             'ventas_pagadas': ventas_pagadas,
             'total_ventas': ventas_totales,
             'ventas_texto': f"{ventas_pagadas}/{ventas_totales} pagadas"
