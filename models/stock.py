@@ -1,12 +1,10 @@
 from db.database import db
-from models.sale import SalesModel
-from models.payment_model import PaymentModel
 
 class StockModel: 
-    def __init__(self, db_conection=None):
+    def __init__(self, sales_model, payment_model, db_conection=None):
         self.db = db_conection or db
-        self.sale_model = SalesModel()
-        self.payment_model = PaymentModel()
+        self.sales_model = sales_model
+        self.payment_model = payment_model
     
     def get_all_products(self):
         """Obtener todos los productos del stock"""
@@ -83,8 +81,8 @@ class StockModel:
 
                 if status != 'paid':
 
-                    self.sale_model.update_sale_item(sale_id, product_id, product_data['PriceWIva'], conn=conn, commit=False)
-                    self.sale_model.recalculate_sale_total(sale_id, conn=conn, commit=False)
+                    self.sales_model.update_sale_item(sale_id, product_id, product_data['PriceWIva'], conn=conn, commit=False)
+                    self.sales_model.recalculate_sale_total(sale_id, conn=conn, commit=False)
                     print(f"DEBUG STOCK: llamando update_sale_status para venta {sale_id}")
                     self.payment_model.update_sale_status(sale_id, conn=conn, commit=False)
 

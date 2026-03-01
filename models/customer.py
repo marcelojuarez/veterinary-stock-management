@@ -1,14 +1,12 @@
 import sqlite3
 from db.database import db
 
-from models.payment_model import PaymentModel
 from decimal import Decimal
-from utils.utils import norm_to_2_dec, flex_dec, iso_to_traditional
-from datetime import datetime
+from utils.utils import norm_to_2_dec, iso_to_traditional
 class CustomerModel:
-    def __init__(self, db_connection=None):
+    def __init__(self, pay_model, db_connection=None):
         self.db = db_connection or db 
-        self.pay_model = PaymentModel()
+        self.pay_model = pay_model
 
     def get_all_customers(self): 
         # Obtener todos los clientes

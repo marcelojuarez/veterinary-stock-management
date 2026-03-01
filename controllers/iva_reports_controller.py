@@ -1,9 +1,9 @@
 from models.iva import IVAModel
 
 class ReportsController:
-    def __init__(self):
+    def __init__(self, iva_model):
         self.view = None
-        self.iva_model = IVAModel()
+        self.iva_model = iva_model
         self.current_period = None
         self.current_mes = None
         self.current_anio = None

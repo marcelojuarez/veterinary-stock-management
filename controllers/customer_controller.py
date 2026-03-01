@@ -4,8 +4,6 @@ import customtkinter as ctk
 from datetime import datetime                
 import os
 from tkinter import messagebox
-from models.customer import CustomerModel
-from models.payment_model import PaymentModel
 from utils.view_helpers import show_error, show_warning, show_success, center_window
 
 from utils.receipts.pdf_generator import generate_global_payment_receipt
@@ -18,10 +16,10 @@ from decimal import Decimal, InvalidOperation
 
 
 class CustomerController: 
-    def __init__(self):
+    def __init__(self, customer_model, payment_model):
         self.view = None
-        self.model = CustomerModel()
-        self.payment_model = PaymentModel()
+        self.model = customer_model
+        self.payment_model = payment_model
         self.all_customers = []
 
     def set_view(self, view):

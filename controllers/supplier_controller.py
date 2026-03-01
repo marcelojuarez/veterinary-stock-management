@@ -3,15 +3,12 @@ import re
 from utils.view_helpers import show_warning, show_error, show_success
 
 class SupplierController():
-    def __init__(self):
+    def __init__(self, supplier_model):
+        self.model = supplier_model
         self.view = None
-        self.model = None
 
     def set_view(self, view):
         self.view = view
-
-    def set_model(self, model):
-        self.model = model
 
     def add_new_supplier(self, window=None):
         """Guardar nuevo proveedor"""

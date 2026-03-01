@@ -1,20 +1,24 @@
 from decimal import Decimal
 from tkinter import messagebox
-from models.sale import SalesModel
-from models.stock import StockModel
-from models.remito import RemitoModel
-from models.customer import CustomerModel
 from services.remito_pdf import RemitoPDF
 from utils.utils import norm_to_2_dec
-from controllers.invoice_controller import InvoiceController
 
 class SalesController:
-    def __init__(self, event_bus):
+    def __init__(
+            self, 
+            customer_model,
+            remito_model,
+            sales_model,
+            stock_model,
+            invoice_controller,
+            event_bus
+        ):
         self.sales_view = None
-        self.stock_model = StockModel()
-        self.sales_model = SalesModel()
-        self.customer_model = CustomerModel()
-        self.remito_model = RemitoModel()
+        self.customer_model = customer_model
+        self.remito_model = remito_model
+        self.sales_model = sales_model
+        self.stock_model = stock_model
+        self.invoice_controller = invoice_controller
         self.event_bus = event_bus
 
     def set_view(self, view):
@@ -119,12 +123,14 @@ class SalesController:
 
             sale_id = self.sales_model.register_sale(total, items, cliente_id, estado, retenciones)
 
-            invoice = InvoiceController()
-            pdf = invoice.generate_invoice(cliente_id, items)
+            pdf = self.invoice_controller.generate_invoice(cliente_id, items)
             self.sales_view.show_success(f"Venta registrada.\nFactura creada: {pdf}")
 
             self.sales_view.last_sale_id = sale_id
-            # self.ask_remito(f"¿Desea generar remito?")
+            if estado == "pending":
+                print('pending')
+                # Se genera el remito en compras por cuenta corriente 
+                self.sales_view.generate_delivery_note()
             self.sales_view.clear_sale()
             self.sales_view.load_available_products()
 

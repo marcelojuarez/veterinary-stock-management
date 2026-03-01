@@ -1,15 +1,12 @@
-from models.invoice import InvoiceModel
-from models.customer import CustomerModel
-from models.stock import StockModel
 from services.invoice_internal_pdf import InvoiceInternalPDFService
 from decimal import Decimal
 from utils.utils import norm_to_2_dec, flex_dec
 
 class InvoiceController:
-    def __init__(self):
-        self.invoice_model = InvoiceModel()
-        self.customer_model = CustomerModel()
-        self.stock_model = StockModel()
+    def __init__(self, invoice_model, customer_model, stock_model):
+        self.invoice_model = invoice_model
+        self.customer_model = customer_model
+        self.stock_model = stock_model
 
     def _get_iva_rate(self, product_id):
         """

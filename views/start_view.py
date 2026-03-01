@@ -3,17 +3,16 @@ import os
 
 import customtkinter as ctk
 import tkinter as tk
-from models.company import CompanyModel
 
 ctk.set_appearance_mode("light")
 ctk.set_default_color_theme("blue")
 
 
 class StartView:
-    def __init__(self, parent):
+    def __init__(self, parent, company_model):
         self.frame = ctk.CTkFrame(parent, fg_color="gray58")
         self.frame.pack(fill="both", expand=True)
-        self.model = CompanyModel()
+        self.company_model = company_model
 
         self.create_background_logo()
         self.create_main_widget()
@@ -161,7 +160,7 @@ class StartView:
         self.load_company_data()
 
     def load_company_data(self):
-        data = self.model.get_company_data()
+        data = self.company_model.get_company_data()
 
         self.businesss_name_var.set(data[1])
         self.cuit_var.set(data[2])

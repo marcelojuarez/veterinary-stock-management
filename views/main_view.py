@@ -1,9 +1,10 @@
+import platform
 import tkinter as tk
-import customtkinter as ctk
 from tkinter import ttk
-
-from config.settings import settings
+import customtkinter as ctk
 from events import EventBus
+from datetime import datetime
+from config.settings import settings
 
 from views.start_view import StartView
 from views.stock_view import StockView
@@ -11,9 +12,20 @@ from views.sales_view import SalesView
 from views.supplier_view import SupplierView
 from views.customers_view import CustomersView
 from views.reports_view import ReportsView
-from datetime import datetime
+
+from models.company import CompanyModel
+from models.customer import CustomerModel
+from models.invoice import InvoiceModel
+from models.iva import IVAModel
+from models.payment_model import PaymentModel
+from models.remito import RemitoModel
+from models.sale import SalesModel
+from models.supplier import SupplierModel
+from models.stock import StockModel
+#from models.user import User
 
 from controllers.auth_controller import validate_data
+from controllers.invoice_controller import InvoiceController
 from controllers.stock_controller import StockController
 from controllers.sales_controller import SalesController
 from controllers.supplier_controller import SupplierController
@@ -23,7 +35,6 @@ from controllers.payment_controller import PaymentController
 from controllers.supplier_invoice_controller import SupplierInvoiceController
 from controllers.supplier_receipt_controller import SupplierReceiptController
 from controllers.iva_reports_controller import ReportsController
-import platform
 
 class App():
     def __init__(self):
@@ -103,7 +114,7 @@ class App():
     def load_system(self):
         if (validate_data(self.user_var.get(), self.pwd_var.get())):
                 
-            self.create_views_and_controllers()
+            self.create_componentes()
             self.root.after(100, self.load_initial_data) 
             
             self.root.deiconify() 
@@ -111,7 +122,7 @@ class App():
 
             self.login_win.destroy() 
 
-    def create_views_and_controllers(self):
+    def create_componentes(self):
         self.notebook = ttk.Notebook(self.root)
         self.notebook.pack(fill='both')
         self.notebook.bind("<<NotebookTabChanged>>", self.on_tab_change)
@@ -119,44 +130,62 @@ class App():
 
         # Event bus 
         event_bus = EventBus()
-        
-        # --- CONTROLLERS ---
-        self.stock_controller = StockController(event_bus)
-        self.sales_controller = SalesController(event_bus)
-        self.supplier_controller = SupplierController()
-        self.customer_controller = CustomerController()
-        self.iva_reports_controller = ReportsController()
 
+        ## -- MODELS -- ##
+        invoice_model = InvoiceModel()
+        iva_model = IVAModel()
+        company_model = CompanyModel()
+        sales_model = SalesModel()
+        payment_model = PaymentModel(sales_model)
+        customer_model = CustomerModel(payment_model)
+        remito_model = RemitoModel()
+        stock_model = StockModel(sales_model, payment_model)
+        supplier_model = SupplierModel(stock_model)
 
-        self.purchase_controller = PurchaseController(event_bus)
+        ## --- CONTROLLERS --- ##
+        self.stock_controller = StockController(
+            stock_model, supplier_model, payment_model, event_bus
+        )
+        self.supplier_controller = SupplierController(supplier_model)
+        self.customer_controller = CustomerController(customer_model, payment_model)
+        self.iva_reports_controller = ReportsController(iva_model)
 
-        self.payment_controller = PaymentController()
-        self.invoice_controller = SupplierInvoiceController()
-        self.receipt_controller = SupplierReceiptController()
+        self.purchase_controller = PurchaseController(supplier_model, stock_model, event_bus)
+        self.payment_controller = PaymentController(supplier_model)
+        self.supplier_invoice_controller = SupplierInvoiceController(supplier_model)
+        self.receipt_controller = SupplierReceiptController(supplier_model)
+        self.invoice_controller = InvoiceController(invoice_model, customer_model, stock_model)
+        self.sales_controller = SalesController(
+            customer_model, remito_model, sales_model, stock_model, self.invoice_controller, event_bus
+        )
 
-        ## -- VIEWS -- ##
+        ## --- VIEWS --- ##
         # --- START ---  
-        self.start_view = StartView(self.notebook)
+        self.start_view = StartView(self.notebook, company_model)
         self.notebook.add(self.start_view.frame, text='Inicio')
 
         # --- STOCK ---
-        self.stock_view = StockView(self.notebook, controller=self.stock_controller)
+        self.stock_view = StockView(self.notebook, self.stock_controller, stock_model)
         self.stock_controller.set_view(self.stock_view)
 
         self.notebook.add(self.stock_view.frame, text='Inventario')
 
         # --- SALES ---
-        self.sales_view = SalesView(self.notebook, controller=self.sales_controller)
+        self.sales_view = SalesView(
+            self.notebook, self.sales_controller, stock_model, customer_model
+        )
         self.sales_controller.set_view(self.sales_view)
 
         self.notebook.add(self.sales_view.frame, text='Venta')
 
         # --- SUPPLIERS ---
-        self.supplier_view = SupplierView(self.notebook,self.supplier_controller, self.purchase_controller, 
-            self.payment_controller, self.invoice_controller, self.receipt_controller)
+        self.supplier_view = SupplierView(
+            self.notebook,self.supplier_controller, self.purchase_controller, 
+            self.payment_controller, self.supplier_invoice_controller, self.receipt_controller,
+            supplier_model, stock_model
+        )
         
         self.supplier_controller.set_view(self.supplier_view)
-        self.supplier_controller.set_model(self.supplier_view.model)
 
         self.notebook.add(self.supplier_view.frame, text='Proveedores')
 

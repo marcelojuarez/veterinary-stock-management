@@ -11,11 +11,11 @@ ctk.set_appearance_mode("light")  # "light" o "dark"
 ctk.set_default_color_theme("blue")  # "blue", "green", "dark-blue"
 
 class StockView():
-    def __init__(self, parent, controller):
+    def __init__(self, parent, controller, stock_model):
         self.controller = controller
         # Usar CTkFrame en lugar de tk.Frame
         self.frame = ctk.CTkFrame(parent, fg_color="#f0f0f0")
-        self.stock_model = StockModel()
+        self.stock_model = stock_model
         self.create_widgets()
         self.edit_item = None
         self.edit_entry = None

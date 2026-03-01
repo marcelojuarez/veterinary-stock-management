@@ -3,13 +3,10 @@ from utils.utils import string_to_2_dec
 from utils.view_helpers import show_warning, show_error, close_win
 
 class PaymentController():
-    def __init__(self):
-        self.model = None
+    def __init__(self, supplier_model):
+        self.supplier_model = supplier_model
         self.form_view = None
         self.pay_view = None
-
-    def set_model(self, model):
-        self.model = model
 
     def set_form_view(self, view):
         self.form_view = view
@@ -30,7 +27,7 @@ class PaymentController():
                show_warning("Seleccione un proveedor")
                return
             
-            supplier_data = self.model.core.find_supplier_by_cuit(selected)
+            supplier_data = self.supplier_model.core.find_supplier_by_cuit(selected)
             
             # se validan los datos de pago
             if not self.validate_data(payment_data):
@@ -42,7 +39,7 @@ class PaymentController():
                 ## Se paga una compra en concreto
 
                 # Datos de la compra
-                purchase = self.model.purchase.get_purchase_by_id(purchase_id.get())
+                purchase = self.supplier_model.purchase.get_purchase_by_id(purchase_id.get())
                 # Deuda actual de la compra
                 debt = Decimal(purchase[9])
                 
@@ -54,12 +51,12 @@ class PaymentController():
             else:
                 # Se pagan multiples compras 
                 
-                purchases = self.model.purchase.get_all_purchases_without_paying(selected)
+                purchases = self.supplier_model.purchase.get_all_purchases_without_paying(selected)
 
                 for p in purchases:
                     print(p)
 
-                total_debt = self.model.purchase.get_debt_of_supplier(selected)
+                total_debt = self.supplier_model.purchase.get_debt_of_supplier(selected)
 
                 # Se chequea si el monto es superior a la deuda
                 if not self.validate_debt(amount, total_debt, True):
@@ -79,7 +76,7 @@ class PaymentController():
                 'Bank': payment_data['bank'],
             }
 
-            result = self.model.payment.register_payment(data, purchase_id)
+            result = self.supplier_model.payment.register_payment(data, purchase_id)
             
             if result:
                 self.pay_view.load_payment_movement(selected)

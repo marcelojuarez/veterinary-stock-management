@@ -3,24 +3,21 @@ import customtkinter as ctk
 from decimal import Decimal
 from tkcalendar import DateEntry
 from tkinter import ttk, messagebox
-from models.stock import StockModel
 from datetime import datetime, timedelta
-from models.customer import CustomerModel
 from views.client_selector import ClientSelectorDialog
 from services.daily_sales_report import DailySalesReportService
 from utils.view_helpers import center_window, show_error
 from utils.utils import iso_to_traditional, norm_to_2_dec, format_currency, string_to_2_dec, traditional_to_iso
 
-
 ctk.set_appearance_mode("light")
 ctk.set_default_color_theme("blue")
 
-
 class SalesView:
-    def __init__(self, parent, controller):
+    def __init__(self, parent, controller, stock_model, customer_model):
         self.controller = controller
         self.frame = ctk.CTkFrame(parent, fg_color="#f0f0f0")
-        self.stock_model = StockModel()
+        self.stock_model = stock_model
+        self.customer_model = customer_model
         self.setup_variables()
         self.create_layout()
 
@@ -1233,11 +1230,10 @@ class SalesView:
         
     def open_client_selector(self):
         """Abrir diálogo de selección de cliente"""        
-        customer_model = CustomerModel()
         
         dialog = ClientSelectorDialog(
             self.frame, 
-            customer_model,
+            self.customer_model,
             self.client_var.get()
         )
         
@@ -1264,8 +1260,7 @@ class SalesView:
             # Cliente normal
             self.radio_credit.configure(state="normal")
 
-            customer_model = CustomerModel()
-            client_data = customer_model.get_client_by_name(selected_name)
+            client_data = self.customer_model.get_client_by_name(selected_name)
 
             if client_data:
                 self.client_cuit_var.set(client_data[2] or "")

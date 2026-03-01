@@ -7,6 +7,9 @@ from random import choice, randint, uniform
 from models.company import CompanyModel
 from models.user import User
 from models.supplier.__init__ import SupplierModel
+from models.sale import SalesModel
+from models.payment_model import PaymentModel
+from models.stock import StockModel
 from models.security import gen_password
 from utils.utils import norm_to_2_dec, flex_dec
 from decimal import Decimal
@@ -885,7 +888,10 @@ def seed_suppliers():
             "iva_condition": iva_condition,
         })
     
-    supplier_mdl = SupplierModel()
+    sales_model = SalesModel()
+    payment_model = PaymentModel(sales_model)
+    stock_model = StockModel(sales_model, payment_model)
+    supplier_mdl = SupplierModel(stock_model)
     
     for supplier in suppliers:
         supplier_mdl.core.add_supplier(supplier)

@@ -1,14 +1,13 @@
 # models/supplier/supplier_payments.py
 
 from datetime import datetime
-from .supplier_purchase import SupplierPurchase
 from utils.utils import norm_to_2_dec
 from decimal import Decimal
 
 class SupplierPayment():
-    def __init__(self, db):
+    def __init__(self, db, purchase_model):
         self.db = db
-        self.purchase = SupplierPurchase(db)
+        self.purchase = purchase_model
 
     ## -- Obtiene un registro de pago a traves de su id -- ##
     def get_payment_by_id(self, payment_id):

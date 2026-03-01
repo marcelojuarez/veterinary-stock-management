@@ -3,10 +3,10 @@ from utils.utils import traditional_to_iso
 from utils.view_helpers import close_win, show_error
 
 class SupplierReceiptController():
-    def __init__(self):
+    def __init__(self, supplier_model):
         self.form_view = None 
         self.purchase_view = None 
-        self.model = None
+        self.supplier_model = supplier_model
 
     def set_form_view(self, form_view):
         self.form_view = form_view
@@ -14,14 +14,11 @@ class SupplierReceiptController():
     def set_purchase_view(self, purchase_view):
         self.purchase_view = purchase_view
 
-    def set_model(self, model):
-        self.model = model
-
     ## -- Agrega un nuevo remito de un proveedor -- ##
     def add_new_receipt(self, win, parent):
         try:
             data = self.form_view.get_receipt_form_data()
-            supplier_data = self.model.core.find_supplier_by_cuit(data['supplier_cuit'])
+            supplier_data = self.supplier_model.core.find_supplier_by_cuit(data['supplier_cuit'])
 
             if not self.validate_receipt_data(data):
                 return
@@ -49,7 +46,7 @@ class SupplierReceiptController():
                 'total': data['total'], 
             }
 
-            self.model.purchase.create_receipt_and_purchase(receipt_params, purchase_params)
+            self.supplier_model.purchase.create_receipt_and_purchase(receipt_params, purchase_params)
             self.purchase_view.load_purchases(True)
             close_win(win, parent)
             

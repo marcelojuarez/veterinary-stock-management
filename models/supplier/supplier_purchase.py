@@ -1,16 +1,15 @@
 # models/supplier/supplier_purchase.py
 
 from datetime import datetime
-from models.stock import StockModel
 from .supplier_invoice import SupplierInvoice
 from .supplier_receipt import SupplierReceipt
 from decimal import Decimal
-from utils.utils import norm_to_2_dec, traditional_to_iso, flex_dec
+from utils.utils import norm_to_2_dec, flex_dec
 
 class SupplierPurchase():
-    def __init__(self, db):
+    def __init__(self, db, stock_model):
         self.db = db
-        self.stock_model = StockModel()
+        self.stock_model = stock_model
         self.supplier_invoice = SupplierInvoice(db)
         self.supplier_receipt = SupplierReceipt(db)
 

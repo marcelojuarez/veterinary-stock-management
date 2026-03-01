@@ -2,12 +2,11 @@ from db.database import db
 from decimal import Decimal
 from datetime import datetime
 from utils.utils import norm_to_2_dec
-from models.sale import SalesModel
 
 class PaymentModel:
-    def __init__(self):
+    def __init__(self, sales_model):
         self.db = db
-        self.sale_model = SalesModel()
+        self.sale_model = sales_model
 
     def create_payment(self, sale_id, client_id, amount, method=None, notes=None, conn=None, commit=True):
         """Registra un pago en la tabla payments."""

@@ -4,9 +4,9 @@ from models.stock import StockModel
 from utils.view_helpers import show_error, show_warning, show_success, close_win
 
 class PurchaseController():
-    def __init__(self, event_bus):
-        self.model = None
-        self.stock_model = StockModel()
+    def __init__(self, supplier_model, stock_model, event_bus):
+        self.supplier_model = supplier_model
+        self.stock_model = stock_model
         self.view = None
         self.form_view = None
         self.new_p_form = None # new_product_form
@@ -22,10 +22,6 @@ class PurchaseController():
         
         products = self.stock_model.get_all_products()
         self.products = [(p[0], p[1], p[2], p[10]) for p in products]
-
-    # setters
-    def set_model(self, model):
-        self.model = model
 
     def set_view(self, view):
         self.view = view
@@ -53,12 +49,12 @@ class PurchaseController():
     def confirm_purchase(self, purchase_id):
         # Control si tiene compras asociadas
         try:
-            if not self.model.purchase.get_purchase_items(purchase_id):
+            if not self.supplier_model.purchase.get_purchase_items(purchase_id):
                 show_warning('Advertencia. No puede confirmar una compra sin productos cargados')
                 return 
 
             # Se establece compra como pendiente y deuda proveedor 
-            purchase_data = self.model.purchase.get_purchase_by_id(purchase_id)
+            purchase_data = self.supplier_model.purchase.get_purchase_by_id(purchase_id)
 
             doc_type = purchase_data[2]
             if doc_type == "REMITO":
@@ -66,7 +62,7 @@ class PurchaseController():
             else:
                 id = purchase_data[3]
 
-            result = self.model.purchase.load_products(purchase_id, id, doc_type)
+            result = self.supplier_model.purchase.load_products(purchase_id, id, doc_type)
 
             if result:
                 # Refrescar lista con proveedor seleccionado o no
@@ -93,7 +89,7 @@ class PurchaseController():
     ## --  Actualizar la info del documento -- ##
     def update_doc_info(self, purchase_id, doc_type):
         try:
-            purchase_data = self.model.purchase.get_purchase_by_id(purchase_id)
+            purchase_data = self.supplier_model.purchase.get_purchase_by_id(purchase_id)
             purchase_id = purchase_data[0]
 
             if doc_type == 'REMITO':
@@ -105,7 +101,7 @@ class PurchaseController():
 
                 receipt_id = purchase_data[4]
 
-                result = self.model.purchase.update_purchase(purchase_id, receipt_id, data, doc_type)
+                result = self.supplier_model.purchase.update_purchase(purchase_id, receipt_id, data, doc_type)
 
             else:
                 data = self.invoice_info_vw.get_invoice_data()
@@ -116,7 +112,7 @@ class PurchaseController():
 
                 invoice_id = purchase_data[3]
 
-                result = self.model.purchase.update_purchase(purchase_id, invoice_id, data, doc_type)
+                result = self.supplier_model.purchase.update_purchase(purchase_id, invoice_id, data, doc_type)
 
             if result:
                 if self.view.supplier_var.get().strip() == "":
@@ -220,7 +216,7 @@ class PurchaseController():
             }
 
             # Guardar en DB
-            self.model.purchase.add_product(product_data)
+            self.supplier_model.purchase.add_product(product_data)
             if window:
                 window.destroy()
         
@@ -312,7 +308,7 @@ class PurchaseController():
                 item_data['Total']
             ]
 
-            purchase_data = self.model.purchase.get_purchase_by_id(purchase_id)
+            purchase_data = self.supplier_model.purchase.get_purchase_by_id(purchase_id)
 
             doc_type = purchase_data[2]
             if doc_type == "REMITO":
@@ -321,7 +317,7 @@ class PurchaseController():
                 doc_id = purchase_data[3]
 
             # Se agrega item a la compra
-            result = self.model.purchase.handle_add_p_item(data, purchase_id, doc_type, doc_id)
+            result = self.supplier_model.purchase.handle_add_p_item(data, purchase_id, doc_type, doc_id)
 
             if result:
                 show_success('Item agregado con exito')
@@ -416,7 +412,7 @@ class PurchaseController():
         
     ## -- Verifica si el producto ya fue incluido en la compra -- ##
     def exists_product_on_purchase(self, win, parent, purchase_id, product_id):
-        result = self.model.purchase.get_product_on_purchase(purchase_id, product_id)
+        result = self.supplier_model.purchase.get_product_on_purchase(purchase_id, product_id)
         if result is None:
             return False
         
@@ -430,7 +426,7 @@ class PurchaseController():
     ## -- Eliminar un registro de compra -- ##    
     def delete_purchase(self, purchase_id, doc_type):
         
-        purchase_data = self.model.purchase.get_purchase_by_id(purchase_id)
+        purchase_data = self.supplier_model.purchase.get_purchase_by_id(purchase_id)
         
         doc_type = purchase_data[2]
 
@@ -439,7 +435,7 @@ class PurchaseController():
         else:
             doc_id = purchase_data[3]
         
-        result = self.model.purchase.delete_purchase_and_doc(purchase_id, doc_id, doc_type)
+        result = self.supplier_model.purchase.delete_purchase_and_doc(purchase_id, doc_id, doc_type)
 
         if result:
             if self.view.supplier_var.get().strip() == "":
@@ -454,7 +450,7 @@ class PurchaseController():
     def delete_purchase_item(self, purchase_id, product_id):
         try:
             
-            purchase_data = self.model.purchase.get_purchase_by_id(purchase_id)
+            purchase_data = self.supplier_model.purchase.get_purchase_by_id(purchase_id)
 
             doc_type = purchase_data[2]
             if doc_type == "REMITO":
@@ -462,7 +458,7 @@ class PurchaseController():
             else:
                 doc_id = purchase_data[3]
 
-            result = self.model.purchase.handle_delete_purchase_item(purchase_id, product_id, doc_type, doc_id)
+            result = self.supplier_model.purchase.handle_delete_purchase_item(purchase_id, product_id, doc_type, doc_id)
             if result:
                 show_success('Item eliminado con exito')
                 ## actualizar tabla y labels
@@ -493,7 +489,7 @@ class PurchaseController():
         Retorna True si la compra tiene una factura A o M (discrimina IVA).
         Retorna True por defecto si es un remito u otro tipo de comprobante.
         """
-        purchase = self.model.purchase.get_purchase_by_id(purchase_id)
+        purchase = self.supplier_model.purchase.get_purchase_by_id(purchase_id)
         if purchase is None:
             return True
 
@@ -504,4 +500,4 @@ class PurchaseController():
             # (o cambiá a True si en remitos sí querés discriminar)
 
         doc_id = purchase[3]  # invoice_id
-        return self.model.purchase.get_invoice_type(doc_id)
+        return self.supplier_model.purchase.get_invoice_type(doc_id)

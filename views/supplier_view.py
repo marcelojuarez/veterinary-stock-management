@@ -2,8 +2,6 @@ import customtkinter as ctk
 import tkinter as tk
 from tkinter import ttk
 from tksheet import Sheet
-from models.supplier.__init__ import SupplierModel
-from models.stock import StockModel
 from views.payments.payment_window import PaymentWindow
 from views.purchases.purchase_window import PurchaseWindow
 from utils.view_helpers import center_window, close_win
@@ -15,10 +13,20 @@ ctk.set_appearance_mode("light")  # "light" o "dark"
 ctk.set_default_color_theme("blue")  # "blue", "green", "dark-blue"
 
 class SupplierView():
-    def __init__(self, parent, controller, purchase_controller, payment_controller, invoice_controller, receipt_controller):
+    def __init__(
+            self, 
+            parent, 
+            controller, 
+            purchase_controller, 
+            payment_controller, 
+            invoice_controller, 
+            receipt_controller,
+            supplier_model,
+            stock_model
+        ):
 
-        self.model = SupplierModel()
-        self.stock_model = StockModel()
+        self.model = supplier_model
+        self.stock_model = stock_model
 
         self.controller = controller
         self.purchase_controller = purchase_controller
@@ -26,15 +34,10 @@ class SupplierView():
         self.payment_controller = payment_controller
         
         self.invoice_controller = invoice_controller
-        self.invoice_controller.set_model(self.model)
         
         self.receipt_controller = receipt_controller
-        self.receipt_controller.set_model(self.model)
 
         self.frame = ctk.CTkFrame(parent, fg_color="#f0f0f0")
-
-        self.purchase_controller.set_model(self.model)
-        self.payment_controller.set_model(self.model)
 
         self.payment_window = PaymentWindow(self.model, self.frame, self.payment_controller)
         self.purchase_window = PurchaseWindow(self.model, self.stock_model, self.frame, self.purchase_controller, 

@@ -6,8 +6,8 @@ from .supplier_purchase import SupplierPurchase
 from db.database import db
 
 class SupplierModel():
-    def __init__(self):
+    def __init__(self, stock_model):
         self.db = db
         self.core = SupplierCore(db)
-        self.payment = SupplierPayment(db)
-        self.purchase = SupplierPurchase(db)
+        self.purchase = SupplierPurchase(db, stock_model)
+        self.payment = SupplierPayment(db, self.purchase)

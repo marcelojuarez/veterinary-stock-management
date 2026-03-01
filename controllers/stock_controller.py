@@ -1,18 +1,15 @@
 from db.database import db
 from decimal import Decimal
 from tkinter import messagebox
-from models.stock import StockModel
-from models.supplier import SupplierModel
-from models.payment_model import PaymentModel
 class StockController:
-    def __init__(self, event_bus):
+    def __init__(self, stock_model, supplier_model, payment_model, event_bus):
         self.view = None
 
-        self.stock_model = StockModel()  
-        self.supplier_mdl = SupplierModel()
+        self.stock_model = stock_model
+        self.supplier_mdl = supplier_model
 
         self.all_products = []
-        self.payment_model = PaymentModel()
+        self.payment_model = payment_model
         self.event_bus = event_bus
         self.event_bus.subscribe('refresh_stock_table', self.refresh_stock_table)
 
