@@ -1,5 +1,6 @@
 import sqlite3
 from db.database import db
+from datetime import datetime
 
 from decimal import Decimal
 from utils.utils import norm_to_2_dec, iso_to_traditional
@@ -132,7 +133,36 @@ class CustomerModel:
     # --------------------------------------------------------------------
     # 💳 GESTIÓN DE DEUDAS DE CLIENTES
     # --------------------------------------------------------------------
-    ## -- Obtiene todas las deudas de un cliente -- ##
+    ## -- Inserta una fila en el historial de un cliente  -- ##
+    def add_row_in_customer_ledger(self, data):
+        date = datetime.now().strftime("%Y-%m-%d")
+        query = """
+        INSERT INTO customer_ledger (client_id, fecha, tipo, descripcion, debe,
+        haber, saldo, reference_id, referencia) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """
+
+        data[
+            data['client_id'],
+            date,
+            data['tipo'],
+            data['descripcion'],
+            data['debe'],
+            data['haber'],
+            data['saldo'],
+            data['reference_id'],
+            data['referencia']
+        ]
+
+        self.db.execute_query(query)
+
+    ## -- Obtiene el historial de un cliente  -- ##
+    def get_account_history_from_client(self, client_id):
+        query = """
+        SELECT * FROM customer_ledget WHERE client_id = ?
+        """
+
+        self.db.execute_query(query, (client_id, ))
+
     def get_customer_debts(self, cliente_id):
         query = """
         SELECT 
