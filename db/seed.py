@@ -41,7 +41,7 @@ def seed_stock():
 
         # Alimentos perros
         {"name": "ALIMENTO CANINO CACHORRO", "pack": "BOLSA 3KG", "profit": "30.00", "list_price": "2500.9358", "discount": "0", "iva": "21.00"},
-        {"name": "ALIMENTO CANINO CACHORRO", "pack": "BOLSA 15KG", "profit": "28.00", "list_price": "11000.088", "discount": "0", "iva": "21.00"},
+        {"name": "ALIMENTO CANINO CACHORRO", "pack": "BOLSA 15KG", "profit": "28.00", "list_price": "11000.088", "discount": "0", "iva": "10.50"},
         {"name": "ALIMENTO CANINO ADULTO", "pack": "BOLSA 3KG", "profit": "30.00", "list_price": "2200.534", "discount": "0", "iva": "21.00"},
         {"name": "ALIMENTO CANINO ADULTO", "pack": "BOLSA 15KG", "profit": "28.00", "list_price": "9500.750", "discount": "0", "iva": "21.00"},
         {"name": "ALIMENTO CANINO ADULTO", "pack": "BOLSA 20KG", "profit": "25.00", "list_price": "12000.9900", "discount": "0", "iva": "21.00"},

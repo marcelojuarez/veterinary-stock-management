@@ -25,7 +25,7 @@ class SalesController:
         self.sales_view = view
         self.event_bus.subscribe('refresh_stock_in_sale_view', self.sales_view.load_available_products)
 
-    def add_product_to_sale(self, product_id, name, price, stock, qty_input):
+    def add_product_to_sale(self, product_id, name, pack, price, stock, qty_input):
         """Validar y agregar producto a la venta"""
         try:
             quantity = int(qty_input)
@@ -49,7 +49,7 @@ class SalesController:
             if existing_item is not None:
                 # Ya existe: sumar cantidad
                 current_item = self.sales_view.items_in_sale[existing_item]
-                current_qty = current_item[2]  # La cantidad siempre está en posición 2
+                current_qty = current_item[3]  # La cantidad siempre está en posición 2
                 new_qty = current_qty + quantity
                 
                 if new_qty > stock:
@@ -57,11 +57,11 @@ class SalesController:
                     return False
 
                 self.sales_view.items_in_sale[existing_item] = (
-                        product_id, name, new_qty, price
+                        product_id, name, pack, new_qty, price
                 )
             else:
                 # Nuevo producto (siempre 4 elementos, sin observaciones)
-                self.sales_view.items_in_sale.append((product_id, name, quantity, price))
+                self.sales_view.items_in_sale.append((product_id, name, pack, quantity, price))
 
             return True
 
@@ -103,10 +103,10 @@ class SalesController:
 
             total = Decimal('0.00')
             for item in self.sales_view.items_in_sale:
-                if len(item) == 5:  # Tiene observaciones (honorarios)
-                    _, _, qty, price, _ = item
+                if len(item) == 6:  # Tiene observaciones (honorarios)
+                    _, _, _, qty, price, _ = item
                 else:  # Producto normal
-                    _, _, qty, price = item
+                    _, _, _, qty, price = item
                 total += qty * price
 
             # total normalizado
@@ -128,7 +128,6 @@ class SalesController:
 
             self.sales_view.last_sale_id = sale_id
             if estado == "pending":
-                print('pending')
                 # Se genera el remito en compras por cuenta corriente 
                 self.sales_view.generate_delivery_note()
             self.sales_view.clear_sale()
