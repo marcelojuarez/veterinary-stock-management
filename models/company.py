@@ -45,4 +45,34 @@ class CompanyModel:
             return None
 
     def edit_company_data(self, data):
-        pass
+        try:
+            query = """
+                UPDATE company SET
+                business_name = ?, 
+                cuit = ?, 
+                iva_condition = ?, 
+                start_date = ?, 
+                address = ?,
+                city = ?, 
+                province = ?, 
+                postal_code = ?, 
+                phone1 = ?, 
+                phone2 = ?
+            WHERE id = 1
+            """
+            params = [
+                data['business_name'],
+                data['cuit'],
+                data['iva_condition'],
+                data['start_date'],
+                data['address'],
+                data['city'],
+                data['province'],
+                data['postal_code'],
+                data['phone1'],
+                data['phone2'],
+            ]
+            return self.db.execute_query(query, params)
+        except Exception as e:
+            print(f"Error al editar datos de la empresa: {e}")
+            return None
