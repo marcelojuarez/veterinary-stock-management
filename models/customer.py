@@ -421,7 +421,7 @@ class CustomerModel:
                 credito_acumulado += abs(saldo_acumulado)
                 saldo_acumulado = Decimal('0.00')
     
-        mov["saldo"] = norm_to_2_dec(saldo_acumulado)
+            mov["saldo"] = norm_to_2_dec(saldo_acumulado)
         
         # ================================================================
         # PASO 7: RESUMEN (solo cuenta ventas a crédito)
@@ -445,7 +445,7 @@ class CustomerModel:
         ventas_pagadas = ventas_credito_pagadas
 
         saldo_final = norm_to_2_dec(saldo_acumulado)
-        credito_final = norm_to_2_dec(credito_acumulado)
+        credito_final = self.pay_model.get_customer_credit(cliente_id)
 
         summary = {
             'total_comprado': norm_to_2_dec(total_debe),

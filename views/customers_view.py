@@ -721,7 +721,7 @@ class CustomersView:
         summary_frame.pack(fill="x", padx=15, pady=10)
 
         # Grid de resumen
-        summary_frame.grid_columnconfigure((0, 1, 2, 3), weight=1)
+        summary_frame.grid_columnconfigure((0, 1, 2, 3, 4), weight=1)
 
         def create_summary_card(parent, row, col, title, value, color="#333333"):
             card = ctk.CTkFrame(parent, fg_color="white", corner_radius=8)
@@ -741,13 +741,9 @@ class CustomersView:
 
         create_summary_card(summary_frame, 0, 0, "Total Comprado", f"${summary['total_comprado']}")
         create_summary_card(summary_frame, 0, 1, "Total Pagado", f"${summary['total_pagado']}", "#4CAF50")
-        
-        if summary['saldo_a_favor'] > 0:
-            create_summary_card(summary_frame, 0, 2, "Saldo a Favor", f"${summary['saldo_a_favor']}", "#2196F3")
-        else:
-            create_summary_card(summary_frame, 0, 2, "Deuda Pendiente", f"${summary['deuda_pendiente']}", "#F44336")
-        
-        create_summary_card(summary_frame, 0, 3, "Ventas", f"{summary['ventas_pagadas']}/{summary['total_ventas']} pagadas")
+        create_summary_card(summary_frame, 0, 2, "Saldo a Favor", f"${summary['saldo_a_favor']}", "#2196F3")
+        create_summary_card(summary_frame, 0, 3, "Deuda Pendiente", f"${summary['deuda_pendiente']}", "#F44336")
+        create_summary_card(summary_frame, 0, 4, "Ventas", f"{summary['ventas_pagadas']}/{summary['total_ventas']} pagadas")
 
         # ----------------------------------------------------------------
         # TABLA DE MOVIMIENTOS
