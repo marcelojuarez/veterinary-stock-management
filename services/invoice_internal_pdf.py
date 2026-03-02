@@ -9,6 +9,7 @@ from datetime import datetime
 import os
 from config.settings import COMPANY_CONFIG
 from reportlab.platypus import Image
+from decimal import Decimal
 from utils.utils import format_currency
 
 class InvoiceInternalPDFService:
@@ -65,7 +66,7 @@ class InvoiceInternalPDFService:
         # Estilo para código
         self.styles.add(ParagraphStyle(
             name="InvoiceCode",
-            fontSize=8,
+            fontSize=6,
             alignment=1,
             textColor=colors.black,
             leading=10
@@ -73,7 +74,7 @@ class InvoiceInternalPDFService:
 
     # ---------------------------------------------------
 
-    def generate_pdf(self, number, customer, items, subtotal, iva_breakdown, total):
+    def generate_pdf(self, invoice_id, number, customer, items, subtotal, iva_breakdown, total):
         """Genera la factura interna PDF con estilo moderno."""
 
         os.makedirs("comprobantes/facturas", exist_ok=True)
@@ -133,7 +134,7 @@ class InvoiceInternalPDFService:
 
         # COLUMNA CENTRAL: Recuadro con tipo de factura
         invoice_type_para = Paragraph("X", self.styles["InvoiceType"])
-        invoice_code_para = Paragraph("COD. 006", self.styles["InvoiceCode"])
+        invoice_code_para = Paragraph(f"COD. {invoice_id}", self.styles["InvoiceCode"])
         
         center_block = Table([[invoice_type_para], [invoice_code_para]], 
                             colWidths=[25*mm])
@@ -202,15 +203,15 @@ class InvoiceInternalPDFService:
 
         for item in items:
             # Formato enriquecido: (id, name, qty, net_unit, [observations,] rate)
-            if len(item) == 6:
+            if len(item) == 7:
                 # con observaciones (honorarios)
-                _, name, q, net_unit, observations, rate = item
+                _, name, _, q, net_unit, observations, rate = item
                 full_description = f"{name}\n{observations}" if observations else name
                 description_para = Paragraph(full_description, self.styles["NormalSmall"])
             else:
                 # producto normal
-                _, name, q, net_unit, rate = item
-                description_para = Paragraph(name, self.styles["NormalSmall"])
+                _, name, pack, q, net_unit, rate = item
+                description_para = Paragraph(f'{name} {pack}', self.styles["NormalSmall"])
 
             line_net = q * net_unit
             iva_pct_str = f"{rate * 100:.1f}%" if rate > 0 else "Exento"
@@ -254,16 +255,16 @@ class InvoiceInternalPDFService:
 
         # Una línea por cada alícuota que tenga monto > 0
         sorted_rates = sorted(
-            [(k, v) for k, v in iva_breakdown.items() if v > 0],
-            key=lambda x: float(x[0]),
+            [(Decimal(k), v) for k, v in iva_breakdown.items() if v > 0],
+            key=lambda x: x[0],
             reverse=True
         )
+
         for pct_key, iva_amount in sorted_rates:
-            pct = float(pct_key)
-            if pct == 0:
+            if pct_key == 0:
                 label = "IVA Exento:"
             else:
-                label = f"IVA {pct:.0f}%:"
+                label = f"IVA {pct_key.normalize()}%:"
             totals_data.append([label, f"${format_currency(iva_amount)}"])
 
         # Total final
