@@ -6,12 +6,10 @@ import os
 from tkinter import messagebox
 from utils.view_helpers import show_error, show_warning, show_success, center_window
 
-from utils.receipts.pdf_generator import generate_global_payment_receipt
-from utils.receipts.ticket_pos import generate_global_payment_ticket
 from utils.receipts.manager import generate_receipts_for_payment
 from utils.receipts.account_statement import generate_account_statement
-from utils.receipts.paths import a4_pago_global
 from utils.utils import norm_to_2_dec, string_to_2_dec
+\
 from decimal import Decimal, InvalidOperation
 
 
@@ -657,11 +655,47 @@ class CustomerController:
             self.view.update_debt_window(debts, remaining_debt, new_credit, net)
             
             self.view.show_success(
-                f"✅ Se aplicaron ${credit_used:.2f} del saldo a favor.\n"
+                f"Se aplicaron ${credit_used:.2f} del saldo a favor.\n"
                 f"Deuda restante: ${remaining_debt:.2f}\n"
                 f"Saldo a favor restante: ${new_credit:.2f}"
             )
+
+
+            fmt = self.ask_receipt_format()
+            if not fmt:
+                return
             
+            client_name = "Cliente"
+            for c in self.all_customers:
+                if c[0] == customer_id:
+                    client_name = c[1]
+                    break
+
+            sales_with_items = {}
+
+            for sale_id, pay_amount in payment_applied:
+                items = self.model.get_sale_items(sale_id)
+                sales_with_items[sale_id] = items
+            
+            result_data = {
+                "used": credit_used,
+                "remaining": Decimal("0.00"),
+                "updated_debts": payment_applied,
+                "still_owed": remaining_debt,
+                "credit_added": Decimal("0.00"), 
+            }
+
+            generate_receipts_for_payment(
+                mode="global",
+                format=fmt,
+                client_name=client_name,
+                method="Saldo a favor",
+                amount=credit_used,
+                customer_id=customer_id,
+                result_data=result_data,
+                sales_with_items=sales_with_items,
+            )
+
         except Exception as e:
             self.view.show_error(f"Error al aplicar saldo a favor: {e}")
         

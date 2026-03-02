@@ -61,7 +61,7 @@ class PaymentModel:
         )
 
         # Solo generar crédito si NO viene de aplicación de saldo a favor
-        overpay = paid - total
+        overpay = Decimal(paid - total)
         
         if not skip_credit_generation:
             if overpay > Decimal('0.00'):
@@ -175,7 +175,7 @@ class PaymentModel:
                 "remaining": norm_to_2_dec(remaining),
                 "updated_debts": updated_debts,
                 "still_owed": still_owed,
-                "credit_added": norm_to_2_dec(remaining) if remaining > norm_to_2_dec(0.01) else norm_to_2_dec(0.0),
+                "credit_added": norm_to_2_dec(remaining) if remaining > Decimal("0.00") else Decimal("0.00"),
             }
 
         except Exception as e:
@@ -186,7 +186,7 @@ class PaymentModel:
         finally:
             conn.close()
 
-    def get_customer_credit(self, client_id) -> float:
+    def get_customer_credit(self, client_id) -> Decimal:
         rows = self.db.fetch_all(
             "SELECT amount FROM customer_credit WHERE client_id = ?", 
             (client_id,)
@@ -205,19 +205,19 @@ class PaymentModel:
         """
         return self.db.execute_query(query, (client_id, str(amount), reason, sale_id), conn=conn, commit=commit)
 
-    def use_customer_credit(self, client_id: int, amount: float, reason: str, sale_id: int | None = None):
+    def use_customer_credit(self, client_id: int, amount: Decimal, reason: str, sale_id: int | None = None):
         """
         Consume crédito guardándolo como movimiento NEGATIVO.
         (customer_credit: amount < 0)
         """
         amount = norm_to_2_dec(amount)
-        if amount <= norm_to_2_dec(0.01):
-            return norm_to_2_dec(0.0)
+        if amount <= Decimal("0.00"):
+            return Decimal("0.00")
 
         available = norm_to_2_dec(self.get_customer_credit(client_id))
         used = norm_to_2_dec(min(available, amount))
-        if used <= norm_to_2_dec(0.01):
-            return norm_to_2_dec(0.0)
+        if used <= Decimal("0.00"):
+            return Decimal("0.00")
 
         self.add_customer_credit(
             client_id=client_id,
