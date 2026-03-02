@@ -32,10 +32,10 @@ class SalesModel:
                         """, (sale_id, tipo, str(monto), retenciones.get('certificado', '')))
 
             for item in items:
-                if len(item) == 5:
-                    product_id, _, quantity, price_with_iva, observations = item
+                if len(item) == 6:
+                    product_id, _, _, quantity, price_with_iva, observations = item
                 else:
-                    product_id, _, quantity, price_with_iva = item
+                    product_id, _, _, quantity, price_with_iva = item
                     observations = None
 
                 # OBTENER IVA DEL PRODUCTO
@@ -178,6 +178,7 @@ class SalesModel:
             SELECT 
                 si.product_id,
                 s.name,
+                s.pack,
                 si.quantity,
                 si.price,
                 si.subtotal
@@ -192,9 +193,10 @@ class SalesModel:
             {
                 "product_id": r[0],
                 "name": r[1],
-                "quantity": r[2],
-                "price": r[3],
-                "subtotal": r[4]
+                "pack": r[2],
+                "quantity": r[3],
+                "price": r[4],
+                "subtotal": r[5]
             }
             for r in rows
         ]

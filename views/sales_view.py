@@ -100,9 +100,9 @@ class SalesView:
         label.pack(pady=(10, 5))
 
         self.product_tree = ttk.Treeview(selector_frame, show="headings", height=12)
-        self.product_tree["columns"] = ("Cód.", "Nombre", "P. Venta", "Stock")
+        self.product_tree["columns"] = ("Cód.", "Nombre", "Envase", "P. Venta", "Stock")
 
-        for col, w in zip(self.product_tree["columns"], [20, 400, 100, 40]):
+        for col, w in zip(self.product_tree["columns"], [20, 400, 80, 100, 40]):
             self.product_tree.column(col, width=w)
             self.product_tree.heading(col, text=col)
 
@@ -145,9 +145,9 @@ class SalesView:
         label.grid(row=0, column=0, pady=(10, 5))
 
         self.sale_tree = ttk.Treeview(table_frame, show="headings", height=10)
-        self.sale_tree["columns"] = ("Cód.", "Nombre", "Cant.", "Precio Unit.", "Subtotal")
+        self.sale_tree["columns"] = ("Cód.", "Nombre", "Envase", "Cant.", "Precio Unit.", "Subtotal")
 
-        for col, w in zip(self.sale_tree["columns"], [80, 300, 80, 100, 120]):
+        for col, w in zip(self.sale_tree["columns"], [60, 300, 80, 20, 100, 120]):
             self.sale_tree.column(col, width=w, anchor="center")
             self.sale_tree.heading(col, text=col)
 
@@ -202,7 +202,7 @@ class SalesView:
             item = self.product_tree.item(selected[0])["values"]
             p_data = self.stock_model.get_product_by_id(item[0])
 
-            product_id, name, _, _, _, _ ,_ , _, _, \
+            product_id, name, pack, _, _, _ ,_ , _, _, \
             price_with_iva, _, _, stock = p_data
             price = norm_to_2_dec(price_with_iva)
 
@@ -222,7 +222,7 @@ class SalesView:
             qty_entry.focus()
 
             def confirm_add():
-                self.controller.add_product_to_sale(product_id, name, price, stock, qty_var.get())
+                self.controller.add_product_to_sale(product_id, name, pack, price, stock, qty_var.get())
                 self.refresh_sale_table()
                 self.update_total()
                 qty_win.destroy()
@@ -257,16 +257,16 @@ class SalesView:
         
         for item in self.items_in_sale:
             # Puede tener 4 o 5 elementos (con o sin observaciones)
-            if len(item) == 5:
-                pid, name, qty, price, observations = item
+            if len(item) == 6:
+                pid, name, pack, qty, price, observations = item
                 # Mostrar nombre con preview de observaciones
                 display_name = f"{name} - {observations[:40]}..." if len(observations) > 40 else f"{name} - {observations}"
             else:
-                pid, name, qty, price = item
+                pid, name, pack, qty, price = item
                 display_name = name if name else self._get_product_name(pid)
             
             subtotal = norm_to_2_dec(price * qty)
-            self.sale_tree.insert("", "end", values=(pid, display_name, qty, price, subtotal))
+            self.sale_tree.insert("", "end", values=(pid, display_name, pack, qty, price, subtotal))
 
     def _get_product_name(self, pid):
         """Helper para obtener nombre del producto por ID"""
@@ -281,10 +281,10 @@ class SalesView:
         """Calcular total manejando items con y sin observaciones"""
         total = Decimal('0.00')
         for item in self.items_in_sale:
-            if len(item) == 5:  # Tiene observaciones (honorarios)
-                _, _, qty, price, _ = item
+            if len(item) == 6:  # Tiene observaciones (honorarios)
+                _, _, _, qty, price, _ = item
             else:  # Producto normal
-                _, _, qty, price = item
+                _, _, _, qty, price = item
 
             total += qty * price
         
@@ -335,14 +335,14 @@ class SalesView:
         self.product_tree.delete(*self.product_tree.get_children())
         
         for p in products:
-            (pid, name, _, _, _, _, _, _, 
+            (pid, name, pack, _, _, _, _, _, 
             _, price_with_iva, _, _, qty) = p
             
             if qty > 0:  # Solo mostrar productos con stock
                 self.product_tree.insert(
                     "", 
                     "end", 
-                    values=(pid, name, format_currency(price_with_iva), qty)
+                    values=(pid, name, pack, format_currency(price_with_iva), qty)
                 )
 
     def show_sale_confirmation(self):
@@ -435,9 +435,9 @@ class SalesView:
         n_items = len(self.items_in_sale)
         tree_height = min(max(n_items, 2), 5)  # mínimo 2 filas, máximo 5
         preview_tree = ttk.Treeview(products_frame, show="headings", height=tree_height)
-        preview_tree["columns"] = ("Cant.", "Producto", "P. Unit.", "Subtotal")
+        preview_tree["columns"] = ("Cant.", "Producto", "Envase", "P. Unit.", "Subtotal")
         
-        widths = [60, 280, 100, 100]
+        widths = [40, 280, 80, 100, 100]
         for col, w in zip(preview_tree["columns"], widths):
             preview_tree.column(col, width=w, anchor="center")
             preview_tree.heading(col, text=col)
@@ -446,11 +446,11 @@ class SalesView:
         total = 0
         for item in self.items_in_sale:
             # Manejar items con y sin observaciones
-            if len(item) == 5:
-                pid, name, qty, price, observations = item
+            if len(item) == 6:
+                pid, name, pack, qty, price, observations = item
                 product_name = f"{name}\n({observations[:50]}...)" if len(observations) > 50 else f"{name}\n({observations})"
             else:
-                pid, name, qty, price = item
+                pid, name, pack, qty, price = item
                 product_name = name
                 if not product_name:
                     for tree_item in self.product_tree.get_children():
@@ -465,6 +465,7 @@ class SalesView:
             preview_tree.insert("", "end", values=(
                 qty,
                 product_name,
+                pack,
                 f"${price}",
                 f"${subtotal}"
             ))
@@ -478,7 +479,7 @@ class SalesView:
         totals_frame.pack(padx=15, pady=5, fill="x")
 
         # Cantidad total de items
-        total_items = sum(item[2] for item in self.items_in_sale)
+        total_items = sum(item[3] for item in self.items_in_sale)
 
         ctk.CTkLabel(
             totals_frame,
@@ -491,19 +492,19 @@ class SalesView:
         iva_breakdown = {}  # { "21.0": Decimal, ... }
 
         for item in self.items_in_sale:
-            if len(item) == 5:
-                pid, _, qty, price, _ = item
+            if len(item) == 6:
+                pid, _, _, qty, price, _ = item
             else:
-                pid, _, qty, price = item
+                pid, _, _, qty, price = item
 
             qty_d   = Decimal(str(qty))
             price_d = Decimal(str(price))
 
             try:
                 product = self.stock_model.get_product_by_id(pid)
-                iva_pct = Decimal(str(product[8])) if product and product[8] else Decimal('0')
+                iva_pct = Decimal(str(product[8])) if product and product[8] else Decimal('0.00')
             except Exception:
-                iva_pct = Decimal('0')
+                iva_pct = Decimal('0.00')
 
             divisor   = Decimal('1') + iva_pct / Decimal('100')
             net_unit  = price_d / divisor
@@ -512,7 +513,7 @@ class SalesView:
 
             total_neto += line_net
 
-            key = f"{iva_pct:.1f}"
+            key = f"{iva_pct}"
             if key not in iva_breakdown:
                 iva_breakdown[key] = Decimal('0.00')
             iva_breakdown[key] += line_iva
@@ -532,12 +533,12 @@ class SalesView:
                      font=ctk.CTkFont(size=12)).pack(side="right")
 
         # IVA por alícuota
-        for pct_key in sorted(iva_breakdown.keys(), key=lambda x: float(x), reverse=True):
+        for pct_key in sorted(iva_breakdown.keys(), key=lambda x: Decimal(x), reverse=True):
             iva_val = norm_to_2_dec(iva_breakdown[pct_key])
             if iva_val == Decimal('0.00'):
                 continue
-            pct_f = float(pct_key)
-            label = f"IVA {pct_f:.0f}%:" if pct_f > 0 else "Exento:"
+            pct_f = Decimal(pct_key)
+            label = f"IVA {pct_f}%:" if pct_f > 0 else "Exento:"
             iva_row = ctk.CTkFrame(totals_frame, fg_color="transparent")
             iva_row.pack(fill="x", padx=20, pady=1)
             ctk.CTkLabel(iva_row, text=label,
@@ -1388,6 +1389,7 @@ class SalesView:
                 self.items_in_sale.append((
                     honorarios_id, 
                     'HONORARIOS', 
+                    'UNIDAD',
                     1,
                     price,           
                     observations

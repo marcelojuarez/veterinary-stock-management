@@ -39,13 +39,12 @@ class InvoiceController:
         enriched_items = []
 
         for item in items:
-            if len(item) == 5:
-                product_id, name, quantity, price, observations = item
+            if len(item) == 6:
+                product_id, name, pack, quantity, price, observations = item
             else:
-                product_id, name, quantity, price = item
+                product_id, name, pack, quantity, price = item
                 observations = None
 
-            quantity = flex_dec(quantity)
             price    = flex_dec(price)  # precio con IVA incluido
 
             divisor, rate = self._get_iva_rate(product_id)
@@ -58,15 +57,15 @@ class InvoiceController:
             total_iva      += line_iva
 
             # Acumular por alícuota (ej: "21.00", "10.50", "0.00")
-            pct_key = f"{rate * 100:.2f}"
+            pct_key = f"{norm_to_2_dec(rate * Decimal('100'))}"
             if pct_key not in iva_breakdown:
                 iva_breakdown[pct_key] = Decimal("0.00")
             iva_breakdown[pct_key] += line_iva
 
             if observations is not None:
-                enriched_items.append((product_id, name, quantity, net_unit, observations, rate))
+                enriched_items.append((product_id, name, pack, quantity, net_unit, observations, rate))
             else:
-                enriched_items.append((product_id, name, quantity, net_unit, rate))
+                enriched_items.append((product_id, name, pack, quantity, net_unit, rate))
 
         total_subtotal = norm_to_2_dec(total_subtotal)
         total_iva      = norm_to_2_dec(total_iva)
@@ -81,10 +80,10 @@ class InvoiceController:
         )
 
         for item in items:
-            if len(item) == 5:
-                product_id, _, quantity, price, _ = item
+            if len(item) == 6:
+                product_id, _, _, quantity, price, _ = item
             else:
-                product_id, _, quantity, price = item
+                product_id, _, _, quantity, price = item
 
             quantity   = flex_dec(quantity)
             price      = flex_dec(price)
@@ -99,6 +98,7 @@ class InvoiceController:
 
         # Generar PDF con datos enriquecidos
         pdf_path = InvoiceInternalPDFService().generate_pdf(
+            invoice_id=invoice_id,
             number=number,
             customer=customer,
             items=enriched_items,

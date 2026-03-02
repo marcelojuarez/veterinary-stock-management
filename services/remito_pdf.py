@@ -90,7 +90,7 @@ class RemitoPDF:
         # ===============================
 
         # COLUMNA IZQUIERDA: Logo + Datos empresa
-        logo_path = "assets/logo.jpg"
+        logo_path = "assets/logo.png"
         if os.path.exists(logo_path):
             logo_img = Image(logo_path, width=25*mm, height=25*mm)
         else:
@@ -175,7 +175,7 @@ class RemitoPDF:
         # ===============================
         table_data = [["Código", "Descripción", "Cantidad"]]
         for it in items:
-            table_data.append([it['product_id'], it['name'], it['quantity']])
+            table_data.append([it['product_id'], f'{it['name']} {it['pack']}', it['quantity']])
 
         table = Table(table_data, colWidths=[40*mm, 100*mm, 30*mm])
         table.setStyle(TableStyle([
