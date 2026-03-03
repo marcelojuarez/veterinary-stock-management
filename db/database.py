@@ -394,24 +394,32 @@ class Database:
         """
 
         own_conn = False
+
         if conn is None:
             conn = self.get_connection()
             own_conn = True
 
-        cursor = conn.cursor()
-        if params:
-            cursor.execute(query, params)
+        try:
+            cursor = conn.cursor()
 
-        else:
-            cursor.execute(query)
+            if params is not None:
+                cursor.execute(query, params)
+            else:
+                cursor.execute(query)
 
-        if commit:
-            conn.commit()
+            if commit:
+                conn.commit()
 
-        if own_conn:
-            conn.close()
-            
-        return cursor.lastrowid
+            return cursor.rowcount
+
+        except Exception as e:
+            if own_conn:
+                conn.rollback()
+            raise e
+
+        finally:
+            if own_conn:
+                conn.close()
     
     def fetch_all(self, query, params=None, conn=None):
         """
