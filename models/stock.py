@@ -166,24 +166,35 @@ class StockModel:
         return result[0] if result else 0
 
     def bulk_update_prices_by_date(self, date, percent_increase):
-        """Actualización masiva de precios por fecha"""
         multiplier = 1 + (percent_increase / 100)
-        
+
         query = """
             UPDATE stock 
-            SET price = ROUND(price * ?, 2),
+            SET price = ROUND(CAST(price AS REAL) * ?, 2),
                 price_with_iva = CASE 
-                    WHEN iva = 21.0 THEN ROUND(price * ? * 1.21, 2)
-                    WHEN iva = 10.5 THEN ROUND(price * ? * 1.105, 2)
-                    ELSE ROUND(price * ?, 2)
+                    WHEN CAST(iva AS REAL) = 21.0 
+                        THEN ROUND(CAST(price AS REAL) * ? * 1.21, 2)
+                    WHEN CAST(iva AS REAL) = 10.5 
+                        THEN ROUND(CAST(price AS REAL) * ? * 1.105, 2)
+                    ELSE ROUND(CAST(price AS REAL) * ?, 2)
                 END,
-                profit = ROUND(((price * ? - cost_price) / cost_price) * 100, 2),
+                profit = CASE
+                    WHEN CAST(cost_price AS REAL) != 0
+                    THEN ROUND(
+                        (
+                            (CAST(price AS REAL) * ? - CAST(cost_price AS REAL))
+                            / CAST(cost_price AS REAL)
+                        ) * 100,
+                        2
+                    )
+                    ELSE '0'
+                END,
                 last_price_update = CURRENT_DATE
             WHERE last_price_update = ?
         """
-        
+
         params = (multiplier, multiplier, multiplier, multiplier, multiplier, date)
-        
+
         return db.execute_query(query, params)
     
     def get_honorarios_id(self):
