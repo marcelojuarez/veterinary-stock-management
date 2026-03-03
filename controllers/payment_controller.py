@@ -161,7 +161,7 @@ class PaymentController():
 
     ## -- Valida si un dato es un decimal o se puede normalizar -- ##
     @staticmethod
-    def is_decimal(value):
+    def _is_decimal(value):
         value = string_to_2_dec(value)
         if value is None:
             return False
