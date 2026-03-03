@@ -138,6 +138,7 @@ class App():
         sales_model = SalesModel()
         payment_model = PaymentModel(sales_model)
         customer_model = CustomerModel(payment_model)
+        payment_model.customer_model = customer_model
         remito_model = RemitoModel()
         stock_model = StockModel(sales_model, payment_model)
         supplier_model = SupplierModel(stock_model)

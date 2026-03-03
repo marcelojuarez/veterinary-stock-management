@@ -4,9 +4,10 @@ from datetime import datetime
 from utils.utils import norm_to_2_dec
 
 class PaymentModel:
-    def __init__(self, sales_model):
+    def __init__(self, sales_model, customer_model=None):
         self.db = db
         self.sale_model = sales_model
+        self.customer_model = customer_model
 
     def create_payment(self, sale_id, client_id, amount, method=None, notes=None, conn=None, commit=True):
         """Registra un pago en la tabla payments."""

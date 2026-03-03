@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from db.database import db
 
 class StockModel: 
@@ -75,15 +77,32 @@ class StockModel:
                 conn.commit()
                 return True
 
-            for sale_id, _, _ in affected_sales:
+            for sale_id, client_id, client in affected_sales:
                 # Por cada venta afecta se obtiene su estado actual
                 status = db.fetch_one("SELECT estado FROM sales WHERE id = ?", (sale_id,), conn=conn)[0]
 
                 if status != 'paid':
+                    old_total_row = db.fetch_one("SELECT total FROM sales WHERE id = ?", (sale_id,), conn=conn) 
+                    old_total = Decimal(old_total_row[0]) if old_total_row else Decimal('0.00')
+
 
                     self.sales_model.update_sale_item(sale_id, product_id, product_data['PriceWIva'], conn=conn, commit=False)
                     self.sales_model.recalculate_sale_total(sale_id, conn=conn, commit=False)
                     print(f"DEBUG STOCK: llamando update_sale_status para venta {sale_id}")
+                    new_total_row = db.fetch_one("SELECT total FROM sales WHERE id = ?", (sale_id,), conn=conn)
+                    new_total = Decimal(new_total_row[0]) if new_total_row else Decimal('0.00')
+
+                    # ← Registrar ajuste solo si hubo cambio y hay cliente
+                    if client and old_total != new_total:
+                        self.payment_model.customer_model.register_price_adjustment(
+                            sale_id=sale_id,
+                            client_id=client_id,
+                            old_total=old_total,
+                            new_total=new_total,
+                            conn=conn,
+                            commit=False
+                        )
+
                     self.payment_model.update_sale_status(sale_id, conn=conn, commit=False)
 
             conn.commit()

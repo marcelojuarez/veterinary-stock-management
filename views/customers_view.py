@@ -828,11 +828,15 @@ class CustomersView:
                     history_table.item(item, tags=("pago",))
                 elif tipo == "CRÉDITO":
                     history_table.item(item, tags=("credito",))
+                elif tipo == "AJUSTE":
+                    history_table.item(item, tags=("ajuste",))
 
         history_table.tag_configure("venta", background="#FFF3E0")
         history_table.tag_configure("contado", background="#E3FCEF")
         history_table.tag_configure("pago", background="#E8F5E9")
         history_table.tag_configure("credito", background="#E3F2FD")
+        history_table.tag_configure("ajuste", background="#FFF9C4")
+
         tag_rows()
 
         # ----------------------------------------------------------------

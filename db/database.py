@@ -370,6 +370,23 @@ class Database:
             ''')
 
             cursor.execute('''
+                CREATE TABLE IF NOT EXISTS customer_ledger (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    client_id INTEGER NOT NULL,
+                    fecha TEXT NOT NULL,
+                    tipo TEXT NOT NULL,     -- 'VENTA' | 'PAGO' | 'CREDITO' | 'AJUSTE_PRECIO'
+                    descripcion TEXT,
+                    debe TEXT NOT NULL DEFAULT '0.00',
+                    haber TEXT NOT NULL DEFAULT '0.00',
+                    saldo TEXT NOT NULL DEFAULT '0.00',
+                    reference_id INTEGER, -- sales or payments
+                    referencia TEXT,  
+                    FOREIGN KEY (client_id) REFERENCES customer(id)
+                );                          
+            ''')
+
+
+            cursor.execute('''
                     CREATE TABLE IF NOT EXISTS customer_credit(
                            id INTEGER PRIMARY KEY AUTOINCREMENT,
                            client_id INTEGER NOT NULL,

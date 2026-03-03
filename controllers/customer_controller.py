@@ -501,6 +501,7 @@ class CustomerController:
         """Muestra el historial completo de cuenta del cliente"""
         try:
             movements, summary = self.model.get_customer_account_history(cliente_id)
+            self.model.get_account_history(cliente_id)
             self.view.open_account_history_window(cliente_id, cliente_nombre, movements, summary)
         except Exception as e:
             self.view.show_error(f"Error al obtener historial: {e}")

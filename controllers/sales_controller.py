@@ -129,6 +129,17 @@ class SalesController:
             self.sales_view.last_sale_id = sale_id
             if estado == "pending":
                 # Se genera el remito en compras por cuenta corriente 
+                data = {
+                    "client_id": cliente_id,
+                    "tipo": "VENTA",
+                    "descripcion": f"Venta #{sale_id} · {qty} producto(s) · {estado}",
+                    "debe": total,
+                    "haber": Decimal('0.00'),
+                    "saldo": Decimal('0.00'),
+                    "referencia_id" : sale_id,
+                    "referencia": ''
+                }
+                self.customer_model.add_row_in_customer_ledger(data)
                 self.sales_view.generate_delivery_note()
             self.sales_view.clear_sale()
             self.sales_view.load_available_products()
