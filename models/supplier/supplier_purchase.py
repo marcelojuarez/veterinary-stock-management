@@ -4,7 +4,7 @@ from datetime import datetime
 from .supplier_invoice import SupplierInvoice
 from .supplier_receipt import SupplierReceipt
 from decimal import Decimal
-from utils.utils import norm_to_2_dec, flex_dec
+from utils.utils import norm_to_2_dec, flex_dec, traditional_to_iso
 
 class SupplierPurchase():
     def __init__(self, db, stock_model):
@@ -682,8 +682,8 @@ class SupplierPurchase():
             WHERE id = ?
             """
             params = [
-                data['date'],
-                data['expiration'],
+                traditional_to_iso(data['date']),
+                traditional_to_iso(data['expiration']),
                 data['obs'],
                 purchase_id
             ]
@@ -702,6 +702,8 @@ class SupplierPurchase():
 
         except Exception as e:
             conn.rollback()
+            import traceback
+            traceback.print_exc()
             print(f'Hubo un error {e}')
             return False
         

@@ -376,6 +376,10 @@ class PurchaseInfoReceiptView():
 
     ## --  Editar campos de los documentos asociados a la compra -- ##
     def edit(self, purchase_id):
+        if self.receipt_vars['state'].get() != 'BORRADOR':
+            show_error('No se puede editar un remito ya confirmado.')
+            return
+
         show_warning('Datos editables')
 
         # Guardar valores anteriores

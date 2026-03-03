@@ -187,7 +187,7 @@ class PurchaseInfoInvoiceView():
 
     ## -- Renderiza los campos de la factura y carga sus datos-- ##
     def show_invoice_fields(self, doc_id):
-
+        self._loading = False
         self.invoice_vars = {
                 'number': tk.StringVar(),
                 'type': tk.StringVar(),
@@ -427,16 +427,16 @@ class PurchaseInfoInvoiceView():
         )
 
         self.invoice_vars["date"].trace_add(
-            "write", 
-            lambda *args: calculate_exp_date(
+            "write",
+            lambda *args: self._loading or calculate_exp_date(
                 self.invoice_vars["date"],
                 self.invoice_vars["pay_period"],
                 self.invoice_vars["expiration"]
             )
         )
         self.invoice_vars["pay_period"].trace_add(
-            "write", 
-            lambda *args: calculate_exp_date(
+            "write",
+            lambda *args: self._loading or calculate_exp_date(
                 self.invoice_vars["date"],
                 self.invoice_vars["pay_period"],
                 self.invoice_vars["expiration"]
@@ -477,6 +477,8 @@ class PurchaseInfoInvoiceView():
         self.invoice_vars['iibb_per'].set(str(iibb_p_amount))
         self.invoice_vars['iva_per'].set(str(iva_p_amount))
         self.invoice_vars['total'].set(invoice_data[16])
+
+        self._loading = False
 
     ## -- Obtener datos de la factura -- ##
     def get_invoice_data(self):
@@ -544,14 +546,14 @@ class PurchaseInfoInvoiceView():
 
     ## --  Editar campos de los documentos asociados a la compra -- ##
     def edit(self, purchase_id):
+        if self.invoice_state.get() != 'BORRADOR':
+            show_error('No se puede editar una compra ya confirmada.')
+            return
+
         show_warning('Datos editables')
-
-        # Guardar valores anteriores
         self.save_previous_values()
-
         self.print_info.configure(state='disabled')
 
-        # Habilita el boton de cancelar edicion
         self.edit_btn.configure(
             text='Cancelar Edicion',
             fg_color="#0F4E57",
@@ -560,7 +562,6 @@ class PurchaseInfoInvoiceView():
             command=lambda: self.recover_previous_values_of_invoice(purchase_id)
         )
 
-        # Habilita el boton guardar
         self.save_btn.configure(state='normal')
         self.save_btn.configure(fg_color="#4927AC")
         self.save_btn.configure(hover_color="#260980")
