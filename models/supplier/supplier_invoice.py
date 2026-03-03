@@ -52,8 +52,10 @@ class SupplierInvoice():
         WHERE id = ? 
         """
 
-        result = self.db.fetch_one(query, (invoice_id, ))[0]
-        return Decimal(result)
+        row = self.db.fetch_one(query, (invoice_id, ))
+        if row is None:
+            return Decimal('0.00')
+        return Decimal(row[0]) if row[0] is not None else Decimal('0.00')
 
     ## -- Actualiza el info de una factura -- ##   
     def update_invoice_info(self, invoice_id, data, conn=None, commit=True):

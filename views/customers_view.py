@@ -165,14 +165,14 @@ class CustomersView:
 
         ctk.CTkButton(
             footer,
-            text="🗑️ Borrar Cliente",
+            text="🗑️ Eliminar Cliente",
             width=W,
             height=H,
             font=ctk.CTkFont(size=13, weight="bold"),
             fg_color="#009688",
             hover_color="#00796B",
             command=self.delete_selected_customer
-        ).grid(row=0, column=0, padx=20, pady=10)
+        ).grid(row=0, column=1, padx=20, pady=10)
 
         ctk.CTkButton(
             footer,
@@ -183,7 +183,7 @@ class CustomersView:
             fg_color="#009688",
             hover_color="#00796B",
             command=self.open_add_customer_window
-        ).grid(row=0, column=1, padx=20, pady=10)
+        ).grid(row=0, column=0, padx=20, pady=10)
 
 
     def update_debts_button_state(self):

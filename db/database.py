@@ -427,7 +427,7 @@ class Database:
             if commit:
                 conn.commit()
 
-            return cursor.rowcount
+            return cursor.lastrowid
 
         except Exception as e:
             if own_conn:
