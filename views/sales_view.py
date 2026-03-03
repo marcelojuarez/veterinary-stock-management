@@ -102,7 +102,7 @@ class SalesView:
         self.product_tree = ttk.Treeview(selector_frame, show="headings", height=12)
         self.product_tree["columns"] = ("Cód.", "Nombre", "Envase", "P. Venta", "Stock")
 
-        for col, w in zip(self.product_tree["columns"], [20, 400, 80, 100, 40]):
+        for col, w in zip(self.product_tree["columns"], [50, 350, 100, 100, 40]):
             self.product_tree.column(col, width=w)
             self.product_tree.heading(col, text=col)
 
@@ -1225,9 +1225,9 @@ class SalesView:
         
         try:
             return {
-                'IVA': float(self.retencion_iva_var.get() or 0),
-                'IIBB': float(self.retencion_iibb_var.get() or 0),
-                'GAN': float(self.retencion_ganancias_var.get() or 0),
+                'IVA': string_to_2_dec(self.retencion_iva_var.get() or string_to_2_dec("0")),
+                'IIBB': string_to_2_dec(self.retencion_iibb_var.get() or string_to_2_dec("0")),
+                'GAN': string_to_2_dec(self.retencion_ganancias_var.get() or string_to_2_dec("0")),
                 'certificado': self.certificado_var.get().strip()
             }
         except ValueError:
