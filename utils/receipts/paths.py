@@ -1,7 +1,36 @@
 import os
+from pathlib import Path
 import re
 from datetime import datetime
+import platform
 
+
+def get_base_folder() -> str:
+    system = platform.system()
+
+    if system == "Windows":
+        try:
+            # Obtiene la ruta REAL del escritorio desde el registro de Windows
+            # Funciona aunque esté en OneDrive, Dropbox, etc.
+            import winreg
+            key = winreg.OpenKey(
+                winreg.HKEY_CURRENT_USER,
+                r"Software\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders"
+            )
+            desktop = Path(winreg.QueryValueEx(key, "Desktop")[0])
+            winreg.CloseKey(key)
+        except Exception:
+            # Fallback si falla el registro
+            desktop = Path.home() / "Desktop"
+
+    elif system == "Darwin":  # Mac
+        desktop = Path.home() / "Desktop"
+    else:  # Linux
+        desktop = Path.home() / "Desktop"
+
+    base = desktop / "Veterinaria Fortin"
+    base.mkdir(parents=True, exist_ok=True)
+    return str(base)
 
 def sanitize_folder_name(name: str) -> str:
     """
@@ -22,8 +51,15 @@ def get_client_folder(client_name: str) -> str:
     Ejemplo: comprobantes/Pet Shop Los Andes/
     """
     safe_name = sanitize_folder_name(client_name)
-    return os.path.join("comprobantes", safe_name)
+    folder = os.path.join(get_base_folder(), "Clientes", safe_name)
+    os.makedirs(folder, exist_ok=True)
+    return folder
 
+def get_supplier_folder(supplier_name: str) -> str:
+    safe_name = sanitize_folder_name(supplier_name)
+    folder = os.path.join(get_base_folder(), "Proveedores", safe_name)
+    os.makedirs(folder, exist_ok=True)
+    return folder
 
 def get_ticket_path(client_name: str, prefix: str, identifier: str = "") -> str:
     """

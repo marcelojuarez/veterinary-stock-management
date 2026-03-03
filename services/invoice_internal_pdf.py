@@ -11,6 +11,9 @@ from config.settings import COMPANY_CONFIG
 from reportlab.platypus import Image
 from decimal import Decimal
 from utils.utils import format_currency
+from utils.receipts.paths import get_base_folder
+import os
+from utils.receipts.paths import get_client_folder
 
 class InvoiceInternalPDFService:
 
@@ -76,10 +79,11 @@ class InvoiceInternalPDFService:
 
     def generate_pdf(self, invoice_id, number, customer, items, subtotal, iva_breakdown, total):
         """Genera la factura interna PDF con estilo moderno."""
-
-        os.makedirs("comprobantes/facturas", exist_ok=True)
-        filename = f"comprobantes/facturas/{number}.pdf"
-
+    
+        facturas_dir = os.path.join(get_client_folder(customer[1]), "Facturas")
+        os.makedirs(facturas_dir, exist_ok=True)
+        filename = os.path.join(facturas_dir, f"{number}.pdf")
+        
         doc = SimpleDocTemplate(
             filename,
             pagesize=A4,

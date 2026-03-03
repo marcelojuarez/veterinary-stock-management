@@ -3,14 +3,18 @@ from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.lib import colors
 import os
+from utils.receipts.paths import get_base_folder
+from utils.receipts.paths import get_client_folder
+
 
 class InvoicePDFService:
     def __init__(self):
         self.styles = getSampleStyleSheet()
 
-    def generate_pdf(self, number, customer, items, subtotal, iva, total):
-        os.makedirs("facturas", exist_ok=True)
-        filename = f"facturas/{number}.pdf"
+    def generate_pdf(self, number, customer, items, subtotal, iva, total):    
+        facturas_dir = os.path.join(get_client_folder(customer[1]), "Facturas")
+        os.makedirs(facturas_dir, exist_ok=True)
+        filename = os.path.join(facturas_dir, f"{number}.pdf")
 
         doc = SimpleDocTemplate(filename, pagesize=A4)
         elements = []

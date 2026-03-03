@@ -8,6 +8,7 @@ from reportlab.platypus import (
     SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, PageBreak
 )
 from config.settings import COMPANY_CONFIG
+from utils.receipts.paths import get_base_folder
 
 
 # ─────────────────────────────────────────────
@@ -454,11 +455,12 @@ class IVAReportPDF:
                  perc_sufridas, perc_efectuadas,
                  ret_sufridas, ret_efectuadas,
                  totales_per, totales_ret):
-
-        os.makedirs("comprobantes/reportes", exist_ok=True)
+        
         periodo = f"{self.MESES[mes - 1]}_{anio}"
-        filename = f"comprobantes/reportes/reporte_iva_{periodo}.pdf"
-
+        reportes_dir = os.path.join(get_base_folder(), "Reportes")
+        os.makedirs(reportes_dir, exist_ok=True)
+        filename = os.path.join(reportes_dir, f"reporte_iva_{periodo}.pdf")
+        
         doc = SimpleDocTemplate(
             filename, pagesize=A4,
             leftMargin=L_MARGIN, rightMargin=R_MARGIN,
