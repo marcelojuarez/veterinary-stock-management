@@ -7,11 +7,12 @@ from decimal import Decimal
 from utils.utils import norm_to_2_dec, flex_dec, traditional_to_iso
 
 class SupplierPurchase():
-    def __init__(self, db, stock_model):
+    def __init__(self, db, stock_model, stock_movement_model):
         self.db = db
         self.stock_model = stock_model
         self.supplier_invoice = SupplierInvoice(db)
         self.supplier_receipt = SupplierReceipt(db)
+        self.movement = stock_movement_model
 
     ## -- Agregar nueva compra -- ##
     def add_new_purchase(self, data, conn=None, commit=True):
@@ -397,29 +398,30 @@ class SupplierPurchase():
     def load_products(self, purchase_id, id, doc_type):
         try:
             conn = self.db.get_connection()
-
-            # Iniciar transacción
             conn.execute("BEGIN")
 
-            # Se setea nueva deuda y se carga compra como pendiente
             self.set_purchase_as_pending(purchase_id, id, doc_type, conn=conn, commit=False)
 
             items = self.get_purchase_items(purchase_id)
 
             for i in items:
-                
                 i_data = {
-                    'id': i[0],
-                    'name': i[1],
-                    'pack': i[2],
-                    'qty': i[3],
+                    'id':         i[0],
+                    'name':       i[1],
+                    'pack':       i[2],
+                    'qty':        i[3],
                     'list_price': Decimal(i[4]),
-                    'discount': Decimal(i[5]),
+                    'discount':   Decimal(i[5]),
                     'cost_price': Decimal(i[6]),
-                    'iva_rate': Decimal(i[7]),
+                    'iva_rate':   Decimal(i[7]),
                 }
 
-                print(f'Producto desde purchase: \n {i_data}')
+                # --- Guardar estado ANTERIOR del producto ---
+                prev = self.stock_model.get_product_by_id(i_data['id'])
+                qty_before   = prev[12] if prev else None  # quantity
+                cost_before  = prev[6]  if prev else None  # cost_price
+                price_before = prev[7]  if prev else None  # price (sin iva)
+
                 p_data = self.prepare_item_to_add_to_stock(i_data)
 
                 params = [
@@ -437,22 +439,32 @@ class SupplierPurchase():
 
                 query = """
                 UPDATE stock 
-                SET 
-                    name = ?,
-                    pack = ?,
-                    list_price = ?,
-                    discount = ?,
-                    cost_price = ?,
-                    price = ?,
-                    iva = ?,
-                    price_with_iva = ?,
-                    last_price_update = ?
+                SET name = ?, pack = ?, list_price = ?, discount = ?, cost_price = ?,
+                    price = ?, iva = ?, price_with_iva = ?, last_price_update = ?
                 WHERE id = ?
                 """
-
                 self.db.execute_query(query, params, conn=conn, commit=False)
-
                 self.stock_model.update_quantity(i_data['id'], i_data['qty'], conn=conn, commit=False)
+
+                # --- Registrar movimiento ---
+                qty_after   = (qty_before or 0) + i_data['qty']
+                cost_after  = p_data['cost_price']
+                price_after = p_data['sale_price']
+
+                self.movement.register(
+                    product_id   = i_data['id'],
+                    product_name = i_data['name'],
+                    event_type   = 'COMPRA',
+                    detail       = f"Compra ID {purchase_id}",
+                    qty_before   = qty_before,
+                    qty_after    = qty_after,
+                    cost_before  = cost_before,
+                    cost_after   = cost_after,
+                    price_before = price_before,
+                    price_after  = price_after,
+                    conn         = conn,
+                    commit       = False
+                )
 
             conn.commit()
             return True

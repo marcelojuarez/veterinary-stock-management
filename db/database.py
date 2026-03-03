@@ -399,6 +399,24 @@ class Database:
                     );
             ''')
 
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS stock_movement (
+                    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+                    product_id    INTEGER NOT NULL,
+                    product_name  TEXT NOT NULL,
+                    date          TEXT NOT NULL,
+                    event_type    TEXT NOT NULL,
+                    detail        TEXT,
+                    qty_before    INTEGER,
+                    qty_after     INTEGER,
+                    cost_before   TEXT,
+                    cost_after    TEXT,
+                    price_before  TEXT,
+                    price_after   TEXT,
+                    FOREIGN KEY (product_id) REFERENCES stock(id)
+                )
+            ''')
+
             conn.commit()
 
     def execute_query(self, query, params=None, conn=None, commit=True):
