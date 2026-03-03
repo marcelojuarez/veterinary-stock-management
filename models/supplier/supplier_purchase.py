@@ -588,7 +588,7 @@ class SupplierPurchase():
         return norm_to_2_dec(pending)
     
     def update_last_debt_update(self, supplier_id, conn=None, commit=True):
-        date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        date = datetime.now().strftime("%Y-%m-%d")
         """Actualizar Saldo deuda a un proveedor"""
         query = """
             UPDATE supplier
