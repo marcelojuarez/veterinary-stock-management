@@ -1,6 +1,6 @@
 # controllers/supplier_controller.py
 import re
-from utils.view_helpers import show_warning, show_error, show_success
+from utils.view_helpers import show_warning, show_error, show_success, ask_confirmation
 
 class SupplierController():
     def __init__(self, supplier_model):
@@ -161,21 +161,32 @@ class SupplierController():
             show_error(f"Error al refrescar la tabla {str(e)}")
 
     def delete_supplier(self):
-        # Obtengo las filas seleccionadas
         selected = self.view.supplier_tree.selection()
 
+        if not selected:
+            show_warning('Por favor seleccione un proveedor para eliminar')
+            return
+
+        iid = selected[0]
+        values = self.view.supplier_tree.item(iid, "values")
+
+        supplier_id = values[0]  # IMPORTANTE: usar id real
+
+        # Confirmar ANTES de borrar
+        if not ask_confirmation("¿Eliminar el proveedor seleccionado?", "Eliminar proveedor"):
+            return
+
         try:
-            # Selecciona la primer fila
-            iid = selected[0]
-            values = self.view.supplier_tree.item(iid, "values")
-            print(values)
-            self.model.core.delete_supplier(iid)
+            self.model.core.delete_supplier(supplier_id)
             self.refresh_supplier_table()
+
             if self.view.find_var.get() != "":
                 self.view.find_var.set('')
+
             show_success('El proveedor fue eliminado correctamente')
 
-        except Exception:
-            show_warning('Por favor seleccione un proveedor para eliminar')
+        except Exception as e:
+            print(e)
+            show_warning('Error al eliminar proveedor')
 
  
