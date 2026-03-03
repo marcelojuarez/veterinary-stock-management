@@ -65,6 +65,19 @@ class Database:
                 );
             ''')
 
+            # Tabla de movimientos de stock
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS stock_movements(
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                product_id INTEGER NOT NULL,
+                type TEXT NOT NULL,
+                quantity INTEGER NOT NULL, 
+                reason TEXT,
+                created_at TEXT
+                FOREIGN KEY (product_id) REFERENCES 
+                )
+            ''')
+
             # Tabla de clientes
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS customer (
