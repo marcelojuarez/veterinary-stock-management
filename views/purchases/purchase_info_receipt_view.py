@@ -59,7 +59,11 @@ class PurchaseInfoReceiptView():
             self.purchase_id = values[0]
             purchase_data = self.model.purchase.get_purchase_by_id(self.purchase_id)
 
-            self.show_receipt_fields(doc_id=purchase_data[4])
+            doc_type = purchase_data[2] if purchase_data else None
+            if doc_type == "FACTURA":
+                self.show_receipt_fields(doc_id=None)
+            else:
+                self.show_receipt_fields(doc_id=purchase_data[4])
 
             # Productos asociados a la compra
             sep = ctk.CTkLabel(
@@ -295,8 +299,11 @@ class PurchaseInfoReceiptView():
 
     # Carga los campos con informacion
     def load_receipt_data(self, doc_id):
+        if doc_id is None:
+            return
         receipt_data = self.model.purchase.supplier_receipt.get_receipt_data(doc_id)
-
+        if receipt_data is None:
+            return
         self.receipt_vars['number'].set(receipt_data[2]) 
         self.receipt_vars['date'].set(iso_to_traditional(receipt_data[3]))
         self.receipt_vars['expiration'].set(iso_to_traditional(receipt_data[4]))

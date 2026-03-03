@@ -381,7 +381,7 @@ class Database:
                     saldo TEXT NOT NULL DEFAULT '0.00',
                     reference_id INTEGER, -- sales or payments
                     referencia TEXT,  
-                    FOREIGN KEY (client_id) REFERENCES customers(id)
+                    FOREIGN KEY (client_id) REFERENCES customer(id)
                 );                          
             ''')
 
@@ -411,24 +411,32 @@ class Database:
         """
 
         own_conn = False
+
         if conn is None:
             conn = self.get_connection()
             own_conn = True
 
-        cursor = conn.cursor()
-        if params:
-            cursor.execute(query, params)
+        try:
+            cursor = conn.cursor()
 
-        else:
-            cursor.execute(query)
+            if params is not None:
+                cursor.execute(query, params)
+            else:
+                cursor.execute(query)
 
-        if commit:
-            conn.commit()
+            if commit:
+                conn.commit()
 
-        if own_conn:
-            conn.close()
-            
-        return cursor.lastrowid
+            return cursor.lastrowid
+
+        except Exception as e:
+            if own_conn:
+                conn.rollback()
+            raise e
+
+        finally:
+            if own_conn:
+                conn.close()
     
     def fetch_all(self, query, params=None, conn=None):
         """

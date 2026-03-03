@@ -5,7 +5,7 @@ from tksheet import Sheet
 from views.payments.payment_window import PaymentWindow
 from views.purchases.purchase_window import PurchaseWindow
 from utils.view_helpers import center_window, close_win
-from utils.utils import iso_to_traditional
+from utils.utils import iso_to_traditional, format_currency
 
 
 # Configurar tema y colores
@@ -199,11 +199,11 @@ class SupplierView():
         btn_hover = "#00796B"
 
         buttons = [
-            ('Info',             lambda: self.controller.supplier_info(manage_frame)),
-            ('Borrar',           lambda: self.controller.delete_supplier()),
-            ('Agregar',          lambda: self.open_add_window(manage_frame)),
-            ('Registrar Pago',   lambda: self.payment_window.open_payment_window(manage_frame)),
-            ('Registrar Compra', lambda: self.purchase_window.open_purchase_window(self.frame)),
+            ('➕ Agregar Proveedor',          lambda: self.open_add_window(manage_frame)),
+            ('👥 Ver Detalle',             lambda: self.controller.supplier_info(manage_frame)),
+            ('🗑️ Eliminar Proveedor',           lambda: self.controller.delete_supplier()),
+            ('🛒 Registrar Compra', lambda: self.purchase_window.open_purchase_window(self.frame)),
+            ('💰 Registrar Pago',   lambda: self.payment_window.open_payment_window(manage_frame)),
         ]
 
         for i, (text, cmd) in enumerate(buttons):
@@ -363,7 +363,7 @@ class SupplierView():
         lbl_title = ctk.CTkLabel(right_frame, text="Deuda proveedor", font=("Arial", 16, "bold"))
         lbl_title.pack(pady=(20, 10))
 
-        self.lbl_debt = ctk.CTkLabel(right_frame, text=f'${self.debt.get()}', font=("Arial", 24, "bold"), text_color="#059649")
+        self.lbl_debt = ctk.CTkLabel(right_frame, text=f'${format_currency(self.debt.get())}', font=("Arial", 24, "bold"), text_color="#059649")
         self.lbl_debt.pack(pady=10)
 
         lbl_note = ctk.CTkLabel(right_frame, textvariable=self.last_update_debt,  font=("Arial", 18, "bold"))

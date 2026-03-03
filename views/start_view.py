@@ -13,6 +13,9 @@ class StartView:
         self.frame = ctk.CTkFrame(parent, fg_color="gray58")
         self.frame.pack(fill="both", expand=True)
         self.company_model = company_model
+        self.editing = False
+        self._backup = {}
+        self.entries = {}
 
         self.create_background_logo()
         self.create_main_widget()
@@ -82,56 +85,28 @@ class StartView:
 
         row = 0
 
-        def add_field(row, label, widget):
-            field_lbl = ctk.CTkLabel(
+        def add_field(row, label, var_name, var):
+            ctk.CTkLabel(
                 form_frame,
                 text=label,
                 font=ctk.CTkFont(size=12, weight="bold"),
                 text_color="black"
-            )
+            ).grid(row=row, column=0, sticky="e", padx=(10,10), pady=7)
 
-            field_lbl.grid(row=row, column=0, sticky="e", padx=(10,10), pady=7)
-            widget.grid(row=row, column=1, sticky="w", padx=(10,10), pady=7)
+            entry = ctk.CTkEntry(form_frame, textvariable=var, width=200, state='readonly')
+            entry.grid(row=row, column=1, sticky="w", padx=(10,10), pady=7)
+            self.entries[var_name] = entry
 
-        add_field(0, "Empresa: ", ctk.CTkEntry(
-            form_frame, textvariable=self.businesss_name_var, width=200, state='readonly')
-        )
-        
-        add_field(1, "CUIT: ", ctk.CTkEntry(
-            form_frame, textvariable=self.cuit_var, width=200, state='readonly')
-        )
-
-        add_field(2, "Condición IVA: ", ctk.CTkEntry(
-            form_frame, textvariable=self.iva_condition_var, width=200, state='readonly')
-        )
-
-        add_field(3, "Inicio de Act.: ", ctk.CTkEntry(
-            form_frame, textvariable=self.start_date_var, width=200, state='readonly')
-        )
-
-        add_field(4, "Domicilio: ", ctk.CTkEntry(
-            form_frame, textvariable=self.address_var, width=200, state='readonly')
-        )
-
-        add_field(5, "Localidad: ", ctk.CTkEntry(
-            form_frame, textvariable=self.city_var, width=200, state='readonly')
-        )
-
-        add_field(6, "Provincia: ", ctk.CTkEntry(
-            form_frame, textvariable=self.province_var, width=200, state='readonly')
-        )
-
-        add_field(7, "Código Postal: ", ctk.CTkEntry(
-            form_frame, textvariable=self.postal_code_var, width=200, state='readonly')
-        )
-
-        add_field(8, "Teléfono: ", ctk.CTkEntry(
-            form_frame, textvariable=self.phone1_var, width=200, state='readonly')
-        )
-
-        add_field(9, "Teléfono: ", ctk.CTkEntry(
-            form_frame, textvariable=self.phone2_var, width=200, state='readonly')
-        )
+        add_field(0, "Empresa: ",       "business_name",  self.businesss_name_var)
+        add_field(1, "CUIT: ",          "cuit",           self.cuit_var)
+        add_field(2, "Condición IVA: ", "iva_condition",  self.iva_condition_var)
+        add_field(3, "Inicio de Act.: ","start_date",     self.start_date_var)
+        add_field(4, "Domicilio: ",     "address",        self.address_var)
+        add_field(5, "Localidad: ",     "city",           self.city_var)
+        add_field(6, "Provincia: ",     "province",       self.province_var)
+        add_field(7, "Código Postal: ", "postal_code",    self.postal_code_var)
+        add_field(8, "Teléfono 1: ",    "phone1",         self.phone1_var)
+        add_field(9, "Teléfono 2: ",    "phone2",         self.phone2_var)
 
         btn_frame = ctk.CTkFrame(card_frame, fg_color="white")
         btn_frame.pack(pady=20)
@@ -140,7 +115,8 @@ class StartView:
             btn_frame, 
             text="Editar", 
             width=100, 
-            font=ctk.CTkFont(size=13, weight='bold')
+            font=ctk.CTkFont(size=13, weight='bold'),
+            command=self.toggle_edit
         )
 
         self.btn_save.grid(row=0, column=0, padx=15)
@@ -151,13 +127,68 @@ class StartView:
             width=100,
             state='disabled',
             fg_color="gray", 
-            font=ctk.CTkFont(size=13, weight='bold')
+            font=ctk.CTkFont(size=13, weight='bold'),
+            command=self.cancel_edit
         )
 
         self.btn_cancel.grid(row=0, column=1, padx=15)
         
         # carga de datos
         self.load_company_data()
+
+    def _save_changes(self):
+        data = {
+            'business_name': self.businesss_name_var.get(),
+            'cuit': self.cuit_var.get(),
+            'iva_condition': self.iva_condition_var.get(),
+            'start_date': self.start_date_var.get(),
+            'address': self.address_var.get(),
+            'city': self.city_var.get(),
+            'province': self.province_var.get(),
+            'postal_code': self.postal_code_var.get(),
+            'phone1': self.phone1_var.get(),
+            'phone2': self.phone2_var.get(),
+        }
+
+        try:
+            self.company_model.edit_company_data(data)
+            self._finish_edit()
+        except Exception as e:
+            tk.messagebox.showerror("Error", f"No se pudo guardar: {e}")
+
+    def toggle_edit(self):
+        if not self.editing:
+            self.editing = True
+            self._backup = {
+                'business_name': self.businesss_name_var.get(),
+                'cuit': self.cuit_var.get(),
+                'iva_condition': self.iva_condition_var.get(),
+                'start_date': self.start_date_var.get(),
+                'address': self.address_var.get(),
+                'city': self.city_var.get(),
+                'province': self.province_var.get(),
+                'postal_code': self.postal_code_var.get(),
+                'phone1': self.phone1_var.get(),
+                'phone2': self.phone2_var.get(),
+            }
+            self._set_fields_state('normal')
+            self.btn_save.configure(text="Guardar", fg_color="#4CAF50", hover_color="#45a049")
+            self.btn_cancel.configure(state="normal", fg_color="#757575")
+        else:
+            self._save_changes()
+    
+    def cancel_edit(self):
+        self.businesss_name_var.set(self._backup['business_name'])
+        self.cuit_var.set(self._backup['cuit'])
+        self.iva_condition_var.set(self._backup['iva_condition'])
+        self.start_date_var.set(self._backup['start_date'])
+        self.address_var.set(self._backup['address'])
+        self.city_var.set(self._backup['city'])
+        self.province_var.set(self._backup['province'])
+        self.postal_code_var.set(self._backup['postal_code'])
+        self.phone1_var.set(self._backup['phone1'])
+        self.phone2_var.set(self._backup['phone2'])
+        self._finish_edit()
 
     def load_company_data(self):
         data = self.company_model.get_company_data()
@@ -173,4 +204,13 @@ class StartView:
         self.phone1_var.set(data[9])
         self.phone2_var.set(data[10])
 
+    def _finish_edit(self):
+        self.editing = False
+        self._set_fields_state('readonly')
+        self.btn_save.configure(text="Editar", fg_color="#3B8ED0", hover_color="#36719F")
+        self.btn_cancel.configure(state="disabled", fg_color="gray")
+
+    def _set_fields_state(self, state: str):
+        for entry in self.entries.values():
+            entry.configure(state=state)
         

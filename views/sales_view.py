@@ -102,7 +102,7 @@ class SalesView:
         self.product_tree = ttk.Treeview(selector_frame, show="headings", height=12)
         self.product_tree["columns"] = ("Cód.", "Nombre", "Envase", "P. Venta", "Stock")
 
-        for col, w in zip(self.product_tree["columns"], [20, 400, 80, 100, 40]):
+        for col, w in zip(self.product_tree["columns"], [50, 350, 100, 100, 40]):
             self.product_tree.column(col, width=w)
             self.product_tree.heading(col, text=col)
 
@@ -208,16 +208,21 @@ class SalesView:
 
             # Ventana emergente para cantidad
             qty_win = ctk.CTkToplevel(self.frame)
-            qty_win.title(f"Agregar {name}")
+            card_frame = ctk.CTkFrame(qty_win, fg_color="white", corner_radius=20)
+            card_frame.pack(fill="both", expand=True, padx=20, pady=20)
+            qty_win.title(f"Agregar Producto")
             qty_win.transient(self.frame)
             qty_win.grab_set()
-            center_window(qty_win, 320, 240)
+            center_window(qty_win, 420, 270)
 
-            ctk.CTkLabel(qty_win, text=f"Agregar '{name}'", font=ctk.CTkFont(size=15, weight="bold")).pack(pady=(15, 5))
-            ctk.CTkLabel(qty_win, text=f"Stock disponible: {stock}", font=ctk.CTkFont(size=13)).pack()
+            ctk.CTkLabel(
+                card_frame, 
+                text=f"AGREGAR: \n {name} {pack}", 
+                font=ctk.CTkFont(size=12, weight="bold")).pack(pady=(15, 5))
+            ctk.CTkLabel(card_frame, text=f"Stock disponible: {stock}", font=ctk.CTkFont(size=13)).pack()
 
             qty_var = tk.StringVar(value="1")
-            qty_entry = ctk.CTkEntry(qty_win, textvariable=qty_var, width=80, height=35, justify="center")
+            qty_entry = ctk.CTkEntry(card_frame, textvariable=qty_var, width=80, height=35, justify="center")
             qty_entry.pack(pady=10)
             qty_entry.focus()
 
@@ -227,9 +232,9 @@ class SalesView:
                 self.update_total()
                 qty_win.destroy()
 
-            ctk.CTkButton(qty_win, text="Agregar", width=120, height=35,
+            ctk.CTkButton(card_frame, text="Agregar", width=120, height=35,
                           fg_color="#4CAF50", hover_color="#45a049", command=confirm_add).pack(pady=(10, 5))
-            ctk.CTkButton(qty_win, text="Cancelar", width=120, height=35,
+            ctk.CTkButton(card_frame, text="Cancelar", width=120, height=35,
                           fg_color="#757575", hover_color="#616161", command=qty_win.destroy).pack(pady=(0, 10))
 
         except Exception as e:
@@ -1220,9 +1225,9 @@ class SalesView:
         
         try:
             return {
-                'IVA': float(self.retencion_iva_var.get() or 0),
-                'IIBB': float(self.retencion_iibb_var.get() or 0),
-                'GAN': float(self.retencion_ganancias_var.get() or 0),
+                'IVA': string_to_2_dec(self.retencion_iva_var.get() or string_to_2_dec("0")),
+                'IIBB': string_to_2_dec(self.retencion_iibb_var.get() or string_to_2_dec("0")),
+                'GAN': string_to_2_dec(self.retencion_ganancias_var.get() or string_to_2_dec("0")),
                 'certificado': self.certificado_var.get().strip()
             }
         except ValueError:

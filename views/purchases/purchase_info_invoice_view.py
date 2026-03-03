@@ -58,7 +58,12 @@ class PurchaseInfoInvoiceView():
             self.purchase_id = values[0]
             purchase_data = self.model.purchase.get_purchase_by_id(self.purchase_id)
 
-            self.show_invoice_fields(doc_id=purchase_data[3])
+            doc_type = purchase_data[2] if purchase_data else None
+            if doc_type == "REMITO":
+                self.show_invoice_fields(doc_id=None)
+            else:
+                print(f"pruchase data 3: {purchase_data[3]}")
+                self.show_invoice_fields(doc_id=purchase_data[3])
 
             # Productos asociados a la compra
             sep = ctk.CTkLabel(
@@ -448,7 +453,11 @@ class PurchaseInfoInvoiceView():
 
     ## Carga los campos asociados a la factura
     def load_invoice_data(self, doc_id):
+        if doc_id is None:
+            return
         invoice_data = self.model.purchase.supplier_invoice.get_invoice_data(doc_id)
+        if invoice_data is None:
+            return
         iibb_p_amount = self.model.purchase.supplier_invoice.get_iibb_per_amount(doc_id) 
         iva_p_amount = self.model.purchase.supplier_invoice.get_iva_per_amount(doc_id)
 

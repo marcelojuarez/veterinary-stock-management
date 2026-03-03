@@ -165,14 +165,14 @@ class CustomersView:
 
         ctk.CTkButton(
             footer,
-            text="🗑️ Borrar Cliente",
+            text="🗑️ Eliminar Cliente",
             width=W,
             height=H,
             font=ctk.CTkFont(size=13, weight="bold"),
             fg_color="#009688",
             hover_color="#00796B",
             command=self.delete_selected_customer
-        ).grid(row=0, column=0, padx=20, pady=10)
+        ).grid(row=0, column=1, padx=20, pady=10)
 
         ctk.CTkButton(
             footer,
@@ -183,7 +183,7 @@ class CustomersView:
             fg_color="#009688",
             hover_color="#00796B",
             command=self.open_add_customer_window
-        ).grid(row=0, column=1, padx=20, pady=10)
+        ).grid(row=0, column=0, padx=20, pady=10)
 
 
     def update_debts_button_state(self):
@@ -721,7 +721,7 @@ class CustomersView:
         summary_frame.pack(fill="x", padx=15, pady=10)
 
         # Grid de resumen
-        summary_frame.grid_columnconfigure((0, 1, 2, 3), weight=1)
+        summary_frame.grid_columnconfigure((0, 1, 2, 3, 4), weight=1)
 
         def create_summary_card(parent, row, col, title, value, color="#333333"):
             card = ctk.CTkFrame(parent, fg_color="white", corner_radius=8)
@@ -741,13 +741,9 @@ class CustomersView:
 
         create_summary_card(summary_frame, 0, 0, "Total Comprado", f"${summary['total_comprado']}")
         create_summary_card(summary_frame, 0, 1, "Total Pagado", f"${summary['total_pagado']}", "#4CAF50")
-        
-        if summary['saldo_a_favor'] > 0:
-            create_summary_card(summary_frame, 0, 2, "Saldo a Favor", f"${summary['saldo_a_favor']}", "#2196F3")
-        else:
-            create_summary_card(summary_frame, 0, 2, "Deuda Pendiente", f"${summary['deuda_pendiente']}", "#F44336")
-        
-        create_summary_card(summary_frame, 0, 3, "Ventas", f"{summary['ventas_pagadas']}/{summary['total_ventas']} pagadas")
+        create_summary_card(summary_frame, 0, 2, "Saldo a Favor", f"${summary['saldo_a_favor']}", "#2196F3")
+        create_summary_card(summary_frame, 0, 3, "Deuda Pendiente", f"${summary['deuda_pendiente']}", "#F44336")
+        create_summary_card(summary_frame, 0, 4, "Ventas", f"{summary['ventas_pagadas']}/{summary['total_ventas']} pagadas")
 
         # ----------------------------------------------------------------
         # TABLA DE MOVIMIENTOS
@@ -832,11 +828,15 @@ class CustomersView:
                     history_table.item(item, tags=("pago",))
                 elif tipo == "CRÉDITO":
                     history_table.item(item, tags=("credito",))
+                elif tipo == "AJUSTE":
+                    history_table.item(item, tags=("ajuste",))
 
         history_table.tag_configure("venta", background="#FFF3E0")
         history_table.tag_configure("contado", background="#E3FCEF")
         history_table.tag_configure("pago", background="#E8F5E9")
         history_table.tag_configure("credito", background="#E3F2FD")
+        history_table.tag_configure("ajuste", background="#FFF9C4")
+
         tag_rows()
 
         # ----------------------------------------------------------------

@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from db.database import db
 
 class StockModel: 
@@ -75,15 +77,32 @@ class StockModel:
                 conn.commit()
                 return True
 
-            for sale_id, _, _ in affected_sales:
+            for sale_id, client_id, client in affected_sales:
                 # Por cada venta afecta se obtiene su estado actual
                 status = db.fetch_one("SELECT estado FROM sales WHERE id = ?", (sale_id,), conn=conn)[0]
 
                 if status != 'paid':
+                    old_total_row = db.fetch_one("SELECT total FROM sales WHERE id = ?", (sale_id,), conn=conn) 
+                    old_total = Decimal(old_total_row[0]) if old_total_row else Decimal('0.00')
+
 
                     self.sales_model.update_sale_item(sale_id, product_id, product_data['PriceWIva'], conn=conn, commit=False)
                     self.sales_model.recalculate_sale_total(sale_id, conn=conn, commit=False)
                     print(f"DEBUG STOCK: llamando update_sale_status para venta {sale_id}")
+                    new_total_row = db.fetch_one("SELECT total FROM sales WHERE id = ?", (sale_id,), conn=conn)
+                    new_total = Decimal(new_total_row[0]) if new_total_row else Decimal('0.00')
+
+                    # ← Registrar ajuste solo si hubo cambio y hay cliente
+                    if client and old_total != new_total:
+                        self.payment_model.customer_model.register_price_adjustment(
+                            sale_id=sale_id,
+                            client_id=client_id,
+                            old_total=old_total,
+                            new_total=new_total,
+                            conn=conn,
+                            commit=False
+                        )
+
                     self.payment_model.update_sale_status(sale_id, conn=conn, commit=False)
 
             conn.commit()
@@ -166,24 +185,35 @@ class StockModel:
         return result[0] if result else 0
 
     def bulk_update_prices_by_date(self, date, percent_increase):
-        """Actualización masiva de precios por fecha"""
         multiplier = 1 + (percent_increase / 100)
-        
+
         query = """
             UPDATE stock 
-            SET price = ROUND(price * ?, 2),
+            SET price = ROUND(CAST(price AS REAL) * ?, 2),
                 price_with_iva = CASE 
-                    WHEN iva = 21.0 THEN ROUND(price * ? * 1.21, 2)
-                    WHEN iva = 10.5 THEN ROUND(price * ? * 1.105, 2)
-                    ELSE ROUND(price * ?, 2)
+                    WHEN CAST(iva AS REAL) = 21.0 
+                        THEN ROUND(CAST(price AS REAL) * ? * 1.21, 2)
+                    WHEN CAST(iva AS REAL) = 10.5 
+                        THEN ROUND(CAST(price AS REAL) * ? * 1.105, 2)
+                    ELSE ROUND(CAST(price AS REAL) * ?, 2)
                 END,
-                profit = ROUND(((price * ? - cost_price) / cost_price) * 100, 2),
+                profit = CASE
+                    WHEN CAST(cost_price AS REAL) != 0
+                    THEN ROUND(
+                        (
+                            (CAST(price AS REAL) * ? - CAST(cost_price AS REAL))
+                            / CAST(cost_price AS REAL)
+                        ) * 100,
+                        2
+                    )
+                    ELSE '0'
+                END,
                 last_price_update = CURRENT_DATE
             WHERE last_price_update = ?
         """
-        
+
         params = (multiplier, multiplier, multiplier, multiplier, multiplier, date)
-        
+
         return db.execute_query(query, params)
     
     def get_honorarios_id(self):
