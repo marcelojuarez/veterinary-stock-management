@@ -37,15 +37,14 @@ class NewProductForm():
         add_win.grab_set()
     
         # Centrar la ventana
-        width_win = 480
-        height_win = 600
+        width_win = 560
+        height_win = 480
 
         x_parent = parent.winfo_x() 
         y_parent = parent.winfo_y()
         width_parent = parent.winfo_width()
         height_parent = parent.winfo_height()
 
-        # centro
         x = x_parent + (width_parent // 2) - (width_win // 2)
         y = y_parent + (height_parent // 2) - (height_win // 2)
 
@@ -64,90 +63,81 @@ class NewProductForm():
             text="Nuevo Artículo",
             font=ctk.CTkFont(size=18, weight="bold")
         )
-        title_label.pack(pady=20)
+        title_label.pack(pady=(20, 10))
 
-        # contenedor del formulario
+        # Separador visual
+        sep = ctk.CTkFrame(card_frame, fg_color="#e0e0e0", height=2)
+        sep.pack(fill="x", padx=20, pady=(0, 10))
+
+        # contenedor del formulario — 2 columnas
         form_frame = ctk.CTkFrame(card_frame, fg_color="white")
         form_frame.pack(pady=5, padx=10, fill="x")
+        form_frame.grid_columnconfigure(1, weight=1)
+        form_frame.grid_columnconfigure(3, weight=1)
         
-        def add_field(row, label, widget):
+        def add_field(row, col, label, widget):
             field_lbl = ctk.CTkLabel(
                 form_frame,
                 text=label,
-                font=ctk.CTkFont(size=14, weight="bold"),
-                text_color="black"
+                font=ctk.CTkFont(size=13, weight="bold"),
+                text_color="#333333"
             )
+            field_lbl.grid(row=row, column=col*2, sticky="e", padx=(15, 8), pady=6)
+            widget.grid(row=row, column=col*2+1, sticky="w", padx=(0, 15), pady=6)
 
-            field_lbl.grid(row=row, column=0, sticky="e", padx=(10,10), pady=7)
-            widget.grid(row=row, column=1, sticky="w", padx=(10,10), pady=7)
+        # Columna izquierda
+        add_field(0, 0, "Nombre:", 
+                ctk.CTkEntry(form_frame, textvariable=self.name_var, width=180))
         
-        add_field(0, "Nombre Artículo: ", 
-                ctk.CTkEntry(form_frame, textvariable=self.name_var, width=200))
-        
-        add_field(
-            1,
-            "Envase: ",
+        add_field(1, 0, "Envase:",
             ctk.CTkComboBox(
                 form_frame,
-                values=[
-                    "UNIDAD",
-                    "10 ML",
-                    "20 ML",
-                    "25 ML",
-                    "50 ML",
-                    "90 ML",
-                    "100 ML",
-                    "200 ML",
-                    "250 ML",
-                    "300 ML",
-                    "500 ML",
-                    "400 GR",
-                    "5 KG",
-                    "10 KG",
-                    "12 KG",
-                    "15 KG",
-                    "20 KG",
-                    "25 KG",
-                    "40 DS",
-                ],
-                variable=self.pack_var,
-                width=200,
-                height=35
+                values=["UNIDAD","10 ML","20 ML","25 ML","50 ML","90 ML","100 ML",
+                        "200 ML","250 ML","300 ML","500 ML","400 GR","5 KG","10 KG",
+                        "12 KG","15 KG","20 KG","25 KG","40 DS"],
+                variable=self.pack_var, width=180, height=34
             )
         )
-
         self.pack_var.set("UNIDAD")
 
-        add_field(2, "Stock: ",
-                ctk.CTkEntry(form_frame, textvariable=self.qnt_var, state='readonly', width=200))
-
+        add_field(2, 0, "Stock:",
+                ctk.CTkEntry(form_frame, textvariable=self.qnt_var, state='readonly', width=180))
         self.qnt_var.set("0")
-        
-        add_field(3, "Precio Lista: ", 
-                ctk.CTkEntry(form_frame, textvariable=self.list_price_var, width=200))
-        
-        add_field(4, "% Rentabilidad: ",
-                ctk.CTkEntry(form_frame, textvariable=self.profit_var, width=200))
-        
-        add_field(5, "Precio venta: ",
-                ctk.CTkEntry(form_frame, textvariable=self.sale_price_var, width=200))
-        
-        self.sale_price_var.set('0.0')
 
-        add_field(6, "% Iva: ",
-                ctk.CTkComboBox(form_frame, values=["21.00", "10.50", "0.00"], 
-                variable=self.iva_var, state='readonly', width=200, height=35))
-        
+        add_field(3, 0, "% IVA:",
+                ctk.CTkComboBox(form_frame, values=["21.00", "10.50", "0.00"],
+                variable=self.iva_var, state='readonly', width=180, height=34))
         self.iva_var.set("21.00")
 
-        add_field(7, "Monto IVA: ",
-                  ctk.CTkEntry(form_frame, textvariable=self.iva_amount, width=200))
+        # Columna derecha — precios
+        add_field(0, 1, "Precio Lista:",
+                ctk.CTkEntry(form_frame, textvariable=self.list_price_var, width=180))
         
+        add_field(1, 1, "% Rentabilidad:",
+                ctk.CTkEntry(form_frame, textvariable=self.profit_var, width=180))
+
+        add_field(2, 1, "Precio Venta:",
+                ctk.CTkEntry(form_frame, textvariable=self.sale_price_var, width=180))
+        self.sale_price_var.set('0.0')
+
+        add_field(3, 1, "Monto IVA:",
+                  ctk.CTkEntry(form_frame, textvariable=self.iva_amount, width=180))
         self.iva_amount.set('0.0')
 
-        add_field(8, "Precio venta C/IVA: ",
-                ctk.CTkEntry(form_frame, textvariable=self.final_price, width=200))
-        
+        # Precio final — fila completa destacada
+        final_lbl = ctk.CTkLabel(
+            form_frame,
+            text="Precio C/IVA:",
+            font=ctk.CTkFont(size=13, weight="bold"),
+            text_color="#333333"
+        )
+        final_lbl.grid(row=4, column=0, sticky="e", padx=(15, 8), pady=(10, 6))
+        final_entry = ctk.CTkEntry(
+            form_frame, textvariable=self.final_price,
+            width=180, font=ctk.CTkFont(size=13, weight="bold"),
+            fg_color="#E8F5E9", border_color="#4CAF50"
+        )
+        final_entry.grid(row=4, column=1, sticky="w", padx=(0, 15), pady=(10, 6))
         self.final_price.set('0.0')
 
         def recalc(*args):

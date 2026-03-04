@@ -2,18 +2,20 @@ from db.database import db
 from datetime import datetime
 from decimal import Decimal
 from utils.utils import norm_to_2_dec
+from models.stock_movement import StockMovementModel
 
 class SalesModel:
-    def __init__(self):
+    def __init__(self, stock_movement_model=None):
         self.db = db
+        self.movement = stock_movement_model or StockMovementModel()
 
     def register_sale(self, total, items, cliente_id, estado, retenciones=None):
-        with self.db.get_connection() as conn:
+        conn = self.db.get_connection()
+        try:
+            conn.execute("BEGIN")
             cursor = conn.cursor()
+            read_cursor = conn.cursor()  # cursor separado para lecturas dentro del loop
             date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-
-            for i in items:
-                print(i)
 
             cursor.execute("""
                 INSERT INTO sales (date, total, cliente_id, estado)
@@ -21,8 +23,8 @@ class SalesModel:
             """, (date, str(total), cliente_id, estado))
 
             sale_id = cursor.lastrowid
-    
-            # Guardar retenciones SI EXISTEN
+
+            # Guardar retenciones si existen
             if retenciones:
                 for tipo, monto in retenciones.items():
                     if tipo != 'certificado' and monto > 0:
@@ -38,38 +40,64 @@ class SalesModel:
                     product_id, _, _, quantity, price_with_iva = item
                     observations = None
 
-                # OBTENER IVA DEL PRODUCTO
-                cursor.execute("SELECT iva FROM stock WHERE id = ?", (product_id,))
-                row = cursor.fetchone()
-                iva_rate = Decimal(row[0]) if row and row[0] else Decimal('21.00')
-                
-                # DESCOMPONER EL PRECIO (price_with_iva → price sin IVA)
-                divisor = Decimal('1') + (iva_rate / Decimal('100'))
-                price_without_iva = norm_to_2_dec(price_with_iva / divisor)
-                
-                # CALCULAR MONTOS
-                subtotal_with_iva = norm_to_2_dec(price_with_iva * quantity) # con IVA
-                subtotal_without_iva = norm_to_2_dec(price_without_iva * quantity)  # Sin IVA
-                iva_amount = norm_to_2_dec(subtotal_without_iva * (iva_rate / Decimal('100')))  # IVA
-                
-                # GUARDAR
-                cursor.execute("""
-                    INSERT INTO sale_items (sale_id, product_id, quantity, price, subtotal, iva_rate, iva_amount, observations)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                """, (sale_id, product_id, quantity, str(price_with_iva), str(subtotal_with_iva), str(iva_rate), str(iva_amount), observations))
+                # IVA del producto
+                read_cursor.execute("SELECT iva, name, price, cost_price, quantity FROM stock WHERE id = ?", (product_id,))
+                row = read_cursor.fetchone()
+                iva_rate    = Decimal(row[0]) if row and row[0] else Decimal('21.00')
+                p_name      = row[1] if row else str(product_id)
+                price_before = row[2] if row else None   # precio de venta sin iva
+                cost_before  = row[3] if row else None   # costo
+                qty_before   = row[4] if row else None   # stock actual
 
-                # Solo descontar stock si NO es honorarios
-                cursor.execute("SELECT name FROM stock WHERE id = ?", (product_id,))
-                row = cursor.fetchone()
-                
-                if row and row[0] != 'HONORARIOS':
+                # Descomponer precio
+                divisor             = Decimal('1') + (iva_rate / Decimal('100'))
+                price_without_iva   = norm_to_2_dec(price_with_iva / divisor)
+                subtotal_with_iva   = norm_to_2_dec(price_with_iva * quantity)
+                subtotal_without_iva = norm_to_2_dec(price_without_iva * quantity)
+                iva_amount          = norm_to_2_dec(subtotal_without_iva * (iva_rate / Decimal('100')))
+
+                cursor.execute("""
+                    INSERT INTO sale_items 
+                        (sale_id, product_id, quantity, price, subtotal, iva_rate, iva_amount, observations)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                """, (sale_id, product_id, quantity, str(price_with_iva),
+                    str(subtotal_with_iva), str(iva_rate), str(iva_amount), observations))
+
+                # Descontar stock y registrar movimiento (solo si no es honorarios)
+                is_honorarios = p_name == 'HONORARIOS'
+
+                if not is_honorarios:
                     cursor.execute("""
-                        UPDATE stock SET quantity = quantity - ?
-                        WHERE id = ?
+                        UPDATE stock SET quantity = quantity - ? WHERE id = ?
                     """, (quantity, product_id))
+
+                    qty_after = (qty_before or 0) - quantity
+
+                    self.movement.register(
+                        product_id   = product_id,
+                        product_name = p_name,
+                        event_type   = 'VENTA',
+                        detail       = f"Venta ID {sale_id}",
+                        qty_before   = qty_before,
+                        qty_after    = qty_after,
+                        cost_before  = cost_before,
+                        cost_after   = cost_before,
+                        price_before = price_before,
+                        price_after  = price_before,
+                        conn         = conn,   # <- pasar la conexión activa
+                        commit       = False
+                    )
 
             conn.commit()
             return sale_id
+
+        except Exception as e:
+            conn.rollback()
+            print(f'Error al registrar venta: {e}')
+            raise
+
+        finally:
+            conn.close()
         
     def get_today_sales(self):
         query = """

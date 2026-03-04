@@ -13,6 +13,7 @@ import logging
 from pathlib import Path
 from views.stock_view import StockView
 from utils.view_helpers import center_window
+from services.cloud_backup_service import CloudBackupService
 
 class BackupManagerView(ctk.CTkFrame):
     """Vista para gestionar backups de la base de datos"""
@@ -20,6 +21,7 @@ class BackupManagerView(ctk.CTkFrame):
     def __init__(self, parent, controller):
         self.frame = ctk.CTkFrame(parent)
         self.backup_service = get_backup_service()
+        self.cloud_service = CloudBackupService()
         super().__init__(parent)
         self.controller = controller
 
@@ -148,28 +150,30 @@ class BackupManagerView(ctk.CTkFrame):
         actions = ctk.CTkFrame(self.frame)
         actions.grid(row=3, column=0, sticky="ew", padx=10, pady=15)
 
-        for i in range(11):
+        for i in range(13):
             actions.grid_columnconfigure(i, weight=1 if i % 2 == 0 else 0)
 
         buttons = [
-            ("Crear Backup", self.create_manual_backup),
-            ("Restaurar", self.restore_selected_backup),
-            ("Eliminar", self.delete_selected_backup),
-            ("Exportar", self.export_backup),
-            ("Configuración", self.open_config_window)
+            ("Crear Backup",    self.create_manual_backup),
+            ("☁️ Subir a Drive", self.upload_to_drive),      # <- nuevo
+            ("Restaurar",       self.restore_selected_backup),
+            ("Eliminar",        self.delete_selected_backup),
+            ("Exportar",        self.export_backup),
+            ("Configuración",   self.open_config_window)
         ]
 
         for i, (text, cmd) in enumerate(buttons):
             ctk.CTkButton(
                 actions,
                 text=text,
-                width=250,
+                width=200,
                 height=40,
                 fg_color="#009688",
                 hover_color="#00796B",
                 font=ctk.CTkFont(size=13, weight="bold"),
                 command=cmd
             ).grid(row=0, column=i * 2 + 1, padx=8, pady=10)
+
 
     # ======================================================
     # LOGIC
@@ -379,3 +383,17 @@ class BackupManagerView(ctk.CTkFrame):
     def auto_refresh(self):
         self.refresh_data()
         self.frame.after(30000, self.auto_refresh)
+
+    def upload_to_drive(self):
+        if not messagebox.askyesno(
+            "Subir a Drive",
+            "¿Subir un backup a Google Drive?\n\n"
+            "La primera vez abrirá el navegador para autorizar el acceso."
+        ):
+            return
+        try:
+            name = self.cloud_service.run()
+            messagebox.showinfo("Éxito", f"Backup subido a Google Drive:\n{name}")
+            self.refresh_data()
+        except Exception as e:
+            messagebox.showerror("Error", f"No se pudo subir el backup:\n{e}")

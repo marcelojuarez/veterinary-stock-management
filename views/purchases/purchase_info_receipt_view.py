@@ -16,8 +16,8 @@ class PurchaseInfoReceiptView():
     def show_purchase_info(self, parent, values):
         try:
             purchase_info = ctk.CTkToplevel(parent)
-            purchase_info.configure(fg_color="#B0A8A8")
-            purchase_info.withdraw() # Se oculta la ventana
+            purchase_info.configure(fg_color="#e0e0e0")
+            purchase_info.withdraw()
 
             purchase_info.title("Informacion de la Compra")
             purchase_info.protocol(
@@ -97,68 +97,74 @@ class PurchaseInfoReceiptView():
 
             self.load_data_into_the_sheet()
 
-            btn_frame = ctk.CTkFrame(main_frame, height=50, fg_color="white")
-            btn_frame.pack(fill='x', padx=10, pady=5)
-            btn_frame.pack_propagate(False)
+            btn_frame = ctk.CTkFrame(main_frame, fg_color="#f5f5f5", corner_radius=10)
+            btn_frame.pack(fill='x', padx=10, pady=(5, 10))
 
-            btn_frame.columnconfigure(0, weight=1)
-            btn_frame.columnconfigure(1, weight=1)
-            btn_frame.columnconfigure(2, weight=1)
+            for i in (0, 6):
+                btn_frame.grid_columnconfigure(i, weight=1)
+            for i in (1, 2, 3, 4, 5):
+                btn_frame.grid_columnconfigure(i, weight=0)
 
             self.save_btn = ctk.CTkButton(
                 btn_frame,
-                text="Guardar",
-                fg_color="#3A3251",
-                hover_color="#3A3251",
+                text="💾 Guardar",
+                fg_color="#9E9E9E",
+                hover_color="#757575",
                 font=ctk.CTkFont(size=13, weight="bold"),
-                width=120,
+                width=130,
+                height=36,
                 state='disabled',
                 command=lambda: self.save(values[0])
             )
-            self.save_btn.grid(row=0, column=0, padx=10)
+            self.save_btn.grid(row=0, column=1, padx=6, pady=10)
 
             self.edit_btn = ctk.CTkButton(
                 btn_frame,
-                text="Editar",
+                text="✏️ Editar",
                 fg_color="#2980B9",
                 hover_color="#0B5D94",
                 font=ctk.CTkFont(size=13, weight="bold"),
-                width=120,
+                width=130,
+                height=36,
                 command=lambda: self.edit(values[0])
             )
-            self.edit_btn.grid(row=0, column=1, padx=10)
+            self.edit_btn.grid(row=0, column=2, padx=6, pady=10)
 
             self.del_item_btn = ctk.CTkButton(
                 btn_frame,
-                text="Eliminar Item",
-                fg_color="#2980B9",
-                hover_color="#0B5D94",
-                font=ctk.CTkFont(size=13, weight="bold"),
-                width=120,
-                command=self.handle_delete_purchase_item
-            )
-            self.del_item_btn.grid(row=0, column=2, padx=10)
-
-            self.print_info = ctk.CTkButton(
-                btn_frame,
-                text="Imprimir Detalle",
-                fg_color="#0B9E97",
-                hover_color="#087E78",
-                font=ctk.CTkFont(size=13, weight="bold"),
-                command= lambda: self.gen_purchase_detail_pdf()
-            )
-            self.print_info.grid(row=0, column=3, padx=10)
-
-            close_btn = ctk.CTkButton(
-                btn_frame,
-                text="Cerrar",
+                text="🗑 Eliminar Item",
                 fg_color="#E74C3C",
                 hover_color="#C0392B",
                 font=ctk.CTkFont(size=13, weight="bold"),
-                width=120,
+                width=130,
+                height=36,
+                command=self.handle_delete_purchase_item
+            )
+            self.del_item_btn.grid(row=0, column=3, padx=6, pady=10)
+
+            self.print_info = ctk.CTkButton(
+                btn_frame,
+                text="🖨 Imprimir",
+                fg_color="#0B9E97",
+                hover_color="#087E78",
+                font=ctk.CTkFont(size=13, weight="bold"),
+                width=130,
+                height=36,
+                command=lambda: self.gen_purchase_detail_pdf()
+            )
+            self.print_info.grid(row=0, column=4, padx=6, pady=10)
+
+            close_btn = ctk.CTkButton(
+                btn_frame,
+                text="✖ Cerrar",
+                fg_color="#757575",
+                hover_color="#616161",
+                font=ctk.CTkFont(size=13, weight="bold"),
+                width=130,
+                height=36,
                 command=lambda: close_win(purchase_info, parent, parent.focus_force)
             )
-            close_btn.grid(row=0, column=4, padx=10)
+            close_btn.grid(row=0, column=5, padx=6, pady=10)
 
             width_win = 750
             height_win = 750
@@ -398,8 +404,8 @@ class PurchaseInfoReceiptView():
 
         # Habilita el boton guardar
         self.save_btn.configure(state='normal')
-        self.save_btn.configure(fg_color="#4927AC")
-        self.save_btn.configure(hover_color="#260980")
+        self.save_btn.configure(fg_color="#4CAF50")
+        self.save_btn.configure(hover_color="#388E3C")
 
         for w in self.customizable_wid:
             w.configure(state='normal')
@@ -425,8 +431,8 @@ class PurchaseInfoReceiptView():
                 w.configure(state='readonly')
 
             self.save_btn.configure(state='disabled')   
-            self.save_btn.configure(fg_color="#3A3251")
-            self.save_btn.configure(hover_color="#3A3251")    
+            self.save_btn.configure(fg_color="#9E9E9E")
+            self.save_btn.configure(hover_color="#757575")    
 
             self.print_info.configure(state='normal')
 

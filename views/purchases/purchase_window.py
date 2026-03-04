@@ -143,10 +143,15 @@ class PurchaseWindow():
             else:
                 self.purchase_tree.column(col, width=150, anchor="center")
 
+        # Fix: forzar el estilo para que no pise los tag colors de las filas
+        style = ttk.Style()
+        style.map("Treeview", background=[("selected", "#0078d4")])
+
         # Tags para colores de filas
-        self.purchase_tree.tag_configure('orow',background="#FFFFFF")
-        self.purchase_tree.tag_configure('purchase_draft', background="#ffebee")
-        self.purchase_tree.tag_configure('purchase_paid', background="#fff3e0")
+        self.purchase_tree.tag_configure('purchase_draft',   background="#ffebee", foreground="#b71c1c")
+        self.purchase_tree.tag_configure('purchase_pending', background="#fff9e6", foreground="#6d4c00")
+        self.purchase_tree.tag_configure('purchase_paid',    background="#e8f5e9", foreground="#1b5e20")
+        self.purchase_tree.tag_configure('orow',             background="#ffffff", foreground="#000000")
 
         self.purchase_tree.pack(side="left", fill="both", expand=True)
 
@@ -157,6 +162,20 @@ class PurchaseWindow():
 
         # set treeview on purchase filter controller
         self.purchase_filter.set_treeview(self.purchase_tree)
+
+        # Leyenda de colores
+        legend_frame = ctk.CTkFrame(win, fg_color="transparent")
+        legend_frame.grid(row=3, column=0, columnspan=2, sticky="se", padx=16, pady=(0, 2))
+
+        for color, fg, text in [
+            ("#ffebee", "#b71c1c", " Borrador "),
+            ("#fff9e6", "#6d4c00", " Pendiente de pago "),
+            ("#e8f5e9", "#1b5e20", " Pagada "),
+        ]:
+            dot = tk.Frame(legend_frame, bg=color, width=14, height=14, relief="solid", bd=1)
+            dot.pack(side="left", padx=(6, 2), pady=4)
+            ctk.CTkLabel(legend_frame, text=text, font=ctk.CTkFont(size=11),
+                         text_color=fg).pack(side="left")
 
         # --- Frame inferior (botones y cantidad) ---
         buttons_frame = ctk.CTkFrame(win)  # ← sin fg_color, usa el gris por defecto
@@ -574,26 +593,26 @@ class PurchaseWindow():
 
         # Cargar compras
         for p in purchases:
-            if p[7] == 'BORRADOR':
+            estado = p[8]  # índice correcto del estado
+            if estado == 'BORRADOR':
                 tag = "purchase_draft"
-            elif p[7] == 'PAGADA':
+            elif estado == 'PAGADA':
                 tag = "purchase_paid"
             else:
-                tag = "orow"
+                tag = "purchase_pending"  # CONFIRMADA / pendiente de pago
 
             self.purchase_tree.insert(
                 parent="", index="end", iid=p[0],
                 values=(
-                    p[0], # id
-                    p[1], # cuit
-                    p[2], # nombre
-                    p[3], # tipo doc
-                    iso_to_traditional(p[6]), # fecha
-                    iso_to_traditional(p[7]), # fecha venc
-                    p[8], # estado
-                    p[10], # saldo pend
-                    p[11] # total
+                    p[0],                    # id
+                    p[1],                    # cuit
+                    p[2],                    # nombre
+                    p[3],                    # tipo doc
+                    iso_to_traditional(p[6]),# fecha
+                    iso_to_traditional(p[7]),# fecha venc
+                    p[8],                    # estado
+                    p[10],                   # saldo pend
+                    p[11]                    # total
                 ),
-                tag=tag
+                tags=(tag,)
             )
-

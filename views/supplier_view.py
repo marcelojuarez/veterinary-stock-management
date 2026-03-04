@@ -173,7 +173,7 @@ class SupplierView():
         self.supplier_tree.column("Telefono", anchor=tk.W, width=110,stretch=True)
         self.supplier_tree.column("Email", anchor=tk.W, width=180, stretch=True)
         self.supplier_tree.column("Condicion Iva", anchor=tk.W, width=120, stretch=True)
-        self.supplier_tree.column("Últ. Act. deuda", anchor=tk.W, width=150, stretch=True)
+        self.supplier_tree.column("Últ. Act. deuda", anchor=tk.W, width=100, stretch=True)
 
         for col in self.supplier_tree["columns"]:
             self.supplier_tree.heading(

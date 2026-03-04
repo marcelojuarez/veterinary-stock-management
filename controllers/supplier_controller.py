@@ -169,24 +169,45 @@ class SupplierController():
 
         iid = selected[0]
         values = self.view.supplier_tree.item(iid, "values")
-
-        supplier_id = values[0]  # IMPORTANTE: usar id real
-
-        # Confirmar ANTES de borrar
-        if not ask_confirmation("¿Eliminar el proveedor seleccionado?", "Eliminar proveedor"):
-            return
+        supplier_id = values[0]
 
         try:
-            self.model.core.delete_supplier(supplier_id)
-            self.refresh_supplier_table()
+            if self.model.core.has_purchases(supplier_id):
+                # Tiene compras → ofrecer borrado lógico
+                if not ask_confirmation(
+                    'Este proveedor tiene compras asociadas y no puede eliminarse.\n\n'
+                    '¿Desea desactivarlo? Dejará de aparecer en las listas '
+                    'pero todo su historial se conservará.',
+                    'Desactivar Proveedor'
+                ):
+                    return
 
-            if self.view.find_var.get() != "":
-                self.view.find_var.set('')
+                self.model.core.deactivate_supplier(supplier_id)
+                self.refresh_supplier_table()
 
-            show_success('El proveedor fue eliminado correctamente')
+                if self.view.find_var.get() != "":
+                    self.view.find_var.set('')
+
+                show_success('El proveedor fue desactivado correctamente.')
+
+            else:
+                # Sin compras → eliminación física normal
+                if not ask_confirmation(
+                    '¿Eliminar el proveedor seleccionado?',
+                    'Eliminar Proveedor'
+                ):
+                    return
+
+                self.model.core.delete_supplier(supplier_id)
+                self.refresh_supplier_table()
+
+                if self.view.find_var.get() != "":
+                    self.view.find_var.set('')
+
+                show_success('El proveedor fue eliminado correctamente.')
 
         except Exception as e:
             print(e)
-            show_warning('Error al eliminar proveedor')
+            show_warning('Error al procesar la solicitud')
 
  
