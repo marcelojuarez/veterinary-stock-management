@@ -58,7 +58,7 @@ class PurchaseWindow():
 
         win.protocol("WM_DELETE_WINDOW",lambda: close_win(win, parent))
 
-        width_win = 1200
+        width_win = 1300
         height_win = 650
 
         btn_color = "#009688"
@@ -201,7 +201,7 @@ class PurchaseWindow():
 
         add_item_btn = ctk.CTkButton(
             buttons_frame,
-            text="Agregar item en la compra",
+            text="Agregar Productos a Comprar",
             fg_color="#009688",
             hover_color="#00796B",
             height=40,
@@ -361,7 +361,7 @@ class PurchaseWindow():
         # Botón Otro Comprobante
         other_btn = ctk.CTkButton(
             btn_frame,
-            text="Otro Comprobante",
+            text="Remito",
             fg_color="#3498DB",
             hover_color="#2980B9",
             command=lambda: self.handle_selection("Otro Comprobante", parent),
