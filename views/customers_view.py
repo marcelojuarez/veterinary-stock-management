@@ -698,6 +698,7 @@ class CustomersView:
         win = ctk.CTkToplevel(self.frame)
         win.title(f"📊 Estado de Cuenta - {cliente_nombre}")
         win.transient(self.frame)
+        win.update()
         win.grab_set()
         center_window(win, width_win, height_win)
         
@@ -740,11 +741,11 @@ class CustomersView:
                 text_color=color
             ).pack(pady=(2, 10))
 
-        create_summary_card(summary_frame, 0, 0, "Total Comprado", f"${summary['total_comprado']}")
-        create_summary_card(summary_frame, 0, 1, "Total Pagado", f"${summary['total_pagado']}", "#4CAF50")
-        create_summary_card(summary_frame, 0, 2, "Saldo a Favor", f"${summary['saldo_a_favor']}", "#2196F3")
-        create_summary_card(summary_frame, 0, 3, "Deuda Pendiente", f"${summary['deuda_pendiente']}", "#F44336")
-        create_summary_card(summary_frame, 0, 4, "Ventas", f"{summary['ventas_pagadas']}/{summary['total_ventas']} pagadas")
+        create_summary_card(summary_frame, 0, 0, "Total Comprado", f"${format_currency(summary['total_purchased'])}")
+        create_summary_card(summary_frame, 0, 1, "Total Pagado", f"${format_currency(summary['total_paid'])}", "#4CAF50")
+        create_summary_card(summary_frame, 0, 2, "Saldo a Favor", f"${format_currency(summary['credit'])}", "#2196F3")
+        create_summary_card(summary_frame, 0, 3, "Deuda Pendiente", f"${format_currency(summary['total_debt'])}", "#F44336")
+        create_summary_card(summary_frame, 0, 4, "Ventas", f"{summary['sales_balance']}")
 
         # ----------------------------------------------------------------
         # TABLA DE MOVIMIENTOS
@@ -823,8 +824,6 @@ class CustomersView:
                 tipo = values[1]
                 if tipo == "VENTA":
                     history_table.item(item, tags=("venta",))
-                elif tipo == "CONTADO":
-                    history_table.item(item, tags=("contado",))
                 elif tipo == "PAGO":
                     history_table.item(item, tags=("pago",))
                 elif tipo == "CRÉDITO":
@@ -833,13 +832,14 @@ class CustomersView:
                     history_table.item(item, tags=("ajuste",))
                 elif tipo == "SALDO FAVOR":
                     history_table.item(item, tags=("saldo",))
+                else:
+                    print(f'tipo de venta: {type}')
 
-        history_table.tag_configure("venta", background="#FFE082")
-        history_table.tag_configure("contado", background="#E3FCEF")
-        history_table.tag_configure("pago", background="#A5D6A7")
-        history_table.tag_configure("crédito", background="#A5D6A7")
-        history_table.tag_configure("ajuste", background="#90CAF9")
-        history_table.tag_configure("saldo", background="#CE93D8")
+        history_table.tag_configure("venta", background="#FFF3CD")     # amarillo muy suave
+        history_table.tag_configure("pago", background="#E8F5E9")      # verde muy claro
+        history_table.tag_configure("crédito", background="#E3F2FD")   # azul muy claro
+        history_table.tag_configure("ajuste", background="#F3E5F5")    # violeta muy suave
+        history_table.tag_configure("saldo", background="#FCE4EC")     # rosa muy claro
 
         tag_rows()
 
@@ -849,7 +849,7 @@ class CustomersView:
         btn_frame = ctk.CTkFrame(win, fg_color="transparent")
         btn_frame.pack(pady=15)
 
-        can_reset = summary['deuda_pendiente'] <= 0.01
+        can_reset = summary['total_debt'] <= Decimal('0.00')
 
         ctk.CTkButton(
             btn_frame,

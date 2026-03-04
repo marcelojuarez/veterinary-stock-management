@@ -890,7 +890,7 @@ def seed_suppliers():
     
     sales_model = SalesModel()
     payment_model = PaymentModel(sales_model)
-    stock_model = StockModel(sales_model, payment_model)
+    stock_model = StockModel(sales_model, payment_model, None)
     supplier_mdl = SupplierModel(stock_model)
     
     for supplier in suppliers:

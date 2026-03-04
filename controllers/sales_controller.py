@@ -164,44 +164,7 @@ class SalesController:
         except Exception as e:
             self.sales_view.show_error(f"Error al listar ventas: {e}")
 
-    def get_all_clients_with_data(self):
-        """Retorna lista completa de clientes con todos sus datos"""
-        # Ejemplo de implementación:
-        clients = self.customer_model.get_all_clients()
-        return [
-            {
-                "nombre": client[1],
-                "cuit": client[2],
-                "domicilio": client[3]
-            }
-            for client in clients
-        ]
-
-    def get_client_names(self):
-        """Obtener nombres de clientes para el combo de ventas"""
-        try:
-            clients = self.customer_model.get_all_clients()
-            return [c[1] for c in clients] if clients else ["Consumidor Final"]
-        except Exception:
-            return ["Consumidor Final"]
-        
-    def get_client_data(self, client_name):
-        """Obtener datos completos del cliente por nombre"""
-        try:
-            client = self.customer_model.get_client_by_name(client_name)
-            if client:
-                return {
-                    "id": client[0],
-                    "nombre": client[1],
-                    "cuit": client[2],
-                    "domicilio": client[3],
-                    "condicion_iva": client[4] if len(client) > 4 else ""
-                }
-            return None
-        except Exception as e:
-            print(f"Error obteniendo cliente: {e}")
-            return None
-        
+    ## -- Crea el remito asociado a una venta -- ##
     def create_delivery_note(self, sale_id):
         sale = self.sales_model.get_sale_by_id(sale_id)
         items = self.sales_model.get_sale_items(sale_id)

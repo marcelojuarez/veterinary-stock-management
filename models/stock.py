@@ -3,11 +3,18 @@ from decimal import Decimal
 from db.database import db
 
 class StockModel: 
-    def __init__(self, sales_model, payment_model, db_conection=None):
+    def __init__(self, sales_model, payment_model, event_bus, db_conection=None):
         self.db = db_conection or db
         self.sales_model = sales_model
         self.payment_model = payment_model
+        self.event_bus = event_bus
+        if self.event_bus is not None:
+            self.event_bus.subscribe('clean_price_changes', self.clean_price_changes)
+        self.changes = []
     
+    def clean_price_changes(self):
+        self.changes = []
+
     def get_all_products(self):
         """Obtener todos los productos del stock"""
         query = """
@@ -54,7 +61,7 @@ class StockModel:
     ## -- Transaccion para actualizar precio de productos -- ##
     # Y montos de ventas relacionadas#
     def update_p_price_and_related_sales_amount(self, product_id, product_data):
-        try:
+        try: 
             conn = self.db.get_connection()
 
             conn.execute("BEGIN")
@@ -85,9 +92,9 @@ class StockModel:
                     old_total_row = db.fetch_one("SELECT total FROM sales WHERE id = ?", (sale_id,), conn=conn) 
                     old_total = Decimal(old_total_row[0]) if old_total_row else Decimal('0.00')
 
-
                     self.sales_model.update_sale_item(sale_id, product_id, product_data['PriceWIva'], conn=conn, commit=False)
                     self.sales_model.recalculate_sale_total(sale_id, conn=conn, commit=False)
+
                     print(f"DEBUG STOCK: llamando update_sale_status para venta {sale_id}")
                     new_total_row = db.fetch_one("SELECT total FROM sales WHERE id = ?", (sale_id,), conn=conn)
                     new_total = Decimal(new_total_row[0]) if new_total_row else Decimal('0.00')
@@ -103,9 +110,26 @@ class StockModel:
                             commit=False
                         )
 
-                    self.payment_model.update_sale_status(sale_id, conn=conn, commit=False)
+                    new_status  = self.payment_model.update_sale_status(sale_id, conn=conn, commit=False)
+                    if new_status == 'paid':
+                        paid = self.payment_model.get_sale_paid(sale_id) # Monto de pagos de la venta
+                        overpayment = paid - new_total
+                        if overpayment > Decimal('0.00'):
+                            self.changes.append(
+                                f"✅ Venta #{sale_id} PAGADA - Saldo a favor: ${overpayment}"
+                            )
+                        else:
+                            self.changes.append(f"✅ Venta #{sale_id} quedó PAGADA por cambio de precio")
+
+                    else:
+                        self.changes.append(f"✅ Venta #{sale_id} Cambia su monto por cambio de precio")
+
+                    print(f'changes: \n{self.changes}')
 
             conn.commit()
+            if self.changes:
+                self.event_bus.publish("price_changes", self.changes)
+
             return True
 
         except Exception as e:

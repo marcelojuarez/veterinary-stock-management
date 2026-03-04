@@ -140,7 +140,7 @@ class App():
         customer_model = CustomerModel(payment_model)
         payment_model.customer_model = customer_model
         remito_model = RemitoModel()
-        stock_model = StockModel(sales_model, payment_model)
+        stock_model = StockModel(sales_model, payment_model, event_bus)
         supplier_model = SupplierModel(stock_model)
 
         ## --- CONTROLLERS --- ##
@@ -148,7 +148,7 @@ class App():
             stock_model, supplier_model, payment_model, event_bus
         )
         self.supplier_controller = SupplierController(supplier_model)
-        self.customer_controller = CustomerController(customer_model, payment_model)
+        self.customer_controller = CustomerController(customer_model, payment_model, event_bus)
         self.iva_reports_controller = ReportsController(iva_model)
 
         self.purchase_controller = PurchaseController(supplier_model, stock_model, event_bus)

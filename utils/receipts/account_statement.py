@@ -6,6 +6,8 @@ from reportlab.lib.enums import TA_CENTER, TA_RIGHT, TA_LEFT
 from reportlab.lib import colors
 from datetime import datetime
 from utils.receipts.paths import estado_cuenta
+from utils.utils import format_currency
+from decimal import Decimal
 
 
 def generate_account_statement(cliente_info, movements, summary, commerce_name="Agroveterinaria El Fortín"):
@@ -67,7 +69,7 @@ def generate_account_statement(cliente_info, movements, summary, commerce_name="
     table_data_style = ParagraphStyle(
         'TableData',
         parent=styles['Normal'],
-        fontSize=9,
+        fontSize=7,
         fontName='Helvetica',
         leading=11
     )
@@ -109,7 +111,7 @@ def generate_account_statement(cliente_info, movements, summary, commerce_name="
     linea1_data = [
         [
             Paragraph(f"<b>CLIENTE:</b> {cliente_nombre}", label_style),
-            Paragraph(f"<b>Crédito Acordado: $</b> {summary['total_comprado']:,.2f}", label_style)
+            Paragraph(f"<b>Crédito Acordado: $</b> {format_currency(summary['total_purchased'])}", label_style)
         ]
     ]
     
@@ -180,32 +182,28 @@ def generate_account_statement(cliente_info, movements, summary, commerce_name="
     
     # Agregar movimientos
     if movements:
-        for mov in reversed(movements):
-            fecha = str(mov["fecha"])[:10]  # Solo fecha sin hora
+        movements = list(reversed(movements))
+        for mov in movements:
+            fecha = str(mov[2])[:10]  # Solo fecha sin hora
             
             # Descripción más corta
-            detalle = mov["descripcion"]
-            if len(detalle) > 45:
-                detalle = detalle[:42] + "..."
+            detalle = mov[4]
+            if len(detalle) > 55:
+                detalle = detalle[:55] + "..."
             
             # Formatear montos
-            debe = f"${mov['debe']:,.2f}" if mov["debe"] > 0 else ""
-            haber = f"${mov['haber']:,.2f}" if mov["haber"] > 0 else ""
-            
-            saldo_val = mov["saldo"]
-            if abs(saldo_val) < 0.01:
-                saldo = "$0.00"
-            else:
-                saldo = f"${abs(saldo_val):,.2f}"
+            purchased = f"${format_currency(mov[5])}" if Decimal(mov[5]) > 0 else ""
+            paid = f"${format_currency(mov[6])}" if Decimal(mov[6]) > 0 else ""
+            debt = f"${format_currency(mov[7])}"
             
             table_data.append([
                 Paragraph(fecha, table_data_style),
                 Paragraph(detalle, table_data_style),
-                Paragraph(debe, ParagraphStyle('Right', parent=table_data_style, 
+                Paragraph(purchased, ParagraphStyle('Right', parent=table_data_style, 
                                               alignment=TA_RIGHT)),
-                Paragraph(haber, ParagraphStyle('Right', parent=table_data_style, 
+                Paragraph(paid, ParagraphStyle('Right', parent=table_data_style, 
                                                alignment=TA_RIGHT)),
-                Paragraph(saldo, ParagraphStyle('RightBold', parent=table_data_style, 
+                Paragraph(debt, ParagraphStyle('RightBold', parent=table_data_style, 
                                                alignment=TA_RIGHT, fontName='Helvetica-Bold'))
             ])
     
@@ -261,16 +259,11 @@ def generate_account_statement(cliente_info, movements, summary, commerce_name="
     
     story.append(Spacer(1, 5*mm))
     
-    # Calcular deuda restante (considerando saldo a favor)
-    deuda_restante = summary['deuda_pendiente']
-    if summary.get('saldo_a_favor', 0) > 0:
-        deuda_restante = 0  # Si tiene saldo a favor, no debe nada
-    
     resumen_data = [
         [
-            Paragraph(f"<b>TOTAL DEBE:</b> ${summary['total_comprado']:,.2f}", label_style),
-            Paragraph(f"<b>TOTAL HABER:</b> ${summary['total_pagado']:,.2f}", label_style),
-            Paragraph(f"<b>DEUDA RESTANTE:</b> ${deuda_restante:,.2f}", 
+            Paragraph(f"<b>TOTAL DEBE:</b> ${format_currency(summary['total_purchased'])}", label_style),
+            Paragraph(f"<b>TOTAL HABER:</b> ${format_currency(summary['total_paid'])}", label_style),
+            Paragraph(f"<b>DEUDA RESTANTE:</b> ${format_currency(summary['total_debt'])}", 
                      ParagraphStyle('Bold', parent=label_style, fontSize=11))
         ]
     ]

@@ -229,28 +229,6 @@ class PaymentModel:
         """
         return self.db.execute_query(query, (client_id, str(amount), reason, sale_id), conn=conn, commit=commit)
 
-    def use_customer_credit(self, client_id: int, amount: Decimal, reason: str, sale_id: int | None = None):
-        """
-        Consume crédito guardándolo como movimiento NEGATIVO.
-        (customer_credit: amount < 0)
-        """
-        amount = norm_to_2_dec(amount)
-        if amount <= Decimal("0.00"):
-            return Decimal("0.00")
-
-        available = norm_to_2_dec(self.get_customer_credit(client_id))
-        used = norm_to_2_dec(min(available, amount))
-        if used <= Decimal("0.00"):
-            return Decimal("0.00")
-
-        self.add_customer_credit(
-            client_id=client_id,
-            amount=-used,
-            reason=reason,
-            sale_id=sale_id
-        )
-        return used
-
     def reconcile_sale(self, sale_id, conn=None, commit=True):
         """
         Recalcula una venta con los precios actuales.
@@ -317,19 +295,3 @@ class PaymentModel:
 
         return status
 
-    def reconcile_customer_sales(self, client_id: int):
-        """
-        Recalcula todas las ventas abiertas del cliente.
-        Útil después de cambios masivos de precios.
-        """
-        rows = self.db.fetch_all(
-            "SELECT id FROM sales WHERE cliente_id = ? AND estado IN ('pending','partial')",
-            (client_id,)
-        )
-        
-        reconciled = 0
-        for (sale_id,) in rows:
-            self.reconcile_sale(int(sale_id))
-            reconciled += 1
-        
-        return reconciled
