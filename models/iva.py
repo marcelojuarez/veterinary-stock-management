@@ -8,20 +8,20 @@ class IVAModel:
         self.db = db_connection or db
     
     # ================================================================
-    # VENTAS - IVA DÉBITO FISCAL
+    # SALES - VAT DEBIT (FISCAL DEBT)
     # ================================================================
     
-    def get_iva_ventas(self, fecha_desde, fecha_hasta):
-        """Obtener IVA cobrado en ventas (débito fiscal)"""
+    def get_sales_iva(self, from_date, until_date):
+        """Get VAT charged on sales (fiscal debt)"""
         query = """
             SELECT 
-                s.id as venta_id,
-                s.date as fecha,
-                COALESCE(c.name, 'Consumidor Final') as cliente,
-                COALESCE(c.cuit, '') as cuit_cliente,
-                COALESCE(c.iva_condition, 'Consumidor Final') as condicion_iva,
-                si.iva_rate as alicuota_iva,
-                SUM(si.subtotal) as neto,
+                s.id as sale_id,
+                s.date as date,
+                COALESCE(c.name, 'Final Consumer') as customer,
+                COALESCE(c.cuit, '') as customer_cuit,
+                COALESCE(c.iva_condition, 'Final Consumer') as iva_condition,
+                si.iva_rate as aliquot_iva,
+                SUM(si.subtotal) as net,
                 SUM(si.iva_amount) as iva,
                 SUM(si.subtotal + si.iva_amount) as total
             FROM sales s
@@ -31,47 +31,47 @@ class IVAModel:
             GROUP BY s.id, si.iva_rate
             ORDER BY s.date, s.id
         """
-        return self.db.fetch_all(query, (fecha_desde, fecha_hasta))
+        return self.db.fetch_all(query, (from_date, until_date))
     
-    def get_resumen_iva_ventas(self, fecha_desde, fecha_hasta):
+    def get_summary_sales_iva(self, from_date, until_date):
         query = """
             SELECT 
-                si.iva_rate as alicuota,
-                SUM(si.quantity * si.price) as neto_gravado,
+                si.iva_rate as aliquot,
+                SUM(si.quantity * si.price) as taxable_net,
                 SUM(si.iva_amount) as iva,
                 SUM(si.subtotal) as total,
-                COUNT(DISTINCT s.id) as cantidad_operaciones
+                COUNT(DISTINCT s.id) as transaction_count
             FROM sales s
             JOIN sale_items si ON si.sale_id = s.id
             WHERE s.date BETWEEN ? AND ?
             GROUP BY si.iva_rate
             ORDER BY si.iva_rate DESC
         """
-        rows = self.db.fetch_all(query, (fecha_desde, fecha_hasta))
+        rows = self.db.fetch_all(query, (from_date, until_date))
         result = []
         for row in rows:
             result.append({
-                'alicuota': f"{float(row[0]):.1f}%" if row[0] else "0.0%",
-                'neto_gravado': norm_to_2_dec(Decimal(str(row[1] or 0))),
+                'aliquot': f"{float(row[0]):.1f}%" if row[0] else "0.0%",
+                'taxable_net': norm_to_2_dec(Decimal(str(row[1] or 0))),
                 'iva': norm_to_2_dec(Decimal(str(row[2] or 0))),
                 'total': norm_to_2_dec(Decimal(str(row[3] or 0))),
-                'operaciones': int(row[4])
+                'transactions': int(row[4])
             })
         return result
     
     # ================================================================
-    # COMPRAS - IVA CRÉDITO FISCAL
+    # PURCHASES - VAT CREDIT (FISCAL CREDIT)
     # ================================================================
     
-    def get_iva_compras(self, fecha_desde, fecha_hasta):
+    def get_purchases_iva(self, from_date, until_date):
         query = """
             SELECT 
-                p.id as compra_id,
-                p.date as fecha,
-                COALESCE(s.name, 'Proveedor') as proveedor,
-                COALESCE(s.cuit, '') as cuit_proveedor,
-                CAST(pi.iva_rate AS REAL) as alicuota_iva,
-                SUM(CAST(pi.subtotal AS REAL)) as neto,
+                p.id as purchase_id,
+                p.date as date,
+                COALESCE(s.name, 'Supplier') as supplier,
+                COALESCE(s.cuit, '') as supplier_cuit,
+                CAST(pi.iva_rate AS REAL) as aliquot_iva,
+                SUM(CAST(pi.subtotal AS REAL)) as net,
                 SUM(CAST(pi.iva_amount AS REAL)) as iva,
                 SUM(CAST(pi.total AS REAL)) as total
             FROM purchase p
@@ -81,40 +81,40 @@ class IVAModel:
             GROUP BY p.id, pi.iva_rate
             ORDER BY p.date, p.id
         """
-        return self.db.fetch_all(query, (fecha_desde, fecha_hasta))
+        return self.db.fetch_all(query, (from_date, until_date))
     
-    def get_resumen_iva_compras(self, fecha_desde, fecha_hasta):
+    def get_summary_purchases_iva(self, from_date, until_date):
         query = """
             SELECT 
-                CAST(pi.iva_rate AS REAL) as alicuota,
-                SUM(CAST(pi.subtotal AS REAL)) as neto_gravado,
+                CAST(pi.iva_rate AS REAL) as aliquot,
+                SUM(CAST(pi.subtotal AS REAL)) as taxable_net,
                 SUM(CAST(pi.iva_amount AS REAL)) as iva,
                 SUM(CAST(pi.total AS REAL)) as total,
-                COUNT(DISTINCT p.id) as cantidad_operaciones
+                COUNT(DISTINCT p.id) as transaction_count
             FROM purchase p
             JOIN purchase_item pi ON pi.purchase_id = p.id
             WHERE p.date BETWEEN ? AND ?
             GROUP BY pi.iva_rate
             ORDER BY CAST(pi.iva_rate AS REAL) DESC
         """
-        rows = self.db.fetch_all(query, (fecha_desde, fecha_hasta))
+        rows = self.db.fetch_all(query, (from_date, until_date))
         result = []
         for row in rows:
             result.append({
-                'alicuota': f"{float(row[0] or 0):.1f}%",
-                'neto_gravado': norm_to_2_dec(Decimal(str(row[1] or 0))),
+                'aliquot': f"{float(row[0] or 0):.1f}%",
+                'taxable_net': norm_to_2_dec(Decimal(str(row[1] or 0))),
                 'iva': norm_to_2_dec(Decimal(str(row[2] or 0))),
                 'total': norm_to_2_dec(Decimal(str(row[3] or 0))),
-                'operaciones': int(row[4])
+                'transactions': int(row[4])
             })
         return result
     
     # ================================================================
-    # POSICIÓN DE IVA
+    # IVA POSITION
     # ================================================================
     
-    def get_retenciones_iva_por_periodo(self, fecha_desde, fecha_hasta):
-        """Total de retenciones de IVA sufridas en el período (descuento del débito fiscal)"""
+    def get_iva_retentions_by_period(self, from_date, until_date):
+        """Total IVA retentions suffered in the period (reduces fiscal debt)"""
         query = """
             SELECT COALESCE(SUM(CAST(sr.amount AS REAL)), 0)
             FROM sale_retentions sr
@@ -122,11 +122,11 @@ class IVAModel:
             WHERE sr.tax_type = 'IVA'
             AND s.date BETWEEN ? AND ?
         """
-        result = self.db.fetch_one(query, (fecha_desde, fecha_hasta))
+        result = self.db.fetch_one(query, (from_date, until_date))
         return norm_to_2_dec(Decimal(str(result[0] if result else 0)))
 
-    def get_percepciones_iva_por_periodo(self, fecha_desde, fecha_hasta):
-        """Total de percepciones de IVA sufridas en compras (crédito fiscal adicional)"""
+    def get_iva_perceptions_by_period(self, from_date, until_date):
+        """Total IVA perceptions suffered on purchases (increases fiscal credit)"""
         query = """
             SELECT COALESCE(SUM(CAST(ip.amount AS REAL)), 0)
             FROM invoice_perceptions ip
@@ -134,228 +134,228 @@ class IVAModel:
             WHERE ip.tax_type = 'IVA_PER'
             AND si.date BETWEEN ? AND ?
         """
-        result = self.db.fetch_one(query, (fecha_desde, fecha_hasta))
+        result = self.db.fetch_one(query, (from_date, until_date))
         return norm_to_2_dec(Decimal(str(result[0] if result else 0)))
 
-    def get_posicion_iva_detallada(self, fecha_desde, fecha_hasta):
-        resumen_ventas  = self.get_resumen_iva_ventas(fecha_desde, fecha_hasta)
-        resumen_compras = self.get_resumen_iva_compras(fecha_desde, fecha_hasta)
+    def get_detailed_iva_position(self, from_date, until_date):
+        sales_summary     = self.get_summary_sales_iva(from_date, until_date)
+        purchases_summary = self.get_summary_purchases_iva(from_date, until_date)  # FIX: was calling sales twice
 
-        # Retenciones IVA sufridas (reducen el débito fiscal)
-        ret_iva = self.get_retenciones_iva_por_periodo(fecha_desde, fecha_hasta)
-        # Percepciones IVA sufridas en compras (aumentan el crédito fiscal)
-        per_iva = self.get_percepciones_iva_por_periodo(fecha_desde, fecha_hasta)
+        # IVA retentions suffered (reduce fiscal debt)
+        ret_iva = self.get_iva_retentions_by_period(from_date, until_date)
+        # IVA perceptions suffered on purchases (increase fiscal credit)
+        per_iva = self.get_iva_perceptions_by_period(from_date, until_date)
 
-        alicuotas = set()
-        for v in resumen_ventas:
-            alicuotas.add(v['alicuota'])
-        for c in resumen_compras:
-            alicuotas.add(c['alicuota'])
+        aliquots = set()
+        for v in sales_summary:
+            aliquots.add(v['aliquot'])
+        for c in purchases_summary:
+            aliquots.add(c['aliquot'])
 
-        detalle = []
-        total_iva_ventas  = Decimal('0.00')
-        total_iva_compras = Decimal('0.00')
+        rows = []
+        total_iva_sales     = Decimal('0.00')
+        total_purchases_iva = Decimal('0.00')
 
-        for alicuota in sorted(alicuotas, reverse=True):
-            ventas_alicuota = next((v for v in resumen_ventas if v['alicuota'] == alicuota), None)
-            iva_ventas  = Decimal(str(ventas_alicuota['iva'] if ventas_alicuota else 0))
-            ventas_neto = Decimal(str(ventas_alicuota['neto_gravado'] if ventas_alicuota else 0))
+        for aliquot in sorted(aliquots, reverse=True):
+            aliquot_sales = next((v for v in sales_summary if v['aliquot'] == aliquot), None)
+            iva_sales     = Decimal(str(aliquot_sales['iva'] if aliquot_sales else 0))
+            sales_net     = Decimal(str(aliquot_sales['taxable_net'] if aliquot_sales else 0))
 
-            compras_alicuota = next((c for c in resumen_compras if c['alicuota'] == alicuota), None)
-            iva_compras  = Decimal(str(compras_alicuota['iva'] if compras_alicuota else 0))
-            compras_neto = Decimal(str(compras_alicuota['neto_gravado'] if compras_alicuota else 0))
+            aliquot_purchases = next((c for c in purchases_summary if c['aliquot'] == aliquot), None)
+            purchases_iva     = Decimal(str(aliquot_purchases['iva'] if aliquot_purchases else 0))
+            purchases_net     = Decimal(str(aliquot_purchases['taxable_net'] if aliquot_purchases else 0))
 
-            # Saldo bruto (sin descontar retenciones ni percepciones)
-            saldo_bruto = norm_to_2_dec(iva_ventas - iva_compras)
+            # Gross balance (before retentions and perceptions)
+            gross_balance = norm_to_2_dec(iva_sales - purchases_iva)
 
-            detalle.append({
-                'alicuota':     alicuota,
-                'ventas_neto':  ventas_neto,
-                'iva_ventas':   iva_ventas,
-                'compras_neto': compras_neto,
-                'iva_compras':  iva_compras,
-                'saldo':        saldo_bruto,   # bruto (para tabla pantalla)
+            rows.append({
+                'aliquot':       aliquot,
+                'sales_net':     sales_net,
+                'iva_sales':     iva_sales,
+                'purchases_net': purchases_net,
+                'purchases_iva': purchases_iva,
+                'balance':       gross_balance,  # gross (for display table)
             })
 
-            total_iva_ventas  += iva_ventas
-            total_iva_compras += iva_compras
+            total_iva_sales     += iva_sales
+            total_purchases_iva += purchases_iva
 
-        total_iva_ventas  = norm_to_2_dec(total_iva_ventas)
-        total_iva_compras = norm_to_2_dec(total_iva_compras)
+        total_iva_sales     = norm_to_2_dec(total_iva_sales)
+        total_purchases_iva = norm_to_2_dec(total_purchases_iva)
 
-        # Débito y crédito fiscal reales (incluyendo ret/per)
-        debito_fiscal  = norm_to_2_dec(total_iva_ventas  - ret_iva)
-        credito_fiscal = norm_to_2_dec(total_iva_compras + per_iva)
-        saldo_neto     = norm_to_2_dec(debito_fiscal - credito_fiscal)
+        # Real fiscal debt and credit (including retentions/perceptions)
+        fiscal_debt   = norm_to_2_dec(total_iva_sales  - ret_iva)
+        fiscal_credit = norm_to_2_dec(total_purchases_iva + per_iva)
+        net_balance   = norm_to_2_dec(fiscal_debt - fiscal_credit)
 
         return {
-            'detalle':            detalle,
-            'total_iva_ventas':   total_iva_ventas,
-            'total_iva_compras':  total_iva_compras,
-            'ret_iva':            ret_iva,
-            'per_iva':            per_iva,
-            'debito_fiscal':      debito_fiscal,
-            'credito_fiscal':     credito_fiscal,
-            'saldo_bruto':        norm_to_2_dec(total_iva_ventas - total_iva_compras),
-            'saldo_total':        saldo_neto,
-            'tipo': 'A PAGAR' if saldo_neto > 0 else ('SALDO A FAVOR' if saldo_neto < 0 else 'SIN SALDO')
+            'rows':                rows,
+            'total_iva_sales':     total_iva_sales,
+            'total_purchases_iva': total_purchases_iva,
+            'ret_iva':             ret_iva,
+            'per_iva':             per_iva,
+            'fiscal_debt':         fiscal_debt,
+            'fiscal_credit':       fiscal_credit,
+            'balance_gross':       norm_to_2_dec(total_iva_sales - total_purchases_iva),
+            'balance_total':       net_balance,
+            'status': 'PAYABLE' if net_balance > 0 else ('CREDIT BALANCE' if net_balance < 0 else 'NO BALANCE')
         }
     
-    def get_posicion_iva(self, fecha_desde, fecha_hasta):
-        query_ventas = """
+    def get_iva_position(self, from_date, until_date):
+        query_sales = """
             SELECT COALESCE(SUM(CAST(si.iva_amount AS REAL)), 0)
             FROM sales s
             JOIN sale_items si ON si.sale_id = s.id
             WHERE s.date BETWEEN ? AND ?
         """
-        iva_ventas = norm_to_2_dec(Decimal(str(self.db.fetch_one(query_ventas, (fecha_desde, fecha_hasta))[0])))
+        iva_sales = norm_to_2_dec(Decimal(str(self.db.fetch_one(query_sales, (from_date, until_date))[0])))
         
-        query_retenciones = """
+        query_retentions = """
             SELECT COALESCE(SUM(CAST(sr.amount AS REAL)), 0)
             FROM sale_retentions sr
             JOIN sales s ON s.id = sr.sale_id
             WHERE sr.tax_type = 'IVA'
             AND s.date BETWEEN ? AND ?
         """
-        retenciones_iva = norm_to_2_dec(Decimal(str(self.db.fetch_one(query_retenciones, (fecha_desde, fecha_hasta))[0])))
+        retentions_iva = norm_to_2_dec(Decimal(str(self.db.fetch_one(query_retentions, (from_date, until_date))[0])))
         
-        query_retenciones_iibb = """
+        query_retentions_iibb = """
             SELECT COALESCE(SUM(CAST(sr.amount AS REAL)), 0)
             FROM sale_retentions sr
             JOIN sales s ON s.id = sr.sale_id
             WHERE sr.tax_type = 'IIBB'
             AND s.date BETWEEN ? AND ?
         """
-        retenciones_iibb = norm_to_2_dec(Decimal(str(self.db.fetch_one(query_retenciones_iibb, (fecha_desde, fecha_hasta))[0])))
+        retentions_iibb = norm_to_2_dec(Decimal(str(self.db.fetch_one(query_retentions_iibb, (from_date, until_date))[0])))
         
-        query_compras = """
+        query_purchases = """
             SELECT COALESCE(SUM(CAST(pi.iva_amount AS REAL)), 0)
             FROM purchase p
             JOIN purchase_item pi ON pi.purchase_id = p.id
             WHERE p.date BETWEEN ? AND ?
         """
-        iva_compras = norm_to_2_dec(Decimal(str(self.db.fetch_one(query_compras, (fecha_desde, fecha_hasta))[0])))
+        purchases_iva = norm_to_2_dec(Decimal(str(self.db.fetch_one(query_purchases, (from_date, until_date))[0])))
         
-        query_percepciones = """
+        query_perceptions = """
             SELECT COALESCE(SUM(CAST(ip.amount AS REAL)), 0)
             FROM invoice_perceptions ip
             JOIN supplier_invoice si ON si.id = ip.invoice_id
             WHERE ip.tax_type = 'IVA_PER'
             AND si.date BETWEEN ? AND ?
         """
-        percepciones_iva = norm_to_2_dec(Decimal(str(self.db.fetch_one(query_percepciones, (fecha_desde, fecha_hasta))[0])))
+        perceptions_iva = norm_to_2_dec(Decimal(str(self.db.fetch_one(query_perceptions, (from_date, until_date))[0])))
         
-        query_percepciones_iibb = """
+        query_perceptions_iibb = """
             SELECT COALESCE(SUM(CAST(ip.amount AS REAL)), 0)
             FROM invoice_perceptions ip
             JOIN supplier_invoice si ON si.id = ip.invoice_id
             WHERE ip.tax_type = 'IIBB_PER'
             AND si.date BETWEEN ? AND ?
         """
-        percepciones_iibb = norm_to_2_dec(Decimal(str(self.db.fetch_one(query_percepciones_iibb, (fecha_desde, fecha_hasta))[0])))
+        perceptions_iibb = norm_to_2_dec(Decimal(str(self.db.fetch_one(query_perceptions_iibb, (from_date, until_date))[0])))
         
-        debito_fiscal = iva_ventas - retenciones_iva
-        credito_fiscal = iva_compras + percepciones_iva
-        saldo_iva = debito_fiscal - credito_fiscal
+        fiscal_debt   = iva_sales - retentions_iva
+        fiscal_credit = purchases_iva + perceptions_iva
+        iva_balance   = fiscal_debt - fiscal_credit
         
         return {
-            'iva_ventas': norm_to_2_dec(iva_ventas),
-            'retenciones_iva': norm_to_2_dec(retenciones_iva),
-            'retenciones_iibb': norm_to_2_dec(retenciones_iibb),
-            'debito_fiscal': norm_to_2_dec(debito_fiscal),
-            'iva_compras': norm_to_2_dec(iva_compras),
-            'percepciones_iva': norm_to_2_dec(percepciones_iva),
-            'percepciones_iibb': norm_to_2_dec(percepciones_iibb),
-            'credito_fiscal': norm_to_2_dec(credito_fiscal),
-            'saldo': norm_to_2_dec(saldo_iva),
-            'tipo': 'A PAGAR' if saldo_iva > 0 else ('SALDO A FAVOR' if saldo_iva < 0 else 'SIN SALDO')
+            'iva_sales':        norm_to_2_dec(iva_sales),
+            'retentions_iva':   norm_to_2_dec(retentions_iva),
+            'retentions_iibb':  norm_to_2_dec(retentions_iibb),
+            'fiscal_debt':      norm_to_2_dec(fiscal_debt),
+            'purchases_iva':    norm_to_2_dec(purchases_iva),
+            'perceptions_iva':  norm_to_2_dec(perceptions_iva),
+            'perceptions_iibb': norm_to_2_dec(perceptions_iibb),
+            'fiscal_credit':    norm_to_2_dec(fiscal_credit),
+            'balance':          norm_to_2_dec(iva_balance),
+            'status': 'PAYABLE' if iva_balance > 0 else ('CREDIT BALANCE' if iva_balance < 0 else 'NO BALANCE')
         }
     
     # ================================================================
-    # PERCEPCIONES - DETALLE
+    # PERCEPTIONS - DETAIL
     # ================================================================
 
-    def get_percepciones_sufridas(self, fecha_desde, fecha_hasta):
+    def get_suffered_perceptions(self, from_date, until_date):
         query = """
             SELECT
-                si.date as fecha,
-                si.invoice_id as numero_factura,
-                COALESCE(s.name, 'Proveedor') as proveedor,
+                si.date as date,
+                si.invoice_id as invoice_number,
+                COALESCE(s.name, 'Supplier') as supplier,
                 COALESCE(s.cuit, '') as cuit,
                 ip.tax_type,
-                CAST(ip.amount AS REAL) as monto
+                CAST(ip.amount AS REAL) as amount
             FROM invoice_perceptions ip
             JOIN supplier_invoice si ON si.id = ip.invoice_id
             LEFT JOIN supplier s ON s.id = si.supplier_id
             WHERE si.date BETWEEN ? AND ?
             ORDER BY si.date, si.id
         """
-        return self.db.fetch_all(query, (fecha_desde, fecha_hasta))
+        return self.db.fetch_all(query, (from_date, until_date))
 
-    def get_percepciones_efectuadas(self, fecha_desde, fecha_hasta):
+    def get_made_perceptions(self, from_date, until_date):
         return []
 
-    def get_totales_percepciones(self, fecha_desde, fecha_hasta):
-        sufridas = self.get_percepciones_sufridas(fecha_desde, fecha_hasta)
-        efectuadas = self.get_percepciones_efectuadas(fecha_desde, fecha_hasta)
+    def get_total_perceptions(self, from_date, until_date):
+        suffered = self.get_suffered_perceptions(from_date, until_date)
+        made     = self.get_made_perceptions(from_date, until_date)
 
-        total_sufridas = sum(norm_to_2_dec(Decimal(str(r[5] or 0))) for r in sufridas)
-        total_efectuadas = sum(norm_to_2_dec(Decimal(str(r[5] or 0))) for r in efectuadas)
+        total_suffered = sum(norm_to_2_dec(Decimal(str(r[5] or 0))) for r in suffered)
+        total_made     = sum(norm_to_2_dec(Decimal(str(r[5] or 0))) for r in made)
 
-        return norm_to_2_dec(total_sufridas), norm_to_2_dec(total_efectuadas)
+        return norm_to_2_dec(total_suffered), norm_to_2_dec(total_made)
 
-    def get_retenciones_sufridas(self, fecha_desde, fecha_hasta):
+    def get_suffered_retentions(self, from_date, until_date):
         query = """
             SELECT
-                s.date as fecha,
-                s.id as venta_id,
-                COALESCE(c.name, 'Consumidor Final') as cliente,
+                s.date as date,
+                s.id as sale_id,
+                COALESCE(c.name, 'Final Consumer') as customer,
                 COALESCE(c.cuit, '') as cuit,
                 sr.tax_type,
-                COALESCE(sr.certificate_number, '') as certificado,
-                CAST(sr.amount AS REAL) as monto
+                COALESCE(sr.certificate_number, '') as certificate,
+                CAST(sr.amount AS REAL) as amount
             FROM sale_retentions sr
             JOIN sales s ON s.id = sr.sale_id
             LEFT JOIN customer c ON c.id = s.cliente_id
             WHERE s.date BETWEEN ? AND ?
             ORDER BY s.date, s.id
         """
-        return self.db.fetch_all(query, (fecha_desde, fecha_hasta))
+        return self.db.fetch_all(query, (from_date, until_date))
 
-    def get_retenciones_efectuadas(self, fecha_desde, fecha_hasta):
+    def get_made_retentions(self, from_date, until_date):
         return []
 
-    def get_totales_retenciones(self, fecha_desde, fecha_hasta):
-        sufridas = self.get_retenciones_sufridas(fecha_desde, fecha_hasta)
-        efectuadas = self.get_retenciones_efectuadas(fecha_desde, fecha_hasta)
+    def get_total_retentions(self, from_date, until_date):
+        suffered = self.get_suffered_retentions(from_date, until_date)
+        made     = self.get_made_retentions(from_date, until_date)
 
-        total_sufridas = sum(norm_to_2_dec(Decimal(str(r[6] or 0))) for r in sufridas)
-        total_efectuadas = sum(norm_to_2_dec(Decimal(str(r[6] or 0))) for r in efectuadas)
+        total_suffered = sum(norm_to_2_dec(Decimal(str(r[6] or 0))) for r in suffered)
+        total_made     = sum(norm_to_2_dec(Decimal(str(r[6] or 0))) for r in made)
 
-        return norm_to_2_dec(total_sufridas), norm_to_2_dec(total_efectuadas)
+        return norm_to_2_dec(total_suffered), norm_to_2_dec(total_made)
     
     # ================================================================
-    # UTILIDADES
+    # UTILITIES
     # ================================================================
     
-    def get_periodo_actual(self):
-        hoy = datetime.now()
-        primer_dia = hoy.replace(day=1).strftime("%Y-%m-%d")
-        if hoy.month == 12:
-            ultimo_dia = hoy.replace(day=31).strftime("%Y-%m-%d")
+    def get_current_period(self):
+        today = datetime.now()
+        first_day = today.replace(day=1).strftime("%Y-%m-%d")
+        if today.month == 12:
+            last_day = today.replace(day=31).strftime("%Y-%m-%d")
         else:
-            siguiente_mes = hoy.replace(month=hoy.month + 1, day=1)
-            ultimo_dia = (siguiente_mes - timedelta(days=1)).strftime("%Y-%m-%d")
-        return primer_dia, ultimo_dia
+            next_month = today.replace(month=today.month + 1, day=1)
+            last_day = (next_month - timedelta(days=1)).strftime("%Y-%m-%d")
+        return first_day, last_day
     
-    def get_periodo_mes(self, mes, anio):
+    def get_month_period(self, month, year):
         from calendar import monthrange
-        primer_dia = f"{anio}-{mes:02d}-01"
-        ultimo_dia_numero = monthrange(anio, mes)[1]
-        ultimo_dia = f"{anio}-{mes:02d}-{ultimo_dia_numero:02d}"
-        return primer_dia, ultimo_dia
+        first_day = f"{year}-{month:02d}-01"
+        last_day_number = monthrange(year, month)[1]
+        last_day = f"{year}-{month:02d}-{last_day_number:02d}"
+        return first_day, last_day
     
-    def validar_datos_iva(self):
+    def validate_iva_data(self):
         query = """
             SELECT id, name, iva
             FROM stock
@@ -363,7 +363,7 @@ class IVAModel:
         """
         return self.db.fetch_all(query)
     
-    def validar_ventas_sin_iva(self):
+    def validate_sales_without_iva(self):
         query = """
             SELECT COUNT(*) 
             FROM sale_items 

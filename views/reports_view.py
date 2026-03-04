@@ -15,14 +15,14 @@ class ReportsView:
         self.frame = ctk.CTkFrame(parent, fg_color="#f0f0f0")
 
         # Variables
-        self.mes_var = tk.StringVar()
-        self.anio_var = tk.StringVar()
+        self.month_var = tk.StringVar()
+        self.year_var  = tk.StringVar()
 
-        # Configurar grid principal
+        # Configure main grid
         self.frame.grid_rowconfigure(3, weight=1)
         self.frame.grid_columnconfigure(0, weight=1)
 
-        # Crear layout
+        # Build layout
         self.create_header()
         self.create_period_selector()
         self.create_summary_cards()
@@ -56,7 +56,7 @@ class ReportsView:
         ).pack(side="right", padx=15, pady=5)
 
     # ================================================================
-    # SELECTOR DE PERIODO
+    # PERIOD SELECTOR
     # ================================================================
 
     def create_period_selector(self):
@@ -69,30 +69,30 @@ class ReportsView:
             font=ctk.CTkFont(size=13, weight="bold")
         ).pack(side="left", padx=(15, 10), pady=10)
 
-        meses = [
+        months = [
             "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
             "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"
         ]
-        mes_actual = datetime.now().month
-        self.mes_var.set(meses[mes_actual - 1])
+        current_month = datetime.now().month
+        self.month_var.set(months[current_month - 1])
 
         ctk.CTkComboBox(
             period_frame,
-            variable=self.mes_var,
-            values=meses,
+            variable=self.month_var,
+            values=months,
             width=150,
             height=35,
             state="readonly"
         ).pack(side="left", padx=5, pady=10)
 
-        anio_actual = datetime.now().year
-        anios = [str(y) for y in range(anio_actual - 5, anio_actual + 2)]
-        self.anio_var.set(str(anio_actual))
+        current_year = datetime.now().year
+        years = [str(y) for y in range(current_year - 5, current_year + 2)]
+        self.year_var.set(str(current_year))
 
         ctk.CTkComboBox(
             period_frame,
-            variable=self.anio_var,
-            values=anios,
+            variable=self.year_var,
+            values=years,
             width=100,
             height=35,
             state="readonly"
@@ -133,7 +133,7 @@ class ReportsView:
         ).pack(side="right", padx=15, pady=10)
 
     # ================================================================
-    # TARJETAS DE RESUMEN - DOS FILAS
+    # SUMMARY CARDS - TWO ROWS
     # ================================================================
 
     def create_summary_cards(self):
@@ -141,7 +141,7 @@ class ReportsView:
         summary_outer.grid(row=2, column=0, sticky="ew", padx=10, pady=(5, 0))
         summary_outer.grid_columnconfigure(0, weight=1)
 
-        # --- Fila 1: IVA ---
+        # --- Row 1: IVA ---
         iva_label = ctk.CTkLabel(
             summary_outer,
             text="IVA",
@@ -154,56 +154,56 @@ class ReportsView:
         iva_row.grid(row=1, column=0, sticky="ew")
         iva_row.grid_columnconfigure((0, 1, 2), weight=1)
 
-        self.card_iva_ventas = self._make_card(
+        self.card_iva_sales = self._make_card(
             iva_row, 0,
             "💰 IVA VENTAS", "$0.00", "Débito Fiscal",
             "#E3F2FD", "#1565C0"
         )
-        self.card_iva_compras = self._make_card(
+        self.card_purchases_iva = self._make_card(
             iva_row, 1,
             "🛒 IVA COMPRAS", "$0.00", "Crédito Fiscal",
             "#E8F5E9", "#2E7D32"
         )
-        self.card_iva_saldo = self._make_card(
+        self.card_iva_balance = self._make_card(
             iva_row, 2,
             "📊 SALDO IVA", "$0.00", "A Pagar / A Favor",
             "#FFF3E0", "#E65100"
         )
 
-        # Separador
+        # Separator
         sep = ctk.CTkFrame(summary_outer, fg_color="#e0e0e0", height=1)
         sep.grid(row=2, column=0, sticky="ew", pady=(8, 2))
 
-        # --- Fila 2: Percepciones y Retenciones ---
-        otros_label = ctk.CTkLabel(
+        # --- Row 2: Perceptions and Retentions ---
+        others_label = ctk.CTkLabel(
             summary_outer,
             text="PERCEPCIONES Y RETENCIONES",
             font=ctk.CTkFont(size=11, weight="bold"),
             text_color="#757575"
         )
-        otros_label.grid(row=3, column=0, sticky="w", padx=5, pady=(2, 2))
+        others_label.grid(row=3, column=0, sticky="w", padx=5, pady=(2, 2))
 
-        otros_row = ctk.CTkFrame(summary_outer, fg_color="transparent")
-        otros_row.grid(row=4, column=0, sticky="ew", pady=(0, 5))
-        otros_row.grid_columnconfigure((0, 1, 2, 3), weight=1)
+        others_row = ctk.CTkFrame(summary_outer, fg_color="transparent")
+        others_row.grid(row=4, column=0, sticky="ew", pady=(0, 5))
+        others_row.grid_columnconfigure((0, 1, 2, 3), weight=1)
 
-        self.card_per_sufridas = self._make_card(
-            otros_row, 0,
+        self.card_per_suffered = self._make_card(
+            others_row, 0,
             "📋 PERC. SUFRIDAS", "$0.00", "En compras",
             "#F3E5F5", "#6A1B9A"
         )
-        self.card_per_efectuadas = self._make_card(
-            otros_row, 1,
+        self.card_per_made = self._make_card(
+            others_row, 1,
             "📋 PERC. EFECTUADAS", "$0.00", "En ventas",
             "#EDE7F6", "#4527A0"
         )
-        self.card_ret_sufridas = self._make_card(
-            otros_row, 2,
+        self.card_ret_suffered = self._make_card(
+            others_row, 2,
             "🏦 RET. SUFRIDAS", "$0.00", "IVA + IIBB",
             "#FCE4EC", "#880E4F"
         )
-        self.card_ret_efectuadas = self._make_card(
-            otros_row, 3,
+        self.card_ret_made = self._make_card(
+            others_row, 3,
             "🏦 RET. EFECTUADAS", "$0.00", "En compras",
             "#FFF8E1", "#F57F17"
         )
@@ -255,47 +255,47 @@ class ReportsView:
         self.tabview.add("📋 Percepciones")
         self.tabview.add("🏦 Retenciones")
 
-        self._create_resumen_tab()
-        self._create_ventas_tab()
-        self._create_compras_tab()
-        self._create_percepciones_tab()
-        self._create_retenciones_tab()
+        self._create_summary_tab()
+        self._create_sales_tab()
+        self._create_purchases_tab()
+        self._create_perceptions_tab()
+        self._create_retentions_tab()
 
-    # ---- Tab: Resumen IVA ----
+    # ---- Tab: IVA Summary ----
 
-    def _create_resumen_tab(self):
+    def _create_summary_tab(self):
         tab = self.tabview.tab("📈 Resumen IVA")
         frame = ctk.CTkFrame(tab, fg_color="transparent")
         frame.pack(fill="both", expand=True, padx=10, pady=10)
 
         cols = ("Alícuota", "Ventas Neto", "Ventas IVA", "Compras Neto", "Compras IVA", "Saldo Bruto", "Saldo Neto")
-        self.resumen_table = self._make_treeview(frame, cols, [90, 120, 110, 120, 110, 105, 105], height=12)
+        self.summary_table = self._make_treeview(frame, cols, [90, 120, 110, 120, 110, 105, 105], height=12)
 
-    # ---- Tab: Detalle Ventas ----
+    # ---- Tab: Sales Detail ----
 
-    def _create_ventas_tab(self):
+    def _create_sales_tab(self):
         tab = self.tabview.tab("💰 Detalle Ventas")
         frame = ctk.CTkFrame(tab, fg_color="transparent")
         frame.pack(fill="both", expand=True, padx=10, pady=10)
 
         cols = ("Fecha", "Venta #", "Cliente", "CUIT", "Alícuota", "Neto", "IVA", "Total")
         anchors = {"Cliente": "w"}
-        self.ventas_table = self._make_treeview(frame, cols, [100, 70, 200, 130, 80, 110, 110, 110], height=15, custom_anchors=anchors)
+        self.sales_table = self._make_treeview(frame, cols, [100, 70, 200, 130, 80, 110, 110, 110], height=15, custom_anchors=anchors)
 
-    # ---- Tab: Detalle Compras ----
+    # ---- Tab: Purchases Detail ----
 
-    def _create_compras_tab(self):
+    def _create_purchases_tab(self):
         tab = self.tabview.tab("🛒 Detalle Compras")
         frame = ctk.CTkFrame(tab, fg_color="transparent")
         frame.pack(fill="both", expand=True, padx=10, pady=10)
 
         cols = ("Fecha", "Compra #", "Proveedor", "CUIT", "Alícuota", "Neto", "IVA", "Total")
         anchors = {"Proveedor": "w"}
-        self.compras_table = self._make_treeview(frame, cols, [100, 70, 200, 130, 80, 110, 110, 110], height=15, custom_anchors=anchors)
+        self.purchases_table = self._make_treeview(frame, cols, [100, 70, 200, 130, 80, 110, 110, 110], height=15, custom_anchors=anchors)
 
-    # ---- Tab: Percepciones ----
+    # ---- Tab: Perceptions ----
 
-    def _create_percepciones_tab(self):
+    def _create_perceptions_tab(self):
         tab = self.tabview.tab("📋 Percepciones")
         frame = ctk.CTkFrame(tab, fg_color="transparent")
         frame.pack(fill="both", expand=True, padx=10, pady=10)
@@ -307,28 +307,28 @@ class ReportsView:
         self.perc_subtabs.add("📤 Efectuadas (Ventas)")
 
         # Sufridas: percepciones que me cobran en facturas de proveedor
-        sub_sufridas = self.perc_subtabs.tab("📥 Sufridas (Compras)")
-        f1 = ctk.CTkFrame(sub_sufridas, fg_color="transparent")
+        sub_suffered = self.perc_subtabs.tab("📥 Sufridas (Compras)")
+        f1 = ctk.CTkFrame(sub_suffered, fg_color="transparent")
         f1.pack(fill="both", expand=True)
         cols_s = ("Fecha", "Factura #", "Proveedor", "CUIT", "Tipo", "Monto")
         anchors_s = {"Proveedor": "w"}
-        self.perc_sufridas_table = self._make_treeview(
+        self.perc_suffered_table = self._make_treeview(
             f1, cols_s, [110, 100, 220, 140, 120, 120], height=12, custom_anchors=anchors_s
         )
 
         # Efectuadas: percepciones que cobramos nosotros en ventas
-        sub_efectuadas = self.perc_subtabs.tab("📤 Efectuadas (Ventas)")
-        f2 = ctk.CTkFrame(sub_efectuadas, fg_color="transparent")
+        sub_made = self.perc_subtabs.tab("📤 Efectuadas (Ventas)")
+        f2 = ctk.CTkFrame(sub_made, fg_color="transparent")
         f2.pack(fill="both", expand=True)
         cols_e = ("Fecha", "Venta #", "Cliente", "CUIT", "Tipo", "Monto")
         anchors_e = {"Cliente": "w"}
-        self.perc_efectuadas_table = self._make_treeview(
+        self.perc_made_table = self._make_treeview(
             f2, cols_e, [110, 100, 220, 140, 120, 120], height=12, custom_anchors=anchors_e
         )
 
-    # ---- Tab: Retenciones ----
+    # ---- Tab: Retentions ----
 
-    def _create_retenciones_tab(self):
+    def _create_retentions_tab(self):
         tab = self.tabview.tab("🏦 Retenciones")
         frame = ctk.CTkFrame(tab, fg_color="transparent")
         frame.pack(fill="both", expand=True, padx=10, pady=10)
@@ -340,22 +340,22 @@ class ReportsView:
         self.ret_subtabs.add("📤 Efectuadas (Compras)")
 
         # Sufridas: retenciones que el cliente nos hace en ventas
-        sub_sufridas = self.ret_subtabs.tab("📥 Sufridas (Ventas)")
-        f1 = ctk.CTkFrame(sub_sufridas, fg_color="transparent")
+        sub_suffered = self.ret_subtabs.tab("📥 Sufridas (Ventas)")
+        f1 = ctk.CTkFrame(sub_suffered, fg_color="transparent")
         f1.pack(fill="both", expand=True)
         cols_s = ("Fecha", "Venta #", "Cliente", "CUIT", "Tipo", "Certificado", "Monto")
         anchors_s = {"Cliente": "w"}
-        self.ret_sufridas_table = self._make_treeview(
+        self.ret_suffered_table = self._make_treeview(
             f1, cols_s, [110, 80, 200, 130, 80, 120, 110], height=12, custom_anchors=anchors_s
         )
 
         # Efectuadas: retenciones que nosotros hacemos al proveedor en compras
-        sub_efectuadas = self.ret_subtabs.tab("📤 Efectuadas (Compras)")
-        f2 = ctk.CTkFrame(sub_efectuadas, fg_color="transparent")
+        sub_made = self.ret_subtabs.tab("📤 Efectuadas (Compras)")
+        f2 = ctk.CTkFrame(sub_made, fg_color="transparent")
         f2.pack(fill="both", expand=True)
         cols_e = ("Fecha", "Compra #", "Proveedor", "CUIT", "Tipo", "Certificado", "Monto")
         anchors_e = {"Proveedor": "w"}
-        self.ret_efectuadas_table = self._make_treeview(
+        self.ret_made_table = self._make_treeview(
             f2, cols_e, [110, 80, 200, 130, 80, 120, 110], height=12, custom_anchors=anchors_e
         )
 
@@ -384,125 +384,125 @@ class ReportsView:
         return tree
 
     # ================================================================
-    # ACTUALIZAR CARDS
+    # UPDATE CARDS
     # ================================================================
 
-    def update_summary(self, posicion):
+    def update_summary(self, position):
         """
-        Actualiza las cards de IVA.
-        posicion = resultado de IVAModel.get_posicion_iva()
+        Updates the IVA summary cards.
+        position = result of IVAModel.get_iva_position()
         """
-        self.card_iva_ventas.configure(text=format_money(posicion.get('iva_ventas', 0)))
-        self.card_iva_compras.configure(text=format_money(posicion.get('iva_compras', 0)))
+        self.card_iva_sales.configure(text=format_money(position.get('iva_sales', 0)))
+        self.card_purchases_iva.configure(text=format_money(position.get('purchases_iva', 0)))
 
         try:
-            saldo = float(posicion.get('saldo', 0) or 0)
+            balance = float(position.get('balance', 0) or 0)  # FIX: was 'balance' (key now consistent with model)
         except (TypeError, ValueError):
-            saldo = 0.0
+            balance = 0.0
 
-        saldo_text = format_money(abs(saldo))
-        if saldo > 0:
-            self.card_iva_saldo.configure(text=saldo_text, text_color="#F44336")
-        elif saldo < 0:
-            self.card_iva_saldo.configure(text=saldo_text, text_color="#4CAF50")
+        balance_text = format_money(abs(balance))
+        if balance > 0:
+            self.card_iva_balance.configure(text=balance_text, text_color="#F44336")
+        elif balance < 0:
+            self.card_iva_balance.configure(text=balance_text, text_color="#4CAF50")
         else:
-            self.card_iva_saldo.configure(text="$0.00", text_color="#666666")
+            self.card_iva_balance.configure(text="$0.00", text_color="#666666")
 
-    def update_otros_summary(self, totales):
+    def update_other_summary(self, totals):
         """
-        Actualiza cards de percepciones y retenciones.
-        totales = {
-            'per_sufridas': float,
-            'per_efectuadas': float,
-            'ret_sufridas': float,
-            'ret_efectuadas': float
+        Updates the perceptions and retentions cards.
+        totals = {
+            'per_suffered': float,
+            'per_made':     float,
+            'ret_suffered': float,
+            'ret_made':     float
         }
         """
-        self.card_per_sufridas.configure(text=format_money(totales.get('per_sufridas', 0)))
-        self.card_per_efectuadas.configure(text=format_money(totales.get('per_efectuadas', 0)))
-        self.card_ret_sufridas.configure(text=format_money(totales.get('ret_sufridas', 0)))
-        self.card_ret_efectuadas.configure(text=format_money(totales.get('ret_efectuadas', 0)))
+        self.card_per_suffered.configure(text=format_money(totals.get('per_suffered', 0)))
+        self.card_per_made.configure(text=format_money(totals.get('per_made', 0)))
+        self.card_ret_suffered.configure(text=format_money(totals.get('ret_suffered', 0)))
+        self.card_ret_made.configure(text=format_money(totals.get('ret_made', 0)))
 
     # ================================================================
-    # ACTUALIZAR TABLAS IVA
+    # UPDATE IVA TABLES
     # ================================================================
 
-    def update_resumen_table(self, detalle_posicion):
-        for item in self.resumen_table.get_children():
-            self.resumen_table.delete(item)
+    def update_summary_table(self, position_detail):
+        for item in self.summary_table.get_children():
+            self.summary_table.delete(item)
 
-        for item in detalle_posicion['detalle']:
-            self.resumen_table.insert("", "end", values=(
-                item['alicuota'],
-                format_money(item.get('ventas_neto', 0)),
-                format_money(item.get('iva_ventas', 0)),
-                format_money(item.get('compras_neto', 0)),
-                format_money(item.get('iva_compras', 0)),
-                format_money(item.get('saldo', 0)),   # bruto
-                "—"                                   # neto solo en TOTAL
+        for item in position_detail['rows']:
+            self.summary_table.insert("", "end", values=(
+                item['aliquot'],
+                format_money(item.get('sales_net', 0)),
+                format_money(item.get('iva_sales', 0)),
+                format_money(item.get('purchases_net', 0)),
+                format_money(item.get('purchases_iva', 0)),
+                format_money(item.get('balance', 0)),   # gross balance per aliquot
+                "—"                                     # net only shown in TOTAL row
             ))
 
-        # Fila subtotales brutos
-        self.resumen_table.insert("", "end", values=(
+        # Gross subtotal row
+        self.summary_table.insert("", "end", values=(
             "Subtotal", "—",
-            format_money(detalle_posicion.get('total_iva_ventas', 0)),
+            format_money(position_detail.get('total_iva_sales', 0)),
             "—",
-            format_money(detalle_posicion.get('total_iva_compras', 0)),
-            format_money(detalle_posicion.get('saldo_bruto', 0)),
+            format_money(position_detail.get('total_purchases_iva', 0)),
+            format_money(position_detail.get('balance_gross', 0)),  # FIX: was 'balance_bruto'
             "—"
         ), tags=("subtotal",))
 
-        # Filas de ajustes si existen
-        ret_iva = detalle_posicion.get('ret_iva', 0)
-        per_iva = detalle_posicion.get('per_iva', 0)
+        # Adjustment rows if applicable
+        ret_iva = position_detail.get('ret_iva', 0)
+        per_iva = position_detail.get('per_iva', 0)
         if ret_iva:
-            self.resumen_table.insert("", "end", values=(
+            self.summary_table.insert("", "end", values=(
                 "Ret. IVA sufridas", "—", f"-{format_money(ret_iva)}",
                 "—", "—", "—", "—"
-            ), tags=("ajuste",))
+            ), tags=("adjustment",))
         if per_iva:
-            self.resumen_table.insert("", "end", values=(
+            self.summary_table.insert("", "end", values=(
                 "Perc. IVA sufridas", "—", "—",
                 "—", f"+{format_money(per_iva)}", "—", "—"
-            ), tags=("ajuste",))
+            ), tags=("adjustment",))
 
-        # Fila TOTAL NETO
-        self.resumen_table.insert("", "end", values=(
+        # TOTAL NET row
+        self.summary_table.insert("", "end", values=(
             "TOTAL",
             "—",
-            format_money(detalle_posicion.get('debito_fiscal', detalle_posicion.get('total_iva_ventas', 0))),
+            format_money(position_detail.get('fiscal_debt', position_detail.get('total_iva_sales', 0))),
             "—",
-            format_money(detalle_posicion.get('credito_fiscal', detalle_posicion.get('total_iva_compras', 0))),
-            format_money(detalle_posicion.get('saldo_bruto', 0)),
-            format_money(detalle_posicion.get('saldo_total', 0))
+            format_money(position_detail.get('fiscal_credit', position_detail.get('total_purchases_iva', 0))),
+            format_money(position_detail.get('balance_gross', 0)),   # FIX: was 'balance_bruto'
+            format_money(position_detail.get('balance_total', 0))    # FIX: was 'balance_total' (now consistent)
         ), tags=("total",))
 
-        self.resumen_table.tag_configure("total",    background="#E0E0E0", font=("Segoe UI", 10, "bold"))
-        self.resumen_table.tag_configure("subtotal", background="#F5F5F5", font=("Segoe UI", 9, "bold"))
-        self.resumen_table.tag_configure("ajuste",   background="#FFF9C4", font=("Segoe UI", 9, "italic"))
+        self.summary_table.tag_configure("total",      background="#E0E0E0", font=("Segoe UI", 10, "bold"))
+        self.summary_table.tag_configure("subtotal",   background="#F5F5F5", font=("Segoe UI", 9, "bold"))
+        self.summary_table.tag_configure("adjustment", background="#FFF9C4", font=("Segoe UI", 9, "italic"))
 
-    def update_ventas_table(self, ventas):
-        for item in self.ventas_table.get_children():
-            self.ventas_table.delete(item)
+    def update_sales_table(self, sales):
+        for item in self.sales_table.get_children():
+            self.sales_table.delete(item)
 
-        for v in ventas:
-            fecha = v[1][:10] if v[1] and len(v[1]) > 10 else v[1]
-            self.ventas_table.insert("", "end", values=(
-                fecha, v[0], v[2], v[3],
+        for v in sales:
+            date = v[1][:10] if v[1] and len(v[1]) > 10 else v[1]
+            self.sales_table.insert("", "end", values=(
+                date, v[0], v[2], v[3],
                 format_percent(v[5]),
                 format_money(v[6]),
                 format_money(v[7]),
                 format_money(v[8])
             ))
 
-    def update_compras_table(self, compras):
-        for item in self.compras_table.get_children():
-            self.compras_table.delete(item)
+    def update_purchases_table(self, purchases):
+        for item in self.purchases_table.get_children():
+            self.purchases_table.delete(item)
 
-        for c in compras:
-            fecha = c[1][:10] if c[1] and len(c[1]) > 10 else c[1]
-            self.compras_table.insert("", "end", values=(
-                fecha, c[0], c[2], c[3],
+        for c in purchases:
+            date = c[1][:10] if c[1] and len(c[1]) > 10 else c[1]
+            self.purchases_table.insert("", "end", values=(
+                date, c[0], c[2], c[3],
                 format_percent(c[4]),
                 format_money(c[5]),
                 format_money(c[6]),
@@ -510,126 +510,126 @@ class ReportsView:
             ))
 
     # ================================================================
-    # ACTUALIZAR TABLAS PERCEPCIONES
+    # UPDATE PERCEPTIONS TABLES
     # ================================================================
 
-    def update_perc_sufridas_table(self, percepciones):
+    def update_suffered_percep_table(self, perceptions):
         """
-        percepciones: lista de tuplas desde DB
-        Columnas esperadas:
-          (fecha, invoice_id, proveedor, cuit, tax_type, amount)
+        perceptions: list of tuples from DB
+        Expected columns:
+          (date, invoice_id, supplier, cuit, tax_type, amount)
         """
-        for item in self.perc_sufridas_table.get_children():
-            self.perc_sufridas_table.delete(item)
+        for item in self.perc_suffered_table.get_children():
+            self.perc_suffered_table.delete(item)
 
         total = 0.0
-        for p in percepciones:
-            fecha = p[0][:10] if p[0] and len(p[0]) > 10 else p[0]
-            monto = float(p[5] or 0)
-            total += monto
-            self.perc_sufridas_table.insert("", "end", values=(
-                fecha, p[1], p[2], p[3], p[4], format_money(monto)
+        for p in perceptions:
+            date   = p[0][:10] if p[0] and len(p[0]) > 10 else p[0]
+            amount = float(p[5] or 0)
+            total += amount
+            self.perc_suffered_table.insert("", "end", values=(
+                date, p[1], p[2], p[3], p[4], format_money(amount)
             ))
 
-        if percepciones:
-            self.perc_sufridas_table.insert("", "end", values=(
+        if perceptions:
+            self.perc_suffered_table.insert("", "end", values=(
                 "", "TOTAL", "", "", "", format_money(total)
             ), tags=("total",))
-            self.perc_sufridas_table.tag_configure("total", background="#E0E0E0", font=("Segoe UI", 10, "bold"))
+            self.perc_suffered_table.tag_configure("total", background="#E0E0E0", font=("Segoe UI", 10, "bold"))
 
-    def update_perc_efectuadas_table(self, percepciones):
+    def update_made_percep_table(self, perceptions):
         """
-        percepciones: lista de tuplas
-        Columnas esperadas:
-          (fecha, sale_id, cliente, cuit, tax_type, amount)
+        perceptions: list of tuples
+        Expected columns:
+          (date, sale_id, customer, cuit, tax_type, amount)
         """
-        for item in self.perc_efectuadas_table.get_children():
-            self.perc_efectuadas_table.delete(item)
+        for item in self.perc_made_table.get_children():
+            self.perc_made_table.delete(item)
 
         total = 0.0
-        for p in percepciones:
-            fecha = p[0][:10] if p[0] and len(p[0]) > 10 else p[0]
-            monto = float(p[5] or 0)
-            total += monto
-            self.perc_efectuadas_table.insert("", "end", values=(
-                fecha, p[1], p[2], p[3], p[4], format_money(monto)
+        for p in perceptions:
+            date   = p[0][:10] if p[0] and len(p[0]) > 10 else p[0]
+            amount = float(p[5] or 0)
+            total += amount
+            self.perc_made_table.insert("", "end", values=(
+                date, p[1], p[2], p[3], p[4], format_money(amount)
             ))
 
-        if percepciones:
-            self.perc_efectuadas_table.insert("", "end", values=(
+        if perceptions:
+            self.perc_made_table.insert("", "end", values=(
                 "", "TOTAL", "", "", "", format_money(total)
             ), tags=("total",))
-            self.perc_efectuadas_table.tag_configure("total", background="#E0E0E0", font=("Segoe UI", 10, "bold"))
+            self.perc_made_table.tag_configure("total", background="#E0E0E0", font=("Segoe UI", 10, "bold"))
 
     # ================================================================
-    # ACTUALIZAR TABLAS RETENCIONES
+    # UPDATE RETENTIONS TABLES
     # ================================================================
 
-    def update_ret_sufridas_table(self, retenciones):
+    def update_suffered_ret_table(self, retentions):
         """
-        retenciones: lista de tuplas desde DB (sale_retentions)
-        Columnas esperadas:
-          (fecha, sale_id, cliente, cuit, tax_type, certificate_number, amount)
+        retentions: list of tuples from DB (sale_retentions)
+        Expected columns:
+          (date, sale_id, customer, cuit, tax_type, certificate_number, amount)
         """
-        for item in self.ret_sufridas_table.get_children():
-            self.ret_sufridas_table.delete(item)
+        for item in self.ret_suffered_table.get_children():
+            self.ret_suffered_table.delete(item)
 
         total = 0.0
-        for r in retenciones:
-            fecha = r[0][:10] if r[0] and len(r[0]) > 10 else r[0]
-            monto = float(r[6] or 0)
-            total += monto
-            self.ret_sufridas_table.insert("", "end", values=(
-                fecha, r[1], r[2], r[3], r[4], r[5] or "-", format_money(monto)
+        for r in retentions:
+            date   = r[0][:10] if r[0] and len(r[0]) > 10 else r[0]
+            amount = float(r[6] or 0)
+            total += amount
+            self.ret_suffered_table.insert("", "end", values=(
+                date, r[1], r[2], r[3], r[4], r[5] or "-", format_money(amount)
             ))
 
-        if retenciones:
-            self.ret_sufridas_table.insert("", "end", values=(
+        if retentions:
+            self.ret_suffered_table.insert("", "end", values=(
                 "", "TOTAL", "", "", "", "", format_money(total)
             ), tags=("total",))
-            self.ret_sufridas_table.tag_configure("total", background="#E0E0E0", font=("Segoe UI", 10, "bold"))
+            self.ret_suffered_table.tag_configure("total", background="#E0E0E0", font=("Segoe UI", 10, "bold"))
 
-    def update_ret_efectuadas_table(self, retenciones):
+    def update_made_ret_table(self, retentions):
         """
-        retenciones: lista de tuplas (retenciones que le hacemos al proveedor)
-        Columnas esperadas:
-          (fecha, purchase_id, proveedor, cuit, tax_type, certificate_number, amount)
+        retentions: list of tuples (retentions we apply to the supplier)
+        Expected columns:
+          (date, purchase_id, supplier, cuit, tax_type, certificate_number, amount)
         """
-        for item in self.ret_efectuadas_table.get_children():
-            self.ret_efectuadas_table.delete(item)
+        for item in self.ret_made_table.get_children():
+            self.ret_made_table.delete(item)
 
         total = 0.0
-        for r in retenciones:
-            fecha = r[0][:10] if r[0] and len(r[0]) > 10 else r[0]
-            monto = float(r[6] or 0)
-            total += monto
-            self.ret_efectuadas_table.insert("", "end", values=(
-                fecha, r[1], r[2], r[3], r[4], r[5] or "-", format_money(monto)
+        for r in retentions:
+            date   = r[0][:10] if r[0] and len(r[0]) > 10 else r[0]
+            amount = float(r[6] or 0)
+            total += amount
+            self.ret_made_table.insert("", "end", values=(
+                date, r[1], r[2], r[3], r[4], r[5] or "-", format_money(amount)
             ))
 
-        if retenciones:
-            self.ret_efectuadas_table.insert("", "end", values=(
+        if retentions:
+            self.ret_made_table.insert("", "end", values=(
                 "", "TOTAL", "", "", "", "", format_money(total)
             ), tags=("total",))
-            self.ret_efectuadas_table.tag_configure("total", background="#E0E0E0", font=("Segoe UI", 10, "bold"))
+            self.ret_made_table.tag_configure("total", background="#E0E0E0", font=("Segoe UI", 10, "bold"))
 
     # ================================================================
-    # COMANDOS
+    # COMMANDS
     # ================================================================
 
     def load_reports(self):
         if self.controller:
-            meses = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
-                     "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"]
-            mes = meses.index(self.mes_var.get()) + 1
-            anio = int(self.anio_var.get())
-            self.controller.load_period_reports(mes, anio)
+            months = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
+                      "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"]
+            month = months.index(self.month_var.get()) + 1
+            year  = int(self.year_var.get())
+            self.controller.load_period_reports(month, year)
 
     def load_current_month(self):
-        meses = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
-                 "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"]
-        self.mes_var.set(meses[datetime.now().month - 1])
-        self.anio_var.set(str(datetime.now().year))
+        months = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
+                  "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"]
+        self.month_var.set(months[datetime.now().month - 1])
+        self.year_var.set(str(datetime.now().year))
         self.load_reports()
 
     def export_pdf(self):
@@ -672,7 +672,7 @@ class ReportsView:
         self.controller = controller
 
     # ================================================================
-    # UTILIDADES
+    # UTILITIES
     # ================================================================
 
     def show_error(self, msg):

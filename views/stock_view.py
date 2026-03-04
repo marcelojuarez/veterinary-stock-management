@@ -226,8 +226,8 @@ class StockView():
         self.stock_tree.column("SalePrice", anchor=tk.E, width=100, stretch=True)
         self.stock_tree.column("Iva", anchor=tk.CENTER, width=60, stretch=False)
         self.stock_tree.column("SalePriceWithIva", anchor=tk.E, width=120, stretch=True)
-        self.stock_tree.column("ValidityDate", anchor=tk.CENTER, width=160, stretch=True)
-        self.stock_tree.column("LastPriceUpdate", anchor=tk.CENTER, width=160, stretch=True)
+        self.stock_tree.column("ValidityDate", anchor=tk.CENTER, width=100, stretch=True)
+        self.stock_tree.column("LastPriceUpdate", anchor=tk.CENTER, width=100, stretch=True)
         self.stock_tree.column("Stock", anchor=tk.CENTER, width=80, stretch=False)
 
         # Encabezados
