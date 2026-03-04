@@ -62,35 +62,46 @@ class PaymentModel:
         )
 
         # Solo generar crédito si NO viene de aplicación de saldo a favor
-        overpay = Decimal(paid - total)
-        
         if not skip_credit_generation:
+            overpay = Decimal(paid - total)
             if overpay > Decimal('0.00'):
-                exists = self.db.fetch_one(
-                    """
-                    SELECT 1
-                    FROM customer_credit
-                    WHERE sale_id = ?
-                    AND client_id = ?
-                    AND reason LIKE 'AJUSTE:%'
-                    LIMIT 1
-                    """,
-                    (sale_id, client_id),
-                    conn=conn
-                )
                 print(f"DEBUG CREDIT: overpay={overpay}, sale={sale_id}, skip={skip_credit_generation}")
-                print(f"DEBUG CREDIT: exists={exists}")
-                if not exists:
-                    self.add_customer_credit(
-                        client_id=client_id,
-                        amount=overpay,
-                        reason=f"AJUSTE: Sobrepago en venta #{sale_id}",
-                        sale_id=sale_id,
-                        conn=conn,
-                        commit=commit
-                    )
+                ## Generacion de saldo a favor debito a una venta
+                self.add_customer_credit(
+                    client_id=client_id,
+                    amount=overpay,
+                    reason=f"AJUSTE: Sobrepago en venta #{sale_id}",
+                    sale_id=sale_id,
+                    conn=conn,
+                    commit=commit
+                )
+
+                ## Registrar fila informativa en ledger
+                self.customer_model.register_credit_balance_in_account(
+                    client_id=client_id,
+                    sale_id=sale_id,
+                    amount=overpay,
+                    conn=conn,
+                    commit=commit
+                )
 
         return status
+
+    ## -- Devuelve el monto total de pagos asociados a una venta -- ##
+    def get_total_amount_of_pay_for_a_sale(self, sale_id, conn=None):
+        query = """
+        SELECT amount FROM payments WHERE sale_id = ?
+        """
+
+        rows = self.db.fetch_all(query, (sale_id, ), conn=conn)
+
+        amount = Decimal('0.00')
+
+        for row in rows:
+            amount += Decimal(row[0])
+
+        return norm_to_2_dec(amount)
+    
 
     ## -- Devuelve el monto total de pagos asociados a una venta -- ##
     def get_total_amount_of_pay_for_a_sale(self, sale_id, conn=None):
@@ -152,12 +163,24 @@ class PaymentModel:
                     conn=conn,
                     commit=False
                 )
-                
+
                 # Actualizar estado de la venta
-                self.update_sale_status(
+                sale_status = self.update_sale_status(
                     sale_id, skip_credit_generation=True, conn=conn, commit=False
                 )
                 
+                # Se registra el movimiento en la cuenta del cliente
+                self.customer_model.register_payment_in_account(
+                    sale_id,
+                    customer_id,
+                    pay_amount,
+                    method,
+                    "PAGO",
+                    sale_status,
+                    conn=conn,
+                    commit=False
+                )
+
                 remaining = remaining - pay_amount
                 updated_debts.append((sale_id, pay_amount))
 

@@ -139,20 +139,20 @@ class CustomerModel:
         date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         query = """
             INSERT INTO customer_ledger 
-                (client_id, fecha, tipo, descripcion, debe, haber, saldo, reference_id, referencia) 
+                (client_id, date, type, description, amount, payment, debt, reference_id, reference) 
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             """
 
         params = [
             data['client_id'],
             date,
-            data['tipo'],
-            data['descripcion'],
-            str(data.get('debe', '0.00')),
-            str(data.get('haber', '0.00')),
-            str(data.get('saldo', '0.00')),
+            data['type'],
+            data['description'],
+            str(data.get('amount', '0.00')),
+            str(data.get('payment', '0.00')),
+            str(data.get('debt', '0.00')),
             data.get('reference_id'),
-            data.get('referencia', '')
+            data.get('reference', '')
         ]
 
         self.db.execute_query(query, params, conn=conn, commit=commit)
@@ -160,30 +160,101 @@ class CustomerModel:
     ## -- Obtiene el historial de un cliente  -- ##
     def get_account_history_from_client(self, client_id):
         query = """
-        SELECT * FROM customer_ledger WHERE client_id = ? ORDER BY fecha
+        SELECT * FROM customer_ledger WHERE client_id = ? ORDER BY id DESC
         """
 
         return self.db.fetch_all(query, (client_id, ))
 
-    
-    def register_price_adjustment(self, sale_id: int, client_id: int, old_total: Decimal, new_total: Decimal, conn=None, commit=True):
-        """Registra un ajuste de precio en customer_ledger"""
+    ## -- Registra un ajuste de precio en customer_ledger -- ##
+    def register_price_adjustment_in_account(
+            self, 
+            sale_id, 
+            client_id, 
+            old_total, 
+            new_total, 
+            conn=None, 
+            commit=True
+        ):
         difference = norm_to_2_dec(new_total - old_total)
         if difference == Decimal('0.00'):
             return
 
+        balance = self.get_total_debt(client_id, conn=conn)
+
         data = {
             'client_id': client_id,
-            'tipo': 'AJUSTE_PRECIO',
-            'descripcion': f"Ajuste de precio Venta #{sale_id} · ${old_total:,.2f} → ${new_total:,.2f}",
-            'debe': difference if difference > Decimal('0.00') else Decimal('0.00'),
-            'haber': Decimal('0.00'),
-            'saldo': Decimal('0.00'),
+            'type': 'AJUSTE PRECIO',
+            'description': f"Ajuste de precio Venta #{sale_id} · ${old_total} → ${new_total}",
+            'amount': difference,
+            'payment': Decimal('0.00'),
+            'debt': balance,
             'reference_id': sale_id,
-            'referencia': f"Precio actualizado"
+            'reference': f"Precio actualizado"
         }
         self.add_row_in_customer_ledger(data, conn=conn, commit=commit)
 
+    ## -- Registra un pago en el historial del cliente-- ##
+    def register_payment_in_account(
+            self, 
+            sale_id, 
+            client_id,
+            payment,
+            method,
+            type, 
+            sale_status,
+            conn=None, 
+            commit=True
+        ):
+
+        method_map = {
+            "cash": "Efectivo",
+            "transfer": "Transferencia",
+            "card": "Tarjeta",
+            "efectivo": "Efectivo",
+            "transferencia": "Transferencia",
+            "saldo a favor": "Saldo a Favor",
+            "cheque": "Cheque",
+            "deposito": "Depósito",
+            "global": "Global"
+        }
+
+        method_txt = method_map.get(method.lower() if method else "", method.capitalize() if method else "Efectivo")
+
+        estado_map = {
+            "pending": "Pendiente",
+            "partial": "Pago parcial",
+            "paid": "Pagada"
+        }
+        status_txt = estado_map.get(sale_status, sale_status)
+
+        debt = self.get_total_debt(client_id, conn=conn)
+
+        data = {
+            'client_id': client_id,
+            'type': type,
+            'description': f"Pago Venta #{sale_id} · {method_txt} . {status_txt.upper()}",
+            'amount': Decimal('0.00'),
+            'payment': payment,
+            'debt': debt,
+            'reference_id': sale_id,
+            'reference': f"Precio actualizado"
+        }
+        self.add_row_in_customer_ledger(data, conn=conn, commit=commit)
+
+    def register_credit_balance_in_account(self, client_id, sale_id, amount, conn=None, commit=True):
+        data = {
+            'client_id': client_id,
+            'type': 'SALDO FAVOR',
+            'description': f"Saldo a favor · Ajuste Vta #{sale_id} · ${amount}",
+            'amount': Decimal('0.00'),
+            'payment': Decimal('0.00'),
+            'debt': Decimal('0.00'),  
+            'reference_id': sale_id,
+            'reference': 'Ajuste de precio'
+        }
+        self.add_row_in_customer_ledger(data, conn=conn, commit=commit)
+
+    ## -- Obtiene la deuda total de un cliente -- ##
     def get_customer_debts(self, cliente_id):
         query = """
         SELECT 
@@ -237,7 +308,7 @@ class CustomerModel:
         query = "UPDATE sales SET estado = 'paid' WHERE id = ?"
         self.db.execute_query(query, (sale_id,))
 
-    def get_total_debt(self, cliente_id):
+    def get_total_debt(self, cliente_id, conn=None):
         """Devuelve el total pendiente del cliente (suma de saldos positivos)."""
         query = """
             SELECT 
@@ -248,11 +319,10 @@ class CustomerModel:
             GROUP BY s.id
         """
 
-        rows = self.db.fetch_all(query, (cliente_id,))
-
+        rows = self.db.fetch_all(query, (cliente_id,), conn=conn)
         total_pending = Decimal('0.00')
         for sale_id, total in rows:
-            paid = self.pay_model.get_total_amount_of_pay_for_a_sale(sale_id)
+            paid = self.pay_model.get_total_amount_of_pay_for_a_sale(sale_id, conn=conn)
             saldo = Decimal(total) - paid
             if saldo > Decimal('0.00'):
                 total_pending += saldo
@@ -280,13 +350,48 @@ class CustomerModel:
         # Si tiene pagos (parciales o totales), es CRÉDITO y debe mostrarse
         return result is None or result[0] == 0
 
-    def get_account_history(self, cliente_id):
+    def get_account_history(self, client_id):
         # Guardar y obtener los movimientos de cuenta corriente del cliente
-        movements = self.get_account_history_from_client(cliente_id)
-        print(f"Movimientos en cuenta corriente para cliente {cliente_id}:")
+        movements = self.get_account_history_from_client(client_id)
+        print(f"Movimientos en cuenta corriente para cliente {client_id}:")
         for m in movements:
-            print(f"  {m[0]} | {m[1]} | debe: {m[2]} | haber: {m[3]} | saldo: {m[4]}")
+            print(m)
 
+        ## Generar resumen
+        # Monto total en compras
+        total_purchased = sum((Decimal(m[5]) for m in movements), Decimal('0.00'))
+
+        # Monto total en pagos
+        total_paid =  sum((Decimal(m[6]) for m in movements), Decimal('0.00'))
+
+        # Deuda total
+        total_debt = self.get_total_debt(client_id)
+        
+        # Contar ventas pagadas
+        total_sales = 0
+        sales_paid = 0
+        for m in movements:
+            if m[3] == "VENTA":
+                total_sales += 1
+                sale_id = m[8]
+                check = "SELECT estado FROM sales WHERE id = ?"
+                result = self.db.fetch_one(check, (sale_id,))
+                if result and result[0] == 'paid':
+                    sales_paid += 1
+
+        credit = self.pay_model.get_customer_credit(client_id)
+
+        summary = {
+            'total_comprado': total_purchased,
+            'total_pagado': total_paid,
+            'saldo_a_favor': credit,        # ← crédito calculado del historial
+            'deuda_pendiente': total_debt,        # ← nunca baja de 0
+            'ventas_pagadas': sales_paid,
+            'total_ventas': total_sales,
+            'ventas_texto': f"{sales_paid}/{total_sales} pagadas"
+        }
+
+        return movements, summary
 
     def get_customer_account_history(self, cliente_id):
         """
@@ -413,10 +518,10 @@ class CustomerModel:
         # PASO 3.5: AJUSTES DE PRECIO DESDE LEDGER
         # ================================================================
         adjustments_query = """
-            SELECT fecha, descripcion, debe, haber, reference_id, referencia
+            SELECT date, description, amount, payment, reference_id, reference
             FROM customer_ledger
-            WHERE client_id = ? AND tipo = 'AJUSTE_PRECIO'
-            ORDER BY fecha, id
+            WHERE client_id = ? AND type = 'AJUSTE_PRECIO'
+            ORDER BY date, id
         """
         adjustments = self.db.fetch_all(adjustments_query, (cliente_id,))
 
@@ -467,7 +572,7 @@ class CustomerModel:
                         desc = f"Nota de crédito"
                         if reason:
                             desc += f" · {reason}"
-                        
+                        print('aca')
                         fecha_formateada = iso_to_traditional(fecha.split()[0]) if fecha else ""
                         movements.append({
                             "fecha": fecha_formateada,
@@ -544,4 +649,7 @@ class CustomerModel:
             'ventas_texto': f"{ventas_pagadas}/{ventas_totales} pagadas"
         }
 
-        return movements, summary
+        for m in movements:
+            print(m)
+
+        return summary

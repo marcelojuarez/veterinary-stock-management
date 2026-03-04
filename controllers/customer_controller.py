@@ -253,7 +253,7 @@ class CustomerController:
                 
                 if sobrepago > Decimal('0.01'):
                     changes.append(
-                        f"✅ Venta #{sale_id} PAGADA - Saldo a favor: ${sobrepago:.2f}"
+                        f"✅ Venta #{sale_id} PAGADA - Saldo a favor: ${sobrepago}"
                     )
                 else:
                     changes.append(f"✅ Venta #{sale_id} quedó PAGADA por cambio de precio")
@@ -385,6 +385,11 @@ class CustomerController:
                 
                 amount = string_to_2_dec(val) 
 
+                if amount is None:
+                    ValueError()
+                    print('llego hasta aca')
+                    return
+
                 if amount <= Decimal('0.00'):
                     show_warning("El monto debe ser mayor a 0.")
                     return
@@ -425,7 +430,7 @@ class CustomerController:
                 # Necesitamos volver a pedir los datos actualizados
                 debts = self.model.get_customer_debts(customer_id)
                 total = self.model.get_total_debt(customer_id)
-                credit = norm_to_2_dec(self.payment_model.get_customer_credit(customer_id))
+                credit = self.payment_model.get_customer_credit(customer_id)
                 net = norm_to_2_dec(max(Decimal('0.00'), total - credit))
                 self.view.update_debt_window(debts, total, credit, net)
 
@@ -500,8 +505,7 @@ class CustomerController:
     def show_account_history(self, cliente_id, cliente_nombre):
         """Muestra el historial completo de cuenta del cliente"""
         try:
-            movements, summary = self.model.get_customer_account_history(cliente_id)
-            self.model.get_account_history(cliente_id)
+            movements, summary = self.model.get_account_history(cliente_id)
             self.view.open_account_history_window(cliente_id, cliente_nombre, movements, summary)
         except Exception as e:
             self.view.show_error(f"Error al obtener historial: {e}")
@@ -543,14 +547,14 @@ class CustomerController:
         """Aplica el saldo a favor del cliente a sus deudas pendientes"""
         try:
             # Obtener crédito disponible
-            credit = norm_to_2_dec(self.payment_model.get_customer_credit(customer_id))
+            credit = self.payment_model.get_customer_credit(customer_id)
 
             if credit <= Decimal('0.00'):
                 self.view.show_warning("El cliente no tiene saldo a favor.")
                 return
             
             # Obtener deuda total
-            total_debt = norm_to_2_dec(self.model.get_total_debt(customer_id))
+            total_debt = self.model.get_total_debt(customer_id)
 
             if total_debt <= Decimal('0.00'):
                 self.view.show_warning("El cliente no tiene deudas pendientes.")
@@ -615,7 +619,18 @@ class CustomerController:
                             commit=False
                         )
 
-                        self.payment_model.update_sale_status(sale_id,skip_credit_generation=True ,conn=conn, commit=False)
+                        sale_status = self.payment_model.update_sale_status(sale_id, skip_credit_generation=True ,conn=conn, commit=False)
+                        ## Agregar funcion para poder insertar en la cuenta que se aplico el uso del saldo
+                        self.model.register_payment_in_account(
+                            sale_id, 
+                            customer_id, 
+                            pay_amount, 
+                            "Saldo a Favor", 
+                            "CRÉDITO", 
+                            sale_status, 
+                            conn=conn, 
+                            commit=False
+                        )
                         remaining -= pay_amount
                         payment_applied.append((sale_id, pay_amount))
                     

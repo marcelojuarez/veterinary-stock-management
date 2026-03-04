@@ -127,17 +127,19 @@ class SalesController:
             self.sales_view.show_success(f"Venta registrada.\nFactura creada: {pdf}")
 
             self.sales_view.last_sale_id = sale_id
+            debt = self.customer_model.get_total_debt(cliente_id)
+
             if estado == "pending":
                 # Se genera el remito en compras por cuenta corriente 
                 data = {
                     "client_id": cliente_id,
-                    "tipo": "VENTA",
-                    "descripcion": f"Venta #{sale_id} · {qty} producto(s) · {estado}",
-                    "debe": total,
-                    "haber": Decimal('0.00'),
-                    "saldo": Decimal('0.00'),
-                    "referencia_id" : sale_id,
-                    "referencia": ''
+                    "type": "VENTA",
+                    "description": f"Venta #{sale_id} · {qty} producto(s) · PENDIENTE",
+                    "amount": total,
+                    "payment": Decimal('0.00'),
+                    "debt": debt,
+                    "reference_id" : sale_id,
+                    "reference": ''
                 }
                 self.customer_model.add_row_in_customer_ledger(data)
                 self.sales_view.generate_delivery_note()

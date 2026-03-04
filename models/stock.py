@@ -94,7 +94,7 @@ class StockModel:
 
                     # ← Registrar ajuste solo si hubo cambio y hay cliente
                     if client and old_total != new_total:
-                        self.payment_model.customer_model.register_price_adjustment(
+                        self.payment_model.customer_model.register_price_adjustment_in_account(
                             sale_id=sale_id,
                             client_id=client_id,
                             old_total=old_total,
