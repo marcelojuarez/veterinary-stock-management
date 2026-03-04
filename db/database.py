@@ -94,7 +94,8 @@ class Database:
                     phone TEXT,
                     email TEXT,
                     iva_condition TEXT,
-                    last_debt_update TEXT DEFAULT CURRENT_DATE
+                    last_debt_update TEXT DEFAULT CURRENT_DATE,
+                    active INTEGER NOT NULL DEFAULT 1  -- <- agregar esta columna
                 );
             ''')
 
