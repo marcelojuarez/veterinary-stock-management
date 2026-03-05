@@ -1302,7 +1302,7 @@ class SalesView:
         dialog.transient(self.frame)
         dialog.grab_set()
         dialog.resizable(False, False)
-        center_window(dialog, 500, 400)
+        center_window(dialog, 500, 450)
         
         # Título
         ctk.CTkLabel(
@@ -1353,7 +1353,7 @@ class SalesView:
             content_frame,
             height=8,
             width=50,
-            font=("Arial", 10),
+            font=("bold",12),
             wrap="word"
         )
         obs_text.pack(padx=15, pady=5)
@@ -1366,13 +1366,13 @@ class SalesView:
             Fecha: 28/01/2026"""
         
         obs_text.insert("1.0", placeholder)
-        obs_text.config(fg="gray")
+        obs_text.config(fg="black")
         
         # Limpiar placeholder al hacer clic
         def clear_placeholder(event):
             if obs_text.get("1.0", tk.END).strip() == placeholder.strip():
                 obs_text.delete("1.0", tk.END)
-                obs_text.config(fg="white")
+                obs_text.config(fg="black")
         
         obs_text.bind("<FocusIn>", clear_placeholder)
         
@@ -1381,7 +1381,7 @@ class SalesView:
                 price = string_to_2_dec(price_var.get())  # Precio que el usuario ingresa
 
                 if price is None:
-                    show_error("Valor Invalido")
+                    messagebox.showerror("Error", "Ingrese un monto válido para los honorarios")
                     return
 
                 observations = obs_text.get("1.0", tk.END).strip()
