@@ -17,13 +17,13 @@ class IVAModel:
             SELECT 
                 s.id as sale_id,
                 s.date as date,
-                COALESCE(c.name, 'Final Consumer') as customer,
+                COALESCE(c.name, 'Consumidor Final') as customer,
                 COALESCE(c.cuit, '') as customer_cuit,
-                COALESCE(c.iva_condition, 'Final Consumer') as iva_condition,
+                COALESCE(c.iva_condition, 'Consumidor Final') as iva_condition,
                 si.iva_rate as aliquot_iva,
-                SUM(si.subtotal) as net,
+                SUM(si.subtotal - si.iva_amount) as net,
                 SUM(si.iva_amount) as iva,
-                SUM(si.subtotal + si.iva_amount) as total
+                SUM(si.subtotal) as total
             FROM sales s
             LEFT JOIN customer c ON c.id = s.cliente_id
             JOIN sale_items si ON si.sale_id = s.id
@@ -39,7 +39,7 @@ class IVAModel:
                 si.iva_rate as aliquot,
                 SUM(si.quantity * si.price) as taxable_net,
                 SUM(si.iva_amount) as iva,
-                SUM(si.subtotal) as total,
+                SUM(si.quantity * si.price + si.iva_amount) as total,
                 COUNT(DISTINCT s.id) as transaction_count
             FROM sales s
             JOIN sale_items si ON si.sale_id = s.id

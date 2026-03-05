@@ -259,5 +259,5 @@ class StockMovementView:
         # Carga inicial
         load()
 
-        center_window(win, 1200, 700)
+        center_window(win, 1200, 750)
         win.deiconify()
