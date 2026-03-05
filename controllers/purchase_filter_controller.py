@@ -38,6 +38,13 @@ class PurchaseFilterController():
             self.treeview.delete(row)
         # Cargar compras
         for p in purchases:
+            estado = p[8]  # índice correcto del estado
+            if estado == 'BORRADOR':
+                tag = "purchase_draft"
+            elif estado == 'PAGADA':
+                tag = "purchase_paid"
+            else:
+                tag = "purchase_pending"  # CONFIRMADA / pendiente de pago
             print(p)
             self.treeview.insert(
                 parent="", index="end", iid=p[0],
@@ -52,5 +59,5 @@ class PurchaseFilterController():
                     p[10], # saldo pend
                     p[11] # total
                 ),
-                tag="orow"
+                tag=(tag,)
             )    

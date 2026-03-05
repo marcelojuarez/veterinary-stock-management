@@ -117,10 +117,10 @@ class CustomersView:
         )
 
         self.table = ttk.Treeview(table_frame, show="headings", height=12)
-        self.table["columns"] = ("ID", "Nombre", "CUIT", "Domicilio", "Teléfono", "Condición IVA", "CV", "CUIG", "RENSPA", "Establecimiento")
+        self.table["columns"] = ("Id", "Nombre", "CUIT", "Domicilio", "Teléfono", "Condición IVA", "CV", "CUIG", "RENSPA", "Establecimiento")
 
         col_specs = {
-            "ID": {"width": 50, "stretch": False},
+            "Id": {"width": 50, "stretch": False},
             "Nombre": {"width": 180},
             "CUIT": {"width": 120},
             "Domicilio": {"width": 150},
@@ -698,7 +698,6 @@ class CustomersView:
         win = ctk.CTkToplevel(self.frame)
         win.title(f"📊 Estado de Cuenta - {cliente_nombre}")
         win.transient(self.frame)
-        win.update()
         win.grab_set()
         center_window(win, width_win, height_win)
         

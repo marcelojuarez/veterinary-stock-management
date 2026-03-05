@@ -41,15 +41,15 @@ class SupplierController():
 
             # convertir tipos
             supplier_data = {
-                'name': data['name'],
+                'name': data['name'].upper(),
                 'cuit': data['cuit'],
-                'address': data['address'],
-                'city': data['city'],
-                'province': data['province'],
-                'country': data['country'],
-                'phone': data['phone'],
-                'email': data['email'],
-                'iva_condition': data['iva_condition']
+                'address': data['address'].upper(),
+                'city': data['city'].upper(),
+                'province': data['province'].upper(),
+                'country': data['country'].upper(),
+                'phone': data['phone'].upper(),
+                'email': data['email'].upper(),
+                'iva_condition': data['iva_condition'].upper()
             }
             print("Funciona")
 

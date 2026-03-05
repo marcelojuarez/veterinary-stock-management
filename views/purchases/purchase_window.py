@@ -58,7 +58,7 @@ class PurchaseWindow():
 
         win.protocol("WM_DELETE_WINDOW",lambda: close_win(win, parent))
 
-        width_win = 1300
+        width_win = 1250
         height_win = 650
 
         btn_color = "#009688"
@@ -104,7 +104,8 @@ class PurchaseWindow():
         refresh_purchase_list_btn = ctk.CTkButton(
             select_supplier_frame,
             width=150,
-            text="Refrescar",
+            height=35,
+            text="Mostrar Todas las Compras",
             font=ctk.CTkFont(size=13, weight="bold"),
             command=lambda: self.load_purchases(False)
         )
@@ -134,10 +135,10 @@ class PurchaseWindow():
 
         # tree view de productos
         self.purchase_tree = ttk.Treeview(product_frame, show="headings", height=8)
-        self.purchase_tree["columns"] = ("Id", "Cuit Proveedor", "Nombre Proveedor", "Tipo Comprobante", "Fecha", 
-                                        "Fecha Venc.", "Estado", "Saldo pendiente", "Total")
+        self.purchase_tree["columns"] = ("Id", "Cuit", "Nombre", "Tipo Comprobante", "Fecha", 
+                                        "Fecha Venc.", "Estado", "Saldo Pendiente", "Total")
         for col in self.purchase_tree["columns"]:
-            self.purchase_tree.heading(col, text=col.capitalize())
+            self.purchase_tree.heading(col, text=col)
             if col == "Id":
                 self.purchase_tree.column(col, width=60, anchor="center")
             else:
@@ -263,7 +264,7 @@ class PurchaseWindow():
             iid = selected[0]
             values = self.purchase_tree.item(iid, "values")
             
-            if values[5] != 'BORRADOR':
+            if values[6] != 'BORRADOR':
                 show_error('Error. No puede eliminar una compra ya confirmada.') 
                 return
             
@@ -456,7 +457,7 @@ class PurchaseWindow():
             placeholder_text="Ingrese nombre del proveedor..."
         )
         self.find_entry.grid(row=0, column=1, padx=5)
-        self.find_entry.focus()
+        win.after(100,self.find_entry.focus)
 
         self.find_entry.bind("<KeyRelease>", self.on_key_release)
         self.search_after_id = None

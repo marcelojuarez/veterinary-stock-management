@@ -4,7 +4,7 @@ import customtkinter as ctk
 from utils.utils import iso_to_traditional
 from services.purchase_detail import PurchaseDetail
 from utils.invoice_utils import pay_period_control, calculate_exp_date
-from utils.view_helpers import close_win, ask_confirmation, show_success, show_warning, show_error
+from utils.view_helpers import center_window, close_win, ask_confirmation, show_success, show_warning, show_error
 
 class PurchaseInfoInvoiceView():
     def __init__(self, model, controller):
@@ -36,7 +36,7 @@ class PurchaseInfoInvoiceView():
 
             header = ctk.CTkLabel(
                 header_frame,
-                text=f"Detalle de la compra: (ID: {values[0]}) - {self.invoice_state.get()}",
+                text=f"Detalle de la compra: {self.invoice_state.get()}",
                 font=ctk.CTkFont(size=20, weight="bold")
             )
             header.pack(side='left', anchor='w', padx=5)
@@ -64,6 +64,9 @@ class PurchaseInfoInvoiceView():
             else:
                 print(f"pruchase data 3: {purchase_data[3]}")
                 self.show_invoice_fields(doc_id=purchase_data[3])
+
+            btn_frame = ctk.CTkFrame(main_frame, fg_color="#f5f5f5", corner_radius=10)
+            btn_frame.pack(fill='x', padx=10, pady=(5, 10), side='bottom')
 
             # Productos asociados a la compra
             sep = ctk.CTkLabel(
@@ -97,14 +100,12 @@ class PurchaseInfoInvoiceView():
 
             self.load_data_into_the_sheet()
 
-            btn_frame = ctk.CTkFrame(main_frame, fg_color="#f5f5f5", corner_radius=10)
-            btn_frame.pack(fill='x', padx=10, pady=(5, 10))
 
             # columnas: spacer | btn | btn | btn | btn | btn | spacer
             for i in (0, 6):
                 btn_frame.grid_columnconfigure(i, weight=1)
             for i in (1, 2, 3, 4, 5):
-                btn_frame.grid_columnconfigure(i, weight=0)
+                btn_frame.grid_columnconfigure(i, weight=1)
 
             self.save_btn = ctk.CTkButton(
                 btn_frame,
@@ -168,18 +169,9 @@ class PurchaseInfoInvoiceView():
             close_btn.grid(row=0, column=5, padx=6, pady=10)
 
             width_win = 950
-            height_win = 850
+            height_win = 700
 
-            x_root = parent.winfo_x()
-            y_root = parent.winfo_y()
-            width_root = parent.winfo_width()
-            height_root = parent.winfo_height()
-
-            x = x_root + (width_root // 2) - (width_win // 2)
-            y = y_root + (height_root // 2) - (height_win // 2)
-
-            purchase_info.geometry(f"{width_win}x{height_win}+{x}+{y}")
-            purchase_info.resizable(False, False)
+            center_window(purchase_info, width_win, height_win)
 
             purchase_info.deiconify()
 

@@ -49,14 +49,14 @@ class IVAReportPDF:
     Uso:
         pdf = IVAReportPDF()
         path = pdf.generate(
-            mes=2, anio=2026,
-            posicion=...,
-            detalle_posicion=...,
-            ventas=..., compras=...,
-            perc_sufridas=..., perc_efectuadas=...,
-            ret_sufridas=..., ret_efectuadas=...,
-            totales_per=(total_s, total_e),
-            totales_ret=(total_s, total_e),
+            month=3, year=2026,
+            position=...,
+            position_detail=...,
+            sales=..., purchases=...,
+            suffered_percept=..., made_percept=...,
+            suffered_ret=..., made_ret=...,
+            total_per=(total_s, total_e),
+            total_ret=(total_s, total_e),
         )
     """
 
@@ -450,17 +450,21 @@ class IVAReportPDF:
     # ─────────────────────────────────────────
     #  Método principal
     # ─────────────────────────────────────────
-    def generate(self, mes, anio, posicion, detalle_posicion,
-                 ventas, compras,
-                 perc_sufridas, perc_efectuadas,
-                 ret_sufridas, ret_efectuadas,
-                 totales_per, totales_ret):
-        
-        periodo = f"{self.MESES[mes - 1]}_{anio}"
+    def generate(self, month, year, position, position_detail,
+                 sales, purchases,
+                 suffered_percept, made_percept,
+                 suffered_ret, made_ret,
+                 total_per, total_ret):
+
+        # unpack totals tuples
+        total_per_s, total_per_e = total_per
+        total_ret_s, total_ret_e = total_ret
+
+        periodo = f"{self.MESES[month - 1]}_{year}"
         reportes_dir = os.path.join(get_base_folder(), "Reportes")
         os.makedirs(reportes_dir, exist_ok=True)
         filename = os.path.join(reportes_dir, f"reporte_iva_{periodo}.pdf")
-        
+
         doc = SimpleDocTemplate(
             filename, pagesize=A4,
             leftMargin=L_MARGIN, rightMargin=R_MARGIN,
@@ -470,11 +474,11 @@ class IVAReportPDF:
         elements = []
 
         # ── Encabezado ──
-        elements += self._build_header(mes, anio)
+        elements += self._build_header(month, year)
 
         # ── Sección IVA ──
-        elements += self._build_iva_cards(posicion)
-        elements += self._build_resumen_aliquots(detalle_posicion)
+        elements += self._build_iva_cards(position)
+        elements += self._build_resumen_aliquots(position_detail)
 
         # Detalle ventas
         elements.append(self._section_header("💰  DETALLE VENTAS"))
@@ -488,7 +492,7 @@ class IVAReportPDF:
                     _pct(v[5]), _money(v[6]), _money(v[7]), _money(v[8])]
 
         elements += self._build_detalle_table(
-            "Detalle Ventas", ventas, cols_v, w_v, extract_venta, subtitulo="Ventas del período"
+            "Detalle Ventas", sales, cols_v, w_v, extract_venta, subtitulo="Ventas del período"
         )
 
         # Detalle compras
@@ -503,12 +507,15 @@ class IVAReportPDF:
                     _pct(c[4]), _money(c[5]), _money(c[6]), _money(c[7])]
 
         elements += self._build_detalle_table(
-            "Detalle Compras", compras, cols_c, w_c, extract_compra, subtitulo="Compras del período"
+            "Detalle Compras", purchases, cols_c, w_c, extract_compra, subtitulo="Compras del período"
         )
 
         # ── Sección Percepciones / Retenciones ──
         elements.append(PageBreak())
-        elements += self._build_otros_cards(totales_per, totales_ret)
+        elements += self._build_otros_cards(
+            (total_per_s, total_per_e),
+            (total_ret_s, total_ret_e)
+        )
 
         # Percepciones sufridas
         cols_ps = ["Fecha", "Factura#", "Proveedor", "CUIT", "Tipo", "Monto"]
@@ -519,17 +526,16 @@ class IVAReportPDF:
             return [fecha, str(p[1]), str(p[2]), str(p[3]), str(p[4]), _money(p[5])]
 
         elements += self._build_simple_table(
-            "Percepciones Sufridas (en compras)", perc_sufridas,
+            "Percepciones Sufridas (en compras)", suffered_percept,
             cols_ps, w_ps, extract_perc_s, monto_col_idx=5
         )
 
-        # Percepciones efectuadas
         def extract_perc_e(p):
             fecha = p[0][:10] if p[0] and len(p[0]) > 10 else (p[0] or "")
             return [fecha, str(p[1]), str(p[2]), str(p[3]), str(p[4]), _money(p[5])]
 
         elements += self._build_simple_table(
-            "Percepciones Efectuadas (a clientes)", perc_efectuadas,
+            "Percepciones Efectuadas (a clientes)", made_percept,
             cols_ps, w_ps, extract_perc_e, monto_col_idx=5
         )
 
@@ -543,11 +549,10 @@ class IVAReportPDF:
                     str(r[4]), str(r[5] or "—"), _money(r[6])]
 
         elements += self._build_simple_table(
-            "Retenciones Sufridas (en ventas)", ret_sufridas,
+            "Retenciones Sufridas (en ventas)", suffered_ret,
             cols_rs, w_rs, extract_ret_s, monto_col_idx=6
         )
 
-        # Retenciones efectuadas
         cols_re = ["Fecha", "Compra#", "Proveedor", "CUIT", "Tipo", "Certificado", "Monto"]
 
         def extract_ret_e(r):
@@ -556,7 +561,7 @@ class IVAReportPDF:
                     str(r[4]), str(r[5] or "—"), _money(r[6])]
 
         elements += self._build_simple_table(
-            "Retenciones Efectuadas (a proveedores)", ret_efectuadas,
+            "Retenciones Efectuadas (a proveedores)", made_ret,
             cols_re, w_rs, extract_ret_e, monto_col_idx=6
         )
 

@@ -101,22 +101,6 @@ class PaymentModel:
             amount += Decimal(row[0])
 
         return norm_to_2_dec(amount)
-    
-
-    ## -- Devuelve el monto total de pagos asociados a una venta -- ##
-    def get_total_amount_of_pay_for_a_sale(self, sale_id, conn=None):
-        query = """
-        SELECT amount FROM payments WHERE sale_id = ?
-        """
-
-        rows = self.db.fetch_all(query, (sale_id, ), conn=conn)
-
-        amount = Decimal('0.00')
-
-        for row in rows:
-            amount += Decimal(row[0])
-
-        return norm_to_2_dec(amount)
 
     def apply_global_payment(self, customer_id, amount, method="Efectivo"):
         """

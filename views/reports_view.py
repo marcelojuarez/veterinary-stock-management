@@ -2,7 +2,7 @@ import customtkinter as ctk
 from tkinter import ttk, messagebox
 import tkinter as tk
 from datetime import datetime
-from utils.utils import format_money, format_percent
+from utils.utils import format_currency, format_money, format_percent
 from calendar import monthrange
 
 ctk.set_appearance_mode("light")
@@ -392,15 +392,15 @@ class ReportsView:
         Updates the IVA summary cards.
         position = result of IVAModel.get_iva_position()
         """
-        self.card_iva_sales.configure(text=format_money(position.get('iva_sales', 0)))
-        self.card_purchases_iva.configure(text=format_money(position.get('purchases_iva', 0)))
+        self.card_iva_sales.configure(text=format_currency(position.get('iva_sales', 0)))
+        self.card_purchases_iva.configure(text=format_currency(position.get('purchases_iva', 0)))
 
         try:
             balance = float(position.get('balance', 0) or 0)  # FIX: was 'balance' (key now consistent with model)
         except (TypeError, ValueError):
             balance = 0.0
 
-        balance_text = format_money(abs(balance))
+        balance_text = format_currency(abs(balance))
         if balance > 0:
             self.card_iva_balance.configure(text=balance_text, text_color="#F44336")
         elif balance < 0:
@@ -418,10 +418,10 @@ class ReportsView:
             'ret_made':     float
         }
         """
-        self.card_per_suffered.configure(text=format_money(totals.get('per_suffered', 0)))
-        self.card_per_made.configure(text=format_money(totals.get('per_made', 0)))
-        self.card_ret_suffered.configure(text=format_money(totals.get('ret_suffered', 0)))
-        self.card_ret_made.configure(text=format_money(totals.get('ret_made', 0)))
+        self.card_per_suffered.configure(text=format_currency(totals.get('per_suffered', 0)))
+        self.card_per_made.configure(text=format_currency(totals.get('per_made', 0)))
+        self.card_ret_suffered.configure(text=format_currency(totals.get('ret_suffered', 0)))
+        self.card_ret_made.configure(text=format_currency(totals.get('ret_made', 0)))
 
     # ================================================================
     # UPDATE IVA TABLES
@@ -434,21 +434,21 @@ class ReportsView:
         for item in position_detail['rows']:
             self.summary_table.insert("", "end", values=(
                 item['aliquot'],
-                format_money(item.get('sales_net', 0)),
-                format_money(item.get('iva_sales', 0)),
-                format_money(item.get('purchases_net', 0)),
-                format_money(item.get('purchases_iva', 0)),
-                format_money(item.get('balance', 0)),   # gross balance per aliquot
+                format_currency(item.get('sales_net', 0)),
+                format_currency(item.get('iva_sales', 0)),
+                format_currency(item.get('purchases_net', 0)),
+                format_currency(item.get('purchases_iva', 0)),
+                format_currency(item.get('balance', 0)),   # gross balance per aliquot
                 "—"                                     # net only shown in TOTAL row
             ))
 
         # Gross subtotal row
         self.summary_table.insert("", "end", values=(
             "Subtotal", "—",
-            format_money(position_detail.get('total_iva_sales', 0)),
+            format_currency(position_detail.get('total_iva_sales', 0)),
             "—",
-            format_money(position_detail.get('total_purchases_iva', 0)),
-            format_money(position_detail.get('balance_gross', 0)),  # FIX: was 'balance_bruto'
+            format_currency(position_detail.get('total_purchases_iva', 0)),
+            format_currency(position_detail.get('balance_gross', 0)),  # FIX: was 'balance_bruto'
             "—"
         ), tags=("subtotal",))
 
@@ -457,24 +457,24 @@ class ReportsView:
         per_iva = position_detail.get('per_iva', 0)
         if ret_iva:
             self.summary_table.insert("", "end", values=(
-                "Ret. IVA sufridas", "—", f"-{format_money(ret_iva)}",
+                "Ret. IVA sufridas", "—", f"-{format_currency(ret_iva)}",
                 "—", "—", "—", "—"
             ), tags=("adjustment",))
         if per_iva:
             self.summary_table.insert("", "end", values=(
                 "Perc. IVA sufridas", "—", "—",
-                "—", f"+{format_money(per_iva)}", "—", "—"
+                "—", f"+{format_currency(per_iva)}", "—", "—"
             ), tags=("adjustment",))
 
         # TOTAL NET row
         self.summary_table.insert("", "end", values=(
             "TOTAL",
             "—",
-            format_money(position_detail.get('fiscal_debt', position_detail.get('total_iva_sales', 0))),
+            format_currency(position_detail.get('fiscal_debt', position_detail.get('total_iva_sales', 0))),
             "—",
-            format_money(position_detail.get('fiscal_credit', position_detail.get('total_purchases_iva', 0))),
-            format_money(position_detail.get('balance_gross', 0)),   # FIX: was 'balance_bruto'
-            format_money(position_detail.get('balance_total', 0))    # FIX: was 'balance_total' (now consistent)
+            format_currency(position_detail.get('fiscal_credit', position_detail.get('total_purchases_iva', 0))),
+            format_currency(position_detail.get('balance_gross', 0)),   # FIX: was 'balance_bruto'
+            format_currency(position_detail.get('balance_total', 0))    # FIX: was 'balance_total' (now consistent)
         ), tags=("total",))
 
         self.summary_table.tag_configure("total",      background="#E0E0E0", font=("Segoe UI", 10, "bold"))
@@ -490,9 +490,9 @@ class ReportsView:
             self.sales_table.insert("", "end", values=(
                 date, v[0], v[2], v[3],
                 format_percent(v[5]),
-                format_money(v[6]),
-                format_money(v[7]),
-                format_money(v[8])
+                format_currency(v[6]),
+                format_currency(v[7]),
+                format_currency(v[8])
             ))
 
     def update_purchases_table(self, purchases):
@@ -504,9 +504,9 @@ class ReportsView:
             self.purchases_table.insert("", "end", values=(
                 date, c[0], c[2], c[3],
                 format_percent(c[4]),
-                format_money(c[5]),
-                format_money(c[6]),
-                format_money(c[7])
+                format_currency(c[5]),
+                format_currency(c[6]),
+                format_currency(c[7])
             ))
 
     # ================================================================
@@ -528,12 +528,12 @@ class ReportsView:
             amount = float(p[5] or 0)
             total += amount
             self.perc_suffered_table.insert("", "end", values=(
-                date, p[1], p[2], p[3], p[4], format_money(amount)
+                date, p[1], p[2], p[3], p[4], format_currency(amount)
             ))
 
         if perceptions:
             self.perc_suffered_table.insert("", "end", values=(
-                "", "TOTAL", "", "", "", format_money(total)
+                "", "TOTAL", "", "", "", format_currency(total)
             ), tags=("total",))
             self.perc_suffered_table.tag_configure("total", background="#E0E0E0", font=("Segoe UI", 10, "bold"))
 
@@ -552,12 +552,12 @@ class ReportsView:
             amount = float(p[5] or 0)
             total += amount
             self.perc_made_table.insert("", "end", values=(
-                date, p[1], p[2], p[3], p[4], format_money(amount)
+                date, p[1], p[2], p[3], p[4], format_currency(amount)
             ))
 
         if perceptions:
             self.perc_made_table.insert("", "end", values=(
-                "", "TOTAL", "", "", "", format_money(total)
+                "", "TOTAL", "", "", "", format_currency(total)
             ), tags=("total",))
             self.perc_made_table.tag_configure("total", background="#E0E0E0", font=("Segoe UI", 10, "bold"))
 
@@ -580,12 +580,12 @@ class ReportsView:
             amount = float(r[6] or 0)
             total += amount
             self.ret_suffered_table.insert("", "end", values=(
-                date, r[1], r[2], r[3], r[4], r[5] or "-", format_money(amount)
+                date, r[1], r[2], r[3], r[4], r[5] or "-", format_currency(amount)
             ))
 
         if retentions:
             self.ret_suffered_table.insert("", "end", values=(
-                "", "TOTAL", "", "", "", "", format_money(total)
+                "", "TOTAL", "", "", "", "", format_currency(total)
             ), tags=("total",))
             self.ret_suffered_table.tag_configure("total", background="#E0E0E0", font=("Segoe UI", 10, "bold"))
 
@@ -604,12 +604,12 @@ class ReportsView:
             amount = float(r[6] or 0)
             total += amount
             self.ret_made_table.insert("", "end", values=(
-                date, r[1], r[2], r[3], r[4], r[5] or "-", format_money(amount)
+                date, r[1], r[2], r[3], r[4], r[5] or "-", format_currency(amount)
             ))
 
         if retentions:
             self.ret_made_table.insert("", "end", values=(
-                "", "TOTAL", "", "", "", "", format_money(total)
+                "", "TOTAL", "", "", "", "", format_currency(total)
             ), tags=("total",))
             self.ret_made_table.tag_configure("total", background="#E0E0E0", font=("Segoe UI", 10, "bold"))
 

@@ -133,7 +133,7 @@ class StockModel:
 
                     new_status  = self.payment_model.update_sale_status(sale_id, conn=conn, commit=False)
                     if new_status == 'paid':
-                        paid = self.payment_model.get_sale_paid(sale_id) # Monto de pagos de la venta
+                        paid = self.payment_model.get_total_amount_of_pay_for_a_sale(sale_id) # Monto de pagos de la venta
                         overpayment = paid - new_total
                         if overpayment > Decimal('0.00'):
                             self.changes.append(
