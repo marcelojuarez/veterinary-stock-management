@@ -1,8 +1,11 @@
 import tkinter as tk
 import customtkinter as ctk
+import csv
+import os
+from datetime import datetime
 from decimal import Decimal
 from models.stock import StockModel
-from tkinter import ttk, messagebox
+from tkinter import ttk, messagebox, filedialog
 from utils.view_helpers import center_window, close_win, show_error
 from utils.utils import iso_to_traditional, format_currency, string_to_2_dec, string_to_flex_dec, norm_to_2_dec, flex_dec
 from views.stock_movement_view import StockMovementView
@@ -30,87 +33,76 @@ class StockView():
     def create_widgets(self):
         """Crear todos los widgets de la vista"""
         self.frame.grid_columnconfigure(0, weight=1)
-        self.frame.grid_rowconfigure(0, weight=0)
-        self.frame.grid_rowconfigure(1, weight=1)
-        self.frame.grid_rowconfigure(2, weight=0)
+        self.frame.grid_rowconfigure(0, weight=0)  # search bar
+        self.frame.grid_rowconfigure(1, weight=0)  # stats bar
+        self.frame.grid_rowconfigure(2, weight=1)  # table
+        self.frame.grid_rowconfigure(3, weight=0)  # buttons
         self.create_find_frame()
+        self.create_stats_frame()
         self.create_tree_frame()
         self.create_buttons_frame()
     
     def create_buttons_frame(self):
         """Crear frame para botones de stock"""
         manage_frame = ctk.CTkFrame(self.frame)
-        manage_frame.grid(row=2, column=0, padx=10, pady=20, sticky="ew")
-        manage_frame.grid_columnconfigure((0, 1, 2, 3), weight=1)
+        manage_frame.grid(row=3, column=0, padx=10, pady=20, sticky="ew")
+        manage_frame.grid_columnconfigure((0, 1, 2, 3, 4), weight=1)
 
         W = 250
         H = 40
         btn_color = "#009688"
         btn_hover = "#00796B"
-        '''
-        new_btn = ctk.CTkButton(
-            manage_frame,
-            text="📦 Nuevo producto",
-            width=W,
-            height=H,
-            font=ctk.CTkFont(size=12, weight="bold"),
-            fg_color=btn_color,
-            hover_color=btn_hover,
-            command=lambda: self.open_add_window(manage_frame)
-        )
-        '''
-        
-        
+
         update_btn = ctk.CTkButton(
             manage_frame,
             text="✏️ Actualizar precio",
-            width=W,
-            height=H,
+            width=W, height=H,
             font=ctk.CTkFont(size=12, weight="bold"),
-            fg_color=btn_color,
-            hover_color=btn_hover,
+            fg_color=btn_color, hover_color=btn_hover,
             command=lambda: self.open_update_price_window(manage_frame)
         )
-        
+
         delete_btn = ctk.CTkButton(
             manage_frame,
             text="🗑️ Eliminar producto",
-            width=W,
-            height=H,
+            width=W, height=H,
             font=ctk.CTkFont(size=12, weight="bold"),
-            fg_color=btn_color,
-            hover_color=btn_hover,
+            fg_color=btn_color, hover_color=btn_hover,
             command=lambda: self.controller.delete_product()
         )
 
         bulk_update_btn = ctk.CTkButton(
             manage_frame,
             text="📈 Actualización masiva",
-            width=W,
-            height=H,
+            width=W, height=H,
             font=ctk.CTkFont(size=12, weight="bold"),
-            fg_color=btn_color,
-            hover_color=btn_hover,
+            fg_color=btn_color, hover_color=btn_hover,
             command=lambda: self.open_bulk_update_window()
         )
 
         edit_btn = ctk.CTkButton(
             manage_frame,
             text="✏️ Editar producto",
-            width=W,
-            height=H,
+            width=W, height=H,
             font=ctk.CTkFont(size=12, weight="bold"),
-            fg_color=btn_color,
-            hover_color=btn_hover,
+            fg_color=btn_color, hover_color=btn_hover,
             command=self.open_edit_product_window
         )
 
+        export_btn = ctk.CTkButton(
+            manage_frame,
+            text="📤 Exportar CSV",
+            width=W, height=H,
+            font=ctk.CTkFont(size=12, weight="bold"),
+            fg_color="#5C6BC0", hover_color="#3949AB",
+            command=self.export_to_csv
+        )
 
-        #new_btn.grid(row=1, column=0, padx=10, pady=10)
         delete_btn.grid(row=1, column=0, padx=10, pady=10)
         update_btn.grid(row=1, column=1, padx=10, pady=10)
         bulk_update_btn.grid(row=1, column=2, padx=10, pady=10)
         edit_btn.grid(row=1, column=3, padx=10, pady=10)
+        export_btn.grid(row=1, column=4, padx=10, pady=10)
 
     
     def create_find_frame(self):
@@ -163,10 +155,64 @@ class StockView():
         )
         history_product_btn.grid(row=0, column=3, padx=15, pady=15)
 
+    def create_stats_frame(self):
+        """Barra de estadísticas rápidas del inventario"""
+        self.stats_frame = ctk.CTkFrame(self.frame, fg_color="#f8f8f8", corner_radius=8)
+        self.stats_frame.grid(row=1, column=0, padx=10, pady=(0, 4), sticky="ew")
+
+        # 4 cards: total productos, stock bajo, sin stock, valor inventario
+        for i in range(4):
+            self.stats_frame.grid_columnconfigure(i, weight=1)
+
+        def make_card(col, icon, label, var, color):
+            card = ctk.CTkFrame(self.stats_frame, fg_color="white", corner_radius=8)
+            card.grid(row=0, column=col, padx=8, pady=8, sticky="ew")
+            ctk.CTkLabel(card, text=f"{icon}  {label}",
+                         font=ctk.CTkFont(size=11), text_color="#757575").pack(pady=(8, 0))
+            ctk.CTkLabel(card, textvariable=var,
+                         font=ctk.CTkFont(size=18, weight="bold"),
+                         text_color=color).pack(pady=(2, 8))
+
+        self._stat_total     = tk.StringVar(value="—")
+        self._stat_low       = tk.StringVar(value="—")
+        self._stat_no_stock  = tk.StringVar(value="—")
+        self._stat_value     = tk.StringVar(value="—")
+
+        make_card(0, "📦", "Total productos",    self._stat_total,    "#1565C0")
+        make_card(1, "⚠️",  "Stock bajo (< 3)",  self._stat_low,     "#E65100")
+        make_card(2, "❌", "Sin stock",           self._stat_no_stock, "#C62828")
+        make_card(3, "💰", "Valor inventario",   self._stat_value,    "#2E7D32")
+
+    def update_stats(self, products):
+        """Recalcular las estadísticas a partir de la lista de productos visible."""
+        if not products:
+            self._stat_total.set("0")
+            self._stat_low.set("0")
+            self._stat_no_stock.set("0")
+            self._stat_value.set("$0,00")
+            return
+
+        total     = len(products)
+        low       = sum(1 for p in products if 0 < float(p[12] or 0) < 3)
+        no_stock  = sum(1 for p in products if float(p[12] or 0) == 0)
+        try:
+            valor = sum(
+                float(p[5] or 0) * float(p[12] or 0)   # cost_price * quantity
+                for p in products
+            )
+            valor_fmt = f"${valor:,.0f}".replace(",", ".")
+        except Exception:
+            valor_fmt = "—"
+
+        self._stat_total.set(str(total))
+        self._stat_low.set(str(low))
+        self._stat_no_stock.set(str(no_stock))
+        self._stat_value.set(valor_fmt)
+
     def create_tree_frame(self):
         """Crear frame para tabla de stock"""
         tree_frame = ctk.CTkFrame(self.frame)
-        tree_frame.grid(row=1, column=0, padx=10, pady=10, sticky='nsew')
+        tree_frame.grid(row=2, column=0, padx=10, pady=10, sticky='nsew')
         tree_frame.grid_columnconfigure(0, weight=1)
         tree_frame.grid_rowconfigure(1,weight=1)
 
@@ -788,12 +834,11 @@ class StockView():
         """Refrescar tabla de stock con nuevos datos"""
         for item in self.stock_tree.get_children():
             self.stock_tree.delete(item)
-        
-        for product in products:  
-            (id, name, pack, list_price, discount, cost_price, profit, price, 
+
+        for product in products:
+            (id, name, pack, list_price, discount, cost_price, profit, price,
             iva, price_with_iva, created_at, last_price_update, quantity) = product
 
-            # Decidir el tag según stock
             if quantity < 3:
                 tag = "low_stock"
             elif quantity <= 5:
@@ -801,18 +846,50 @@ class StockView():
             else:
                 tag = ""
 
-            # Insertar en la Treeview
             self.stock_tree.insert(
-                "", "end", 
+                "", "end",
                 values=(
-                    id, name, pack, format_currency(list_price), discount, format_currency(cost_price), 
-                    profit, format_currency(price), iva, format_currency(price_with_iva), 
-                    iso_to_traditional(created_at), iso_to_traditional(last_price_update), quantity), 
+                    id, name, pack, format_currency(list_price), discount, format_currency(cost_price),
+                    profit, format_currency(price), iva, format_currency(price_with_iva),
+                    iso_to_traditional(created_at), iso_to_traditional(last_price_update), quantity),
                 tags=(tag,)
             )
 
+        self.update_stats(products)
+
         if self.sort_column:
             self.sort_tree(self.sort_column)
+
+    def export_to_csv(self):
+        """Exportar el inventario visible a CSV"""
+        rows = self.stock_tree.get_children()
+        if not rows:
+            self.show_warning("No hay productos para exportar")
+            return
+
+        default_name = f"inventario_{datetime.now().strftime('%Y%m%d')}.csv"
+        filepath = filedialog.asksaveasfilename(
+            defaultextension=".csv",
+            filetypes=[("CSV", "*.csv"), ("Todos", "*.*")],
+            initialfile=default_name,
+            title="Guardar inventario como..."
+        )
+        if not filepath:
+            return
+
+        try:
+            headers = ["Código", "Nombre", "Envase", "P. Lista", "Dto %", "P. Costo",
+                       "% Rent.", "P. Venta", "IVA %", "P. Venta c/IVA",
+                       "Fecha Vig.", "Últ. Modificación", "Stock"]
+            with open(filepath, "w", newline="", encoding="utf-8-sig") as f:
+                writer = csv.writer(f)
+                writer.writerow(headers)
+                for row in rows:
+                    writer.writerow(self.stock_tree.item(row)["values"])
+
+            self.show_success(f"Exportado correctamente:\n{filepath}")
+        except Exception as e:
+            self.show_error(f"Error al exportar: {e}")
 
     def show_success(self, message):
         """Mostrar mensaje de éxito"""
@@ -1059,4 +1136,3 @@ class StockView():
         product = self.stock_model.get_product_by_id(product_id)
         name = product[1] if product else None
         self.movement_view.open(self.frame, product_id=product_id, product_name=name)
-        

@@ -36,6 +36,8 @@ from controllers.payment_controller import PaymentController
 from controllers.supplier_invoice_controller import SupplierInvoiceController
 from controllers.supplier_receipt_controller import SupplierReceiptController
 from controllers.iva_reports_controller import ReportsController
+from views.backup_manager import BackupManagerView
+import sys, os
 
 class App():
     def __init__(self):
@@ -62,6 +64,17 @@ class App():
 
         self.root.resizable(True, True)
         self.root.withdraw()
+
+        
+        if getattr(sys, 'frozen', False):
+            base_path = sys._MEIPASS
+        else:
+            base_path = os.path.dirname(os.path.abspath(__file__))
+            base_path = os.path.join(base_path, '..')
+        
+        icon_path = os.path.join(base_path, 'assets', 'logo.ico')
+        if os.path.exists(icon_path):
+            self.root.iconbitmap(icon_path)
         
     def setup_variables(self):
         self.user_var = tk.StringVar()
@@ -206,7 +219,6 @@ class App():
         self.notebook.add(self.reports_view.frame, text='Reportes')
 
         # --- BACKUPS ---
-        from views.backup_manager import BackupManagerView
         self.backup_view = BackupManagerView(self.notebook, controller=self.stock_controller)
         self.notebook.add(self.backup_view.frame, text='Backups')
 

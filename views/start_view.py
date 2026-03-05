@@ -1,6 +1,6 @@
 from PIL import Image
 import os
-
+import sys
 import customtkinter as ctk
 import tkinter as tk
 
@@ -34,8 +34,11 @@ class StartView:
         self.phone2_var = tk.StringVar()
 
     def create_background_logo(self):
-
-        base_path = os.path.dirname(os.path.dirname(__file__))
+        if getattr(sys, 'frozen', False):
+            base_path = sys._MEIPASS
+        else:
+            base_path = os.path.dirname(os.path.dirname(__file__))
+        
         logo_path = os.path.join(base_path, "assets", "logo.png")
 
         image = Image.open(logo_path).convert("RGBA")
@@ -52,7 +55,7 @@ class StartView:
             text=""
         )
         self.logo_label.place(relx=0.5, rely=0.5, anchor="center")
-
+        
     def create_main_widget(self):
 
         self.create_vars()
