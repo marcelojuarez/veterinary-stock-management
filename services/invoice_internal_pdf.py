@@ -79,7 +79,8 @@ class InvoiceInternalPDFService:
 
     def generate_pdf(self, invoice_id, number, customer, items, subtotal, iva_breakdown, total):
         """Genera la factura interna PDF con estilo moderno."""
-    
+        print(f"Cliente: {customer}")  # ← ver qué llega
+        print(f"Nombre: {customer[1]}")  # ← ver el nombre
         facturas_dir = os.path.join(get_client_folder(customer[1]), "Facturas")
         os.makedirs(facturas_dir, exist_ok=True)
         filename = os.path.join(facturas_dir, f"{number}.pdf")
