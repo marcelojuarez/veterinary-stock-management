@@ -1,4 +1,3 @@
-
 import re
 import customtkinter as ctk
 from datetime import datetime                
@@ -516,59 +515,48 @@ class CustomerController:
     def apply_credit_to_debts(self, customer_id, customer_name):
         """Aplica el saldo a favor del cliente a sus deudas pendientes"""
         try:
-            # Obtener crédito disponible
             credit = self.payment_model.get_customer_credit(customer_id)
 
             if credit <= Decimal('0.00'):
                 self.view.show_warning("El cliente no tiene saldo a favor.")
                 return
-            
-            # Obtener deuda total
+
             total_debt = self.model.get_total_debt(customer_id)
 
             if total_debt <= Decimal('0.00'):
                 self.view.show_warning("El cliente no tiene deudas pendientes.")
                 return
-            
-            # Confirmar acción
+
             amount_to_apply = min(credit, total_debt)
-            
+
             confirm = messagebox.askyesno(
                 "Confirmar",
                 f"¿Aplicar ${amount_to_apply} del saldo a favor a las deudas pendientes?\n\n"
                 f"Saldo a favor disponible: ${credit}\n"
                 f"Deuda total: ${total_debt}"
             )
-            
+
             if not confirm:
                 return
-            
+
             conn = self.payment_model.db.get_connection()
             conn.execute("BEGIN")
             try:
-                self.payment_model.add_customer_credit(
-                    client_id=customer_id,
-                    amount=-amount_to_apply,
-                    reason="Aplicación de crédito a deudas pendientes",
-                    sale_id=None,
-                    conn=conn,
-                    commit=False
-                )
-                
-                # PASO 2: Obtener ventas pendientes ordenadas por fecha
+                # Obtener ventas pendientes ordenadas por fecha (FIFO)
                 query = """
                     SELECT id, total
                     FROM sales
                     WHERE cliente_id = ? AND estado IN ('pending', 'partial')
                     ORDER BY date ASC
-                    """
+                """
                 rows = self.payment_model.db.fetch_all(query, (customer_id,), conn=conn)
                 remaining = amount_to_apply
                 payment_applied = []
+
                 for row in rows:
                     if remaining <= Decimal('0.00'):
                         break
-                    
+
                     sale_id, total = row
                     paid = self.payment_model.get_total_amount_of_pay_for_a_sale(sale_id, conn=conn)
                     balance = Decimal(total) - paid
@@ -589,37 +577,44 @@ class CustomerController:
                             commit=False
                         )
 
-                        sale_status = self.payment_model.update_sale_status(sale_id, skip_credit_generation=True ,conn=conn, commit=False)
-                        ## Agregar funcion para poder insertar en la cuenta que se aplico el uso del saldo
+                        sale_status = self.payment_model.update_sale_status(
+                            sale_id, skip_credit_generation=True, conn=conn, commit=False
+                        )
+
                         self.model.register_payment_in_account(
-                            sale_id, 
-                            customer_id, 
-                            pay_amount, 
-                            "Saldo a Favor", 
-                            "CRÉDITO", 
-                            sale_status, 
-                            conn=conn, 
+                            sale_id,
+                            customer_id,
+                            pay_amount,
+                            "Saldo a Favor",
+                            "CRÉDITO",
+                            sale_status,
+                            conn=conn,
                             commit=False
                         )
+
                         remaining -= pay_amount
                         payment_applied.append((sale_id, pay_amount))
-                    
-                if remaining > Decimal('0.00'):
+
+                # Descontar del crédito SOLO lo que se usó realmente
+                credit_used = amount_to_apply - remaining
+                if credit_used > Decimal('0.00'):
                     self.payment_model.add_customer_credit(
                         client_id=customer_id,
-                        amount=remaining,
-                        reason="Credito no utilizado (sin deudas restantes)",
+                        amount=-credit_used,
+                        reason="Aplicación de crédito a deudas pendientes",
                         sale_id=None,
                         conn=conn,
                         commit=False
                     )
+
                 conn.commit()
+
             except Exception as e:
                 conn.rollback()
                 self.view.show_error(f"Error al aplicar el crédito: {e}")
                 return
-            
-            finally: 
+
+            finally:
                 conn.close()
                 
             # Calcular cuánto se usó realmente

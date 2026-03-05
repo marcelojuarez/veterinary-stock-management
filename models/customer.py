@@ -361,8 +361,12 @@ class CustomerModel:
         # Monto total en compras
         total_purchased = sum((Decimal(m[5]) for m in movements), Decimal('0.00'))
 
-        # Monto total en pagos
-        total_paid =  sum((Decimal(m[6]) for m in movements), Decimal('0.00'))
+        # Monto total en pagos reales — excluye aplicaciones de saldo a favor
+        # (tipo CRÉDITO = plata interna, no dinero nuevo recibido)
+        total_paid = sum(
+            Decimal(m[6]) for m in movements
+            if m[3] not in ("CRÉDITO",)
+        )
 
         # Deuda total
         total_debt = self.get_total_debt(client_id)
