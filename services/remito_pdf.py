@@ -177,7 +177,7 @@ class RemitoPDF:
         for it in items:
             table_data.append([it['product_id'], f'{it['name']} {it['pack']}', it['quantity']])
 
-        table = Table(table_data, colWidths=[40*mm, 100*mm, 30*mm])
+        table = Table(table_data, colWidths=[20*mm, 120*mm, 30*mm])
         table.setStyle(TableStyle([
             ("BACKGROUND", (0, 0), (-1, 0), colors.lightgrey),
             ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),

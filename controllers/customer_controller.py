@@ -359,9 +359,7 @@ class CustomerController:
                 amount = string_to_2_dec(val) 
 
                 if amount is None:
-                    ValueError()
-                    print('llego hasta aca')
-                    return
+                    raise ValueError()
 
                 if amount <= Decimal('0.00'):
                     show_warning("El monto debe ser mayor a 0.")
