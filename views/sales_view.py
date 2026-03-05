@@ -514,7 +514,7 @@ class SalesView:
             divisor   = Decimal('1') + iva_pct / Decimal('100')
             net_unit  = price_d / divisor
             line_net  = norm_to_2_dec(net_unit * qty_d)
-            line_iva  = norm_to_2_dec(line_net * (iva_pct / Decimal('100')))
+            line_iva  = norm_to_2_dec(net_unit * qty_d * (iva_pct / Decimal('100')))
 
             total_neto += line_net
 
