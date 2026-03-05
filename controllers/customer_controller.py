@@ -14,11 +14,17 @@ from decimal import Decimal, InvalidOperation
 
 
 class CustomerController: 
-    def __init__(self, customer_model, payment_model):
+    def __init__(self, customer_model, payment_model, event_bus):
         self.view = None
         self.model = customer_model
         self.payment_model = payment_model
+        self.event_bus = event_bus
         self.all_customers = []
+        self.event_bus.subscribe("price_changes", self.on_price_changes)
+        self.pending_price_changes = []
+
+    def on_price_changes(self, changes):
+        self.pending_price_changes = changes
 
     def set_view(self, view):
         self.view = view
@@ -208,8 +214,6 @@ class CustomerController:
         try:
             self.current_client_id = cliente_id
 
-            #changes = self.reconcile_and_detect_changes(cliente_id)
-
             debts = self.model.get_customer_debts(cliente_id)
             total = self.model.get_total_debt(cliente_id)
             credit = norm_to_2_dec(self.payment_model.get_customer_credit(cliente_id))
@@ -217,48 +221,17 @@ class CustomerController:
             net = norm_to_2_dec(max(Decimal('0.00'), total - credit))
             self.view.open_debt_window(cliente_id, cliente_nombre, debts, total, credit, net)
 
-            # if changes:
-            #     self.view.show_warning(
-            #     f"⚠️ Se detectaron cambios de precio en {len(changes)} venta(s):\n\n" +
-            #     "\n".join(changes)
-            #     )
+            if self.pending_price_changes:
+                self.view.show_warning(
+                f"⚠️ Se detectaron cambios de precio en {len(self.pending_price_changes)} venta(s):\n\n" +
+                "\n".join(self.pending_price_changes)
+                )
+
+                self.pending_price_changes = []
+                self.event_bus.publish('clean_price_changes', None)
+
         except Exception as e:
             show_error(f"Error al obtener las deudas: {e}")
-
-    def reconcile_and_detect_changes(self, cliente_id):
-        """Reconcilia ventas y detecta cambios de precio"""
-        changes = []
-        
-        # Obtener ventas pendientes/parciales
-        rows = self.payment_model.db.fetch_all(
-            """
-            SELECT s.id, s.estado
-            FROM sales s
-            WHERE s.cliente_id = ? AND s.estado IN ('pending', 'partial')
-            """,
-            (cliente_id,)
-        )
-        
-        for sale_id, estado_antes in rows:
-            total_antes = self.payment_model.get_sale_total_variable(sale_id)
-            paid = self.payment_model.get_sale_paid(sale_id)
-            
-            # Reconciliar esta venta
-            nuevo_estado = self.payment_model.reconcile_sale(sale_id)
-            
-            # Detectar si cambió a paid
-            if estado_antes != 'paid' and nuevo_estado == 'paid':
-                total_final = self.payment_model.get_sale_total(sale_id)
-                sobrepago = norm_to_2_dec(paid - total_final)
-                
-                if sobrepago > Decimal('0.01'):
-                    changes.append(
-                        f"✅ Venta #{sale_id} PAGADA - Saldo a favor: ${sobrepago:.2f}"
-                    )
-                else:
-                    changes.append(f"✅ Venta #{sale_id} quedó PAGADA por cambio de precio")
-        
-        return changes
     
     def load_sale_items_for_debt(self, sale_id):
         """Carga el detalle de productos de una venta fiada en la vista"""
@@ -385,6 +358,11 @@ class CustomerController:
                 
                 amount = string_to_2_dec(val) 
 
+                if amount is None:
+                    ValueError()
+                    print('llego hasta aca')
+                    return
+
                 if amount <= Decimal('0.00'):
                     show_warning("El monto debe ser mayor a 0.")
                     return
@@ -425,7 +403,7 @@ class CustomerController:
                 # Necesitamos volver a pedir los datos actualizados
                 debts = self.model.get_customer_debts(customer_id)
                 total = self.model.get_total_debt(customer_id)
-                credit = norm_to_2_dec(self.payment_model.get_customer_credit(customer_id))
+                credit = self.payment_model.get_customer_credit(customer_id)
                 net = norm_to_2_dec(max(Decimal('0.00'), total - credit))
                 self.view.update_debt_window(debts, total, credit, net)
 
@@ -500,17 +478,15 @@ class CustomerController:
     def show_account_history(self, cliente_id, cliente_nombre):
         """Muestra el historial completo de cuenta del cliente"""
         try:
-            movements, summary = self.model.get_customer_account_history(cliente_id)
-            self.model.get_account_history(cliente_id)
+            movements, summary = self.model.get_account_history(cliente_id)
             self.view.open_account_history_window(cliente_id, cliente_nombre, movements, summary)
         except Exception as e:
             self.view.show_error(f"Error al obtener historial: {e}")
 
-
     def export_account_history_pdf(self, cliente_id, cliente_nombre):
         """Exporta el historial de cuenta a PDF"""
         try:
-            movements, summary = self.model.get_customer_account_history(cliente_id)
+            movements, summary = self.model.get_account_history(cliente_id)
 
             cliente_data = self.model.find_customer_by_id(cliente_id)
 
@@ -543,14 +519,14 @@ class CustomerController:
         """Aplica el saldo a favor del cliente a sus deudas pendientes"""
         try:
             # Obtener crédito disponible
-            credit = norm_to_2_dec(self.payment_model.get_customer_credit(customer_id))
+            credit = self.payment_model.get_customer_credit(customer_id)
 
             if credit <= Decimal('0.00'):
                 self.view.show_warning("El cliente no tiene saldo a favor.")
                 return
             
             # Obtener deuda total
-            total_debt = norm_to_2_dec(self.model.get_total_debt(customer_id))
+            total_debt = self.model.get_total_debt(customer_id)
 
             if total_debt <= Decimal('0.00'):
                 self.view.show_warning("El cliente no tiene deudas pendientes.")
@@ -615,7 +591,18 @@ class CustomerController:
                             commit=False
                         )
 
-                        self.payment_model.update_sale_status(sale_id,skip_credit_generation=True ,conn=conn, commit=False)
+                        sale_status = self.payment_model.update_sale_status(sale_id, skip_credit_generation=True ,conn=conn, commit=False)
+                        ## Agregar funcion para poder insertar en la cuenta que se aplico el uso del saldo
+                        self.model.register_payment_in_account(
+                            sale_id, 
+                            customer_id, 
+                            pay_amount, 
+                            "Saldo a Favor", 
+                            "CRÉDITO", 
+                            sale_status, 
+                            conn=conn, 
+                            commit=False
+                        )
                         remaining -= pay_amount
                         payment_applied.append((sale_id, pay_amount))
                     
@@ -641,10 +628,9 @@ class CustomerController:
             credit_used = amount_to_apply - remaining
             
             # Obtener valores actualizados
-            new_credit = norm_to_2_dec(self.payment_model.get_customer_credit(customer_id))
-            remaining_debt = norm_to_2_dec(self.model.get_total_debt(customer_id))
+            new_credit = self.payment_model.get_customer_credit(customer_id)
+            remaining_debt = self.model.get_total_debt(customer_id)
 
-            
             # Actualizar la UI
             self.refresh_customer_data()
             self.current_client_id = customer_id
@@ -656,11 +642,10 @@ class CustomerController:
             self.view.update_debt_window(debts, remaining_debt, new_credit, net)
             
             self.view.show_success(
-                f"Se aplicaron ${credit_used:.2f} del saldo a favor.\n"
-                f"Deuda restante: ${remaining_debt:.2f}\n"
-                f"Saldo a favor restante: ${new_credit:.2f}"
+                f"Se aplicaron ${credit_used} del saldo a favor.\n"
+                f"Deuda restante: ${remaining_debt}\n"
+                f"Saldo a favor restante: ${new_credit}"
             )
-
 
             fmt = self.ask_receipt_format()
             if not fmt:
@@ -680,7 +665,7 @@ class CustomerController:
             
             result_data = {
                 "used": credit_used,
-                "remaining": Decimal("0.00"),
+                "remaining": remaining,
                 "updated_debts": payment_applied,
                 "still_owed": remaining_debt,
                 "credit_added": Decimal("0.00"), 
@@ -712,13 +697,13 @@ class CustomerController:
         try:
             # Verificar que no tenga deudas
             total_debt = self.model.get_total_debt(cliente_id)
-            credit = norm_to_2_dec(self.payment_model.get_customer_credit(cliente_id))
-            net = norm_to_2_dec(max(Decimal('0.00'), total_debt - credit))
+            credit = self.payment_model.get_customer_credit(cliente_id)
+            #net = norm_to_2_dec(max(Decimal('0.00'), total_debt - credit))
 
-            if net > Decimal('0.01'):
+            if total_debt > Decimal('0.00'):
                 self.view.show_error(
                     f"No se puede resetear la cuenta.\n\n"
-                    f"El cliente tiene una deuda pendiente de ${net:.2f}\n"
+                    f"El cliente tiene una deuda pendiente de ${total_debt}\n"
                     f"Debe saldar la cuenta antes de resetear."
                 )
                 return
@@ -744,7 +729,7 @@ class CustomerController:
             # PASO 1: GENERAR PDF DE RESPALDO
             # ================================================================
             try:
-                movements, summary = self.model.get_customer_account_history(cliente_id)
+                movements, summary = self.model.get_account_history(cliente_id)
                 
                 # Obtener datos del cliente
                 cliente_data = self.model.find_customer_by_id(cliente_id)

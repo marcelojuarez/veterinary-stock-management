@@ -1,6 +1,7 @@
 from datetime import datetime
 import sqlite3
 from db.database import db
+from datetime import datetime
 
 from decimal import Decimal
 from utils.utils import norm_to_2_dec, iso_to_traditional
@@ -138,20 +139,20 @@ class CustomerModel:
         date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         query = """
             INSERT INTO customer_ledger 
-                (client_id, fecha, tipo, descripcion, debe, haber, saldo, reference_id, referencia) 
+                (client_id, date, type, description, amount, payment, debt, reference_id, reference) 
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             """
 
         params = [
             data['client_id'],
             date,
-            data['tipo'],
-            data['descripcion'],
-            str(data.get('debe', '0.00')),
-            str(data.get('haber', '0.00')),
-            str(data.get('saldo', '0.00')),
+            data['type'],
+            data['description'],
+            str(data.get('amount', '0.00')),
+            str(data.get('payment', '0.00')),
+            str(data.get('debt', '0.00')),
             data.get('reference_id'),
-            data.get('referencia', '')
+            data.get('reference', '')
         ]
 
         self.db.execute_query(query, params, conn=conn, commit=commit)
@@ -159,30 +160,101 @@ class CustomerModel:
     ## -- Obtiene el historial de un cliente  -- ##
     def get_account_history_from_client(self, client_id):
         query = """
-        SELECT * FROM customer_ledger WHERE client_id = ? ORDER BY fecha
+        SELECT * FROM customer_ledger WHERE client_id = ? ORDER BY id DESC
         """
 
         return self.db.fetch_all(query, (client_id, ))
 
-    
-    def register_price_adjustment(self, sale_id: int, client_id: int, old_total: Decimal, new_total: Decimal, conn=None, commit=True):
-        """Registra un ajuste de precio en customer_ledger"""
+    ## -- Registra un ajuste de precio en customer_ledger -- ##
+    def register_price_adjustment_in_account(
+            self, 
+            sale_id, 
+            client_id, 
+            old_total, 
+            new_total, 
+            conn=None, 
+            commit=True
+        ):
         difference = norm_to_2_dec(new_total - old_total)
         if difference == Decimal('0.00'):
             return
 
+        balance = self.get_total_debt(client_id, conn=conn)
+
         data = {
             'client_id': client_id,
-            'tipo': 'AJUSTE_PRECIO',
-            'descripcion': f"Ajuste de precio Venta #{sale_id} · ${old_total:,.2f} → ${new_total:,.2f}",
-            'debe': difference if difference > Decimal('0.00') else Decimal('0.00'),
-            'haber': Decimal('0.00'),
-            'saldo': Decimal('0.00'),
+            'type': 'AJUSTE PRECIO',
+            'description': f"Ajuste de precio Venta #{sale_id} · ${old_total} → ${new_total}",
+            'amount': difference,
+            'payment': Decimal('0.00'),
+            'debt': balance,
             'reference_id': sale_id,
-            'referencia': f"Precio actualizado"
+            'reference': f"Precio actualizado"
         }
         self.add_row_in_customer_ledger(data, conn=conn, commit=commit)
 
+    ## -- Registra un pago en el historial del cliente-- ##
+    def register_payment_in_account(
+            self, 
+            sale_id, 
+            client_id,
+            payment,
+            method,
+            type, 
+            sale_status,
+            conn=None, 
+            commit=True
+        ):
+
+        method_map = {
+            "cash": "Efectivo",
+            "transfer": "Transferencia",
+            "card": "Tarjeta",
+            "efectivo": "Efectivo",
+            "transferencia": "Transferencia",
+            "saldo a favor": "Saldo a Favor",
+            "cheque": "Cheque",
+            "deposito": "Depósito",
+            "global": "Global"
+        }
+
+        method_txt = method_map.get(method.lower() if method else "", method.capitalize() if method else "Efectivo")
+
+        estado_map = {
+            "pending": "Pendiente",
+            "partial": "Pago parcial",
+            "paid": "Pagada"
+        }
+        status_txt = estado_map.get(sale_status, sale_status)
+
+        debt = self.get_total_debt(client_id, conn=conn)
+
+        data = {
+            'client_id': client_id,
+            'type': type,
+            'description': f"Pago Venta #{sale_id} · {method_txt} . {status_txt.upper()}",
+            'amount': Decimal('0.00'),
+            'payment': payment,
+            'debt': debt,
+            'reference_id': sale_id,
+            'reference': f"Precio actualizado"
+        }
+        self.add_row_in_customer_ledger(data, conn=conn, commit=commit)
+
+    def register_credit_balance_in_account(self, client_id, sale_id, amount, conn=None, commit=True):
+        data = {
+            'client_id': client_id,
+            'type': 'SALDO FAVOR',
+            'description': f"Saldo a favor · Ajuste Vta #{sale_id} · ${amount}",
+            'amount': Decimal('0.00'),
+            'payment': Decimal('0.00'),
+            'debt': Decimal('0.00'),  
+            'reference_id': sale_id,
+            'reference': 'Ajuste de precio'
+        }
+        self.add_row_in_customer_ledger(data, conn=conn, commit=commit)
+
+    ## -- Obtiene la deuda total de un cliente -- ##
     def get_customer_debts(self, cliente_id):
         query = """
         SELECT 
@@ -236,7 +308,7 @@ class CustomerModel:
         query = "UPDATE sales SET estado = 'paid' WHERE id = ?"
         self.db.execute_query(query, (sale_id,))
 
-    def get_total_debt(self, cliente_id):
+    def get_total_debt(self, cliente_id, conn=None):
         """Devuelve el total pendiente del cliente (suma de saldos positivos)."""
         query = """
             SELECT 
@@ -247,11 +319,10 @@ class CustomerModel:
             GROUP BY s.id
         """
 
-        rows = self.db.fetch_all(query, (cliente_id,))
-
+        rows = self.db.fetch_all(query, (cliente_id,), conn=conn)
         total_pending = Decimal('0.00')
         for sale_id, total in rows:
-            paid = self.pay_model.get_total_amount_of_pay_for_a_sale(sale_id)
+            paid = self.pay_model.get_total_amount_of_pay_for_a_sale(sale_id, conn=conn)
             saldo = Decimal(total) - paid
             if saldo > Decimal('0.00'):
                 total_pending += saldo
@@ -279,268 +350,45 @@ class CustomerModel:
         # Si tiene pagos (parciales o totales), es CRÉDITO y debe mostrarse
         return result is None or result[0] == 0
 
-    def get_account_history(self, cliente_id):
+    def get_account_history(self, client_id):
         # Guardar y obtener los movimientos de cuenta corriente del cliente
-        movements = self.get_account_history_from_client(cliente_id)
-        print(f"Movimientos en cuenta corriente para cliente {cliente_id}:")
+        movements = self.get_account_history_from_client(client_id)
+        print(f"Movimientos en cuenta corriente para cliente {client_id}:")
         for m in movements:
-            print(f"  {m[0]} | {m[1]} | debe: {m[2]} | haber: {m[3]} | saldo: {m[4]}")
+            print(m)
 
+        ## Generar resumen
+        # Monto total en compras
+        total_purchased = sum((Decimal(m[5]) for m in movements), Decimal('0.00'))
 
-    def get_customer_account_history(self, cliente_id):
-        """
-        Historial de cuenta corriente:
-        - Ventas de CONTADO NO aparecen (se omiten completamente)
-        - Solo ventas a CRÉDITO aparecen en el historial
-        """
-        movements = []
-        contado_sales = set()  # IDs de ventas de contado a excluir
-        
-        # ================================================================
-        # PASO 1: OBTENER TODAS LAS VENTAS Y DETECTAR CUÁLES SON CONTADO
-        # ================================================================
-        sales_query = """
-            SELECT 
-                s.id,
-                s.date,
-                s.total,
-                s.estado,
-                COUNT(si.id) AS cant_productos
-            FROM sales s
-            LEFT JOIN sale_items si ON si.sale_id = s.id
-            WHERE s.cliente_id = ? 
-            AND s.estado IN ('pending', 'partial', 'paid')
-            GROUP BY s.id
-            ORDER BY s.date, s.id
-        """
-        sales = self.db.fetch_all(sales_query, (cliente_id,))
-    
-        # Identificar ventas de contado
-        for sale_id, fecha_venta, total, estado, cant_prod in sales:
-            if estado == 'paid' and self._is_cash_sale(sale_id, fecha_venta):
-                contado_sales.add(sale_id)
-        
-        # ================================================================
-        # PASO 2: REGISTRAR SOLO VENTAS A CRÉDITO (omitir contado)
-        # ================================================================
-        for sale_id, fecha, total, estado, cant_prod in sales:
-            # OMITIR ventas de contado
-            if sale_id in contado_sales:
-                continue
-                
-            total = Decimal(total)
-            cant_prod = int(cant_prod) if cant_prod else 0
-            
-            estado_map = {
-                "pending": "Pendiente",
-                "partial": "Pago parcial",
-                "paid": "Pagada"
-            }
-            estado_txt = estado_map.get(estado, estado)
-            
-            fecha_formateada = iso_to_traditional(fecha.split()[0]) if fecha else ""
+        # Monto total en pagos
+        total_paid =  sum((Decimal(m[6]) for m in movements), Decimal('0.00'))
 
-            movements.append({
-                "fecha": fecha_formateada,
-                "fecha_original": fecha,
-                "tipo": "VENTA",
-                "descripcion": f"Venta #{sale_id} · {cant_prod} producto(s) · {estado_txt}",
-                "debe": total,
-                "haber": Decimal('0.00'),
-                "saldo": Decimal('0.00'),
-                "sale_id": sale_id,
-                "referencia": ""
-            })
-        
-        # ================================================================
-        # PASO 3: PAGOS (solo de ventas a crédito)
-        # ================================================================
-        payments_query = """
-            SELECT 
-                p.id,
-                p.date,
-                p.amount,
-                p.method,
-                p.sale_id,
-                p.notes
-            FROM payments p
-            WHERE p.client_id = ?
-            ORDER BY p.date, p.id
-        """
-        payments = self.db.fetch_all(payments_query, (cliente_id,))
-        
-        method_map = {
-            "cash": "Efectivo",
-            "transfer": "Transferencia",
-            "card": "Tarjeta",
-            "efectivo": "Efectivo",
-            "transferencia": "Transferencia",
-            "saldo a favor": "Saldo a Favor",
-            "cheque": "Cheque",
-            "deposito": "Depósito",
-            "global": "Global"
-        }
-        
-        for pay_id, fecha, monto, method, sale_id, notes in payments:
-            # OMITIR pagos de ventas de contado
-            if sale_id in contado_sales:
-                continue
-                
-            monto = Decimal(monto)
-            method_txt = method_map.get(method.lower() if method else "", method.capitalize() if method else "Efectivo")
-            
-            if sale_id:
-                desc = f"Pago Venta #{sale_id} · {method_txt}"
-            else:
-                desc = f"Pago a cuenta · {method_txt}"
-
-            fecha_formateada = iso_to_traditional(fecha.split()[0]) if fecha else ""
-            
-            movements.append({
-                "fecha": fecha_formateada,
-                "fecha_original": fecha,
-                "tipo": "PAGO",
-                "descripcion": desc,
-                "debe": Decimal('0.00'),
-                "haber": monto,
-                "saldo": Decimal('0.00'),
-                "sale_id": sale_id,
-                "referencia": notes or ""
-            })
-        
-        # ================================================================
-        # PASO 3.5: AJUSTES DE PRECIO DESDE LEDGER
-        # ================================================================
-        adjustments_query = """
-            SELECT fecha, descripcion, debe, haber, reference_id, referencia
-            FROM customer_ledger
-            WHERE client_id = ? AND tipo = 'AJUSTE_PRECIO'
-            ORDER BY fecha, id
-        """
-        adjustments = self.db.fetch_all(adjustments_query, (cliente_id,))
-
-        for fecha, descripcion, debe, haber, sale_id, referencia in adjustments:
-            if sale_id in contado_sales:
-                continue
-
-            fecha_formateada = iso_to_traditional(fecha.split()[0]) if fecha else ""
-            movements.append({
-                "fecha": fecha_formateada,
-                "fecha_original": fecha,
-                "tipo": "AJUSTE",
-                "descripcion": descripcion,
-                "debe": norm_to_2_dec(debe),
-                "haber": norm_to_2_dec(haber),
-                "saldo": Decimal('0.00'),
-                "sale_id": sale_id,
-                "referencia": referencia or ""
-            })
-        
-        # ================================================================
-        # PASO 4: NOTAS DE CRÉDITO (si existe la tabla)
-        # ================================================================
-        try:
-            table_check = "SELECT name FROM sqlite_master WHERE type='table' AND name='customer_credit'"
-            if self.db.fetch_one(table_check):
-                credits_query = """
-                    SELECT 
-                        id,
-                        created_at,
-                        amount,
-                        reason,
-                        sale_id
-                    FROM customer_credit
-                    WHERE client_id = ?
-                    ORDER BY created_at, id
-                """
-                credits = self.db.fetch_all(credits_query, (cliente_id,))
-                
-                for credit_id, fecha, monto, reason, sale_id in credits:
-                    monto = norm_to_2_dec(monto)
-                    
-                    if monto > Decimal('0.00'):
-                        # Ignorar créditos de sobrepago — ya están reflejados en el pago
-                        if reason and reason.startswith("AJUSTE:"):
-                            continue
-                        
-                        desc = f"Nota de crédito"
-                        if reason:
-                            desc += f" · {reason}"
-                        
-                        fecha_formateada = iso_to_traditional(fecha.split()[0]) if fecha else ""
-                        movements.append({
-                            "fecha": fecha_formateada,
-                            "fecha_original": fecha,
-                            "tipo": "CRÉDITO",
-                            "descripcion": desc,
-                            "debe": Decimal('0.00'),
-                            "haber": monto,
-                            "saldo": Decimal('0.00'),
-                            "sale_id": sale_id,
-                            "referencia": reason or ""
-                        })
-                    else:
-                        pass # Créditos de monto negativo (ajustes por sobrepago) se omiten porque ya afectan el saldo en los pagos
-                                        
-        except Exception as e:
-            print(f"Tabla customer_credit no disponible: {e}")
-        
-        # ================================================================
-        # PASO 5: ORDENAR CRONOLÓGICAMENTE
-        # ================================================================
-        movements.sort(key=lambda x: (x["fecha_original"], x.get("sale_id", 0) or 0))
-
-        for mov in movements:
-            mov.pop("fecha_original", None)
-
-        # ================================================================
-        # PASO 6: CALCULAR SALDO ACUMULADO
-        # ================================================================
-        saldo_acumulado = Decimal('0.00')
-        credito_acumulado = Decimal('0.00')
-
-        for mov in movements:
-            delta = mov["debe"] - mov["haber"]
-            saldo_acumulado += delta
-            
-            if saldo_acumulado < Decimal('0.00'):
-                credito_acumulado += abs(saldo_acumulado)
-                saldo_acumulado = Decimal('0.00')
-    
-            mov["saldo"] = norm_to_2_dec(saldo_acumulado)
-        
-        # ================================================================
-        # PASO 7: RESUMEN (solo cuenta ventas a crédito)
-        # ================================================================
-        total_debe = sum(norm_to_2_dec(m["debe"]) for m in movements)
-        total_haber = sum(norm_to_2_dec(m["haber"]) for m in movements)
-        saldo_final = norm_to_2_dec(saldo_acumulado)
-
-        ventas_totales = len([m for m in movements if m["tipo"] == "VENTA"])
+        # Deuda total
+        total_debt = self.get_total_debt(client_id)
         
         # Contar ventas pagadas
-        ventas_credito_pagadas = 0
+        total_sales = 0
+        sales_paid = 0
         for m in movements:
-            if m["tipo"] == "VENTA":
-                sale_id = m["sale_id"]
+            if m[3] == "VENTA":
+                total_sales += 1
+                sale_id = m[8]
                 check = "SELECT estado FROM sales WHERE id = ?"
                 result = self.db.fetch_one(check, (sale_id,))
                 if result and result[0] == 'paid':
-                    ventas_credito_pagadas += 1
-        
-        ventas_pagadas = ventas_credito_pagadas
+                    sales_paid += 1
 
-        saldo_final = norm_to_2_dec(saldo_acumulado)
-        credito_final = self.pay_model.get_customer_credit(cliente_id)
+        credit = self.pay_model.get_customer_credit(client_id)
 
         summary = {
-            'total_comprado': norm_to_2_dec(total_debe),
-            'total_pagado': norm_to_2_dec(total_haber),
-            'saldo_a_favor': credito_final,        # ← crédito calculado del historial
-            'deuda_pendiente': saldo_final,        # ← nunca baja de 0
-            'ventas_pagadas': ventas_pagadas,
-            'total_ventas': ventas_totales,
-            'ventas_texto': f"{ventas_pagadas}/{ventas_totales} pagadas"
+            'total_purchased': total_purchased,
+            'total_paid': total_paid,
+            'credit': credit,        # ← crédito calculado del historial
+            'total_debt': total_debt,        # ← nunca baja de 0
+            'sales_paid': sales_paid,
+            'total_sales': total_sales,
+            'sales_balance': f"{sales_paid}/{total_sales} pagadas"
         }
 
         return movements, summary

@@ -58,20 +58,6 @@ def generate_receipts_for_payment(
     print(f'format: {format}')
     print(f'mode: {mode}')
     if format in ("ticket", "both"):
-        # if mode == "sale":
-        #     ticket_path = ticket_pago_venta(client_name, sale_id)
-        #     generate_payment_ticket(
-        #         file_path=ticket_path,
-        #         commerce_name=COMMERCE["name"],
-        #         commerce_address=COMMERCE["address"],
-        #         commerce_cuit=COMMERCE["cuit"],
-        #         client_name=client_name,
-        #         sale_id=sale_id,
-        #         amount=amount,
-        #         method=method
-        #     )
-        #     paths.append(ticket_path)
-
         ticket_path = ticket_pago_global(client_name)
         generate_global_payment_ticket(
             file_path=ticket_path,
@@ -90,20 +76,6 @@ def generate_receipts_for_payment(
     # COMPROBANTE A4 - Completo con detalle de productos
     # ================================================================
     if format in ("a4", "both"):
-        # if mode == "sale":
-        #     a4_path = a4_pago_venta(client_name, sale_id)
-        #     generate_payment_receipt(
-        #         file_path=a4_path,
-        #         client_name=client_name,
-        #         sale_id=sale_id,
-        #         payment_amount=amount,
-        #         method=method,
-        #         sale_info=sale_info,
-        #         payments=payments,
-        #         sales_with_items=sales_with_items 
-        #     )
-        #     paths.append(a4_path)
-
         a4_path = a4_pago_global(client_name)
         generate_global_payment_receipt(
             file_path=a4_path,

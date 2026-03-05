@@ -330,15 +330,15 @@ class Database:
             # Remito
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS delivery_note (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                number TEXT NOT NULL,
-                date TEXT DEFAULT CURRENT_TIMESTAMP,
-                sale_id INTEGER NOT NULL,
-                customer_id INTEGER NOT NULL,
-                status TEXT DEFAULT 'issued',
-                notes TEXT,
-                FOREIGN KEY(customer_id) REFERENCES customer(id)
-            );
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    number TEXT NOT NULL,
+                    date TEXT DEFAULT CURRENT_TIMESTAMP,
+                    sale_id INTEGER NOT NULL,
+                    customer_id INTEGER NOT NULL,
+                    status TEXT DEFAULT 'issued',
+                    notes TEXT,
+                    FOREIGN KEY(customer_id) REFERENCES customer(id)
+                );
 
             ''')
 
@@ -374,30 +374,30 @@ class Database:
                 CREATE TABLE IF NOT EXISTS customer_ledger (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     client_id INTEGER NOT NULL,
-                    fecha TEXT NOT NULL,
-                    tipo TEXT NOT NULL,     -- 'VENTA' | 'PAGO' | 'CREDITO' | 'AJUSTE_PRECIO'
-                    descripcion TEXT,
-                    debe TEXT NOT NULL DEFAULT '0.00',
-                    haber TEXT NOT NULL DEFAULT '0.00',
-                    saldo TEXT NOT NULL DEFAULT '0.00',
+                    date TEXT NOT NULL,
+                    type TEXT NOT NULL,     -- 'SALE' | 'PAYMENT' | 'CREDIT' | 'PRICE_ADJUSTMENT'
+                    description TEXT,
+                    amount TEXT NOT NULL DEFAULT '0.00',
+                    payment TEXT NOT NULL DEFAULT '0.00',
+                    debt TEXT NOT NULL DEFAULT '0.00',
                     reference_id INTEGER, -- sales or payments
-                    referencia TEXT,  
+                    reference TEXT,
                     FOREIGN KEY (client_id) REFERENCES customer(id)
                 );                          
             ''')
 
 
             cursor.execute('''
-                    CREATE TABLE IF NOT EXISTS customer_credit(
-                           id INTEGER PRIMARY KEY AUTOINCREMENT,
-                           client_id INTEGER NOT NULL,
-                           amount TEXT NOT NULL,
-                           reason TEXT,
-                           created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-                           sale_id INTEGER,
-                           FOREIGN KEY(client_id) REFERENCES customer(id) ON DELETE CASCADE,
-                           FOREIGN KEY(sale_id) REFERENCES sales(id) ON DELETE SET NULL
-                    );
+                CREATE TABLE IF NOT EXISTS customer_credit(
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    client_id INTEGER NOT NULL,
+                    amount TEXT NOT NULL,
+                    reason TEXT,
+                    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                    sale_id INTEGER,
+                    FOREIGN KEY(client_id) REFERENCES customer(id) ON DELETE CASCADE,
+                    FOREIGN KEY(sale_id) REFERENCES sales(id) ON DELETE SET NULL
+                );
             ''')
 
             cursor.execute('''

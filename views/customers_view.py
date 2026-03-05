@@ -2,6 +2,7 @@ import customtkinter as ctk
 from tkinter import ttk, messagebox
 from utils.utils import format_currency
 from utils.view_helpers import center_window
+from decimal import Decimal
 ctk.set_appearance_mode("light")
 ctk.set_default_color_theme("blue")
 
@@ -697,6 +698,7 @@ class CustomersView:
         win = ctk.CTkToplevel(self.frame)
         win.title(f"📊 Estado de Cuenta - {cliente_nombre}")
         win.transient(self.frame)
+        win.update()
         win.grab_set()
         center_window(win, width_win, height_win)
         
@@ -739,11 +741,11 @@ class CustomersView:
                 text_color=color
             ).pack(pady=(2, 10))
 
-        create_summary_card(summary_frame, 0, 0, "Total Comprado", f"${summary['total_comprado']}")
-        create_summary_card(summary_frame, 0, 1, "Total Pagado", f"${summary['total_pagado']}", "#4CAF50")
-        create_summary_card(summary_frame, 0, 2, "Saldo a Favor", f"${summary['saldo_a_favor']}", "#2196F3")
-        create_summary_card(summary_frame, 0, 3, "Deuda Pendiente", f"${summary['deuda_pendiente']}", "#F44336")
-        create_summary_card(summary_frame, 0, 4, "Ventas", f"{summary['ventas_pagadas']}/{summary['total_ventas']} pagadas")
+        create_summary_card(summary_frame, 0, 0, "Total Comprado", f"${format_currency(summary['total_purchased'])}")
+        create_summary_card(summary_frame, 0, 1, "Total Pagado", f"${format_currency(summary['total_paid'])}", "#4CAF50")
+        create_summary_card(summary_frame, 0, 2, "Saldo a Favor", f"${format_currency(summary['credit'])}", "#2196F3")
+        create_summary_card(summary_frame, 0, 3, "Deuda Pendiente", f"${format_currency(summary['total_debt'])}", "#F44336")
+        create_summary_card(summary_frame, 0, 4, "Ventas", f"{summary['sales_balance']}")
 
         # ----------------------------------------------------------------
         # TABLA DE MOVIMIENTOS
@@ -769,7 +771,7 @@ class CustomersView:
             font=("Segoe UI", 10, "bold")
         )
 
-        cols = ("Fecha", "Tipo", "Descripción", "Compra", "Pago", "(+) Deuda/Crédito (-)")
+        cols = ("Fecha", "Tipo", "Descripción", "Compra", "Pago", "Deuda")
         history_table = ttk.Treeview(
             table_frame,
             columns=cols,
@@ -790,30 +792,30 @@ class CustomersView:
         history_table.pack(fill="both", expand=True)
 
         # Insertar movimientos
-        for mov in reversed(movements):
-            fecha_fmt = mov["fecha"][:16] if len(mov["fecha"]) > 16 else mov["fecha"]
-            debe_txt = f"${mov['debe']:,.2f}" if mov["debe"] > 0 else ""
-            haber_txt = f"${mov['haber']:,.2f}" if mov["haber"] > 0 else ""
+        for mov in movements:
+            fecha_fmt = mov[2][:16] if len(mov[2]) > 16 else mov[2]
+            amount_txt = f"${mov[5]}"
+            pay_txt = f"${mov[6]}"
             
             # Saldo con formato claro
-            saldo = mov["saldo"]
-            if saldo > 0:
-                saldo_txt = f"${saldo:,.2f}"  # Debe
-                saldo_color = "red"
-            elif saldo < 0:
-                saldo_txt = f"-${abs(saldo):,.2f}"  # A favor
-                saldo_color = "green"
+            debt = Decimal(mov[7])
+            if debt > 0:
+                debt_txt = f"${debt}"  # Debe
+                debt_color = "red"
+            elif debt < 0:
+                debt_txt = f"-${abs(debt)}"  # A favor
+                debt_color = "green"
             else:
-                saldo_txt = "$0.00"
-                saldo_color = "black"
+                debt_txt = "$0.00"
+                debt_color = "black"
 
             history_table.insert("", "end", values=(
                 fecha_fmt,
-                mov["tipo"],
-                mov["descripcion"],
-                debe_txt,      # Compra
-                haber_txt,     # Pago
-                saldo_txt      # Deuda/Crédito
+                mov[3],
+                mov[4],
+                amount_txt,      # Compra
+                pay_txt,     # Pago
+                debt_txt      # Deuda/Crédito
             ))
 
         def tag_rows():
@@ -822,20 +824,22 @@ class CustomersView:
                 tipo = values[1]
                 if tipo == "VENTA":
                     history_table.item(item, tags=("venta",))
-                elif tipo == "CONTADO":
-                    history_table.item(item, tags=("contado",))
                 elif tipo == "PAGO":
                     history_table.item(item, tags=("pago",))
                 elif tipo == "CRÉDITO":
-                    history_table.item(item, tags=("credito",))
-                elif tipo == "AJUSTE":
+                    history_table.item(item, tags=("crédito",))
+                elif tipo == "AJUSTE PRECIO":
                     history_table.item(item, tags=("ajuste",))
+                elif tipo == "SALDO FAVOR":
+                    history_table.item(item, tags=("saldo",))
+                else:
+                    print(f'tipo de venta: {type}')
 
-        history_table.tag_configure("venta", background="#FFF3E0")
-        history_table.tag_configure("contado", background="#E3FCEF")
-        history_table.tag_configure("pago", background="#E8F5E9")
-        history_table.tag_configure("credito", background="#E3F2FD")
-        history_table.tag_configure("ajuste", background="#FFF9C4")
+        history_table.tag_configure("venta", background="#FFF3CD")     # amarillo muy suave
+        history_table.tag_configure("pago", background="#E8F5E9")      # verde muy claro
+        history_table.tag_configure("crédito", background="#E3F2FD")   # azul muy claro
+        history_table.tag_configure("ajuste", background="#F3E5F5")    # violeta muy suave
+        history_table.tag_configure("saldo", background="#FCE4EC")     # rosa muy claro
 
         tag_rows()
 
@@ -845,7 +849,7 @@ class CustomersView:
         btn_frame = ctk.CTkFrame(win, fg_color="transparent")
         btn_frame.pack(pady=15)
 
-        can_reset = summary['deuda_pendiente'] <= 0.01
+        can_reset = summary['total_debt'] <= Decimal('0.00')
 
         ctk.CTkButton(
             btn_frame,
