@@ -144,6 +144,7 @@ class SalesController:
                 self.customer_model.add_row_in_customer_ledger(data)
                 self.sales_view.generate_delivery_note()
             self.sales_view.clear_sale()
+            self.event_bus.publish('refresh_stock_table', None)
             self.sales_view.load_available_products()
 
         except Exception as e:
