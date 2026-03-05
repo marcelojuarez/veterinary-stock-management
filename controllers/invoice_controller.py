@@ -49,9 +49,12 @@ class InvoiceController:
 
             divisor, rate = self._get_iva_rate(product_id)
 
-            net_unit  = norm_to_2_dec(price / divisor)
-            line_net  = norm_to_2_dec(net_unit * quantity)
-            line_iva  = norm_to_2_dec(line_net * rate)
+            net_unit_exact = price / divisor
+            net_unit       = norm_to_2_dec(net_unit_exact)
+
+            line_net  = norm_to_2_dec(net_unit_exact * quantity)
+
+            line_iva  = norm_to_2_dec(net_unit_exact * quantity * rate)
 
             total_subtotal += line_net
             total_iva      += line_iva
