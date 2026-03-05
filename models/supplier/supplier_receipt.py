@@ -32,7 +32,6 @@ class SupplierReceipt():
         return self.db.fetch_one(query, (receipt_id, ))
 
     def update_receipt_info(self, receipt_id, data, conn=None, commit=True):
-        date = datetime.now().strftime("%Y-%m-%d")
         query = """
         UPDATE supplier_receipt
         SET 
@@ -45,7 +44,7 @@ class SupplierReceipt():
 
         params = [
             data['receipt_id'],            
-            date,
+            traditional_to_iso(data['date']),
             traditional_to_iso(data['expiration']),
             data['obs'],
             receipt_id

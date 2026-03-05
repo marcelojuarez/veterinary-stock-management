@@ -1,9 +1,9 @@
 from decimal import Decimal
-
 from db.database import db
+from models.stock_movement import StockMovementModel
 
-class StockModel: 
-    def __init__(self, sales_model, payment_model, event_bus, db_conection=None):
+class StockModel:
+    def __init__(self, sales_model, payment_model, event_bus, db_conection=None, stock_movement_model=None):
         self.db = db_conection or db
         self.sales_model = sales_model
         self.payment_model = payment_model
@@ -11,6 +11,7 @@ class StockModel:
         if self.event_bus is not None:
             self.event_bus.subscribe('clean_price_changes', self.clean_price_changes)
         self.changes = []
+        self.movement = stock_movement_model or StockMovementModel()
     
     def clean_price_changes(self):
         self.changes = []
@@ -63,13 +64,35 @@ class StockModel:
     def update_p_price_and_related_sales_amount(self, product_id, product_data):
         try: 
             conn = self.db.get_connection()
-
             conn.execute("BEGIN")
-            
-            # Se actualiza el precio del producto
+
+            # Guardar estado ANTERIOR antes de actualizar
+            prev = self.get_product_by_id(product_id)
+            p_name       = prev[1]  if prev else str(product_id)
+            cost_before  = prev[6]  if prev else None  # cost_price
+            price_before = prev[7]  if prev else None  # price (sin iva)
+            qty          = prev[12] if prev else None  # quantity (no cambia)
+
+            # Actualizar precio
             self.update_product_price(product_id, product_data, conn=conn, commit=False)
 
-            # Se obtienen las ventas pendientes o parciales, en donde el producto actualizado, participa
+            # Registrar movimiento de precio
+            self.movement.register(
+                product_id   = product_id,
+                product_name = p_name,
+                event_type   = 'PRECIO',
+                detail       = 'Actualización manual de precio',
+                qty_before   = qty,
+                qty_after    = qty,   # el stock no cambia
+                cost_before  = cost_before,
+                cost_after   = product_data['CostPrice'],
+                price_before = price_before,
+                price_after  = product_data['SalePrice'],
+                conn         = conn,
+                commit       = False
+            )
+
+            # Actualizar ventas pendientes relacionadas
             query = """
                 SELECT DISTINCT s.id, s.cliente_id, c.name
                 FROM sales s
@@ -77,20 +100,18 @@ class StockModel:
                 LEFT JOIN customer c ON c.id = s.cliente_id
                 WHERE si.product_id = ? AND s.estado IN ('pending', 'partial')
             """
-            # Ventas afectadas por la actualizacion de precio
-            affected_sales = db.fetch_all(query, (product_id,), conn=conn)            
+            affected_sales = db.fetch_all(query, (product_id,), conn=conn)
 
-            if not affected_sales:
-                conn.commit()
-                return True
+            if affected_sales:
+                for sale_id, client_id, client in affected_sales:
+                    status = db.fetch_one("SELECT estado FROM sales WHERE id = ?", (sale_id,), conn=conn)[0]
 
-            for sale_id, client_id, client in affected_sales:
-                # Por cada venta afecta se obtiene su estado actual
-                status = db.fetch_one("SELECT estado FROM sales WHERE id = ?", (sale_id,), conn=conn)[0]
+                    if status != 'paid':
+                        old_total_row = db.fetch_one("SELECT total FROM sales WHERE id = ?", (sale_id,), conn=conn)
+                        old_total = Decimal(old_total_row[0]) if old_total_row else Decimal('0.00')
 
-                if status != 'paid':
-                    old_total_row = db.fetch_one("SELECT total FROM sales WHERE id = ?", (sale_id,), conn=conn) 
-                    old_total = Decimal(old_total_row[0]) if old_total_row else Decimal('0.00')
+                        self.sales_model.update_sale_item(sale_id, product_id, product_data['PriceWIva'], conn=conn, commit=False)
+                        self.sales_model.recalculate_sale_total(sale_id, conn=conn, commit=False)
 
                     self.sales_model.update_sale_item(sale_id, product_id, product_data['PriceWIva'], conn=conn, commit=False)
                     self.sales_model.recalculate_sale_total(sale_id, conn=conn, commit=False)
@@ -136,9 +157,10 @@ class StockModel:
             conn.rollback()
             print(f'Hubo un error {e}')
             return False
-        
+
         finally:
-            conn.close() 
+            conn.close()
+
 
     
     def update_field(self, db_field, new_value, product_id):
@@ -209,6 +231,14 @@ class StockModel:
         return result[0] if result else 0
 
     def bulk_update_prices_by_date(self, date, percent_increase):
+        # Guardar estado ANTERIOR de todos los productos afectados
+        prev_query = """
+            SELECT id, name, cost_price, price, quantity
+            FROM stock
+            WHERE last_price_update = ?
+        """
+        prev_products = db.fetch_all(prev_query, (date,))
+
         multiplier = 1 + (percent_increase / 100)
 
         query = """
@@ -227,18 +257,34 @@ class StockModel:
                         (
                             (CAST(price AS REAL) * ? - CAST(cost_price AS REAL))
                             / CAST(cost_price AS REAL)
-                        ) * 100,
-                        2
+                        ) * 100, 2
                     )
                     ELSE '0'
                 END,
                 last_price_update = CURRENT_DATE
             WHERE last_price_update = ?
         """
+        db.execute_query(query, (multiplier, multiplier, multiplier, multiplier, multiplier, date))
 
-        params = (multiplier, multiplier, multiplier, multiplier, multiplier, date)
+        # Registrar un movimiento por cada producto actualizado
+        for p in prev_products:
+            p_id, p_name, cost_before, price_before, qty = p
+            price_after = round(float(price_before) * multiplier, 2) if price_before else None
 
-        return db.execute_query(query, params)
+            self.movement.register(
+                product_id   = p_id,
+                product_name = p_name,
+                event_type   = 'PRECIO_MASIVO',
+                detail       = f'Aumento masivo {percent_increase}% — fecha orig. {date}',
+                qty_before   = qty,
+                qty_after    = qty,
+                cost_before  = cost_before,
+                cost_after   = cost_before,  # el costo no cambia en aumento masivo
+                price_before = price_before,
+                price_after  = str(price_after),
+            )
+
+        return len(prev_products)
     
     def get_honorarios_id(self):
         """Obtener el ID del producto honorarios"""

@@ -227,3 +227,5 @@ remitos
 comprobantes
 backups
 logs
+credentials.json
+token.json

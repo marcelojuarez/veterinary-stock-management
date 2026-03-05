@@ -72,7 +72,18 @@ class NewPurchaseItemForm():
             text="Nuevo Artículo",
             font=ctk.CTkFont(size=18, weight="bold")
         )
-        title_label.pack(pady=20)
+        title_label.pack(pady=(20, 5))
+
+        # Advertencia IVA — visible y en su lugar, no en medio del grid
+        if not self.discrimina_iva:
+            ctk.CTkLabel(
+                card_frame,
+                text="⚠  Factura sin IVA discriminado — IVA forzado a 0%",
+                font=ctk.CTkFont(size=12, weight="bold"),
+                text_color="#ffffff",
+                fg_color="#E65100",
+                corner_radius=8
+            ).pack(fill="x", padx=20, pady=(0, 8), ipady=5)
 
         form_frame = ctk.CTkFrame(card_frame, fg_color='white')
         form_frame.pack(pady=5, padx=(10,0), fill='x')
@@ -147,15 +158,6 @@ class NewPurchaseItemForm():
                 width=200
             )
         add_field(1, 2, "Porcentaje Iva:", iva_combo)
-
-        # Indicador visual si no discrimina IVA
-        if not self.discrimina_iva:
-            ctk.CTkLabel(
-                form_frame,
-                text="⚠ Factura sin IVA discriminado",
-                font=ctk.CTkFont(size=11, weight="bold"),
-                text_color="#E65100"
-            ).grid(row=2, column=2, columnspan=2, sticky="w", padx=10, pady=2)
 
         add_field(2, 2, "Total Descuento:",
                 ctk.CTkEntry(form_frame, textvariable=self.discount_amount, state='readonly', width=200))

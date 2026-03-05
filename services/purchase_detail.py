@@ -7,6 +7,7 @@ from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.lib import colors
 from datetime import datetime
+from utils.receipts.paths import get_base_folder
 
 class PurchaseDetail():
     def __init__(self, model):
@@ -61,9 +62,10 @@ class PurchaseDetail():
         self.load_data(purchase_id)
         
         date = self.purchase['date']
-
-        os.makedirs("comprobantes/purchase_detail", exist_ok=True)
-        filename = f"comprobantes/purchase_detail/{date}_compra_nro_{purchase_id}.pdf"
+        
+        compras_dir = os.path.join(get_base_folder(), "Proveedores", "Compras")
+        os.makedirs(compras_dir, exist_ok=True)
+        filename = os.path.join(compras_dir, f"{date}_compra_nro_{purchase_id}.pdf")
 
         doc = SimpleDocTemplate(
             filename,

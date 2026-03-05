@@ -113,6 +113,18 @@ class PaymentWindow():
 
         self.load_payment_movement()
 
+        # Leyenda de colores del tab de compras
+        legend_frame = ctk.CTkFrame(win, fg_color="transparent")
+        legend_frame.grid(row=3, column=0, columnspan=2, sticky="se", padx=16, pady=(0, 2))
+        for color, fg, text in [
+            ("#fff9e6", "#6d4c00", " Pendiente de pago "),
+            ("#e8f5e9", "#1b5e20", " Pagada "),
+        ]:
+            dot = tk.Frame(legend_frame, bg=color, width=14, height=14, relief="solid", bd=1)
+            dot.pack(side="left", padx=(6, 2), pady=4)
+            ctk.CTkLabel(legend_frame, text=text, font=ctk.CTkFont(size=11),
+                         text_color=fg).pack(side="left")
+
         # frame inferior (botones y cantidad)
         buttons_frame = ctk.CTkFrame(win, corner_radius=20)
         buttons_frame.grid(row=4, column=0, columnspan=2, sticky="ew", pady=10)
@@ -226,7 +238,16 @@ class PaymentWindow():
                 self.purchase_tree.column(col, width=100, anchor="center")
             else:
                 self.purchase_tree.column(col, width=150, anchor="center")
-        self.purchase_tree.pack(side="left", fill="both", expand=True)   
+
+        # Fix: forzar el estilo para que no pise los tag colors de las filas
+        style = ttk.Style()
+        style.map("Treeview", background=[("selected", "#0078d4")])
+
+        self.purchase_tree.tag_configure('purchase_pending', background="#fff9e6", foreground="#6d4c00")
+        self.purchase_tree.tag_configure('purchase_paid',    background="#e8f5e9", foreground="#1b5e20")
+        self.purchase_tree.tag_configure('orow',             background="#ffffff", foreground="#000000")
+
+        self.purchase_tree.pack(side="left", fill="both", expand=True)
 
         scrollbar = ttk.Scrollbar(purchase_frame, orient="vertical", command=self.purchase_tree.yview)
         self.purchase_tree.configure(yscroll=scrollbar.set)
@@ -272,7 +293,7 @@ class PaymentWindow():
                 parent=parent, 
                 supplier_cuit=values[1], 
                 purchase_id=values[0], 
-                amount=values[6]
+                amount=values[7]
             )
 
         except ValueError as e:
@@ -350,21 +371,27 @@ class PaymentWindow():
 
         # Cargar compras
         for p in purchases:
+            estado = p[8]
+            if estado == 'PAGADA':
+                tag = "purchase_paid"
+            else:
+                tag = "purchase_pending"  # CONFIRMADA / pendiente de pago
+
             self.purchase_tree.insert(
                 parent="", index="end", iid=p[0],
                 values=(
-                    p[0], # id
-                    p[1], # cuit
-                    p[2], # nombre
-                    p[3], # comprobante
-                    iso_to_traditional(p[6]), # fecha
-                    iso_to_traditional(p[7]), # fecha venc
-                    p[8], # estado
-                    p[10], # saldo pend
-                    p[11] # total
+                    p[0],                    # id
+                    p[1],                    # cuit
+                    p[2],                    # nombre
+                    p[3],                    # comprobante
+                    iso_to_traditional(p[6]),# fecha
+                    iso_to_traditional(p[7]),# fecha venc
+                    p[8],                    # estado
+                    p[10],                   # saldo pend
+                    p[11]                    # total
                 ),
-                tag="orow"
-            )  
+                tags=(tag,)
+            )
 
     ## -- Busqueda -- ##
     def list_of_supplier(self, parent):
@@ -498,4 +525,3 @@ class PaymentWindow():
             )
 
         self.supplier_tree.tag_configure('orow', background="white", foreground='black')
-

@@ -6,6 +6,8 @@ from reportlab.lib.units import inch
 from datetime import datetime
 from config.settings import COMPANY_CONFIG
 import os
+from utils.receipts.paths import get_base_folder
+
 
 class DailySalesReportService:
     def __init__(self):
@@ -30,8 +32,9 @@ class DailySalesReportService:
         """
         sales_rows: lista de tuplas → (id, fecha, total, cliente, estado)
         """
-        os.makedirs("ventas", exist_ok=True)
-        filename = f"ventas/ventas_{datetime.now().strftime('%Y%m%d')}.pdf"
+        ventas_dir = os.path.join(get_base_folder(), "Reportes", "Ventas")
+        os.makedirs(ventas_dir, exist_ok=True)
+        filename = os.path.join(ventas_dir, f"ventas_{datetime.now().strftime('%Y%m%d')}.pdf")
 
         doc = SimpleDocTemplate(filename, pagesize=A4, leftMargin=30, rightMargin=30)
         elements = []

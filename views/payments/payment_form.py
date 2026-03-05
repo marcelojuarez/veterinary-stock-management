@@ -1,7 +1,7 @@
 import tkinter as tk
 import customtkinter as ctk
 from decimal import Decimal
-from utils.view_helpers import close_win, show_warning
+from utils.view_helpers import close_win, show_warning, ask_confirmation
 
 class PaymentForm:
 
@@ -66,6 +66,7 @@ class PaymentForm:
 
         self.add_pay_win = ctk.CTkToplevel(parent if parent else self.frame)
         self.add_pay_win.title("Registrar nuevo pago")
+        self.add_pay_win.resizable(False, False)
 
         self.add_pay_win.columnconfigure(0, weight=0)
         self.add_pay_win.columnconfigure(1, weight=1)
@@ -76,10 +77,10 @@ class PaymentForm:
         self.add_pay_win.transient(parent)
         self.add_pay_win.grab_set()
         
-        # Centrar la ventana
-        self.add_pay_win.geometry("380x330+{}+{}".format(
-            self.add_pay_win.winfo_screenwidth()//2 - 175,
-            self.add_pay_win.winfo_screenheight()//2 - 190
+        # Centrar — tamaño base, se expande con los campos dinámicos
+        self.add_pay_win.geometry("400x370+{}+{}".format(
+            self.add_pay_win.winfo_screenwidth()//2 - 200,
+            self.add_pay_win.winfo_screenheight()//2 - 185
         ))
         
         # Título
@@ -205,8 +206,6 @@ class PaymentForm:
             self.destino_lbl.grid(row=2, column=0, padx=20, pady=5)
             self.destino_entry.grid(row=2, column=1, padx=(0,40), pady=5)
 
-            self.add_pay_win.geometry("380x520")
-
             self.render_buttons(9)
 
         elif method == "CHEQUE":
@@ -216,19 +215,26 @@ class PaymentForm:
             self.check_num_lbl.grid(row=1, column=0, padx=20, pady=5)
             self.check_num_entry.grid(row=1, column=1, padx=(0,40), pady=5)
 
-            self.add_pay_win.geometry("380x470")
-
             self.render_buttons(8)
         
         elif method == "EFECTIVO":
-            self.add_pay_win.geometry("380x380")
             self.render_buttons(6)
+
+        # Ajustar tamaño de ventana al contenido sin salto brusco
+        self.add_pay_win.update_idletasks()
+        self.add_pay_win.geometry(f"400x{self.add_pay_win.winfo_reqheight()}")
 
     def create_action_buttons(self, parent):
         self.button_frame = ctk.CTkFrame(self.dynamic_frame, fg_color="transparent")
 
-        self.add_button = ctk.CTkButton(self.button_frame, text="Agregar Pago", width=120, height=35, font=ctk.CTkFont(size=15, weight="bold"),
-            fg_color="#4CAF50", hover_color="#45a049", command=lambda: self.controller.register_payment(self.supplier_var, self.add_pay_win, parent, self.purchase_id))
+        self.add_button = ctk.CTkButton(
+            self.button_frame,
+            text="Agregar Pago",
+            width=120, height=35,
+            font=ctk.CTkFont(size=15, weight="bold"),
+            fg_color="#4CAF50", hover_color="#45a049",
+            command=lambda: self.confirm_payment(parent)
+        )
         self.add_button.grid(row=0, column=0, padx=15, pady=10)
 
         self.cancel_button = ctk.CTkButton(self.button_frame, text="Cancelar", width=120, height=35, font=ctk.CTkFont(size=15, weight="bold"),
@@ -244,6 +250,47 @@ class PaymentForm:
     def clear_dynamic_frame(self):
         for widget in self.dynamic_frame.winfo_children():
             widget.grid_forget()
+
+    ## -- Confirmación antes de registrar el pago -- ##
+    def confirm_payment(self, parent):
+        method = self.method_var.get()
+
+        if not method:
+            show_warning("Por favor seleccioná un método de pago.")
+            return
+
+        amount = self.amount_var.get().strip()
+        if not amount or amount == '0':
+            show_warning("Por favor ingresá un monto válido.")
+            return
+
+        # Armar resumen legible según el método
+        resumen = (
+            f"Proveedor (CUIT): {self.supplier_var.get()}\n"
+            f"Monto:             $ {amount}\n"
+            f"Método de pago:    {method}\n"
+            f"N° Recibo:         {self.num_receipt_var.get() or '—'}\n"
+        )
+
+        if method == "TRANSFERENCIA":
+            resumen += (
+                f"N° Operación:      {self.opt_num_var.get() or '—'}\n"
+                f"CBU/Alias origen:  {self.origin_var.get() or '—'}\n"
+                f"CBU/Alias destino: {self.destinatation_var.get() or '—'}\n"
+            )
+        elif method == "CHEQUE":
+            resumen += (
+                f"Banco:             {self.bank_var.get() or '—'}\n"
+                f"N° Cheque:         {self.check_num_var.get() or '—'}\n"
+            )
+
+        if self.observation_var.get().strip():
+            resumen += f"Observaciones:     {self.observation_var.get().strip()}\n"
+
+        if ask_confirmation(resumen, "¿Confirmar registro de pago?"):
+            self.controller.register_payment(
+                self.supplier_var, self.add_pay_win, parent, self.purchase_id
+            )
 
     ## -- Se obtienen datos del formulario de pago -- ##
     def get_payment_data(self):

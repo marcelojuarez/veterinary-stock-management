@@ -6,11 +6,12 @@ class SupplierCore():
     def __init__(self, db):
         self.db = db
 
+    
     def get_all_suppliers(self):
-        # Obtener todos los proveedores
+        """Solo devuelve proveedores activos."""
         try:
-            query = "SELECT * FROM supplier ORDER BY name"
-            return  self.db.fetch_all(query)
+            query = "SELECT * FROM supplier WHERE active = 1 ORDER BY name"
+            return self.db.fetch_all(query)
         except ValueError as e:
             print(f'Error getting suppliers: {e}')
             return []
@@ -54,12 +55,28 @@ class SupplierCore():
 
         return self.db.execute_query(query, params)
 
-    def delete_supplier(self, supplier_id):
+    def has_purchases(self, supplier_id):
+        """Retorna True si el proveedor tiene compras asociadas."""
+        query = "SELECT COUNT(*) FROM purchase WHERE supplier_id = ?"
+        row = self.db.fetch_one(query, (supplier_id,))
+        return row[0] > 0 if row else False
+
+    def deactivate_supplier(self, supplier_id):
+        """Borrado lógico: desactiva el proveedor sin eliminar sus datos."""
         try:
-            query = "DELETE FROM supplier where id = ?"
-            return self.db.execute_query(query, (supplier_id, ))
+            query = "UPDATE supplier SET active = 0 WHERE id = ?"
+            return self.db.execute_query(query, (supplier_id,))
         except Exception as e:
-            print(f'Error : {e}')
+            print(f'Error deactivating supplier: {e}')
+            return None
+
+    def delete_supplier(self, supplier_id):
+        """Elimina físicamente solo si no tiene compras asociadas."""
+        try:
+            query = "DELETE FROM supplier WHERE id = ?"
+            return self.db.execute_query(query, (supplier_id,))
+        except Exception as e:
+            print(f'Error deleting supplier: {e}')
             return None
 
 

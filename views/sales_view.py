@@ -630,7 +630,7 @@ class SalesView:
             command=cancel
         )
         cancel_btn.grid(row=0, column=1, padx=10)
-        center_window(confirm_win, 620, 620)
+        center_window(confirm_win, 800, 700)
 
         # Esperar a que se cierre la ventana
         confirm_win.deiconify()

@@ -5,6 +5,8 @@ from models.stock import StockModel
 from tkinter import ttk, messagebox
 from utils.view_helpers import center_window, close_win, show_error
 from utils.utils import iso_to_traditional, format_currency, string_to_2_dec, string_to_flex_dec, norm_to_2_dec, flex_dec
+from views.stock_movement_view import StockMovementView
+from models.stock_movement import StockMovementModel
 
 # Configurar tema y colores
 ctk.set_appearance_mode("light")  # "light" o "dark"
@@ -13,9 +15,9 @@ ctk.set_default_color_theme("blue")  # "blue", "green", "dark-blue"
 class StockView():
     def __init__(self, parent, controller, stock_model):
         self.controller = controller
-        # Usar CTkFrame en lugar de tk.Frame
         self.frame = ctk.CTkFrame(parent, fg_color="#f0f0f0")
         self.stock_model = stock_model
+        self.movement_view = StockMovementView(StockMovementModel())
         self.create_widgets()
         self.edit_item = None
         self.edit_entry = None
@@ -109,6 +111,26 @@ class StockView():
         update_btn.grid(row=1, column=1, padx=10, pady=10)
         bulk_update_btn.grid(row=1, column=2, padx=10, pady=10)
         edit_btn.grid(row=1, column=3, padx=10, pady=10)
+
+        history_btn = ctk.CTkButton(
+            manage_frame,
+            text="📋 Historial Global",
+            width=W, height=H,
+            font=ctk.CTkFont(size=12, weight="bold"),
+            fg_color=btn_color, hover_color=btn_hover,
+            command=lambda: self.movement_view.open(self.frame)
+        )
+        history_btn.grid(row=1, column=4, padx=10, pady=10)
+
+        history_product_btn = ctk.CTkButton(
+            manage_frame,
+            text="📋 Historial Producto",
+            width=W, height=H,
+            font=ctk.CTkFont(size=12, weight="bold"),
+            fg_color=btn_color, hover_color=btn_hover,
+            command=self._open_product_history
+        )
+        history_product_btn.grid(row=1, column=5, padx=10, pady=10)
     
     def create_find_frame(self):
         """Crear frame para formulario de producto"""
@@ -204,8 +226,8 @@ class StockView():
         self.stock_tree.column("SalePrice", anchor=tk.E, width=100, stretch=True)
         self.stock_tree.column("Iva", anchor=tk.CENTER, width=60, stretch=False)
         self.stock_tree.column("SalePriceWithIva", anchor=tk.E, width=120, stretch=True)
-        self.stock_tree.column("ValidityDate", anchor=tk.CENTER, width=160, stretch=True)
-        self.stock_tree.column("LastPriceUpdate", anchor=tk.CENTER, width=160, stretch=True)
+        self.stock_tree.column("ValidityDate", anchor=tk.CENTER, width=100, stretch=True)
+        self.stock_tree.column("LastPriceUpdate", anchor=tk.CENTER, width=100, stretch=True)
         self.stock_tree.column("Stock", anchor=tk.CENTER, width=80, stretch=False)
 
         # Encabezados
@@ -1023,4 +1045,13 @@ class StockView():
 
         except Exception as e:
             self.show_error(f"Error al abrir ventana de edición: {str(e)}")
+
+    def _open_product_history(self):
+        product_id = self.get_selected_product()
+        if not product_id:
+            self.show_warning("Seleccione un producto para ver su historial")
+            return
+        product = self.stock_model.get_product_by_id(product_id)
+        name = product[1] if product else None
+        self.movement_view.open(self.frame, product_id=product_id, product_name=name)
         

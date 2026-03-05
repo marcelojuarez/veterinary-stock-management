@@ -173,7 +173,7 @@ class SupplierView():
         self.supplier_tree.column("Telefono", anchor=tk.W, width=110,stretch=True)
         self.supplier_tree.column("Email", anchor=tk.W, width=180, stretch=True)
         self.supplier_tree.column("Condicion Iva", anchor=tk.W, width=120, stretch=True)
-        self.supplier_tree.column("Últ. Act. deuda", anchor=tk.W, width=150, stretch=True)
+        self.supplier_tree.column("Últ. Act. deuda", anchor=tk.W, width=100, stretch=True)
 
         for col in self.supplier_tree["columns"]:
             self.supplier_tree.heading(
@@ -231,7 +231,7 @@ class SupplierView():
         add_win.grab_set()
         btn_color = "#009688"
         btn_hover = "#00796B"
-        center_window(add_win, 550, 480)
+        center_window(add_win, 550, 600)
         add_win.configure(fg_color="#e0e0e0")
 
         card_frame = ctk.CTkFrame(
@@ -265,7 +265,7 @@ class SupplierView():
             widget.grid(row=row, column=1, sticky="w", padx=(10,10), pady=7)
 
         
-        add_field(0, "Nombre: ", 
+        add_field(0, "Nombre Completo: ", 
                   ctk.CTkEntry(form_frame, textvariable=self.name_var, width=200))
         
         add_field(1, "Cuit: ", 
@@ -292,7 +292,7 @@ class SupplierView():
         add_field(8, "Condicion IVA: ",
                   ctk.CTkComboBox(
                       form_frame,  
-                      values=["RESP. INS", "MONOTRIBUTISTA", "EXENTO", "NO RESPONSABLE"], 
+                      values=["RESP. INSCRIPTO", "MONOTRIBUTISTA", "EXENTO", "NO RESPONSABLE"], 
                       variable=self.iva_condition, 
                       width=200
                     )

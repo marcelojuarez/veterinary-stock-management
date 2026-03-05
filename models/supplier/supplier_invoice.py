@@ -73,8 +73,8 @@ class SupplierInvoice():
 
         params = [
             data['invoice_id'],
-            data['date'],
-            data['expiration'],
+            traditional_to_iso(data['date']),
+            traditional_to_iso(data['expiration']),
             data['obs'],
             data['pay_cond'],
             data['pay_period'],

@@ -94,7 +94,8 @@ class Database:
                     phone TEXT,
                     email TEXT,
                     iva_condition TEXT,
-                    last_debt_update TEXT DEFAULT CURRENT_DATE
+                    last_debt_update TEXT DEFAULT CURRENT_DATE,
+                    active INTEGER NOT NULL DEFAULT 1  -- <- agregar esta columna
                 );
             ''')
 
@@ -397,6 +398,24 @@ class Database:
                     FOREIGN KEY(client_id) REFERENCES customer(id) ON DELETE CASCADE,
                     FOREIGN KEY(sale_id) REFERENCES sales(id) ON DELETE SET NULL
                 );
+            ''')
+
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS stock_movement (
+                    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+                    product_id    INTEGER NOT NULL,
+                    product_name  TEXT NOT NULL,
+                    date          TEXT NOT NULL,
+                    event_type    TEXT NOT NULL,
+                    detail        TEXT,
+                    qty_before    INTEGER,
+                    qty_after     INTEGER,
+                    cost_before   TEXT,
+                    cost_after    TEXT,
+                    price_before  TEXT,
+                    price_after   TEXT,
+                    FOREIGN KEY (product_id) REFERENCES stock(id)
+                )
             ''')
 
             conn.commit()

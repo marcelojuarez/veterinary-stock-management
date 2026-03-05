@@ -124,6 +124,8 @@ class PurchaseController():
             return True
 
         except ValueError as e:
+            import traceback
+            traceback.print_exc()
             show_error(f'Error al actualizar el Documento:{e}')
             if doc_type == 'REMITO':
                 self.receipt_info_vw.recover_previous_values(purchase_id)

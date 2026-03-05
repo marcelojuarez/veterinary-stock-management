@@ -8,6 +8,7 @@ from reportlab.platypus import (
     SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, PageBreak
 )
 from config.settings import COMPANY_CONFIG
+from utils.receipts.paths import get_base_folder
 
 
 # ─────────────────────────────────────────────
@@ -198,13 +199,13 @@ class IVAReportPDF:
         cards_data = [[
             Paragraph(
                 f"<b>IVA VENTAS</b><br/>"
-                f"<font size=14><b>{_money(posicion.get('iva_ventas', 0))}</b></font><br/>"
+                f"<font size=14><b>{_money(posicion.get('iva_sales', 0))}</b></font><br/>"
                 f"<font size=8>Débito Fiscal</font>",
                 self.styles["Normal9"]
             ),
             Paragraph(
                 f"<b>IVA COMPRAS</b><br/>"
-                f"<font size=14><b>{_money(posicion.get('iva_compras', 0))}</b></font><br/>"
+                f"<font size=14><b>{_money(posicion.get('purchases_iva', 0))}</b></font><br/>"
                 f"<font size=8>Crédito Fiscal</font>",
                 self.styles["Normal9"]
             ),
@@ -238,7 +239,7 @@ class IVAReportPDF:
     # ─────────────────────────────────────────
     #  Tabla resumen por alícuota
     # ─────────────────────────────────────────
-    def _build_resumen_alicuotas(self, detalle_posicion):
+    def _build_resumen_aliquots(self, detalle_posicion):
         elements = []
         elements.append(Paragraph("Posición IVA por Alícuota", self.styles["SubSection"]))
 
@@ -249,11 +250,11 @@ class IVAReportPDF:
         data = [cols]
         for item in detalle_posicion.get("detalle", []):
             data.append([
-                item.get("alicuota", ""),
-                _money(item.get("ventas_neto", 0)),
-                _money(item.get("iva_ventas", 0)),
-                _money(item.get("compras_neto", 0)),
-                _money(item.get("iva_compras", 0)),
+                item.get("aliquot", ""),
+                _money(item.get("sales_net", 0)),
+                _money(item.get("iva_sales", 0)),
+                _money(item.get("purchases_net", 0)),
+                _money(item.get("purchases_iva", 0)),
                 _money(item.get("saldo", 0)),
                 "—",
             ])
@@ -261,9 +262,9 @@ class IVAReportPDF:
         # Fila subtotal bruto
         data.append([
             "Subtotal", "—",
-            _money(detalle_posicion.get("total_iva_ventas", 0)),
+            _money(detalle_posicion.get("total_iva_sales", 0)),
             "—",
-            _money(detalle_posicion.get("total_iva_compras", 0)),
+            _money(detalle_posicion.get("total_purchases_iva", 0)),
             _money(detalle_posicion.get("saldo_bruto", 0)),
             "—",
         ])
@@ -285,11 +286,11 @@ class IVAReportPDF:
         # Fila TOTAL NETO
         data.append([
             "TOTAL NETO", "—",
-            _money(detalle_posicion.get("debito_fiscal",
-                   detalle_posicion.get("total_iva_ventas", 0))),
+            _money(detalle_posicion.get("fiscal_debt",
+                   detalle_posicion.get("total_iva_sales", 0))),
             "—",
-            _money(detalle_posicion.get("credito_fiscal",
-                   detalle_posicion.get("total_iva_compras", 0))),
+            _money(detalle_posicion.get("fiscal_credit",
+                   detalle_posicion.get("total_purchases_iva", 0))),
             _money(detalle_posicion.get("saldo_bruto", 0)),
             _money(detalle_posicion.get("saldo_total", 0)),
         ])
@@ -454,11 +455,12 @@ class IVAReportPDF:
                  perc_sufridas, perc_efectuadas,
                  ret_sufridas, ret_efectuadas,
                  totales_per, totales_ret):
-
-        os.makedirs("comprobantes/reportes", exist_ok=True)
+        
         periodo = f"{self.MESES[mes - 1]}_{anio}"
-        filename = f"comprobantes/reportes/reporte_iva_{periodo}.pdf"
-
+        reportes_dir = os.path.join(get_base_folder(), "Reportes")
+        os.makedirs(reportes_dir, exist_ok=True)
+        filename = os.path.join(reportes_dir, f"reporte_iva_{periodo}.pdf")
+        
         doc = SimpleDocTemplate(
             filename, pagesize=A4,
             leftMargin=L_MARGIN, rightMargin=R_MARGIN,
@@ -472,7 +474,7 @@ class IVAReportPDF:
 
         # ── Sección IVA ──
         elements += self._build_iva_cards(posicion)
-        elements += self._build_resumen_alicuotas(detalle_posicion)
+        elements += self._build_resumen_aliquots(detalle_posicion)
 
         # Detalle ventas
         elements.append(self._section_header("💰  DETALLE VENTAS"))

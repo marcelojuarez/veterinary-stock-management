@@ -5,6 +5,7 @@ import customtkinter as ctk
 from events import EventBus
 from datetime import datetime
 from config.settings import settings
+from services.cloud_backup_service import CloudBackupService
 
 from views.start_view import StartView
 from views.stock_view import StockView
@@ -121,6 +122,7 @@ class App():
             self.root.update_idletasks()
 
             self.login_win.destroy() 
+            self.root.protocol("WM_DELETE_WINDOW", self.on_close)
 
     def create_componentes(self):
         self.notebook = ttk.Notebook(self.root)
@@ -245,3 +247,12 @@ class App():
 
     def run(self):
         self.root.mainloop()
+
+    
+    def on_close(self):
+        try:
+            CloudBackupService().run()
+        except Exception as e:
+            print(f'Error en backup: {e}')
+        finally:
+            self.root.destroy()
