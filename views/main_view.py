@@ -24,7 +24,7 @@ from models.sale import SalesModel
 from models.supplier import SupplierModel
 from models.stock import StockModel
 #from models.user import User
-
+from tkinter import messagebox
 from controllers.auth_controller import validate_data
 from controllers.invoice_controller import InvoiceController
 from controllers.stock_controller import StockController
@@ -39,9 +39,24 @@ from controllers.iva_reports_controller import ReportsController
 from views.backup_manager import BackupManagerView
 import sys, os
 
+import ctypes
+
+try:
+    ctypes.windll.shcore.SetProcessDpiAwareness(1)
+except:
+    pass
+
 class App():
     def __init__(self):
         self.root = ctk.CTk()
+
+        screen_width = self.root.winfo_screenwidth()
+        screen_height = self.root.winfo_screenheight()
+
+        if screen_width <= 1366 or screen_height <= 768:
+            ctk.set_widget_scaling(0.85)
+            ctk.set_window_scaling(0.85)
+
         self.setup_window()
         self.setup_variables()
         self.login_window()
@@ -50,22 +65,26 @@ class App():
         view_config = settings['VIEW_CONFIG']
         self.root.title(view_config['window-title'])
 
-        sistema = platform.system()
+        screen_width = self.root.winfo_screenwidth()
+        screen_height = self.root.winfo_screenheight()
 
-        if sistema == 'Windows':
-            self.root.geometry("1400x750")      
-            self.root.minsize(1400, 750)        
-            self.root.state('zoomed')           
-        else:
-            width = self.root.winfo_screenwidth()
-            height = self.root.winfo_screenheight()
-            self.root.geometry(f"{width}x{height}+0+0")
-            self.root.minsize(1400, 750)
+        # usar 90% de la pantalla
+        width = int(screen_width * 0.9)
+        height = int(screen_height * 0.9)
+
+        self.root.geometry(f"{width}x{height}")
+
+        # tamaño mínimo razonable
+        self.root.minsize(1000, 600)
 
         self.root.resizable(True, True)
+
+        # abrir maximizado
+        if platform.system() == "Windows":
+            self.root.state("zoomed")
+
         self.root.withdraw()
 
-        
         if getattr(sys, 'frozen', False):
             base_path = sys._MEIPASS
         else:
@@ -139,7 +158,8 @@ class App():
 
     def create_componentes(self):
         self.notebook = ttk.Notebook(self.root)
-        self.notebook.pack(fill='both')
+        self.root.update_idletasks()
+        self.notebook.pack(fill='both', expand=True)
         self.notebook.bind("<<NotebookTabChanged>>", self.on_tab_change)
         self.root.update() 
 
@@ -244,6 +264,8 @@ class App():
             self.supplier_controller.refresh_supplier_table()
             self.customer_controller.refresh_customer_data()
         except Exception as e:
+            import traceback
+            traceback.print_exc()
             print(f"Error cargando datos iniciales: {e}")
 
     def center_window(self, win, width_win, height_win):
@@ -262,9 +284,10 @@ class App():
 
     
     def on_close(self):
-        try:
-            CloudBackupService().run()
-        except Exception as e:
-            print(f'Error en backup: {e}')
-        finally:
-            self.root.destroy()
+        if messagebox.askyesno("Salir", "¿Desea cerrar el sistema?"):
+            try:
+                CloudBackupService().run()
+            except Exception as e:
+                print(f'Error en backup: {e}')
+            finally:
+                self.root.destroy()
