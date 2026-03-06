@@ -3,7 +3,7 @@
 settings = {
     "VIEW_CONFIG" : {
         'window-title':"Agroveterinaria El Fortín",
-        'window-size':"1366×768",
+        'window-size':None,
     }
 }
 

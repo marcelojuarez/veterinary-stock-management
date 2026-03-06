@@ -174,6 +174,7 @@ class StockView():
         window = ctk.CTkToplevel(self.frame)
         window.title("Información Detallada del Stock")
         window.grab_set()
+        window.transient(self.frame)
         window.resizable(False, False)
         center_window(window, 400, 300)
 
@@ -183,9 +184,9 @@ class StockView():
     def create_stats_frame(self, parent=None):
         """Barra de estadísticas rápidas del inventario"""
         container = parent if parent else self.frame
-        self.stats_frame = ctk.CTkFrame(container, fg_color="#f8f7f7", corner_radius=8)
+        self.stats_frame = ctk.CTkFrame(container, fg_color="gray70")
         if parent:
-            self.stats_frame.pack(padx=10, pady=10, fill="both", expand=True)
+            self.stats_frame.pack(padx=1, pady=1, fill="both", expand=True)
         else: 
             self.stats_frame.grid(row=1, column=0, padx=15, pady=15, sticky='ew')
 
@@ -200,7 +201,7 @@ class StockView():
             card = ctk.CTkFrame(self.stats_frame, fg_color="white", corner_radius=8)
             card.grid(row=fila, column=col, padx=10, pady=10, sticky="nsew")
             ctk.CTkLabel(card, text=f"{icon}  {label}",
-                         font=ctk.CTkFont(size=11), text_color="#757575").pack(pady=(8, 0))
+                         font=ctk.CTkFont(size=13, weight="bold"), text_color="#5A5A5A").pack(pady=(8, 0))
             ctk.CTkLabel(card, textvariable=var,
                          font=ctk.CTkFont(size=18, weight="bold"),
                          text_color=color).pack(pady=(2, 8))

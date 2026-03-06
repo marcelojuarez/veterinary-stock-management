@@ -13,16 +13,17 @@ def close_win( win, parent, callback=None):
         print(f"Error al cerrar la ventana: {e}")
         return
 
-def center_window(win, width_win, height_win):
-    win.update_idletasks()
+def center_window(window, width, height):
+    screen_w = window.winfo_screenwidth()
+    screen_h = window.winfo_screenheight()
 
-    screen_width = win.winfo_screenwidth()
-    screen_height = win.winfo_screenheight()
+    # que no sea más grande que la pantalla
+    width  = min(width,  screen_w - 50)
+    height = min(height, screen_h - 50)
 
-    x = (screen_width // 2) - (width_win // 2)
-    y = (screen_height // 2) - (height_win // 2)
-
-    win.geometry(f"{width_win}x{height_win}+{x}+{y}")
+    x = (screen_w - width)  // 2
+    y = (screen_h - height) // 2
+    window.geometry(f"{width}x{height}+{x}+{y}")
 
 def show_error( message): messagebox.showerror("Error", message)
 
