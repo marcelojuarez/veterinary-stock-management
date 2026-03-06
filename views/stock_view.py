@@ -21,6 +21,10 @@ class StockView():
         self.frame = ctk.CTkFrame(parent, fg_color="#f0f0f0")
         self.stock_model = stock_model
         self.movement_view = StockMovementView(StockMovementModel())
+        self._stat_total    = tk.StringVar(value="—")
+        self._stat_low      = tk.StringVar(value="—")
+        self._stat_no_stock = tk.StringVar(value="—")
+        self._stat_value    = tk.StringVar(value="—")
         self.create_widgets()
         self.edit_item = None
         self.edit_entry = None
@@ -38,7 +42,6 @@ class StockView():
         self.frame.grid_rowconfigure(2, weight=1)  # table
         self.frame.grid_rowconfigure(3, weight=0)  # buttons
         self.create_find_frame()
-        self.create_stats_frame()
         self.create_tree_frame()
         self.create_buttons_frame()
     
@@ -155,18 +158,47 @@ class StockView():
         )
         history_product_btn.grid(row=0, column=3, padx=15, pady=15)
 
-    def create_stats_frame(self):
+        stock_information_btn = ctk.CTkButton(
+            find_frame,
+            text="📊 Información Stock",
+            width=W, height=H,
+            font=ctk.CTkFont(size=12, weight="bold"),
+            fg_color=btn_color, hover_color=btn_hover,
+            command=self.open_stock_information
+        )
+        stock_information_btn.grid(row=0, column=4, padx=15, pady=15)
+
+
+    def open_stock_information(self):
+        """Ventana con información detallada del stock"""
+        window = ctk.CTkToplevel(self.frame)
+        window.title("Información Detallada del Stock")
+        window.grab_set()
+        window.resizable(False, False)
+        center_window(window, 400, 300)
+
+        self.create_stats_frame(window)
+        self.update_stats(self.current_products)
+
+    def create_stats_frame(self, parent=None):
         """Barra de estadísticas rápidas del inventario"""
-        self.stats_frame = ctk.CTkFrame(self.frame, fg_color="#f8f8f8", corner_radius=8)
-        self.stats_frame.grid(row=1, column=0, padx=10, pady=(0, 4), sticky="ew")
+        container = parent if parent else self.frame
+        self.stats_frame = ctk.CTkFrame(container, fg_color="#f8f7f7", corner_radius=8)
+        if parent:
+            self.stats_frame.pack(padx=10, pady=10, fill="both", expand=True)
+        else: 
+            self.stats_frame.grid(row=1, column=0, padx=15, pady=15, sticky='ew')
 
         # 4 cards: total productos, stock bajo, sin stock, valor inventario
-        for i in range(4):
+        for i in range(2):
             self.stats_frame.grid_columnconfigure(i, weight=1)
+            self.stats_frame.grid_rowconfigure(i, weight=1)
 
-        def make_card(col, icon, label, var, color):
+        def make_card(i, icon, label, var, color):
+            fila = i // 2
+            col = i % 2
             card = ctk.CTkFrame(self.stats_frame, fg_color="white", corner_radius=8)
-            card.grid(row=0, column=col, padx=8, pady=8, sticky="ew")
+            card.grid(row=fila, column=col, padx=10, pady=10, sticky="nsew")
             ctk.CTkLabel(card, text=f"{icon}  {label}",
                          font=ctk.CTkFont(size=11), text_color="#757575").pack(pady=(8, 0))
             ctk.CTkLabel(card, textvariable=var,
@@ -208,7 +240,7 @@ class StockView():
         self._stat_low.set(str(low))
         self._stat_no_stock.set(str(no_stock))
         self._stat_value.set(valor_fmt)
-
+        
     def create_tree_frame(self):
         """Crear frame para tabla de stock"""
         tree_frame = ctk.CTkFrame(self.frame)
@@ -832,6 +864,7 @@ class StockView():
 
     def refresh_stock_table(self, products):
         """Refrescar tabla de stock con nuevos datos"""
+        self.current_products = products
         for item in self.stock_tree.get_children():
             self.stock_tree.delete(item)
 
