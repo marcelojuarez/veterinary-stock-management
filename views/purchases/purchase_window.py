@@ -154,12 +154,13 @@ class PurchaseWindow():
         self.purchase_tree.tag_configure('purchase_paid',    background="#e8f5e9", foreground="#1b5e20")
         self.purchase_tree.tag_configure('orow',             background="#ffffff", foreground="#000000")
 
-        self.purchase_tree.pack(side="left", fill="both", expand=True)
+        scroll_y = ttk.Scrollbar(product_frame, orient="vertical", command=self.purchase_tree.yview)
+        scroll_x = ttk.Scrollbar(product_frame, orient="horizontal", command=self.purchase_tree.xview)
+        self.purchase_tree.configure(yscrollcommand=scroll_y.set, xscrollcommand=scroll_x.set)
 
-        #  scrollbar 
-        scroll = ttk.Scrollbar(product_frame, orient="vertical", command=self.purchase_tree.yview)
-        self.purchase_tree.configure(yscroll=scroll.set)
-        scroll.pack(side="right", fill="y")
+        scroll_y.pack(side="right", fill="y")
+        scroll_x.pack(side="bottom", fill="x")
+        self.purchase_tree.pack(fill="both", expand=True)
 
         # set treeview on purchase filter controller
         self.purchase_filter.set_treeview(self.purchase_tree)

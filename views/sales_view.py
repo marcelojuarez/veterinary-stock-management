@@ -459,6 +459,10 @@ class SalesView:
         tree_height = min(max(n_items, 2), 5)  # mínimo 2 filas, máximo 5
         preview_tree = ttk.Treeview(products_frame, show="headings", height=tree_height)
         preview_tree["columns"] = ("Cant.", "Producto", "Envase", "P. Unit.", "Subtotal")
+
+        scroll_y = ttk.Scrollbar(products_frame, orient="vertical", command=preview_tree.yview)
+        preview_tree.configure(yscrollcommand=scroll_y.set)
+        scroll_y.pack(side="right", fill="y", padx=(0, 10))
         
         widths = [40, 280, 80, 100, 100]
         for col, w in zip(preview_tree["columns"], widths):
@@ -659,7 +663,7 @@ class SalesView:
     def open_sales_query_window(self):
         """Ventana completa de consulta de ventas con filtros por fecha"""
         width_win = 1000
-        height_win = 700
+        height_win = 720
         
         win = ctk.CTkToplevel(self.frame)
         win.title("Consulta de Ventas")
@@ -767,7 +771,7 @@ class SalesView:
         ).pack(side="left", padx=2)
 
         ctk.CTkButton(
-            quick_btns, text="Semana", width=70, height=28,
+            quick_btns, text="Semana", width=60, height=28,
             fg_color="#2196F3", hover_color="#1976D2",
             command=set_this_week
         ).pack(side="left", padx=2)
@@ -866,8 +870,10 @@ class SalesView:
 
         # Scrollbar
         scroll_y = ttk.Scrollbar(table_frame, orient="vertical", command=sales_tree.yview)
-        sales_tree.configure(yscrollcommand=scroll_y.set)
+        scroll_x = ttk.Scrollbar(table_frame, orient="horizontal", command=sales_tree.xview)
+        sales_tree.configure(yscrollcommand=scroll_y.set, xscrollcommand=scroll_x.set)
         scroll_y.pack(side="right", fill="y")
+        scroll_x.pack(side="bottom", fill="x")
         sales_tree.pack(fill="both", expand=True)
 
         # Tags para colores
@@ -1320,7 +1326,7 @@ class SalesView:
         dialog.transient(self.frame)
         dialog.grab_set()
         dialog.resizable(False, False)
-        center_window(dialog, 500, 450)
+        center_window(dialog, 500, 490)
         
         # Título
         ctk.CTkLabel(
