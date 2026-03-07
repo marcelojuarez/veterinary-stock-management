@@ -25,49 +25,49 @@ class CustomersView:
         # footer se crea en attach_controller()
 
     def create_header(self):
-        header = ctk.CTkFrame(self.frame, fg_color="#e0e0e0", corner_radius=10)
-        header.grid(row=0, column=0, sticky="w", padx=10, pady=(8, 5))
+        header = ctk.CTkFrame(self.frame)
+        header.grid(row=0, column=0, sticky='w', padx=10, pady=10)
         header.grid_columnconfigure(0, weight=0)  # título
         header.grid_columnconfigure(1, weight=0)  # entry búsqueda
-        header.grid_columnconfigure(2, weight=0)  # botón buscar
+        # header.grid_columnconfigure(2, weight=0)  # botón buscar
 
         # --- Título ---
         title = ctk.CTkLabel(
             header,
-            text="👥 Gestión de Clientes",
-            font=ctk.CTkFont(size=17, weight="bold"),
-            text_color="#212121"
+            text="👥 Buscar Clientes",
+            font=ctk.CTkFont(size=14, weight='bold')
         )
-        title.grid(row=0, column=0, padx=(15, 10), pady=8, sticky="w")
+        title.grid(row=0, column=0, padx=15, pady=15)
 
         # --- Campo de búsqueda ---
         search_entry = ctk.CTkEntry(
             header,
             textvariable=self.search_var,
-            width=300,
+            width=600,
             height=35,
+            font=ctk.CTkFont(size=12),
             placeholder_text="Buscar cliente..."
         )
-        search_entry.grid(row=0, column=1, padx=10, pady=5, sticky="w")
+        search_entry.grid(row=0, column=1, padx=10, pady=15)
 
         search_entry.bind(
             "<KeyRelease>",
             lambda event: self.controller.filter_customers(self.search_var.get())
         )
 
-        # --- Botón Buscar ---
-        search_btn = ctk.CTkButton(
-            header,
-            text="Buscar",
-            width=120,
-            height=35,
-            font=ctk.CTkFont(size=12, weight="bold"),
-            fg_color="#009688",
-            hover_color="#00796B",
-            corner_radius=8,
-            command=lambda: self.controller.filter_customers(self.search_var.get()) if self.controller else None
-        )
-        search_btn.grid(row=0, column=2, padx=(5, 15), pady=5, sticky="w")
+        # # --- Botón Buscar ---
+        # search_btn = ctk.CTkButton(
+        #     header,
+        #     text="Buscar",
+        #     width=120,
+        #     height=35,
+        #     font=ctk.CTkFont(size=12, weight="bold"),
+        #     fg_color="#009688",
+        #     hover_color="#00796B",
+        #     corner_radius=8,
+        #     command=lambda: self.controller.filter_customers(self.search_var.get()) if self.controller else None
+        # )
+        # search_btn.grid(row=0, column=2, padx=(5, 15), pady=5, sticky="w")
 
     # --------------------------------------------------------------------
     # TABLE SECTION
@@ -97,14 +97,14 @@ class CustomersView:
             bordercolor="#d0d0d0",
             lightcolor="#d0d0d0",
             darkcolor="#d0d0d0",
-            rowheight=28,
-            font=("Segoe UI", 10)
+            rowheight=20,
+            font=("Segoe UI", 8)
         )
         style.configure(
             "Custom.Treeview.Heading",
             background="#e6e6e6",
             foreground="#000000",
-            font=("Segoe UI", 10, "bold")
+            font=("Segoe UI", 9, "bold")
         )
         style.map("Custom.Treeview.Heading",
                   background=[("active", "#dcdcdc")])
@@ -137,9 +137,11 @@ class CustomersView:
             self.table.heading(col, text=col, anchor="center")
 
         scroll_y = ttk.Scrollbar(table_frame, orient="vertical", command=self.table.yview)
-        self.table.configure(yscroll=scroll_y.set)
+        scroll_x = ttk.Scrollbar(table_frame, orient="horizontal", command=self.table.xview)
+        self.table.configure(yscrollcommand=scroll_y.set, xscrollcommand=scroll_x.set)
+        scroll_x.pack(side="bottom", fill="x")
         scroll_y.pack(side="right", fill="y")
-        self.table.pack(padx=10, pady=10, fill="both", expand=True)
+        self.table.pack(fill="both", expand=True, padx=(10, 0), pady=(0, 0))
         self.table.bind("<<TreeviewSelect>>", lambda e: self.update_debts_button_state())
 
     # --------------------------------------------------------------------
@@ -762,12 +764,12 @@ class CustomersView:
         style = ttk.Style()
         style.configure(
             "History.Treeview",
-            rowheight=28,
-            font=("Segoe UI", 10)
+            rowheight=20,
+            font=("Segoe UI", 8)
         )
         style.configure(
             "History.Treeview.Heading",
-            font=("Segoe UI", 10, "bold")
+            font=("Segoe UI", 9, "bold")
         )
 
         cols = ("Fecha", "Tipo", "Descripción", "Compra", "Pago", "Deuda")

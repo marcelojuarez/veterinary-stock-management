@@ -162,8 +162,8 @@ class StockMovementView:
                 "Precio Ant.", "Precio Act.")
 
         style = ttk.Style()
-        style.configure("Mov.Treeview", rowheight=26, font=("Segoe UI", 10))
-        style.configure("Mov.Treeview.Heading", font=("Segoe UI", 10, "bold"))
+        style.configure("Mov.Treeview", rowheight=20, font=("Segoe UI", 8))
+        style.configure("Mov.Treeview.Heading", font=("Segoe UI", 9, "bold"))
 
         tree = ttk.Treeview(
             table_frame,

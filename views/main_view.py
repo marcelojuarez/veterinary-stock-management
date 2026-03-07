@@ -1,3 +1,4 @@
+from ctypes import wintypes
 import platform
 import tkinter as tk
 from tkinter import ttk
@@ -38,13 +39,16 @@ from controllers.supplier_receipt_controller import SupplierReceiptController
 from controllers.iva_reports_controller import ReportsController
 from views.backup_manager import BackupManagerView
 import sys, os
-
-import ctypes
+import ctypes 
+from ctypes import wintypes
 
 try:
     ctypes.windll.shcore.SetProcessDpiAwareness(1)
 except:
     pass
+
+ctk.set_appearance_mode("light")
+ctk.set_default_color_theme("blue")
 
 class App():
     def __init__(self):
@@ -69,22 +73,17 @@ class App():
         screen_height = self.root.winfo_screenheight()
 
         # usar 90% de la pantalla
-        width = int(screen_width * 0.9)
-        height = int(screen_height * 0.9)
+        width = 1366
+        height = 768
 
         self.root.geometry(f"{width}x{height}")
 
-        # tamaño mínimo razonable
         self.root.minsize(1000, 600)
-
         self.root.resizable(True, True)
-
-        # abrir maximizado
-        if platform.system() == "Windows":
-            self.root.state("zoomed")
 
         self.root.withdraw()
 
+        # icono
         if getattr(sys, 'frozen', False):
             base_path = sys._MEIPASS
         else:

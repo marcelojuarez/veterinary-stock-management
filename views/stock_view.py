@@ -271,14 +271,14 @@ class StockView():
         style.configure('Treeview',
                        background='#ffffff',
                        foreground='#ffffff',
-                       rowheight=30,
+                       rowheight=20,
                        fieldbackground='#ffffff',
-                       font=('Arial', 12))
+                       font=('Segoe UI', 8))
         
         style.configure('Treeview.Heading',
                        background='#e0e0e0',
                        foreground='#333333',
-                       font=('Arial', 12, 'bold'))
+                       font=('Segoe UI', 9, 'bold'))
         
         style.map('Treeview',
                  background=[('selected', '#0078d4')])
@@ -291,6 +291,9 @@ class StockView():
         scrollbar = ttk.Scrollbar(table_container, orient='vertical', command=self.stock_tree.yview)
         scrollbar.grid(row=0, column=1, sticky='ns')
         self.stock_tree.configure(yscrollcommand=scrollbar.set)
+        scrollbar_x = ttk.Scrollbar(table_container, orient='horizontal', command=self.stock_tree.xview)
+        scrollbar_x.grid(row=1, column=0, sticky='ew')
+        self.stock_tree.configure(xscrollcommand=scrollbar_x.set)
 
         self.stock_tree['columns'] = (
             "Id", "Name", "Package", "ListPrice", "Discount", "CostPrice", "Profit", 

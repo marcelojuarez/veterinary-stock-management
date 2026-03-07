@@ -99,14 +99,26 @@ class SalesView:
                             font=ctk.CTkFont(size=15, weight="bold"))
         label.pack(pady=(10, 5))
 
-        self.product_tree = ttk.Treeview(selector_frame, show="headings", height=12)
+        tree_frame = tk.Frame(selector_frame)
+        tree_frame.pack(padx=10, pady=10, fill="both", expand=True)
+        tree_frame.rowconfigure(0, weight=1)
+        tree_frame.columnconfigure(0, weight=1)
+        self.product_tree = ttk.Treeview(tree_frame, show="headings", height=12)
         self.product_tree["columns"] = ("Cód.", "Nombre", "Envase", "P. Venta", "Stock")
 
-        for col, w in zip(self.product_tree["columns"], [50, 350, 100, 100, 40]):
+        for col, w in zip(self.product_tree["columns"], [50, 300, 100, 100, 80]):
             self.product_tree.column(col, width=w)
             self.product_tree.heading(col, text=col)
 
-        self.product_tree.pack(padx=10, pady=10, fill="both", expand=True)
+        scroll_y = ttk.Scrollbar(tree_frame, orient="vertical", command=self.product_tree.yview)
+        scroll_x = ttk.Scrollbar(tree_frame, orient="horizontal", command=self.product_tree.xview)
+        self.product_tree.configure(yscrollcommand=scroll_y.set, xscrollcommand=scroll_x.set)
+
+        self.product_tree.grid(row=0, column=0, sticky="nsew")
+        scroll_y.grid(row=0, column=1, sticky="ns")
+        scroll_x.grid(row=1, column=0, sticky="ew")
+
+
 
         # Frame para botones (para que queden uno al lado del otro)
         button_frame = ctk.CTkFrame(selector_frame, fg_color="transparent")
@@ -147,11 +159,17 @@ class SalesView:
         self.sale_tree = ttk.Treeview(table_frame, show="headings", height=10)
         self.sale_tree["columns"] = ("Cód.", "Nombre", "Envase", "Cant.", "Precio Unit.", "Subtotal")
 
-        for col, w in zip(self.sale_tree["columns"], [60, 300, 80, 20, 100, 120]):
+        for col, w in zip(self.sale_tree["columns"], [60, 300, 80, 60, 100, 120]):
             self.sale_tree.column(col, width=w, anchor="center")
             self.sale_tree.heading(col, text=col)
 
-        self.sale_tree.grid(row=1, column=0, padx=10, pady=10, sticky="nsew")
+        scroll_y = ttk.Scrollbar(table_frame, orient="vertical", command=self.sale_tree.yview)
+        scroll_x = ttk.Scrollbar(table_frame, orient="horizontal", command=self.sale_tree.xview)
+        self.sale_tree.configure(yscrollcommand=scroll_y.set, xscrollcommand=scroll_x.set)
+
+        self.sale_tree.grid(row=1, column=0, padx=(10,0), pady=(10,0), sticky="nsew")
+        scroll_y.grid(row=1, column=1, sticky="ns", pady=(10,0))
+        scroll_x.grid(row=2, column=0, sticky="ew", padx=(10,0))
 
         total_label = ctk.CTkLabel(
             table_frame,
@@ -159,7 +177,7 @@ class SalesView:
             font=ctk.CTkFont(size=20, weight="bold"),
             text_color="#333333"
         )
-        total_label.grid(row=2, column=0, pady=(5, 15))
+        total_label.grid(row=3, column=0, pady=(5, 15))
 
     # --------------------------------------------------------------------
     # FOOTER - ACCIONES
@@ -824,12 +842,12 @@ class SalesView:
         style = ttk.Style()
         style.configure(
             "Sales.Treeview",
-            rowheight=28,
-            font=("Segoe UI", 10)
+            rowheight=20,
+            font=("Segoe UI", 8)
         )
         style.configure(
             "Sales.Treeview.Heading",
-            font=("Segoe UI", 10, "bold")
+            font=("Segoe UI", 9, "bold")
         )
 
         cols = ("ID", "Fecha", "Hora", "Cliente", "Estado", "Total", "Pagado", "Saldo")

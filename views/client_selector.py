@@ -22,7 +22,7 @@ class ClientSelectorDialog:
         self.dialog.transient(parent)
         self.dialog.grab_set()
         self.dialog.resizable(False, False)
-        center_window(self.dialog, 600, 600)
+        center_window(self.dialog, 620, 600)
 
         self.create_ui()
         self.load_clients()
@@ -77,7 +77,7 @@ class ClientSelectorDialog:
         
         # Tabla de clientes
         table_frame = ctk.CTkFrame(self.dialog)
-        table_frame.pack(fill="both", expand=True, padx=15, pady=10)
+        table_frame.pack(fill="both", expand=True, padx=5, pady=10)
         
         # Scrollbar
         scrollbar = ttk.Scrollbar(table_frame)
@@ -91,7 +91,7 @@ class ClientSelectorDialog:
         )
         self.clients_tree["columns"] = ("Nombre", "CUIT/DNI", "Dirección")
         
-        widths = [200, 120, 230]
+        widths = [220, 130, 180]
         for col, w in zip(self.clients_tree["columns"], widths):
             self.clients_tree.column(col, width=w, anchor="w" if col == "Nombre" or col == "Dirección" else "center")
             self.clients_tree.heading(col, text=col)

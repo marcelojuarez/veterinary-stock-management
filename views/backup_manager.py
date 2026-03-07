@@ -116,8 +116,8 @@ class BackupManagerView(ctk.CTkFrame):
 
         style = ttk.Style()
         style.theme_use("clam")
-        style.configure("Treeview", rowheight=28, font=("Arial", 12))
-        style.configure("Treeview.Heading", font=("Arial", 12, "bold"))
+        style.configure("Treeview", rowheight=20, font=("Segoe UI", 8))
+        style.configure("Treeview.Heading", font=("Segoe UI", 9, "bold"))
 
         self.backups_tree = ttk.Treeview(
             container,
