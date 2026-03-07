@@ -72,11 +72,7 @@ class App():
         screen_width = self.root.winfo_screenwidth()
         screen_height = self.root.winfo_screenheight()
 
-        # usar 90% de la pantalla
-        width = 1366
-        height = 768
-
-        self.root.geometry(f"{width}x{height}")
+        self.root.state('zoomed')  
 
         self.root.minsize(1000, 600)
         self.root.resizable(True, True)
@@ -143,6 +139,9 @@ class App():
             fg_color="#4CAF50", hover_color="#45a049")
         cancel_btn.grid(row=2, column=1)
 
+        self.login_win.lift()
+        self.login_win.focus_force()
+        
     def load_system(self):
         if (validate_data(self.user_var.get(), self.pwd_var.get())):
                 
@@ -158,6 +157,8 @@ class App():
     def create_componentes(self):
         self.notebook = ttk.Notebook(self.root)
         self.root.update_idletasks()
+        self.root.grid_rowconfigure(0, weight=1)
+        self.root.grid_columnconfigure(0, weight=1)
         self.notebook.pack(fill='both', expand=True)
         self.notebook.bind("<<NotebookTabChanged>>", self.on_tab_change)
         self.root.update() 
