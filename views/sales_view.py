@@ -221,10 +221,12 @@ class SalesView:
                 font=ctk.CTkFont(size=12, weight="bold")).pack(pady=(15, 5))
             ctk.CTkLabel(card_frame, text=f"Stock disponible: {stock}", font=ctk.CTkFont(size=13)).pack()
 
-            qty_var = tk.StringVar(value="1")
+            qty_var = tk.StringVar()
             qty_entry = ctk.CTkEntry(card_frame, textvariable=qty_var, width=80, height=35, justify="center")
             qty_entry.pack(pady=10)
+            qty_var.set("1")
             qty_entry.focus()
+            qty_entry.icursor("end")
 
             def confirm_add():
                 self.controller.add_product_to_sale(product_id, name, pack, price, stock, qty_var.get())
@@ -232,8 +234,12 @@ class SalesView:
                 self.update_total()
                 qty_win.destroy()
 
-            ctk.CTkButton(card_frame, text="Agregar", width=120, height=35,
-                          fg_color="#4CAF50", hover_color="#45a049", command=confirm_add).pack(pady=(10, 5))
+            confirm_btn = ctk.CTkButton(card_frame, text="Agregar", width=120, height=35,
+                          fg_color="#4CAF50", hover_color="#45a049", command=confirm_add)
+            confirm_btn.pack(pady=(10, 5))
+
+            qty_win.bind("<Return>", lambda event: confirm_btn.invoke())
+
             ctk.CTkButton(card_frame, text="Cancelar", width=120, height=35,
                           fg_color="#757575", hover_color="#616161", command=qty_win.destroy).pack(pady=(0, 10))
 
@@ -271,7 +277,7 @@ class SalesView:
                 display_name = name if name else self._get_product_name(pid)
             
             subtotal = norm_to_2_dec(price * qty)
-            self.sale_tree.insert("", "end", values=(pid, display_name, pack, qty, price, subtotal))
+            self.sale_tree.insert("", "end", values=(pid, display_name, pack, qty, format_currency(price), format_currency(subtotal)))
 
     def _get_product_name(self, pid):
         """Helper para obtener nombre del producto por ID"""
@@ -471,8 +477,8 @@ class SalesView:
                 qty,
                 product_name,
                 pack,
-                f"${price}",
-                f"${subtotal}"
+                f"${format_currency(price)}",
+                f"${format_currency(subtotal)}"
             ))
 
         # Se normaliza el total
@@ -618,6 +624,7 @@ class SalesView:
             command=confirm
         )
         confirm_btn.grid(row=0, column=0, padx=10)
+        confirm_win.bind("<Return>", lambda event: confirm_btn.invoke())
         
         cancel_btn = ctk.CTkButton(
             button_frame,

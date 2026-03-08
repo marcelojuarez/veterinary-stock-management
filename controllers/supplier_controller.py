@@ -3,9 +3,16 @@ import re
 from utils.view_helpers import show_warning, show_error, show_success, ask_confirmation
 
 class SupplierController():
-    def __init__(self, supplier_model):
+    def __init__(self, supplier_model, event_bus):
         self.model = supplier_model
         self.view = None
+
+        self.event_bus = event_bus
+
+        self.event_bus.subscribe(
+            'refresh_supplier_table',
+            self.refresh_supplier_table
+        )
 
     def set_view(self, view):
         self.view = view
@@ -84,8 +91,6 @@ class SupplierController():
             print(values)
             debt = self.model.purchase.get_debt_of_supplier(values[2])
 
-            print(f'debt: {debt}')
-            print(f'type of debt: {type(debt)}')
             self.view.open_info_window(values, debt, parent)
         except Exception as e:
             print(f'Hubo un error: {e}')
@@ -108,6 +113,9 @@ class SupplierController():
 
     def __validate_supplier_email(self, email_field):
         pattern = r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b'
+
+        if email_field.strip() == '-':
+            return True
         
         if not re.fullmatch(pattern, email_field):
             show_warning("Por favor coloquen el e-mail correctamente.")
@@ -131,6 +139,9 @@ class SupplierController():
     def __validate_supplier_phone(self, phone_field):
         pattern = r'^\+?\d{7,15}$'
         
+        if phone_field.strip() == '-':
+            return True
+
         if not re.fullmatch(pattern, phone_field):
             show_warning("Por favor coloque el teléfono correctamente. Debe contener entre 7 y 15 dígitos, puede incluir un '+' al inicio.")
             return False
@@ -145,6 +156,9 @@ class SupplierController():
         return True
     
     def __validate_supplier_address(self, address_field):
+        if address_field.strip() == '-':
+            return True
+
         if len(address_field) < 5 or len(address_field) > 150:
             show_warning("La dirección del proveedor debe tener entre 5 y 150 caracteres.")
             return False

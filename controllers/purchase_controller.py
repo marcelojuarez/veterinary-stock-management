@@ -19,9 +19,9 @@ class PurchaseController():
             'refresh_products_on_p_win',
             self.refresh_products_on_p_win
         )
-        
+
         products = self.stock_model.get_all_products()
-        self.products = [(p[0], p[1], p[2], p[10]) for p in products]
+        self.products = [(p[0], p[1], p[2], p[12]) for p in products]
 
     def set_view(self, view):
         self.view = view
@@ -75,6 +75,9 @@ class PurchaseController():
                 self.event_bus.publish('refresh_stock_table', None)
                 self.event_bus.publish('refresh_stock_in_sale_view', None)
                 
+                # Se establece la ultima actualizacion de deuda
+                self.supplier_model.purchase.update_last_debt_update(purchase_data[1])
+                self.event_bus.publish('refresh_supplier_table', None)
                 show_success('Compra confirmada')
                 return True
 

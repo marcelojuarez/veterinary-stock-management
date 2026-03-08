@@ -3,7 +3,7 @@ from tkinter import ttk
 import customtkinter as ctk
 
 from .purchase_form import PurchaseForm
-from utils.utils import iso_to_traditional
+from utils.utils import iso_to_traditional, format_currency
 from utils.view_helpers import center_window, close_win, show_warning, show_error
 from .purchase_info_invoice_view import PurchaseInfoInvoiceView
 from .purchase_info_receipt_view import PurchaseInfoReceiptView
@@ -612,8 +612,8 @@ class PurchaseWindow():
                     iso_to_traditional(p[6]),# fecha
                     iso_to_traditional(p[7]),# fecha venc
                     p[8],                    # estado
-                    p[10],                   # saldo pend
-                    p[11]                    # total
+                    format_currency(p[10]),  # saldo pend
+                    format_currency(p[11])   # total
                 ),
                 tags=(tag,)
             )

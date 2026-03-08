@@ -1,7 +1,7 @@
 import tkinter as tk
 import customtkinter as ctk
 from datetime import datetime
-from utils.utils import iso_to_traditional
+from utils.utils import iso_to_traditional, format_currency
 from utils.view_helpers import close_win, show_warning
 from utils.invoice_utils import pay_period_control, calculate_exp_date
 

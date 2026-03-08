@@ -1,8 +1,8 @@
 import tkinter as tk
 from tksheet import Sheet
 import customtkinter as ctk
-from utils.utils import iso_to_traditional
 from services.purchase_detail import PurchaseDetail
+from utils.utils import iso_to_traditional, format_currency, format_currency_flex
 from utils.invoice_utils import pay_period_control, calculate_exp_date
 from utils.view_helpers import center_window, close_win, ask_confirmation, show_success, show_warning, show_error
 
@@ -62,7 +62,6 @@ class PurchaseInfoInvoiceView():
             if doc_type == "REMITO":
                 self.show_invoice_fields(doc_id=None)
             else:
-                print(f"pruchase data 3: {purchase_data[3]}")
                 self.show_invoice_fields(doc_id=purchase_data[3])
 
             btn_frame = ctk.CTkFrame(main_frame, fg_color="#f5f5f5", corner_radius=10)
@@ -99,7 +98,6 @@ class PurchaseInfoInvoiceView():
             self.sheet.pack(fill="both", expand=True, padx=5, pady=5)
 
             self.load_data_into_the_sheet()
-
 
             # columnas: spacer | btn | btn | btn | btn | btn | spacer
             for i in (0, 6):
@@ -468,14 +466,14 @@ class PurchaseInfoInvoiceView():
         self.invoice_vars['pay_cond'].set(invoice_data[9])
         self.invoice_vars['pay_period'].set(invoice_data[10])
         self.invoice_vars['obs'].set(invoice_data[8])
-        self.invoice_vars['orig_subtotal'].set(invoice_data[11])
+        self.invoice_vars['orig_subtotal'].set(format_currency(invoice_data[11]))
         self.invoice_vars['discount'].set(invoice_data[12])
-        self.invoice_vars['discount_amount'].set(invoice_data[13])
-        self.invoice_vars['subtotal_w_discount'].set(invoice_data[14])
-        self.invoice_vars['iva'].set(invoice_data[15])
-        self.invoice_vars['iibb_per'].set(str(iibb_p_amount))
-        self.invoice_vars['iva_per'].set(str(iva_p_amount))
-        self.invoice_vars['total'].set(invoice_data[16])
+        self.invoice_vars['discount_amount'].set(format_currency(invoice_data[13]))
+        self.invoice_vars['subtotal_w_discount'].set(format_currency(invoice_data[14]))
+        self.invoice_vars['iva'].set(format_currency(invoice_data[15]))
+        self.invoice_vars['iibb_per'].set(format_currency(iibb_p_amount))
+        self.invoice_vars['iva_per'].set(format_currency(iva_p_amount))
+        self.invoice_vars['total'].set(format_currency(invoice_data[16]))
 
         self._loading = False
 
@@ -492,7 +490,28 @@ class PurchaseInfoInvoiceView():
 
     ## -- Carga tabla con informacion -- ##
     def load_data_into_the_sheet(self):
-        data = self.model.purchase.get_purchase_items(self.purchase_id)
+        data_raw = self.model.purchase.get_purchase_items(self.purchase_id)
+
+        data = [
+            [           
+                id, # id
+                name, # name
+                pack, # pack
+                qty, # quantity
+                format_currency_flex(l_price), # list_price
+                discount, # discount
+                format_currency_flex(c_price), # cost_price
+                iva_rate, # iva 
+                format_currency(discount_amt), # discount_amount
+                format_currency(subtotal), # subtotal
+                format_currency(iva_amt), # iva_amount
+                format_currency(total) # total
+            ]
+
+            for id, name, pack, qty, l_price, discount, c_price, iva_rate, discount_amt, 
+            subtotal, iva_amt, total in data_raw
+
+        ]
 
         self.sheet.set_sheet_data(data)
         self.sheet.set_column_widths([60, 260, 120, 80, 120, 100, 120, 100, 120, 120, 120, 120])

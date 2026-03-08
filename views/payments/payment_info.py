@@ -1,6 +1,7 @@
 from tksheet import Sheet
 import customtkinter as ctk
 from utils.view_helpers import close_win
+from utils.utils import iso_to_traditional, format_currency
 
 class PaymentInfo():
     def __init__(self, model):
@@ -84,9 +85,15 @@ class PaymentInfo():
         table_frame = ctk.CTkFrame(main_frame, corner_radius=10)
         table_frame.pack(fill="both", expand=True, padx=10, pady=5)
 
-        data = self.model.payment.get_purchase_payment_relation(payment_id)
-        for d in data:
-            print(d)
+        data = [
+            [
+                purchase_id,
+                format_currency(amount_applied),
+                iso_to_traditional(applied_at)
+            ]
+            for purchase_id, amount_applied, applied_at
+            in self.model.payment.get_purchase_payment_relation(payment_id)
+        ]
 
         headers = ["ID Compra", "Monto aplicado", "Fecha"]
 

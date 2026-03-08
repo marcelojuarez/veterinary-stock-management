@@ -162,12 +162,12 @@ class App():
         self.stock_controller = StockController(
             stock_model, supplier_model, payment_model, event_bus
         )
-        self.supplier_controller = SupplierController(supplier_model)
+        self.supplier_controller = SupplierController(supplier_model, event_bus)
         self.customer_controller = CustomerController(customer_model, payment_model, event_bus)
         self.iva_reports_controller = ReportsController(iva_model)
 
         self.purchase_controller = PurchaseController(supplier_model, stock_model, event_bus)
-        self.payment_controller = PaymentController(supplier_model)
+        self.payment_controller = PaymentController(supplier_model, event_bus)
         self.supplier_invoice_controller = SupplierInvoiceController(supplier_model)
         self.receipt_controller = SupplierReceiptController(supplier_model)
         self.invoice_controller = InvoiceController(invoice_model, customer_model, stock_model)

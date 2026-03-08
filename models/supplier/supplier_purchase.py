@@ -40,7 +40,7 @@ class SupplierPurchase():
     ## -- Obtener compra por ID -- ##
     def get_purchase_by_id(self, purchase_id):
         try:
-            query= """
+            query = """
             SELECT * FROM purchase WHERE id = ?
             """
             
@@ -49,6 +49,19 @@ class SupplierPurchase():
         except ValueError as e:
             print(f'Error al obtener la compra: {e}')
             return None
+
+    ## -- Obtener saldo pendiente de una compra --##
+    def get_pending_of_purchase(self, purchase_id):
+        try:
+            query = """
+            SELECT pending FROM purchase WHERE id = ?
+            """
+
+            return self.db.fetch_one(query, (purchase_id, ))[0]
+
+        except ValueError as e:
+            print(f'Error al obtener saldo pendiente: {e}')
+            return None            
 
     ## Obtener compra por fecha ##
     def get_purchases_by_date(self, date, cuit=None):
@@ -92,7 +105,7 @@ class SupplierPurchase():
                     WHEN purchase.state = 'PENDIENTE' THEN 0 
                     ELSE 1 
                 END,
-                purchase.expiration_date
+                purchase.expiration_date, purchase.id DESC
             """ 
             params = [
                 cuit,
@@ -600,7 +613,7 @@ class SupplierPurchase():
         return norm_to_2_dec(pending)
     
     def update_last_debt_update(self, supplier_id, conn=None, commit=True):
-        date = datetime.now().strftime("%Y-%m-%d")
+        date = datetime.now().strftime("%d/%m/%Y %H:%M")
         """Actualizar Saldo deuda a un proveedor"""
         query = """
             UPDATE supplier

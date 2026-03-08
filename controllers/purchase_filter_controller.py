@@ -1,6 +1,6 @@
 from datetime import datetime
 from utils.view_helpers import show_error
-from utils.utils import traditional_to_iso, iso_to_traditional
+from utils.utils import traditional_to_iso, iso_to_traditional, format_currency
 
 class PurchaseFilterController():
     def __init__(self, model):
@@ -56,8 +56,8 @@ class PurchaseFilterController():
                     iso_to_traditional(p[6]), # fecha
                     iso_to_traditional(p[7]), # fecha venc
                     p[8], # estado
-                    p[10], # saldo pend
-                    p[11] # total
+                    format_currency(p[10]), # saldo pend
+                    format_currency(p[11]) # total
                 ),
                 tag=(tag,)
             )    

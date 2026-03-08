@@ -4,7 +4,7 @@ import customtkinter as ctk
 from .payment_form import PaymentForm 
 from .payment_info import PaymentInfo
 from utils.view_helpers import center_window, close_win, show_warning, show_error
-from utils.utils import iso_to_traditional
+from utils.utils import iso_to_traditional, format_currency
 from utils.view_helpers import close_win, show_warning, show_error
 
 # Configurar tema y colores
@@ -34,6 +34,7 @@ class PaymentWindow():
 
         self.supplier_var = tk.StringVar()
         self.debt_var = tk.StringVar()
+        self.formatted_debt_var = tk.StringVar()
         self.suppliers = self.model.core.get_all_suppliers()
             
         win = ctk.CTkToplevel(self.frame)
@@ -95,7 +96,7 @@ class PaymentWindow():
 
         debt_entry = ctk.CTkEntry(
             debt_frame,
-            textvariable=self.debt_var,
+            textvariable=self.formatted_debt_var,
             width=120,
             corner_radius=10,
             fg_color="white",
@@ -287,13 +288,14 @@ class PaymentWindow():
                 return
 
             self.supplier_var.set(values[1])
+            amount = self.model.purchase.get_pending_of_purchase(values[0])
             self.load_purchase_history(True)
 
             self.payment_form.add_payment_win(
                 parent=parent, 
                 supplier_cuit=values[1], 
                 purchase_id=values[0], 
-                amount=values[7]
+                amount=amount
             )
 
         except ValueError as e:
@@ -337,7 +339,7 @@ class PaymentWindow():
                 values=(
                    p[0], # id
                    p[1], # cuit
-                   p[3], # monto
+                   format_currency(p[3]), # monto
                    p[4], # metodo
                    p[5], # observation
                    iso_to_traditional(p[11]) # fecha    
@@ -360,6 +362,7 @@ class PaymentWindow():
             debt = self.model.purchase.get_debt_of_supplier(selected_supplier)
 
             self.debt_var.set(debt)
+            self.formatted_debt_var.set(format_currency(debt))
             purchases = self.model.purchase.get_all_confirmed_purchases(selected_supplier)
 
         else:
@@ -387,8 +390,8 @@ class PaymentWindow():
                     iso_to_traditional(p[6]),# fecha
                     iso_to_traditional(p[7]),# fecha venc
                     p[8],                    # estado
-                    p[10],                   # saldo pend
-                    p[11]                    # total
+                    format_currency(p[10]),  # saldo pend
+                    format_currency(p[11])   # total
                 ),
                 tags=(tag,)
             )
@@ -433,6 +436,7 @@ class PaymentWindow():
         )
         self.find_entry.grid(row=0, column=1, padx=5)
 
+        self.find_entry.focus()
         self.find_entry.bind("<KeyRelease>", self.on_key_release)
         self.search_after_id = None
 

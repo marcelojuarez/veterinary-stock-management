@@ -91,6 +91,16 @@ def format_currency(value):
     
     return formatted
 
+## Convierte un Decimal a string con formato monetario extendido hasta 4 decimales
+def format_currency_flex(value):
+    number = norm_to_4_dec(value)
+    
+    formatted = f"{number:,.4f}"
+    
+    formatted = formatted.replace(",", "X").replace(".", ",").replace("X", ".")
+    
+    return formatted
+
 ## Formato de fechas ##
 ## -- Convierte de "YYYY-MM-DD" a "DD/MM/YYYY" -- ##
 def iso_to_traditional(date):

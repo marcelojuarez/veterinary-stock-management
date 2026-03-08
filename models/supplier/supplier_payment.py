@@ -58,7 +58,7 @@ class SupplierPayment():
             FROM supplier_payment 
             JOIN supplier ON supplier_payment.supplier_id = supplier.id
             WHERE (? IS NULL OR supplier.cuit = ?)
-            ORDER BY supplier_payment.date DESC
+            ORDER BY supplier_payment.date DESC, supplier_payment.id DESC
             """
             params = [
                cuit,
