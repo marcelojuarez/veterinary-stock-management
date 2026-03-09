@@ -83,6 +83,43 @@ class CustomerController:
             show_error(f"Error al registrar el cliente: {str(e)}")
             return False
 
+    def edit_customer(self, customer_id, data, window):
+        """Guarda los cambios de un cliente existente"""
+        try:
+            if not self.__validate_customer_data(data):
+                return False
+            if not self.__validate_supplier_cuit(data["cuit"]):
+                return False
+            if data["phone"] and not self.__validate_supplier_phone(data["phone"]):
+                return False
+            if not self.__validate_cv(data["cv"]):
+                return False
+            if not self.__validate_cuig(data["cuig"]):
+                return False
+            if not self.__validate_renspa(data["renspa"]):
+                return False
+
+            data['cuig']   = data['cuig'].strip().replace(" ", "").replace("-", "").upper()
+            data['renspa'] = data['renspa'].replace("-", "").replace("/", "").strip()
+
+            # Verificar duplicados excluyendo el propio cliente
+            duplicate_error = self.model.check_duplicate_customer(data, exclude_id=customer_id)
+            if duplicate_error:
+                show_error(duplicate_error)
+                return False
+
+            self.model.edit_customer(customer_id, data)
+            self.refresh_customer_data()
+            window.destroy()
+            return True
+
+        except ValueError as e:
+            show_error(f"Error en los datos: {str(e)}")
+            return False
+        except Exception as e:
+            show_error(f"Error al editar el cliente: {str(e)}")
+            return False
+
     def delete_customer(self, customer_id):
         """Elimina un cliente por su ID"""
         confirm = messagebox.askyesno("Confirmar", "¿Desea eliminar este cliente?")

@@ -180,10 +180,158 @@ def match_stock(nombre_articulo, stock_map):
     return 0.0
 
 
+# ─── Migración proveedores desde CSV ─────────────────────────────────────────
+
+def migrate_suppliers_from_csv(conn, csv_path, dry_run):
+    """
+    Migra proveedores desde proveedores_orig.csv que ya tiene el formato
+    exacto de la tabla supplier. Usa CUIT real cuando existe.
+    """
+    log("\n[1/3] PROVEEDORES (desde CSV)")
+    if not os.path.exists(csv_path):
+        log("  WARN: proveedores_orig.csv no encontrado — usando XMLs")
+        return False
+
+    import csv as csv_mod
+    with open(csv_path, encoding='utf-8') as f:
+        rows = list(csv_mod.DictReader(f))
+
+    log(f"  Encontrados: {len(rows)} proveedores")
+    inserted = skipped = 0
+    cursor = conn.cursor()
+
+    for r in rows:
+        nombre   = (r.get('name') or '').strip()
+        raw_cuit = (r.get('cuit') or '').strip()
+        address  = (r.get('address') or '').strip()
+        phone    = (r.get('phone') or '').strip()
+        email    = (r.get('email') or '').strip()
+        iva_cond = (r.get('iva_condition') or 'RESP. INS').strip()
+        cuit     = clean_cuit(raw_cuit)
+
+        if not nombre:
+            skipped += 1
+            continue
+
+        if dry_run:
+            log(f"    [DRY] {nombre} | CUIT: {cuit or '(sin CUIT)'} | IVA: {iva_cond}", 1)
+            inserted += 1
+            continue
+
+        cursor.execute("SELECT id FROM supplier WHERE name = ?", (nombre,))
+        if cursor.fetchone():
+            skipped += 1
+            continue
+        if cuit:
+            cursor.execute("SELECT id FROM supplier WHERE cuit = ?", (cuit,))
+            if cursor.fetchone():
+                skipped += 1
+                continue
+
+        cursor.execute("""
+            INSERT INTO supplier (cuit, name, address, city, province, country,
+                                  phone, email, iva_condition, last_debt_update)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (
+            cuit, nombre, address, "", "", "Argentina",
+            phone, email, iva_cond,
+            datetime.now().strftime("%Y-%m-%d")
+        ))
+        inserted += 1
+
+    if not dry_run:
+        conn.commit()
+    log(f"  ✓ Insertados: {inserted} | Salteados/duplicados: {skipped}")
+    return True
+
+
+# ─── Migración clientes desde CSV ────────────────────────────────────────────
+
+def migrate_customers_from_csv(conn, csv_path, dry_run):
+    """
+    Migra clientes desde clientes.csv (export de Crystal Reports).
+    Columnas relevantes: [17]=nombre, [18]=tipo_doc, [19]=nro_doc,
+                         [20]=telefono, [23]=domicilio
+    """
+    log("\n[3/3] CLIENTES")
+    if not os.path.exists(csv_path):
+        log("  WARN: clientes.csv no encontrado — omitiendo clientes")
+        return
+
+    import csv as csv_mod
+    clients = []
+    with open(csv_path, encoding='utf-8') as f:
+        for row in csv_mod.reader(f):
+            if len(row) < 24:
+                continue
+            nombre   = row[17].strip()
+            tipo_doc = row[18].strip()
+            nro_doc  = row[19].strip()
+            telefono = row[20].strip()
+            domicilio = row[23].strip()
+            # Limpiar "Casa Central" del domicilio
+            domicilio = re.sub(r'\s*Casa Central\s*$', '', domicilio).strip()
+
+            if not nombre or nombre in ('Cliente', 'Listado de Clientes', 'MOSTRADOR'):
+                continue
+
+            cuit = nro_doc if tipo_doc == 'CUIT' else None
+
+            clients.append({
+                'name':  nombre,
+                'cuit':  cuit,
+                'home':  domicilio,
+                'phone': telefono or None,
+            })
+
+    log(f"  Encontrados: {len(clients)} clientes")
+    inserted = skipped = 0
+    cursor = conn.cursor()
+
+    for c in clients:
+        nombre = c['name']
+        cuit   = c['cuit']
+        home   = c['home']
+        phone  = c['phone']
+
+        if dry_run:
+            log(f"    [DRY] {nombre} | CUIT: {cuit or '(sin CUIT)'} | Tel: {phone or '-'}", 1)
+            inserted += 1
+            continue
+
+        # Deduplicar por nombre
+        cursor.execute("SELECT id FROM customer WHERE name = ?", (nombre,))
+        if cursor.fetchone():
+            skipped += 1
+            continue
+        # Deduplicar por CUIT real
+        if cuit:
+            cursor.execute("SELECT id FROM customer WHERE cuit = ?", (cuit,))
+            if cursor.fetchone():
+                skipped += 1
+                continue
+        # Deduplicar por teléfono real
+        if phone:
+            cursor.execute("SELECT id FROM customer WHERE phone = ?", (phone,))
+            if cursor.fetchone():
+                skipped += 1
+                continue
+
+        cursor.execute("""
+            INSERT INTO customer (name, cuit, home, phone, iva_condition)
+            VALUES (?, ?, ?, ?, ?)
+        """, (nombre, cuit, home, phone, "RESP. INS"))
+        inserted += 1
+
+    if not dry_run:
+        conn.commit()
+    log(f"  ✓ Insertados: {inserted} | Salteados/duplicados: {skipped}")
+
+
 # ─── Migración proveedores ────────────────────────────────────────────────────
 
 def migrate_suppliers(conn, src, lookups, dry_run):
-    log("\n[1/2] PROVEEDORES")
+    log("\n[1/3] PROVEEDORES (desde XMLs — fallback)")
 
     proveedores = parse_xml(os.path.join(src, "ExpProveedores.xml"))
     activos = [p for p in proveedores if get(p, "Baja") == "N"]
@@ -246,7 +394,7 @@ def migrate_suppliers(conn, src, lookups, dry_run):
 # ─── Migración productos ──────────────────────────────────────────────────────
 
 def migrate_products(conn, src, lookups, stock_map, dry_run):
-    log("\n[2/2] PRODUCTOS / STOCK")
+    log("\n[2/3] PRODUCTOS / STOCK")
 
     articulos = parse_xml(os.path.join(src, "ExpArticulos.xml"))
     activos   = [a for a in articulos
@@ -354,8 +502,17 @@ def main():
         stock_map = {}
         log("  WARN: STOCK_1_NOV.xlsx no encontrado — stock se importará en 0")
 
-    migrate_suppliers(conn, args.src, lookups, args.dry_run)
+    # Proveedores: preferir CSV (tiene CUITs reales) sobre XMLs
+    prov_csv = os.path.join(args.src, "proveedores_orig.csv")
+    used_csv = migrate_suppliers_from_csv(conn, prov_csv, args.dry_run)
+    if not used_csv:
+        migrate_suppliers(conn, args.src, lookups, args.dry_run)
+
     migrate_products(conn, args.src, lookups, stock_map, args.dry_run)
+
+    # Clientes: nuevo
+    clientes_csv = os.path.join(args.src, "clientes.csv")
+    migrate_customers_from_csv(conn, clientes_csv, args.dry_run)
 
     conn.close()
 
