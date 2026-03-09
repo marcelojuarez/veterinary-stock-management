@@ -3,10 +3,11 @@ from utils.utils import string_to_2_dec
 from utils.view_helpers import show_warning, show_error, close_win
 
 class PaymentController():
-    def __init__(self, supplier_model):
+    def __init__(self, supplier_model, event_bus):
         self.supplier_model = supplier_model
         self.form_view = None
         self.pay_view = None
+        self.event_bus = event_bus
 
     def set_form_view(self, view):
         self.form_view = view
@@ -81,6 +82,7 @@ class PaymentController():
             if result:
                 self.pay_view.load_payment_movement(selected)
                 self.pay_view.load_purchase_history(True)
+                self.event_bus.publish('refresh_supplier_table', None)
 
             close_win(win, parent)
 

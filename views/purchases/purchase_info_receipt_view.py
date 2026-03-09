@@ -1,10 +1,8 @@
 import tkinter as tk
 from tksheet import Sheet
 import customtkinter as ctk
-
 from services.purchase_detail import PurchaseDetail
-
-from utils.utils import iso_to_traditional
+from utils.utils import iso_to_traditional, format_currency, format_currency_flex
 from utils.view_helpers import close_win, ask_confirmation, show_success, show_warning, show_error
 
 class PurchaseInfoReceiptView():
@@ -53,9 +51,6 @@ class PurchaseInfoReceiptView():
             self.info_frame = ctk.CTkFrame(main_frame, corner_radius=10, fg_color="white")
             self.info_frame.pack(fill="x", padx=10, pady=(0, 20)) 
 
-            self.info_frame.columnconfigure(0, weight=1)
-            self.info_frame.columnconfigure(1, weight=2)
-
             self.purchase_id = values[0]
             purchase_data = self.model.purchase.get_purchase_by_id(self.purchase_id)
 
@@ -98,12 +93,12 @@ class PurchaseInfoReceiptView():
             self.load_data_into_the_sheet()
 
             btn_frame = ctk.CTkFrame(main_frame, fg_color="#f5f5f5", corner_radius=10)
-            btn_frame.pack(fill='x', padx=10, pady=(5, 10))
+            btn_frame.pack(fill='x', padx=10, pady=(5, 10), side='bottom')
 
             for i in (0, 6):
                 btn_frame.grid_columnconfigure(i, weight=1)
             for i in (1, 2, 3, 4, 5):
-                btn_frame.grid_columnconfigure(i, weight=0)
+                btn_frame.grid_columnconfigure(i, weight=1)
 
             self.save_btn = ctk.CTkButton(
                 btn_frame,
@@ -167,7 +162,7 @@ class PurchaseInfoReceiptView():
             close_btn.grid(row=0, column=5, padx=6, pady=10)
 
             width_win = 750
-            height_win = 750
+            height_win = 650
 
             x_root = parent.winfo_x()
             y_root = parent.winfo_y()
@@ -208,27 +203,27 @@ class PurchaseInfoReceiptView():
         if self.receipt_vars['state'].get() != "BORRADOR":
             self.confirm_btn.configure(state=tk.DISABLED)
 
-        def add_field(row, label, widget):
+        def add_field(row, column, label, widget):
             field_lbl = ctk.CTkLabel(
                 self.info_frame,
                 text=label,
                 font=ctk.CTkFont(size=13, weight='bold'),
-                text_color='black'
+                text_color='black',
             )
-            field_lbl.grid(row=row, column=0, sticky="e", padx=10, pady=7)
+            field_lbl.grid(row=row, column=column, sticky="e", padx=10, pady=7)
 
-            widget.grid(row=row, column=1, padx=(10,20), pady=7, sticky='w')
+            widget.grid(row=row, column=column+1, padx=(10,20), pady=7, sticky='w')
 
             return widget
 
         # NUMERO DE RECIBO
 
         num_entry = add_field(
-                        0, "Número de Recibo: ", 
+                        0, 0, "Número de Recibo: ", 
                         ctk.CTkEntry(
                             self.info_frame, 
                             textvariable=self.receipt_vars["number"], 
-                            width=200,
+                            width=120,
                             font=ctk.CTkFont(size=11),
                             state='readonly'
                         )
@@ -236,11 +231,11 @@ class PurchaseInfoReceiptView():
 
         # FECHA
         date_entry = add_field(
-                        1, "Fecha: ", 
+                        1, 0, "Fecha: ", 
                         ctk.CTkEntry(
                             self.info_frame, 
                             textvariable=self.receipt_vars["date"], 
-                            width=200, 
+                            width=120, 
                             font=ctk.CTkFont(size=11),
                             state='readonly'
                         )
@@ -248,11 +243,11 @@ class PurchaseInfoReceiptView():
 
         # FECHA DE VENC
         exp_date_entry = add_field(
-                            2, "Fecha de Vencimiento: ", 
+                            2, 0, "Fecha de Vencimiento: ", 
                             ctk.CTkEntry(
                                 self.info_frame,
                                 textvariable=self.receipt_vars["expiration"], 
-                                width=200, 
+                                width=120, 
                                 font=ctk.CTkFont(size=11),
                                 state='readonly'
                             )
@@ -260,11 +255,11 @@ class PurchaseInfoReceiptView():
 
         # OBSERVACIONES
         obs_entry = add_field(
-                        3, "Observaciones: ", 
+                        0, 2, "Observaciones: ", 
                         ctk.CTkEntry(
                             self.info_frame, 
                             textvariable=self.receipt_vars["obs"], 
-                            width=200, 
+                            width=180, 
                             height=60, 
                             font=ctk.CTkFont(size=11),
                             state='readonly'
@@ -273,11 +268,11 @@ class PurchaseInfoReceiptView():
 
         # ESTADO
         add_field(
-            4, "Estado: ", 
+            1, 2, "Estado: ", 
             ctk.CTkEntry(
                 self.info_frame,
                 textvariable=self.receipt_vars["state"], 
-                width=200, 
+                width=120, 
                 font=ctk.CTkFont(size=13),
                 state='readonly'
             )
@@ -285,11 +280,11 @@ class PurchaseInfoReceiptView():
 
         # Total
         add_field(
-            5, "Total: ", 
+            2, 2, "Total: ", 
             ctk.CTkEntry(
                 self.info_frame, 
                 textvariable=self.receipt_vars["total"], 
-                width=200, 
+                width=120, 
                 font=ctk.CTkFont(size=13),
                 state='readonly'
             )
@@ -315,7 +310,7 @@ class PurchaseInfoReceiptView():
         self.receipt_vars['expiration'].set(iso_to_traditional(receipt_data[4]))
         self.receipt_vars['obs'].set(receipt_data[5])
         self.receipt_vars['state'].set(receipt_data[6])
-        self.receipt_vars['total'].set(receipt_data[7])
+        self.receipt_vars['total'].set(format_currency(receipt_data[7]))
 
     ## --  Obtener datos del recibo -- ##
     def get_receipt_data(self):
@@ -328,7 +323,28 @@ class PurchaseInfoReceiptView():
     
     ## -- Carga tabla con informacion -- ##
     def load_data_into_the_sheet(self):
-        data = self.model.purchase.get_purchase_items(self.purchase_id)
+        data_raw = self.model.purchase.get_purchase_items(self.purchase_id)
+
+        data = [
+            [           
+                id, # id
+                name, # name
+                pack, # pack
+                qty, # quantity
+                format_currency_flex(l_price), # list_price
+                discount, # discount
+                format_currency_flex(c_price), # cost_price
+                iva_rate, # iva 
+                format_currency(discount_amt), # discount_amount
+                format_currency(subtotal), # subtotal
+                format_currency(iva_amt), # iva_amount
+                format_currency(total) # total
+            ]
+
+            for id, name, pack, qty, l_price, discount, c_price, iva_rate, discount_amt, 
+            subtotal, iva_amt, total in data_raw
+
+        ]
 
         self.sheet.set_sheet_data(data)
         self.sheet.set_column_widths([60, 260, 120, 80, 120, 100, 120, 100, 120, 120, 120, 120])

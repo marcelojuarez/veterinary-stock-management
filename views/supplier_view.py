@@ -5,7 +5,7 @@ from tksheet import Sheet
 from views.payments.payment_window import PaymentWindow
 from views.purchases.purchase_window import PurchaseWindow
 from utils.view_helpers import center_window, close_win
-from utils.utils import iso_to_traditional, format_currency
+from utils.utils import format_currency
 
 
 # Configurar tema y colores
@@ -316,6 +316,7 @@ class SupplierView():
             command=lambda: self.controller.add_new_supplier(add_win)
         )
         finish_btn.grid(row=0, column=0, padx=15)
+        add_win.bind("<Return>", lambda event: finish_btn.invoke())
 
         cancel_btn = ctk.CTkButton(
             btn_frame,
@@ -541,7 +542,7 @@ class SupplierView():
                     s[7],   # phone
                     s[8],   # email
                     s[9],   # condicion iva
-                    iso_to_traditional(s[10])    # last act debt
+                    s[10]    # last act debt
                 ),
                 tag="orow"
             )
@@ -565,7 +566,7 @@ class SupplierView():
                     supplier[7],   # phone
                     supplier[8],   # email
                     supplier[9],    # condicion iva
-                    iso_to_traditional(supplier[10])    # last act debt
+                    supplier[10]    # last act debt
                 ),
                 tag="orow"
             )

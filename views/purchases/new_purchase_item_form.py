@@ -192,7 +192,8 @@ class NewPurchaseItemForm():
                 return
 
             # Calculos (sin normalizar)
-            base_amount = self.qty * self.list_price
+            base_amount = norm_to_2_dec(self.qty * self.list_price)
+
             discount_rate = self.discount / Decimal('100')
             unit_d_amount = self.list_price * discount_rate
 
