@@ -258,9 +258,17 @@ class SalesView:
         except Exception as e:
             messagebox.showerror("Error", f"No se pudo agregar el producto: {e}")
 
-    def export_sales_day(self, rows):
-        pdf = DailySalesReportService().generate(rows)
-        messagebox.showinfo("PDF generado", f"Archivo guardado:\n\n{pdf}\n\nPuedes imprimirlo.")
+    def export_sales_day(self, rows, fecha_desde, fecha_hasta):
+        pdf = DailySalesReportService().generate(
+            rows,
+            fecha_desde,
+            fecha_hasta
+        )
+
+        messagebox.showinfo(
+            "PDF generado",
+            f"Archivo guardado:\n\n{pdf}"
+        )
 
     ## -- Permite generar el remito asociado a una venta -- ##
     def generate_delivery_note(self):
@@ -1148,99 +1156,9 @@ class SalesView:
             text="El cliente realiza retenciones",
             variable=self.tiene_retenciones_var,
             font=ctk.CTkFont(size=13, weight="bold"),
-            command=self.toggle_retenciones
+            command=self.open_retenciones_dialog
         )
         retenciones_check.grid(row=5, column=0, columnspan=2, padx=10, pady=(15, 5), sticky="w")
-        
-        # Frame de retenciones (oculto por defecto)
-        self.retenciones_frame = ctk.CTkFrame(client_frame, fg_color="#e8f5e9")
-        self.retenciones_frame.grid(row=6, column=0, columnspan=2, padx=10, pady=5, sticky="ew")
-        self.retenciones_frame.grid_remove()  # Ocultar inicialmente
-        
-        # Retención IVA
-        ret_iva_container = ctk.CTkFrame(self.retenciones_frame, fg_color="transparent")
-        ret_iva_container.pack(fill="x", padx=10, pady=5)
-        
-        ctk.CTkLabel(
-            ret_iva_container,
-            text="Retención IVA $:",
-            font=ctk.CTkFont(size=12)
-        ).pack(side="left", padx=(0, 10))
-        
-        self.retencion_iva_var = tk.StringVar(value="0")
-        ctk.CTkEntry(
-            ret_iva_container,
-            textvariable=self.retencion_iva_var,
-            width=120,
-            height=30
-        ).pack(side="left")
-        
-        # Retención IIBB
-        ret_iibb_container = ctk.CTkFrame(self.retenciones_frame, fg_color="transparent")
-        ret_iibb_container.pack(fill="x", padx=10, pady=5)
-        
-        ctk.CTkLabel(
-            ret_iibb_container,
-            text="Retención IIBB $:",
-            font=ctk.CTkFont(size=12)
-        ).pack(side="left", padx=(0, 10))
-        
-        self.retencion_iibb_var = tk.StringVar(value="0")
-        ctk.CTkEntry(
-            ret_iibb_container,
-            textvariable=self.retencion_iibb_var,
-            width=120,
-            height=30
-        ).pack(side="left")
-        
-        # Retención Ganancias
-        ret_ganancias_container = ctk.CTkFrame(self.retenciones_frame, fg_color="transparent")
-        ret_ganancias_container.pack(fill="x", padx=10, pady=5)
-        
-        ctk.CTkLabel(
-            ret_ganancias_container,
-            text="Retención Ganancias $:",
-            font=ctk.CTkFont(size=12)
-        ).pack(side="left", padx=(0, 10))
-        
-        self.retencion_ganancias_var = tk.StringVar(value="0")
-        ctk.CTkEntry(
-            ret_ganancias_container,
-            textvariable=self.retencion_ganancias_var,
-            width=120,
-            height=30
-        ).pack(side="left")
-        
-        # Número de certificado
-        cert_container = ctk.CTkFrame(self.retenciones_frame, fg_color="transparent")
-        cert_container.pack(fill="x", padx=10, pady=5)
-        
-        ctk.CTkLabel(
-            cert_container,
-            text="Nº Certificado:",
-            font=ctk.CTkFont(size=12)
-        ).pack(side="left", padx=(0, 10))
-        
-        self.certificado_var = tk.StringVar()
-        ctk.CTkEntry(
-            cert_container,
-            textvariable=self.certificado_var,
-            width=200,
-            height=30,
-            placeholder_text="Ej: 001-00123456"
-        ).pack(side="left")
-
-    def toggle_retenciones(self):
-        """Mostrar/ocultar frame de retenciones"""
-        if self.tiene_retenciones_var.get():
-            self.retenciones_frame.grid()
-        else:
-            self.retenciones_frame.grid_remove()
-            # Limpiar valores
-            self.retencion_iva_var.set("0")
-            self.retencion_iibb_var.set("0")
-            self.retencion_ganancias_var.set("0")
-            self.certificado_var.set("")
 
     def get_retenciones(self):
         """Obtener datos de retenciones del formulario"""
@@ -1456,6 +1374,59 @@ class SalesView:
             hover_color="#616161",
             command=dialog.destroy
         ).grid(row=0, column=1, padx=10)
+
+    def open_retenciones_dialog(self):
+        if not self.tiene_retenciones_var.get():
+            return
+
+        win = ctk.CTkToplevel(self.frame)
+        win.title("Retenciones")
+        win.transient(self.frame)
+        win.grab_set()
+        win.resizable(False, False)
+
+        center_window(win, 350, 280)
+
+        ctk.CTkLabel(
+            win,
+            text="Retenciones del Cliente",
+            font=ctk.CTkFont(size=16, weight="bold")
+        ).pack(pady=10)
+
+        form = ctk.CTkFrame(win)
+        form.pack(padx=20, pady=10, fill="both")
+
+        # IVA
+        ctk.CTkLabel(form, text="Retención IVA $").grid(row=0, column=0, pady=5, sticky="w")
+        self.retencion_iva_var = tk.StringVar(value="0")
+        ctk.CTkEntry(form, textvariable=self.retencion_iva_var, width=120).grid(row=0, column=1, pady=5)
+
+        # IIBB
+        ctk.CTkLabel(form, text="Retención IIBB $").grid(row=1, column=0, pady=5, sticky="w")
+        self.retencion_iibb_var = tk.StringVar(value="0")
+        ctk.CTkEntry(form, textvariable=self.retencion_iibb_var, width=120).grid(row=1, column=1, pady=5)
+
+        # GAN
+        ctk.CTkLabel(form, text="Retención Ganancias $").grid(row=2, column=0, pady=5, sticky="w")
+        self.retencion_ganancias_var = tk.StringVar(value="0")
+        ctk.CTkEntry(form, textvariable=self.retencion_ganancias_var, width=120).grid(row=2, column=1, pady=5)
+
+        # Certificado
+        ctk.CTkLabel(form, text="N° Certificado").grid(row=3, column=0, pady=5, sticky="w")
+        self.certificado_var = tk.StringVar()
+        ctk.CTkEntry(form, textvariable=self.certificado_var, width=150).grid(row=3, column=1, pady=5)
+
+        def confirm():
+            win.destroy()
+
+        btn = ctk.CTkButton(
+            win,
+            text="Guardar",
+            width=120,
+            fg_color="#4CAF50",
+            command=confirm
+        )
+        btn.pack(pady=10)
 
     # Utilidades
     def show_success(self, msg): messagebox.showinfo("Éxito", msg)

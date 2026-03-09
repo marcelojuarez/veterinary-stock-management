@@ -20,7 +20,7 @@ class StockView():
         self.controller = controller
         self.frame = ctk.CTkFrame(parent, fg_color="#f0f0f0")
         self.stock_model = stock_model
-        self.movement_view = StockMovementView(StockMovementModel())
+        self.movement_view = StockMovementView(StockMovementModel(), stock_model=self.stock_model, controller=self.controller)
         self._stat_total    = tk.StringVar(value="—")
         self._stat_low      = tk.StringVar(value="—")
         self._stat_no_stock = tk.StringVar(value="—")
