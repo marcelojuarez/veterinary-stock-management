@@ -106,7 +106,7 @@ class SalesView:
         self.product_tree = ttk.Treeview(tree_frame, show="headings", height=12)
         self.product_tree["columns"] = ("Cód.", "Nombre", "Envase", "P. Venta", "Stock")
 
-        for col, w in zip(self.product_tree["columns"], [50, 300, 100, 100, 80]):
+        for col, w in zip(self.product_tree["columns"], [40, 280, 100, 80, 50]):
             self.product_tree.column(col, width=w)
             self.product_tree.heading(col, text=col)
 
