@@ -903,7 +903,7 @@ if __name__ == "__main__":
     print("-" * 50)
     
     seed_company_data()
-    seed_suppliers()
+    #seed_suppliers()
     seed_client()
     seed_clients()
     seed_stock()

@@ -25,6 +25,14 @@ class SupplierCore():
             print(f'Error getting supplier by ID: {e}')
             return None
         
+    def find_supplier_by_address(self, address, city):
+        try:
+            query = "SELECT * FROM supplier WHERE UPPER(address) = ? AND UPPER(city) = ? LIMIT 1"
+            return self.db.fetch_one(query, (address, city.strip().upper()))
+        except ValueError as e:
+            print(f'Error getting supplier by address: {e}')
+            return None
+        
     def find_supplier_by_cuit(self, supplier_cuit):
         try:
             query = "SELECT * FROM supplier where cuit = ?"
@@ -54,6 +62,37 @@ class SupplierCore():
         ]
 
         return self.db.execute_query(query, params)
+    
+    def update_supplier_data(self, supplier_id, supplier_data):
+        query = """
+        UPDATE supplier
+        SET
+            name = ?,
+            cuit = ?,
+            address = ?,
+            city = ?,
+            province = ?,
+            country = ?,
+            phone = ?,
+            email = ?,
+            iva_condition = ?
+        WHERE id = ?
+        """
+
+        params = [
+            supplier_data['name'],
+            supplier_data['cuit'],
+            supplier_data['address'],
+            supplier_data['city'],
+            supplier_data['province'],
+            supplier_data['country'],
+            supplier_data['phone'],
+            supplier_data['email'],
+            supplier_data['iva_condition'],
+            supplier_id
+        ]
+
+        self.db.execute_query(query, params)
 
     def has_purchases(self, supplier_id):
         """Retorna True si el proveedor tiene compras asociadas."""

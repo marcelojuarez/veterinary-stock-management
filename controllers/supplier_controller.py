@@ -6,6 +6,7 @@ class SupplierController():
     def __init__(self, supplier_model, event_bus):
         self.model = supplier_model
         self.view = None
+        self.info_view = None
 
         self.event_bus = event_bus
 
@@ -17,13 +18,18 @@ class SupplierController():
     def set_view(self, view):
         self.view = view
 
+    def set_info_view(self, info_view):
+        self.info_view = info_view
+
     def add_new_supplier(self, window=None):
         """Guardar nuevo proveedor"""
         try:
             data = self.view.get_supplier_data()
 
             if not self.__validates_supplier_data(data):
-                print('Entro al chequeo de datos del proveedor')
+                return
+
+            if not self.validate_existing_address(None, data['address'], data['city']):
                 return
 
             if not self.__validate_supplier_email(data['email']):
@@ -58,7 +64,6 @@ class SupplierController():
                 'email': data['email'].upper(),
                 'iva_condition': data['iva_condition'].upper()
             }
-            print("Funciona")
 
             self.model.core.add_supplier(supplier_data)
 
@@ -86,23 +91,18 @@ class SupplierController():
                 show_warning('Por favor seleccione un proveedor')
                 return
 
-            iid = selected[0]
-            values = self.view.supplier_tree.item(iid, "values")
-            print(values)
+            iid = selected[0] # id proveedor
+            print(f'iid: {iid}')
+            supplier_data = self.model.core.find_supplier_by_id(iid)
+            print(supplier_data)
             debt = self.model.purchase.get_debt_of_supplier(iid)
 
-            self.view.open_info_window(values, debt, parent)
+            self.info_view.open_info_window(supplier_data, debt, parent)
         except Exception as e:
             print(f'Hubo un error: {e}')
-
-    def show_suppliers(self):
-        suppliers_data = self.model.core.get_all_suppliers()
-        return suppliers_data 
     
     def __validates_supplier_data(self, form_data):
         required_files =  ['name', 'cuit', 'address', 'city', 'province', 'country', 'phone', 'email', 'iva_condition']
-
-        print(f'Formulario de datos {form_data}')
 
         for field in required_files:
             if not form_data[field]:
@@ -110,6 +110,23 @@ class SupplierController():
                 return False
         
         return True
+    
+    def validate_existing_address(self, supplier_id, address, city):
+        existing = self.model.core.find_supplier_by_address(
+            address.strip().upper(), city.strip().upper()
+        )
+
+        if existing is None:
+            return True
+
+        if supplier_id is not None and str(existing[0]) == str(supplier_id):
+            return True
+
+        show_warning(
+            f"Ya existe un Proveedor registrada con el domicilio: {address}.\n"
+            f"Proveedor: {existing[2]} — CUIT: {existing[1]}"
+        )
+        return False
 
     def __validate_supplier_email(self, email_field):
         pattern = r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b'
@@ -174,6 +191,63 @@ class SupplierController():
         except Exception as e:
             show_error(f"Error al refrescar la tabla {str(e)}")
 
+    ## -- Actualiza la info de un proveedor -- ##
+    def update_supplier_data(self, supplier_id, supplier_data):
+        try: 
+            if not self.__validates_supplier_data(supplier_data):
+                return False
+            
+            if not self.validate_existing_address(supplier_id, supplier_data['address'], supplier_data['city']):
+                return False
+            
+            if not self.__validate_supplier_email(supplier_data['email']):
+                return False
+            
+            if not self.__validate_supplier_cuit(supplier_data['cuit']):
+                print('Entro al chequeo de cuit del proveedor')
+                return False
+            
+            if not self.__validate_supplier_phone(supplier_data['phone']):
+                print('Entro al chequeo de telefono del proveedor')
+                return False
+            
+            if not self.__validate_supplier_name(supplier_data['name']):
+                print('Entro al chequeo de nombre del proveedor')
+                return False
+            
+            if not self.__validate_supplier_address(supplier_data['address']):
+                print('Entro al chequeo de domicilio del proveedor')
+                return False
+
+            # convertir tipos
+            supplier_data = {
+                'name': supplier_data['name'].upper(),
+                'cuit': supplier_data['cuit'],
+                'address': supplier_data['address'].upper(),
+                'city': supplier_data['city'].upper(),
+                'province': supplier_data['province'].upper(),
+                'country': supplier_data['country'].upper(),
+                'phone': supplier_data['phone'].upper(),
+                'email': supplier_data['email'].upper(),
+                'iva_condition': supplier_data['iva_condition'].upper()
+            }
+
+            self.model.core.update_supplier_data(supplier_id, supplier_data)
+
+            self.refresh_supplier_table()
+            
+            show_success("Proveedor Actualizado Correctamente.")
+
+            return True
+
+        except ValueError as e:
+            show_error(f"Error en los datos {str(e)}")
+            return False
+        except Exception as e:
+            show_error(f"Error al actualizar el proveedor: {str(e)}")
+            return False
+
+    ## -- Elimina un proveedor -- ##
     def delete_supplier(self):
         selected = self.view.supplier_tree.selection()
 
