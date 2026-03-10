@@ -14,6 +14,7 @@ from views.sales_view import SalesView
 from views.supplier_view import SupplierView
 from views.customers_view import CustomersView
 from views.reports_view import ReportsView
+from views.checks_view import ChecksView
 
 from models.company import CompanyModel
 from models.customer import CustomerModel
@@ -24,6 +25,7 @@ from models.remito import RemitoModel
 from models.sale import SalesModel
 from models.supplier import SupplierModel
 from models.stock import StockModel
+from models.checks_model import ChecksModel
 #from models.user import User
 from tkinter import messagebox
 from controllers.auth_controller import validate_data
@@ -37,6 +39,7 @@ from controllers.payment_controller import PaymentController
 from controllers.supplier_invoice_controller import SupplierInvoiceController
 from controllers.supplier_receipt_controller import SupplierReceiptController
 from controllers.iva_reports_controller import ReportsController
+from controllers.checks_controller import ChecksController
 from views.backup_manager import BackupManagerView
 import sys, os
 import ctypes 
@@ -177,17 +180,21 @@ class App():
         remito_model = RemitoModel()
         stock_model = StockModel(sales_model, payment_model, event_bus)
         supplier_model = SupplierModel(stock_model)
+        checks_model = ChecksModel()   # ← crea tabla checks + migra check_id en payments
 
         ## --- CONTROLLERS --- ##
         self.stock_controller = StockController(
             stock_model, supplier_model, payment_model, event_bus
         )
         self.supplier_controller = SupplierController(supplier_model, event_bus)
-        self.customer_controller = CustomerController(customer_model, payment_model, event_bus)
+        self.customer_controller = CustomerController(
+            customer_model, payment_model, event_bus, checks_model=checks_model
+        )
+        self.checks_controller = ChecksController(checks_model, checks_model.db, event_bus=event_bus)
         self.iva_reports_controller = ReportsController(iva_model)
 
         self.purchase_controller = PurchaseController(supplier_model, stock_model, event_bus)
-        self.payment_controller = PaymentController(supplier_model, event_bus)
+        self.payment_controller = PaymentController(supplier_model, event_bus, checks_model=checks_model)
         self.supplier_invoice_controller = SupplierInvoiceController(supplier_model)
         self.receipt_controller = SupplierReceiptController(supplier_model)
         self.invoice_controller = InvoiceController(invoice_model, customer_model, stock_model)
@@ -228,9 +235,13 @@ class App():
         # --- CUSTOMERS ---
         self.customers_view = CustomersView(self.notebook, controller=self.customer_controller)  
         self.customer_controller.set_view(self.customers_view)
-
         self.customers_view.attach_controller(self.customer_controller)
         self.notebook.add(self.customers_view.frame, text='Clientes')
+
+        # --- CHEQUES ---
+        self.checks_view = ChecksView(self.notebook, self.checks_controller)
+        self.checks_controller.set_view(self.checks_view)
+        self.notebook.add(self.checks_view.frame, text='Cheques')
 
         # --- REPORTES ---
         self.reports_view = ReportsView(self.notebook, controller=self.iva_reports_controller)

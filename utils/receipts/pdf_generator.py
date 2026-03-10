@@ -28,7 +28,8 @@ def generate_global_payment_receipt(*,
     payment_amount, 
     method, 
     result_data, 
-    sales_with_items=None):
+    sales_with_items=None,
+    check_data=None):
     """
     Genera comprobante A4 de pago global.
     Estilo ticket profesional en blanco y negro.
@@ -142,7 +143,18 @@ def generate_global_payment_receipt(*,
     draw_text_left(f"CLIENTE: {client_name}", 11, bold=True, extra_spacing=2)
     draw_text_left("TIPO: PAGO A CUENTA", 10, extra_spacing=2)
     draw_text_left(f"MÉTODO DE PAGO: {method.upper()}", 10, extra_spacing=2)
-    
+
+    # Datos del cheque / eCheq
+    if check_data:
+        try:
+            from datetime import datetime as _dt
+            due_fmt = _dt.strptime(check_data['due_date'], "%Y-%m-%d").strftime("%d/%m/%Y")
+        except Exception:
+            due_fmt = check_data['due_date']
+        draw_text_left(f"Nro. Cheque: {check_data['number']}", 10, extra_spacing=1)
+        draw_text_left(f"Banco: {check_data['bank']}", 10, extra_spacing=1)
+        draw_text_left(f"Vencimiento: {due_fmt}", 10, extra_spacing=2)
+
     draw_separator(extra_spacing=15)
     
     # ================================================================

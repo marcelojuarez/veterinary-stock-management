@@ -4,7 +4,7 @@ import customtkinter as ctk
 from .payment_form import PaymentForm 
 from .payment_info import PaymentInfo
 from utils.view_helpers import center_window, close_win, show_warning, show_error
-from utils.utils import iso_to_traditional, format_currency
+from utils.utils import iso_to_traditional
 from utils.view_helpers import close_win, show_warning, show_error
 
 # Configurar tema y colores
@@ -16,11 +16,12 @@ class PaymentWindow():
         self.model = model
         self.frame = frame
 
-        self.payment_form = PaymentForm(self, model, frame)
+        checks_model = getattr(controller, 'checks_model', None)
+        self.payment_form = PaymentForm(self, model, frame, checks_model=checks_model)
 
         self.controller = controller
         self.controller.set_pay_view(self)
-        self.controller.set_form_view(self.payment_form) 
+        self.controller.set_form_view(self.payment_form)
 
         self.payment_form.set_controller(self.controller)
 
@@ -34,7 +35,6 @@ class PaymentWindow():
 
         self.supplier_var = tk.StringVar()
         self.debt_var = tk.StringVar()
-        self.formatted_debt_var = tk.StringVar()
         self.suppliers = self.model.core.get_all_suppliers()
             
         win = ctk.CTkToplevel(self.frame)
@@ -96,7 +96,7 @@ class PaymentWindow():
 
         debt_entry = ctk.CTkEntry(
             debt_frame,
-            textvariable=self.formatted_debt_var,
+            textvariable=self.debt_var,
             width=120,
             corner_radius=10,
             fg_color="white",
@@ -113,18 +113,6 @@ class PaymentWindow():
         payment_notebook.add(self.set_purchase_tree(payment_notebook), text='Registros de Compra')
 
         self.load_payment_movement()
-
-        # Leyenda de colores del tab de compras
-        legend_frame = ctk.CTkFrame(win, fg_color="transparent")
-        legend_frame.grid(row=3, column=0, columnspan=2, sticky="se", padx=16, pady=(0, 2))
-        for color, fg, text in [
-            ("#fff9e6", "#6d4c00", " Pendiente de pago "),
-            ("#e8f5e9", "#1b5e20", " Pagada "),
-        ]:
-            dot = tk.Frame(legend_frame, bg=color, width=14, height=14, relief="solid", bd=1)
-            dot.pack(side="left", padx=(6, 2), pady=4)
-            ctk.CTkLabel(legend_frame, text=text, font=ctk.CTkFont(size=11),
-                         text_color=fg).pack(side="left")
 
         # frame inferior (botones y cantidad)
         buttons_frame = ctk.CTkFrame(win, corner_radius=20)
@@ -239,19 +227,16 @@ class PaymentWindow():
                 self.purchase_tree.column(col, width=100, anchor="center")
             else:
                 self.purchase_tree.column(col, width=150, anchor="center")
-
-        # Fix: forzar el estilo para que no pise los tag colors de las filas
-        style = ttk.Style()
-        style.map("Treeview", background=[("selected", "#0078d4")])
-
-        self.purchase_tree.tag_configure('purchase_pending', background="#fff9e6", foreground="#6d4c00")
-        self.purchase_tree.tag_configure('purchase_paid',    background="#e8f5e9", foreground="#1b5e20")
-        self.purchase_tree.tag_configure('orow',             background="#ffffff", foreground="#000000")
-
-        self.purchase_tree.pack(side="left", fill="both", expand=True)
+        self.purchase_tree.pack(side="left", fill="both", expand=True)   
 
         scrollbar = ttk.Scrollbar(purchase_frame, orient="vertical", command=self.purchase_tree.yview)
         self.purchase_tree.configure(yscroll=scrollbar.set)
+
+        # Tags de color por estado
+        self.purchase_tree.tag_configure("PENDIENTE",  background="#FFF9C4")  # amarillo
+        self.purchase_tree.tag_configure("PAGADA",     background="#E8F5E9")  # verde
+        self.purchase_tree.tag_configure("BORRADOR",   background="#F5F5F5")  # gris
+        self.purchase_tree.tag_configure("orow",       background="white")
         scrollbar.pack(side="right",fill="y")
 
         return purchase_frame
@@ -288,14 +273,13 @@ class PaymentWindow():
                 return
 
             self.supplier_var.set(values[1])
-            amount = self.model.purchase.get_pending_of_purchase(values[0])
             self.load_purchase_history(True)
 
             self.payment_form.add_payment_win(
                 parent=parent, 
                 supplier_cuit=values[1], 
                 purchase_id=values[0], 
-                amount=amount
+                amount=values[7]
             )
 
         except ValueError as e:
@@ -339,7 +323,7 @@ class PaymentWindow():
                 values=(
                    p[0], # id
                    p[1], # cuit
-                   format_currency(p[3]), # monto
+                   p[3], # monto
                    p[4], # metodo
                    p[5], # observation
                    iso_to_traditional(p[11]) # fecha    
@@ -362,7 +346,6 @@ class PaymentWindow():
             debt = self.model.purchase.get_debt_of_supplier(selected_supplier)
 
             self.debt_var.set(debt)
-            self.formatted_debt_var.set(format_currency(debt))
             purchases = self.model.purchase.get_all_confirmed_purchases(selected_supplier)
 
         else:
@@ -374,26 +357,21 @@ class PaymentWindow():
 
         # Cargar compras
         for p in purchases:
-            estado = p[8]
-            if estado == 'PAGADA':
-                tag = "purchase_paid"
-            else:
-                tag = "purchase_pending"  # CONFIRMADA / pendiente de pago
-
+            state = p[8]
             self.purchase_tree.insert(
                 parent="", index="end", iid=p[0],
                 values=(
-                    p[0],                    # id
-                    p[1],                    # cuit
-                    p[2],                    # nombre
-                    p[3],                    # comprobante
-                    iso_to_traditional(p[6]),# fecha
-                    iso_to_traditional(p[7]),# fecha venc
-                    p[8],                    # estado
-                    format_currency(p[10]),  # saldo pend
-                    format_currency(p[11])   # total
+                    p[0],  # id
+                    p[1],  # cuit
+                    p[2],  # nombre
+                    p[3],  # comprobante
+                    iso_to_traditional(p[6]),  # fecha
+                    iso_to_traditional(p[7]),  # fecha venc
+                    p[8],  # estado
+                    p[10], # saldo pend
+                    p[11]  # total
                 ),
-                tags=(tag,)
+                tag=state if state in ("PENDIENTE", "PAGADA", "BORRADOR") else "orow"
             )
 
     ## -- Busqueda -- ##
@@ -436,7 +414,6 @@ class PaymentWindow():
         )
         self.find_entry.grid(row=0, column=1, padx=5)
 
-        self.find_entry.focus()
         self.find_entry.bind("<KeyRelease>", self.on_key_release)
         self.search_after_id = None
 

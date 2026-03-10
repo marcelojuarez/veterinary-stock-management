@@ -54,7 +54,7 @@ class NewPurchaseItemForm():
         add_win.grab_set()
 
         # Centrar la ventana
-        add_win.geometry("850x500+{}+{}".format(
+        add_win.geometry("850x550+{}+{}".format(
             add_win.winfo_screenwidth()//2 - 200,
             add_win.winfo_screenheight()//2 - 250
         ))
