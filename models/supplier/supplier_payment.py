@@ -49,7 +49,7 @@ class SupplierPayment():
             return None
     
     ## -- Obtiene todos los pagos asociados o no, a un cuit-- ##
-    def get_all_payments(self, cuit=None):
+    def get_all_payments(self, supplier_id=None):
         try:
             query = """
             SELECT supplier_payment.id, supplier.cuit, supplier_payment.receipt_number, supplier_payment.amount,
@@ -57,12 +57,12 @@ class SupplierPayment():
             supplier_payment.destination, supplier_payment.check_number, supplier_payment.bank, supplier_payment.date
             FROM supplier_payment 
             JOIN supplier ON supplier_payment.supplier_id = supplier.id
-            WHERE (? IS NULL OR supplier.cuit = ?)
+            WHERE (? IS NULL OR supplier.id = ?)
             ORDER BY supplier_payment.date DESC, supplier_payment.id DESC
             """
             params = [
-               cuit,
-               cuit
+               supplier_id,
+               supplier_id
             ]
 
             return self.db.fetch_all(query, params)

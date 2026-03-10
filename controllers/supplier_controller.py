@@ -89,7 +89,7 @@ class SupplierController():
             iid = selected[0]
             values = self.view.supplier_tree.item(iid, "values")
             print(values)
-            debt = self.model.purchase.get_debt_of_supplier(values[2])
+            debt = self.model.purchase.get_debt_of_supplier(iid)
 
             self.view.open_info_window(values, debt, parent)
         except Exception as e:
@@ -130,9 +130,9 @@ class SupplierController():
             show_warning("Por favor coloque el CUIT correctamente. Formato: XX-XXXXXXXX-X")
             return False
         
-        if self.model.core.find_supplier_by_cuit(cuit_field) is not None:
-            show_error(f"Error: Ya existe un proveedor con el CUIT: {cuit_field}")
-            return False
+        # if self.model.core.find_supplier_by_cuit(cuit_field) is not None:
+        #     show_error(f"Error: Ya existe un proveedor con el CUIT: {cuit_field}")
+        #     return False
         
         return True
     

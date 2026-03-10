@@ -17,18 +17,15 @@ class PaymentController():
 
     # Permitir pagar el monto de una compra
     # Permitir registrar un monto que afecta a las compras que mas proximo se vencen
-    def register_payment(self, supplier_var, win, parent, purchase_id):
+    def register_payment(self, supplier_id, win, parent, purchase_id):
 
         try:
 
             payment_data = self.form_view.get_payment_data()
-            selected = supplier_var.get() # cuit proveedor
 
-            if not selected:
+            if not supplier_id:
                show_warning("Seleccione un proveedor")
                return
-            
-            supplier_data = self.supplier_model.core.find_supplier_by_cuit(selected)
             
             # se validan los datos de pago
             if not self.validate_data(payment_data):
@@ -52,12 +49,12 @@ class PaymentController():
             else:
                 # Se pagan multiples compras 
                 
-                purchases = self.supplier_model.purchase.get_all_purchases_without_paying(selected)
+                purchases = self.supplier_model.purchase.get_all_purchases_without_paying(supplier_id)
 
                 for p in purchases:
                     print(p)
 
-                total_debt = self.supplier_model.purchase.get_debt_of_supplier(selected)
+                total_debt = self.supplier_model.purchase.get_debt_of_supplier(supplier_id)
 
                 # Se chequea si el monto es superior a la deuda
                 if not self.validate_debt(amount, total_debt, True):
@@ -65,7 +62,7 @@ class PaymentController():
                     return
 
             data = {
-                'Supplier_id' : supplier_data[0],
+                'Supplier_id' : supplier_id,
                 'Receipt_number': payment_data['receipt_number'],
                 'Amount': amount,
                 'Method': payment_data['method'],
@@ -80,7 +77,7 @@ class PaymentController():
             result = self.supplier_model.payment.register_payment(data, purchase_id)
             
             if result:
-                self.pay_view.load_payment_movement(selected)
+                self.pay_view.load_payment_movement(supplier_id)
                 self.pay_view.load_purchase_history(True)
                 self.event_bus.publish('refresh_supplier_table', None)
 

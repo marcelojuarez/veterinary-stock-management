@@ -7,8 +7,8 @@ class PurchaseFilterController():
         self.treeview = None
         self.model = model        
 
-    def set_supplier_var(self, supplier_var):
-        self.supplier_var = supplier_var
+    def set_supplier_id_var(self, supplier_id_var):
+        self.supplier_id_var = supplier_id_var
 
     def set_treeview(self, treeview):
         self.treeview = treeview
@@ -27,7 +27,7 @@ class PurchaseFilterController():
 
         date_db = traditional_to_iso(date)
 
-        selected_supplier = self.supplier_var.get()
+        selected_supplier = self.supplier_id_var.get()
 
         if selected_supplier.strip() != "":
             purchases = self.model.purchase.get_purchases_by_date(date_db, selected_supplier)

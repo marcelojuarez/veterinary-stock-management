@@ -85,7 +85,7 @@ class Database:
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS supplier (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    cuit TEXT UNIQUE,
+                    cuit TEXT,
                     name TEXT NOT NULL,
                     address TEXT,
                     city TEXT,
@@ -95,7 +95,7 @@ class Database:
                     email TEXT,
                     iva_condition TEXT,
                     last_debt_update TEXT DEFAULT CURRENT_DATE,
-                    active INTEGER NOT NULL DEFAULT 1  -- <- agregar esta columna
+                    active INTEGER NOT NULL DEFAULT 1
                 );
             ''')
 

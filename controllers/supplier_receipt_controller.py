@@ -15,10 +15,9 @@ class SupplierReceiptController():
         self.purchase_view = purchase_view
 
     ## -- Agrega un nuevo remito de un proveedor -- ##
-    def add_new_receipt(self, win, parent):
+    def add_new_receipt(self, win, parent, supplier_id):
         try:
             data = self.form_view.get_receipt_form_data()
-            supplier_data = self.supplier_model.core.find_supplier_by_cuit(data['supplier_cuit'])
 
             if not self.validate_receipt_data(data):
                 return
@@ -26,7 +25,7 @@ class SupplierReceiptController():
             state = 'BORRADOR'
 
             receipt_params = {
-                'supplier_id': supplier_data[0],
+                'supplier_id': supplier_id,
                 'receipt_id': data['receipt_id'],
                 'date': traditional_to_iso(data['date']),
                 'expiration_date': traditional_to_iso(data['expiration_date']),
@@ -36,7 +35,7 @@ class SupplierReceiptController():
             }
 
             purchase_params = {
-                'supplier_id': supplier_data[0],
+                'supplier_id': supplier_id,
                 'doc_type': "REMITO",
                 'date': traditional_to_iso(data['date']),
                 'expiration_date': traditional_to_iso(data['expiration_date']),
@@ -59,7 +58,6 @@ class SupplierReceiptController():
     @classmethod
     def validate_receipt_data(cls, data):
         required_files = {
-            'supplier_cuit': 'Cuit Proveedor',
             'receipt_id': 'Numero de Recibo',
             'date': 'Fecha',
             'expiration_date': 'Fecha de vencimiento',

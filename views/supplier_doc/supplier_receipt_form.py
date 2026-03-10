@@ -4,15 +4,21 @@ import customtkinter as ctk
 from utils.view_helpers import close_win, show_warning
 
 class SupplierReceiptForm():
-    def __init__(self, view, frame, receipt_controller):
+    def __init__(self, view, frame, receipt_controller, supp_mdl):
         self.view = view
         self.frame = frame
+        self.supp_mdl = supp_mdl
         self.controller = receipt_controller
         self.controller.set_form_view(self)
 
-    def setup_variables(self, supplier_var):
-        self.supplier_var = tk.StringVar()
-        self.supplier_var.set(supplier_var)
+    def setup_variables(self, supplier_id):
+        self.supplier_cuit_var = tk.StringVar()
+        self.supplier_name_var = tk.StringVar()
+
+        supplier_data = self.supp_mdl.core.find_supplier_by_id(supplier_id)
+
+        self.supplier_cuit_var.set(supplier_data[1])
+        self.supplier_name_var.set(supplier_data[2])
 
         self.receipt_id_var = tk.StringVar()
         self.date_var = tk.StringVar()
@@ -20,15 +26,15 @@ class SupplierReceiptForm():
         self.ob_var = tk.StringVar()
         self.total_var = tk.StringVar()  
 
-    def open_receipt_form(self, parent, supplier_var):
+    def open_receipt_form(self, parent, supplier_id):
         btn_color = "#009688"
         btn_hover = "#00796B"
 
-        self.setup_variables(supplier_var)
+        self.setup_variables(supplier_id)
         actual_date = datetime.datetime.now()
         formated_act_date = actual_date.strftime("%d/%m/%Y")
 
-        if self.supplier_var.get() == "":
+        if self.supplier_cuit_var.get() == "":
             show_warning("Por favor seleccione un Proveedor")
             return
 
@@ -81,7 +87,19 @@ class SupplierReceiptForm():
             0, "CUIT Proveedor:",
             ctk.CTkEntry(
                 form_frame, 
-                textvariable=self.supplier_var, 
+                textvariable=self.supplier_cuit_var, 
+                width=200,
+                font=ctk.CTkFont(size=11),
+                state='readonly'
+            )
+        )
+
+        # CUIT Proveedor
+        add_field(
+            1, "Nombre Proveedor:",
+            ctk.CTkEntry(
+                form_frame, 
+                textvariable=self.supplier_name_var, 
                 width=200,
                 font=ctk.CTkFont(size=11),
                 state='readonly'
@@ -90,7 +108,7 @@ class SupplierReceiptForm():
 
         # Número Remito
         self.num_entry = add_field(
-                        1, "N° Remito:",
+                        2, "N° Remito:",
                         ctk.CTkEntry(
                             form_frame, 
                             textvariable=self.receipt_id_var, 
@@ -101,7 +119,7 @@ class SupplierReceiptForm():
         
         # Fecha 
         add_field(
-            2, "Fecha:",
+            3, "Fecha:",
             ctk.CTkEntry(
                 form_frame, 
                 textvariable=self.date_var, 
@@ -112,7 +130,7 @@ class SupplierReceiptForm():
 
         # Fecha Vencimiento
         add_field(
-            3, "Vencimiento:",
+            4, "Vencimiento:",
             ctk.CTkEntry(
                 form_frame, 
                 textvariable=self.expiration_var, 
@@ -123,7 +141,7 @@ class SupplierReceiptForm():
 
         # Observaciones
         add_field(
-            4, "Observaciones:",
+            5, "Observaciones:",
             ctk.CTkEntry(
                 form_frame, 
                 textvariable=self.ob_var, 
@@ -135,7 +153,7 @@ class SupplierReceiptForm():
 
         # Total
         add_field(
-            5, "Total:",
+            6, "Total:",
             ctk.CTkEntry(
                 form_frame, 
                 textvariable=self.total_var, 
@@ -161,7 +179,7 @@ class SupplierReceiptForm():
             height=40,
             width=160,
             font=ctk.CTkFont(size=13, weight="bold"),
-            command=lambda:self.controller.add_new_receipt(self.receipt_win, parent)
+            command=lambda:self.controller.add_new_receipt(self.receipt_win, parent, supplier_id)
         )
         save_btn.grid(row=0, column=0, padx=15)
 
@@ -181,7 +199,7 @@ class SupplierReceiptForm():
 
         # centrar ventana
         width_win = 500
-        height_win = 520
+        height_win = 550
 
         x_root = parent.winfo_x() 
         y_root = parent.winfo_y()
@@ -206,7 +224,6 @@ class SupplierReceiptForm():
     def get_receipt_form_data(self):
         """Obtener datos del formulario de factura"""
         return {
-            'supplier_cuit': self.supplier_var.get().strip(),
             'receipt_id': self.receipt_id_var.get().strip(),
             'date': self.date_var.get().strip(),
             'expiration_date': self.expiration_var.get().strip(),

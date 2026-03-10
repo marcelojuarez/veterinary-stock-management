@@ -64,7 +64,7 @@ class SupplierPurchase():
             return None            
 
     ## Obtener compra por fecha ##
-    def get_purchases_by_date(self, date, cuit=None):
+    def get_purchases_by_date(self, date, supplier_id=None):
         try:
             query = """
                 SELECT purchase.id, supplier.cuit, supplier.name, purchase.document_type, purchase.invoice_id, purchase.receipt_id , purchase.date, 
@@ -72,7 +72,7 @@ class SupplierPurchase():
                 FROM purchase
                 JOIN supplier ON purchase.supplier_id = supplier.id
                 WHERE purchase.date = ?
-                    AND (? IS NULL OR supplier.cuit = ?) 
+                    AND (? IS NULL OR supplier.id = ?) 
                 ORDER BY 
                 CASE 
                     WHEN purchase.state = 'PENDIENTE' THEN 0 
@@ -82,8 +82,8 @@ class SupplierPurchase():
             """ 
             params = [
                 date,
-                cuit,
-                cuit
+                supplier_id,
+                supplier_id
             ]
             return self.db.fetch_all(query, params)
 
@@ -92,14 +92,14 @@ class SupplierPurchase():
             return None
 
     ## -- Devuelve todas las compras asociadas a un CUIT -- ##
-    def get_all_purchases(self, cuit=None):
+    def get_all_purchases(self, supplier_id=None):
         try:
             query = """
                 SELECT purchase.id, supplier.cuit, supplier.name, purchase.document_type, purchase.invoice_id, purchase.receipt_id , purchase.date, 
                 purchase.expiration_date, purchase.state, purchase.observations, purchase.pending, purchase.total
                 FROM purchase
                 JOIN supplier ON purchase.supplier_id = supplier.id
-                WHERE (? IS NULL OR supplier.cuit = ?) 
+                WHERE (? IS NULL OR supplier.id = ?) 
                 ORDER BY 
                 CASE 
                     WHEN purchase.state = 'PENDIENTE' THEN 0 
@@ -108,8 +108,8 @@ class SupplierPurchase():
                 purchase.expiration_date, purchase.id DESC
             """ 
             params = [
-                cuit,
-                cuit
+                supplier_id,
+                supplier_id
             ]
             return self.db.fetch_all(query, params)
         
@@ -118,14 +118,14 @@ class SupplierPurchase():
             return None
         
     ## -- Devuelve todas las compras confirmadas asociadas a un CUIT -- ##
-    def get_all_confirmed_purchases(self, cuit=None):
+    def get_all_confirmed_purchases(self, supplier_id=None):
         try:
             query = """
-                SELECT purchase.id, supplier.cuit, supplier.name, purchase.document_type, purchase.invoice_id, purchase.receipt_id , purchase.date, 
+                SELECT purchase.id, supplier.id, supplier.cuit, supplier.name, purchase.document_type, purchase.invoice_id, purchase.receipt_id , purchase.date, 
                 purchase.expiration_date, purchase.state, purchase.observations, purchase.pending, purchase.total
                 FROM purchase
                 JOIN supplier ON purchase.supplier_id = supplier.id
-                WHERE (? IS NULL OR supplier.cuit = ?) AND purchase.state != 'BORRADOR'
+                WHERE (? IS NULL OR supplier.id = ?) AND purchase.state != 'BORRADOR'
                 ORDER BY 
                 CASE 
                     WHEN purchase.state = 'PENDIENTE' THEN 0 
@@ -134,8 +134,8 @@ class SupplierPurchase():
                 purchase.expiration_date
             """ 
             params = [
-                cuit,
-                cuit
+                supplier_id,
+                supplier_id
             ]
             return self.db.fetch_all(query, params)
         
@@ -366,14 +366,14 @@ class SupplierPurchase():
         return self.db.fetch_all(query, (supplier_id, ))
 
     ## -- Devuelve todas las compras con deuda pendiente asociadas a un cuit -- ##
-    def get_all_purchases_without_paying(self, cuit=None):
+    def get_all_purchases_without_paying(self, supplier_id=None):
 
         query = """
             SELECT purchase.id, supplier.cuit, supplier.name, purchase.document_type, purchase.invoice_id, purchase.receipt_id , purchase.date, 
             purchase.expiration_date, purchase.state, purchase.observations, purchase.pending, purchase.total
             FROM purchase
             JOIN supplier ON purchase.supplier_id = supplier.id
-            WHERE (? IS NULL OR supplier.cuit = ?) AND pending > 0 
+            WHERE (? IS NULL OR supplier.id = ?) AND pending > 0 
             ORDER BY 
             CASE 
                 WHEN purchase.state = 'PENDIENTE' THEN 0 
@@ -383,8 +383,8 @@ class SupplierPurchase():
         """
 
         params = [
-            cuit,
-            cuit
+            supplier_id,
+            supplier_id
         ]
 
         return self.db.fetch_all(query, params)
@@ -597,13 +597,13 @@ class SupplierPurchase():
         return self.db.execute_query(query, params, conn=conn, commit=commit)
     
     ## -- Debt -- ##
-    def get_debt_of_supplier(self, cuit):
+    def get_debt_of_supplier(self, supplier_id):
         query = """
         SELECT pending
-        FROM purchase JOIN supplier ON purchase.supplier_id = supplier.id
-        WHERE supplier.cuit = ? AND purchase.state != 'BORRADOR'
+        FROM purchase
+        WHERE supplier_id = ? AND state != 'BORRADOR'
         """    
-        rows = self.db.fetch_all(query, (cuit, ))
+        rows = self.db.fetch_all(query, (supplier_id, ))
 
         pending = Decimal('0.00')
 

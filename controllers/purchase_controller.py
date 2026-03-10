@@ -66,7 +66,7 @@ class PurchaseController():
 
             if result:
                 # Refrescar lista con proveedor seleccionado o no
-                if self.view.supplier_var.get().strip() == "":
+                if self.view.supplier_id_var.get().strip() == "":
                     self.view.load_purchases(False)
                 
                 else:
@@ -118,7 +118,7 @@ class PurchaseController():
                 result = self.supplier_model.purchase.update_purchase(purchase_id, invoice_id, data, doc_type)
 
             if result:
-                if self.view.supplier_var.get().strip() == "":
+                if self.view.supplier_id_var.get().strip() == "":
                     self.view.load_purchases(False)
 
                 else:
@@ -327,7 +327,7 @@ class PurchaseController():
             if result:
                 show_success('Item agregado con exito')
 
-                if self.view.supplier_var.get().strip() == "":
+                if self.view.supplier_id_var.get().strip() == "":
                     self.view.load_purchases(False)
 
                 else:
@@ -443,7 +443,7 @@ class PurchaseController():
         result = self.supplier_model.purchase.delete_purchase_and_doc(purchase_id, doc_id, doc_type)
 
         if result:
-            if self.view.supplier_var.get().strip() == "":
+            if self.view.supplier_id_var.get().strip() == "":
                 self.view.load_purchases(False)
 
             else:
@@ -475,7 +475,7 @@ class PurchaseController():
                     self.invoice_info_vw.load_invoice_data(doc_id)
                     self.invoice_info_vw.load_data_into_the_sheet()
 
-                if self.view.supplier_var.get().strip() == "":
+                if self.view.supplier_id_var.get().strip() == "":
                     self.view.load_purchases(False)
 
                 else:

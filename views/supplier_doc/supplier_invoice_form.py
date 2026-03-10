@@ -9,16 +9,18 @@ class SupplierInvoiceForm():
     def __init__(self, view, frame, invoice_controller, supp_mdl):
         self.view = view
         self.frame = frame
-        self.controller = invoice_controller
         self.supp_mdl = supp_mdl
+        self.controller = invoice_controller
         self.controller.set_form_view(self)
 
-    def setup_variables(self, supplier_var):
-        self.supplier_var = tk.StringVar()
-        self.supplier_var.set(supplier_var)
+    def setup_variables(self, supplier_id):
+        self.supplier_cuit_var = tk.StringVar()
+        self.supplier_name_var = tk.StringVar()
         
-        supplier_data = self.supp_mdl.core.find_supplier_by_cuit(self.supplier_var.get())
-        print(supplier_data)
+        supplier_data = self.supp_mdl.core.find_supplier_by_id(supplier_id)
+
+        self.supplier_cuit_var.set(supplier_data[1])
+        self.supplier_name_var.set(supplier_data[2])
 
         # Condicion IVA proveedor
         self.s_iva_c_var = tk.StringVar()
@@ -42,13 +44,13 @@ class SupplierInvoiceForm():
         self.subtotal_var = tk.StringVar()
         self.total_var = tk.StringVar()
 
-    def open_invoice_form(self, parent, supplier_var):
+    def open_invoice_form(self, parent, supplier_id):
         btn_color = "#009688"
         btn_hover = "#00796B"
 
-        self.setup_variables(supplier_var)
+        self.setup_variables(supplier_id)
 
-        if self.supplier_var.get() == "":
+        if self.supplier_cuit_var.get() == "":
             show_warning("Por favor seleccione un Proveedor")
             return
 
@@ -114,16 +116,28 @@ class SupplierInvoiceForm():
             0, 0, "CUIT Proveedor:", 
             ctk.CTkEntry(
                 form_frame, 
-                textvariable=self.supplier_var, 
+                textvariable=self.supplier_cuit_var, 
                 state='readonly', 
                 width=160, 
                 font=ctk.CTkFont(size=11)
             )
         )
         
+        # Nombre proveedor
+        add_field(
+            1, 0, "Nombre Proveedor:", 
+            ctk.CTkEntry(
+                form_frame, 
+                textvariable=self.supplier_name_var,
+                state='readonly', 
+                width=180,
+                font=ctk.CTkFont(size=11)
+            )
+        )
+
         # Número Factura
         add_field(
-            1, 0, "Número Factura:", 
+            2, 0, "Número Factura:", 
             ctk.CTkEntry(
                 form_frame, 
                 textvariable=self.invoice_id_var,
@@ -133,9 +147,8 @@ class SupplierInvoiceForm():
         )
 
         # Condicion IVA proveedor
-        print(self.s_iva_c_var.get())
         add_field(
-            2, 0, "Cond. IVA Proveedor:", 
+            3, 0, "Cond. IVA Proveedor:", 
             ctk.CTkEntry(
                 form_frame, 
                 textvariable=self.s_iva_c_var, 
@@ -147,7 +160,7 @@ class SupplierInvoiceForm():
         
         # Tipo Factura
         invoice_type = add_field(
-                            3, 0,  "Tipo:",
+                            4, 0,  "Tipo:",
                             ctk.CTkComboBox(
                                 form_frame, 
                                 variable=self.invoice_type_var, 
@@ -172,7 +185,7 @@ class SupplierInvoiceForm():
         
         # Observaciones
         add_field(
-            4, 0, "Observaciones:", 
+            5, 0, "Observaciones:", 
             ctk.CTkEntry(
                 form_frame, 
                 textvariable=self.obs_var, 
@@ -184,7 +197,7 @@ class SupplierInvoiceForm():
         
         # Condicion de Pago
         add_field(
-            5, 0, "Cond. De Pago:", 
+            6, 0, "Cond. De Pago:", 
             ctk.CTkComboBox(
                 form_frame, 
                 values=["CTA CTE", "CONTADO"], 
@@ -197,7 +210,7 @@ class SupplierInvoiceForm():
 
         # Plazo en Dias
         pay_period_wid = add_field(
-                                    6, 0, "Plazo en dias:", 
+                                    7, 0, "Plazo en dias:", 
                                     ctk.CTkComboBox(
                                         form_frame,
                                         values=["7", "15", "30", "45", "60", "90"], 
@@ -210,7 +223,7 @@ class SupplierInvoiceForm():
 
         # Fecha
         add_field(
-            7, 0, "Fecha:", 
+            0, 2, "Fecha:", 
             ctk.CTkEntry(
                 form_frame, 
                 textvariable=self.date_var, 
@@ -221,7 +234,7 @@ class SupplierInvoiceForm():
 
         # Fecha Vencimiento
         add_field(
-            0, 2, "Fecha Venc:",
+            1, 2, "Fecha Venc:",
             ctk.CTkEntry(
                 form_frame, 
                 textvariable=self.expiration_var,
@@ -233,7 +246,7 @@ class SupplierInvoiceForm():
         
         # Monto IVA
         add_field(
-            1, 2,"Monto IVA:",
+            2, 2,"Monto IVA:",
             ctk.CTkEntry(
                 form_frame, 
                 textvariable=self.iva_var, 
@@ -245,7 +258,7 @@ class SupplierInvoiceForm():
         
         # Descuento
         add_field(
-            2, 2,"Descuento:", 
+            3, 2,"Descuento:", 
             ctk.CTkEntry(
                 form_frame, 
                 textvariable=self.discount_var, 
@@ -256,7 +269,7 @@ class SupplierInvoiceForm():
         
         # Subtotal
         add_field(
-            3, 2, "Subtotal:", 
+            4, 2, "Subtotal:", 
             ctk.CTkEntry(
                 form_frame, 
                 textvariable=self.subtotal_var, 
@@ -268,7 +281,7 @@ class SupplierInvoiceForm():
         
         # Percepcion IIBB
         add_field(
-            4, 2, "Percepcion IIBB:", 
+            5, 2, "Percepcion IIBB:", 
             ctk.CTkEntry(
                 form_frame, 
                 textvariable=self.iibb_per_var,
@@ -279,7 +292,7 @@ class SupplierInvoiceForm():
         
         # Percepcion IVA
         add_field(
-            5, 2, "Percepcion IVA:", 
+            6, 2, "Percepcion IVA:", 
             ctk.CTkEntry(
                 form_frame, 
                 textvariable=self.iva_per_var, 
@@ -290,7 +303,7 @@ class SupplierInvoiceForm():
         
         # Total
         add_field(
-            6, 2, "Total:", 
+            7, 2, "Total:", 
             ctk.CTkEntry(
                 form_frame, 
                 textvariable=self.total_var, 
@@ -345,7 +358,7 @@ class SupplierInvoiceForm():
             height=40,
             width=160,
             font=ctk.CTkFont(size=13, weight="bold"),
-            command=lambda: self.controller.add_new_invoice(self.invoice_win, parent)
+            command=lambda: self.controller.add_new_invoice(self.invoice_win, parent, supplier_id)
         )
         save_btn.grid(row=0, column=0, padx=15)
 
@@ -367,7 +380,6 @@ class SupplierInvoiceForm():
     def get_invoice_form_data(self):
         """Obtener datos del formulario de factura"""
         return {
-            'supplier_cuit': self.supplier_var.get().strip(),
             'invoice_id': self.invoice_id_var.get().strip(),
             'invoice_type': self.invoice_type_var.get().strip(),
             'date': self.date_var.get().strip(),

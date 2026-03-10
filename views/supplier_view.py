@@ -264,9 +264,13 @@ class SupplierView():
             field_lbl.grid(row=row, column=0, sticky="e", padx=(10,10), pady=7)
             widget.grid(row=row, column=1, sticky="w", padx=(10,10), pady=7)
 
+            return widget
+
         
-        add_field(0, "Nombre Completo: ", 
+        name_entry = add_field(0, "Nombre Completo: ", 
                   ctk.CTkEntry(form_frame, textvariable=self.name_var, width=200))
+        
+        name_entry.focus()
         
         add_field(1, "Cuit: ", 
                   ctk.CTkEntry(form_frame, textvariable=self.cuit_var, width=200))
