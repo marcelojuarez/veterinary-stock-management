@@ -36,6 +36,7 @@ class PaymentWindow():
         self.supplier_id_var = tk.StringVar()
         self.search_var = tk.StringVar()
         self.debt_var = tk.StringVar()
+        self.formatted_debt_var = tk.StringVar()
         self.suppliers = self.model.core.get_all_suppliers()
             
         win = ctk.CTkToplevel(self.frame)
@@ -76,6 +77,7 @@ class PaymentWindow():
         select_supplier_entry = ctk.CTkEntry(
             select_supplier_frame,
             textvariable=self.search_var,
+            width=200,
             font=ctk.CTkFont(size=12),
         )
         select_supplier_entry.grid(row=0, column=1, sticky="w")
@@ -97,7 +99,7 @@ class PaymentWindow():
 
         debt_entry = ctk.CTkEntry(
             debt_frame,
-            textvariable=self.debt_var,
+            textvariable=self.formatted_debt_var,
             width=120,
             corner_radius=10,
             fg_color="white",
@@ -353,6 +355,7 @@ class PaymentWindow():
             debt = self.model.purchase.get_debt_of_supplier(selected_supplier)
 
             self.debt_var.set(debt)
+            self.formatted_debt_var.set(format_currency(debt))
             purchases = self.model.purchase.get_all_confirmed_purchases(selected_supplier)
 
         else:
