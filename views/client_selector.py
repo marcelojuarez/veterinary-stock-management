@@ -129,7 +129,7 @@ class ClientSelectorDialog:
         
         ctk.CTkButton(
             button_frame,
-            text="Consumidor Final",
+            text="Consumidor final",
             width=160,
             height=38,
             font=ctk.CTkFont(size=13, weight="bold"),

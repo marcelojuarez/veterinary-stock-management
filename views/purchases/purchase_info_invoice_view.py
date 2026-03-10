@@ -43,7 +43,7 @@ class PurchaseInfoInvoiceView():
 
             self.confirm_btn = ctk.CTkButton(
                 header_frame,
-                text='Confirmar Compra',
+                text='Confirmar compra',
                 width=130,
                 fg_color = "#009688",
                 hover_color = "#00796B",
@@ -132,7 +132,7 @@ class PurchaseInfoInvoiceView():
 
             self.del_item_btn = ctk.CTkButton(
                 btn_frame,
-                text="🗑 Eliminar Item",
+                text="🗑 Eliminar item",
                 fg_color="#E74C3C",
                 hover_color="#C0392B",
                 font=ctk.CTkFont(size=13, weight="bold"),

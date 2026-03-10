@@ -135,7 +135,7 @@ class StockMovementView:
 
         for txt, cmd in [("Hoy", set_today), ("Semana", set_week), ("Mes", set_month)]:
             ctk.CTkButton(
-                quick_frame, text=txt, width=65, height=28,
+                quick_frame, text=txt, width=65, height=28, font=ctk.CTkFont(size=11, weight="bold"),
                 fg_color="#3A3251", hover_color="#1e1a2e",
                 command=cmd
             ).pack(side="left", padx=2)
@@ -166,8 +166,8 @@ class StockMovementView:
                 "Precio Ant.", "Precio Act.")
 
         style = ttk.Style()
-        style.configure("Mov.Treeview", rowheight=20, font=("Segoe UI", 8))
-        style.configure("Mov.Treeview.Heading", font=("Segoe UI", 9, "bold"))
+        style.configure("Mov.Treeview", rowheight=18, font=("Segoe UI", 7))
+        style.configure("Mov.Treeview.Heading", font=("Segoe UI", 8, "bold"))
 
         tree = ttk.Treeview(
             table_frame,
@@ -177,7 +177,7 @@ class StockMovementView:
             style="Mov.Treeview"
         )
 
-        col_widths = [130, 220, 110, 220, 80, 80, 90, 90, 90, 90]
+        col_widths = [115, 180, 90, 180, 65, 65, 80, 80, 80, 80]
         for col, w in zip(cols, col_widths):
             tree.column(col, width=w, anchor="center" if col != "Producto" and col != "Detalle" else "w")
             tree.heading(col, text=col)
@@ -285,7 +285,7 @@ class StockMovementView:
         # Carga inicial
         load()
 
-        center_window(win, 1200, 750)
+        center_window(win, 1300, 750)
         win.deiconify()
 
     # ================================================================== #

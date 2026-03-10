@@ -63,7 +63,7 @@ class PaymentWindow():
         select_supplier_btn = ctk.CTkButton(
             select_supplier_frame,
             width=140,
-            text="Seleccionar Proveedor",
+            text="Seleccionar proveedor",
             fg_color=btn_color,
             hover_color=btn_hover,
             font=ctk.CTkFont(size=13, weight="bold"),

@@ -49,7 +49,7 @@ class BackupManagerView(ctk.CTkFrame):
         title = ctk.CTkLabel(
             header,
             text="🧾 Gestión de Backups",
-            font=ctk.CTkFont(size=18, weight="bold")
+            font=ctk.CTkFont(size=15, weight="bold")
         )
         title.grid(row=0, column=0, padx=(15, 10), pady=8, sticky="w")
 
@@ -154,8 +154,8 @@ class BackupManagerView(ctk.CTkFrame):
             actions.grid_columnconfigure(i, weight=1 if i % 2 == 0 else 0)
 
         buttons = [
-            ("Crear Backup",    self.create_manual_backup),
-            ("☁️ Subir a Drive", self.upload_to_drive),      # <- nuevo
+            ("Crear backup",    self.create_manual_backup),
+            ("☁️ Subir a drive", self.upload_to_drive),      # <- nuevo
             ("Restaurar",       self.restore_selected_backup),
             ("Eliminar",        self.delete_selected_backup),
             ("Exportar",        self.export_backup),

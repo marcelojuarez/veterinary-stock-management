@@ -339,7 +339,7 @@ class SupplierInvoiceForm():
 
         save_btn = ctk.CTkButton(
             btn_frame,
-            text="Guardar Factura",
+            text="Guardar factura",
             fg_color=btn_color,
             hover_color=btn_hover,
             height=40,

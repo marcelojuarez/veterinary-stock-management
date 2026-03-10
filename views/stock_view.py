@@ -121,7 +121,7 @@ class StockView():
 
         search_label = ctk.CTkLabel(
             find_frame,
-            text='🔍 Buscar producto:',
+            text='🔍 Buscar Producto:',
             font=ctk.CTkFont(size=14, weight="bold")
         )
         search_label.grid(row=0, column=0, padx=15, pady=15)
@@ -140,7 +140,7 @@ class StockView():
 
         history_btn = ctk.CTkButton(
             find_frame,
-            text="📋 Historial Global",
+            text="📋 Historial global",
             width=W, height=H,
             font=ctk.CTkFont(size=12, weight="bold"),
             fg_color=btn_color, hover_color=btn_hover,
@@ -150,7 +150,7 @@ class StockView():
 
         history_product_btn = ctk.CTkButton(
             find_frame,
-            text="📋 Historial Producto",
+            text="📋 Historial producto",
             width=W, height=H,
             font=ctk.CTkFont(size=12, weight="bold"),
             fg_color=btn_color, hover_color=btn_hover,
@@ -160,7 +160,7 @@ class StockView():
 
         stock_information_btn = ctk.CTkButton(
             find_frame,
-            text="📊 Información Stock",
+            text="📊 Información stock",
             width=W, height=H,
             font=ctk.CTkFont(size=12, weight="bold"),
             fg_color=btn_color, hover_color=btn_hover,
@@ -252,7 +252,7 @@ class StockView():
         # Título de la tabla
         table_title = ctk.CTkLabel(
             tree_frame,
-            text="Inventario de Productos",
+            text="Inventario de productos",
             font=ctk.CTkFont(size=16, weight="bold")
         )
         table_title.grid(row=0, column=0, pady=(15, 10))
@@ -564,13 +564,13 @@ class StockView():
                     self.show_error(f"Error. {e}")
 
 
-            save_button = ctk.CTkButton(button_frame, text="Guardar", width=100, height=35, 
+            save_button = ctk.CTkButton(button_frame, text="Guardar", width=100, height=35, font=ctk.CTkFont(size=12, weight="bold"),
                 fg_color="#4CAF50", hover_color="#45a049", command=save_update)
             save_button.pack(side="left", padx=10)
 
             window.bind("<Return>", lambda events: save_button.invoke())            
 
-            cancel_button = ctk.CTkButton(button_frame, text="Cancelar", width=100, height=35, 
+            cancel_button = ctk.CTkButton(button_frame, text="Cancelar", width=100, height=35, font=ctk.CTkFont(size=12, weight="bold"),
                 fg_color="#757575", hover_color="#616161", command=window.destroy)
             cancel_button.pack(side="left", padx=10)
 
@@ -702,6 +702,7 @@ class StockView():
                 height=40,
                 fg_color="#4CAF50",
                 hover_color="#45a049",
+                font=ctk.CTkFont(size=12, weight="bold"),
                 command=apply_bulk_update
             )
             apply_button.pack(side="left", padx=10)
@@ -713,6 +714,7 @@ class StockView():
                 height=40,
                 fg_color="#757575",
                 hover_color="#616161",
+                font=ctk.CTkFont(size=12, weight="bold"),
                 command=window.destroy
             )
             cancel_button.pack(side="left", padx=10)

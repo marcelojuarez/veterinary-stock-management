@@ -39,7 +39,7 @@ class ReportsView:
         ctk.CTkLabel(
             header,
             text="📊 Reportes Fiscales",
-            font=ctk.CTkFont(size=17, weight="bold"),
+            font=ctk.CTkFont(size=15, weight="bold"),
             text_color="#212121"
         ).pack(side="left", padx=15, pady=8)
 
@@ -70,9 +70,10 @@ class ReportsView:
         ).pack(side="left", padx=(15, 10), pady=10)
 
         months = [
-            "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
-            "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"
+            "ENERO", "FEBRERO", "MARZO", "ABRIL", "MAYO", "JUNIO",
+            "JULIO", "AGOSTO", "SEPTIEMBRE", "OCTUBRE", "NOVIEMBRE", "DICIEMBRE"
         ]
+        
         current_month = datetime.now().month
         self.month_var.set(months[current_month - 1])
 
@@ -91,11 +92,16 @@ class ReportsView:
 
         ctk.CTkComboBox(
             period_frame,
-            variable=self.year_var,
-            values=years,
-            width=100,
+            variable=self.month_var,
+            values=months,
+            width=150,
             height=35,
-            state="readonly"
+            state="readonly",
+            button_color="#009688",
+            button_hover_color="#00796B",
+            border_color="#cccccc",
+            fg_color="white",
+            text_color="#212121"
         ).pack(side="left", padx=5, pady=10)
 
         ctk.CTkButton(
@@ -111,7 +117,7 @@ class ReportsView:
 
         ctk.CTkButton(
             period_frame,
-            text="📅 Mes Actual",
+            text="📅 Mes actual",
             width=130,
             height=35,
             fg_color="#2196F3",

@@ -126,7 +126,7 @@ class SupplierView():
         table_title = ctk.CTkLabel(
             tree_frame,
             text="📋 Proveedores registrados",
-            font=ctk.CTkFont(size=15, weight="bold")
+            font=ctk.CTkFont(size=16, weight="bold")
         )
         table_title.pack(pady=(10,5))
 
@@ -165,9 +165,9 @@ class SupplierView():
             "Id", "Nombre", "Cuit", "Domicilio", "Ciudad", "Provincia", "Telefono", "Email", "Condicion Iva", "Últ. Act. deuda"
         )
         self.supplier_tree['displaycolumns'] = self.supplier_tree['columns']
-        self.supplier_tree.column("Id", anchor=tk.W, width=50,stretch=True)
+        self.supplier_tree.column("Id", anchor=tk.W, width=30,stretch=True)
         self.supplier_tree.column("Nombre", anchor=tk.W, width=200,stretch=True)
-        self.supplier_tree.column("Cuit", anchor=tk.W, width=130,stretch=True)
+        self.supplier_tree.column("Cuit", anchor=tk.W, width=100,stretch=True)
         self.supplier_tree.column("Domicilio", anchor=tk.W, width=180,stretch=True)
         self.supplier_tree.column("Ciudad", anchor=tk.W, width=150,stretch=True)
         self.supplier_tree.column("Provincia", anchor=tk.W, width=150,stretch=True)
@@ -201,11 +201,11 @@ class SupplierView():
         btn_hover = "#00796B"
 
         buttons = [
-            ('➕ Agregar Proveedor',          lambda: self.open_add_window(manage_frame)),
-            ('👥 Ver Detalle',             lambda: self.controller.supplier_info(manage_frame)),
-            ('🗑️ Eliminar Proveedor',           lambda: self.controller.delete_supplier()),
-            ('🛒 Registrar Compra', lambda: self.purchase_window.open_purchase_window(self.frame)),
-            ('💰 Registrar Pago',   lambda: self.payment_window.open_payment_window(manage_frame)),
+            ('➕ Agregar proveedor',          lambda: self.open_add_window(manage_frame)),
+            ('👥 Ver detalle',             lambda: self.controller.supplier_info(manage_frame)),
+            ('🗑️ Eliminar proveedor',           lambda: self.controller.delete_supplier()),
+            ('🛒 Registrar compra', lambda: self.purchase_window.open_purchase_window(self.frame)),
+            ('💰 Registrar pago',   lambda: self.payment_window.open_payment_window(manage_frame)),
         ]
 
         for i, (text, cmd) in enumerate(buttons):

@@ -57,7 +57,7 @@ class SalesView:
         header.grid(row=0, column=0, columnspan=2, sticky="w", padx=10, pady=(10, 5))
 
         title = ctk.CTkLabel(header, text="🧾 Gestión de Ventas",
-                             font=ctk.CTkFont(size=17, weight="bold"))
+                             font=ctk.CTkFont(size=15, weight="bold"))
         title.grid(row=0, column=0, padx=15, pady=10)
 
         search_entry = ctk.CTkEntry(
@@ -80,7 +80,7 @@ class SalesView:
         search_btn.grid(row=0, column=2, padx=10)
 
         today_btn = ctk.CTkButton(
-            header, text="📅 Ver Ventas",
+            header, text="📅 Ver ventas",
             width=150, height=35,
             fg_color="#009688", hover_color="#00796B",
             font=ctk.CTkFont(size=12, weight="bold"),
@@ -96,7 +96,7 @@ class SalesView:
         selector_frame.grid(row=1, column=0, rowspan=2, padx=10, pady=10, sticky="nsew")
 
         label = ctk.CTkLabel(selector_frame, text="📦 Productos disponibles",
-                            font=ctk.CTkFont(size=15, weight="bold"))
+                            font=ctk.CTkFont(size=16, weight="bold"))
         label.pack(pady=(10, 5))
 
         tree_frame = tk.Frame(selector_frame)
@@ -106,7 +106,7 @@ class SalesView:
         self.product_tree = ttk.Treeview(tree_frame, show="headings", height=12)
         self.product_tree["columns"] = ("Cód.", "Nombre", "Envase", "P. Venta", "Stock")
 
-        for col, w in zip(self.product_tree["columns"], [40, 280, 100, 80, 50]):
+        for col, w in zip(self.product_tree["columns"], [40, 260, 100, 80, 50]):
             self.product_tree.column(col, width=w)
             self.product_tree.heading(col, text=col)
 
@@ -137,7 +137,7 @@ class SalesView:
         # NUEVO: Botón de honorarios
         honorarios_btn = ctk.CTkButton(
             button_frame,
-            text="💼 Agregar Honorarios",
+            text="💼 Agregar honorarios",
             width=180, height=35,
             fg_color="#2196F3", hover_color="#1976D2",
             font=ctk.CTkFont(size=12, weight="bold"),
@@ -153,7 +153,7 @@ class SalesView:
         table_frame.columnconfigure(0, weight=1)
 
         label = ctk.CTkLabel(table_frame, text="🧾 Productos en la venta",
-                            font=ctk.CTkFont(size=15, weight="bold"))
+                            font=ctk.CTkFont(size=16, weight="bold"))
         label.grid(row=0, column=0, pady=(10, 5))
 
         self.sale_tree = ttk.Treeview(table_frame, show="headings", height=10)

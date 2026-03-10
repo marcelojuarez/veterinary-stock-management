@@ -109,7 +109,7 @@ class PurchaseForm():
 
         new_p_btn = ctk.CTkButton(
             add_btn_frame,
-            text="Nuevo Producto",
+            text="Nuevo producto",
             font=ctk.CTkFont(size=12, weight='bold'),
             command=lambda:self.new_product_form.open_add_window(product_win)
         )

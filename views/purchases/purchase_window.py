@@ -86,7 +86,7 @@ class PurchaseWindow():
         select_supplier_btn = ctk.CTkButton(
             select_supplier_frame,
             width=150,
-            text="Seleccionar Proveedor",
+            text="Seleccionar proveedor",
             fg_color=btn_color,
             hover_color=btn_hover,
             font=ctk.CTkFont(size=13, weight="bold"),
@@ -105,7 +105,7 @@ class PurchaseWindow():
             select_supplier_frame,
             width=150,
             height=35,
-            text="Mostrar Todas las Compras",
+            text="Mostrar todas las compras",
             font=ctk.CTkFont(size=13, weight="bold"),
             command=lambda: self.load_purchases(False)
         )
@@ -114,7 +114,7 @@ class PurchaseWindow():
         filter_for_date_btn = ctk.CTkButton(
             select_supplier_frame,
             width=150,
-            text="Filtrar por Fecha",
+            text="Filtrar por fecha",
             fg_color=btn_color,
             hover_color=btn_hover,
             font=ctk.CTkFont(size=13, weight="bold"),
@@ -191,24 +191,24 @@ class PurchaseWindow():
         # boton Registrar Comprapo
         confirm_btn = ctk.CTkButton(
             buttons_frame,
-            text="Registrar Nueva Compra",
+            text="Registrar nueva compra",
             fg_color="#009688",
             hover_color="#00796B",
             height=40,
             width=90,
-            font=ctk.CTkFont(size=14, weight="bold"),
+            font=ctk.CTkFont(size=13, weight="bold"),
             command=lambda: self.open_doc_type(win)
         )
         confirm_btn.grid(row=0, column=0, padx=5, pady=10)
 
         add_item_btn = ctk.CTkButton(
             buttons_frame,
-            text="Agregar Productos a Comprar",
+            text="Agregar productos a comprar",
             fg_color="#009688",
             hover_color="#00796B",
             height=40,
             width=90,            
-            font=ctk.CTkFont(size=14, weight="bold"),
+            font=ctk.CTkFont(size=13, weight="bold"),
             command=lambda: self.open_add_item_win(win)
         ) 
         add_item_btn.grid(row=0, column=1, padx=5, pady=10)
@@ -216,12 +216,12 @@ class PurchaseWindow():
         # boton para ver el detalle de una compra
         update_stock_btn = ctk.CTkButton(
             buttons_frame,
-            text="Detalle de Compra",
+            text="Detalle de compra",
             fg_color="#2980B9",
             hover_color="#0B5D94",
             height=40,
             width=90,            
-            font=ctk.CTkFont(size=14, weight="bold"),
+            font=ctk.CTkFont(size=13, weight="bold"),
             command=lambda: self.open_purchase_info(win)
         )
         update_stock_btn.grid(row=0, column=2, padx=5, pady=10)
@@ -229,12 +229,12 @@ class PurchaseWindow():
         # boton para ver el detalle de una compra
         delete_purchase_btn = ctk.CTkButton(
             buttons_frame,
-            text="Eliminar Registro de Compra",
+            text="Eliminar registro de compra",
             fg_color="#2980B9",
             hover_color="#0B5D94",
             height=40,
             width=90,            
-            font=ctk.CTkFont(size=14, weight="bold"),
+            font=ctk.CTkFont(size=13, weight="bold"),
             command=self.delete_purchase
         )
         delete_purchase_btn.grid(row=0, column=3, padx=(5,15), pady=10)
@@ -247,7 +247,7 @@ class PurchaseWindow():
             hover_color="#C0392B",
             height=40,
             width=90,            
-            font=ctk.CTkFont(size=14, weight="bold"),
+            font=ctk.CTkFont(size=13, weight="bold"),
             command=lambda: close_win(win, parent)
         )
         close_win_btn.grid(row=0, column=4, padx=5, pady=10)

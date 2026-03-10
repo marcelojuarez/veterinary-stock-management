@@ -2,7 +2,7 @@ import tkinter as tk
 import customtkinter as ctk
 
 from decimal import Decimal
-from utils.view_helpers import close_win, ask_confirmation
+from utils.view_helpers import center_window, close_win, ask_confirmation
 from utils.utils import flex_dec, string_to_flex_dec, string_to_2_dec
 
 class NewProductForm():

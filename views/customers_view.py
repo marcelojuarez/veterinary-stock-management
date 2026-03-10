@@ -81,7 +81,7 @@ class CustomersView:
         label = ctk.CTkLabel(
             table_frame,
             text="📋 Clientes registrados", 
-            font=ctk.CTkFont(size=15, weight="bold")
+            font=ctk.CTkFont(size=16, weight="bold")
         )
         label.pack(pady=(10, 5))
 
@@ -156,7 +156,7 @@ class CustomersView:
         # Guardar referencia al botón de deudas
         self.btn_ver_deudas = ctk.CTkButton(
             footer,
-            text="💳 Ver Deudas",
+            text="💳 Ver deudas",
             width=W, height=H,
             font=ctk.CTkFont(size=13, weight="bold"),
             fg_color="#009688", hover_color="#00796B",
@@ -166,7 +166,7 @@ class CustomersView:
 
         ctk.CTkButton(
             footer,
-            text="🗑️ Eliminar Cliente",
+            text="🗑️ Eliminar cliente",
             width=W, height=H,
             font=ctk.CTkFont(size=13, weight="bold"),
             fg_color="#009688", hover_color="#00796B",
@@ -175,7 +175,7 @@ class CustomersView:
 
         ctk.CTkButton(
             footer,
-            text="➕ Agregar Cliente",
+            text="➕ Agregar cliente",
             width=W, height=H,
             font=ctk.CTkFont(size=13, weight="bold"),
             fg_color="#009688", hover_color="#00796B",
@@ -184,7 +184,7 @@ class CustomersView:
 
         ctk.CTkButton(
             footer,
-            text="✏️ Editar Cliente",
+            text="✏️ Editar cliente",
             width=W, height=H,
             font=ctk.CTkFont(size=13, weight="bold"),
             fg_color="#009688", hover_color="#00796B",
@@ -707,7 +707,7 @@ class CustomersView:
         
         btn_historial = ctk.CTkButton(
             btn_frame,
-            text="📊 Ver Historial",
+            text="📊 Ver historial",
             width=160,
             height=35,
             fg_color="#2196F3",
@@ -982,7 +982,7 @@ class CustomersView:
 
         ctk.CTkButton(
             btn_frame,
-            text="🔄 Resetear Cuenta",
+            text="🔄 Resetear cuenta",
             width=150,
             height=40,
             fg_color="#E91E63" if can_reset else "#9E9E9E",  # Gris más oscuro

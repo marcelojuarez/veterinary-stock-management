@@ -531,7 +531,7 @@ class CustomerController:
         btn_frame.pack(pady=(5, 15), fill="x", padx=20)
 
         ctk.CTkButton(
-            btn_frame, text="Confirmar Pago",
+            btn_frame, text="Confirmar pago",
             fg_color="#009688", hover_color="#00796B",
             height=40, font=ctk.CTkFont(weight="bold"),
             command=process

@@ -54,7 +54,7 @@ class ChecksView:
         ctk.CTkLabel(
             header,
             text="🏦 Cartera de Cheques",
-            font=ctk.CTkFont(size=16, weight="bold")
+            font=ctk.CTkFont(size=15, weight="bold")
         ).grid(row=0, column=0, padx=15, pady=12, sticky="w")
 
         # Filtro por estado
@@ -82,10 +82,10 @@ class ChecksView:
 
         self._stats_cards = {}
         specs = [
-            ("en_cartera_count", "En cartera",     "#1565C0", "#E3F2FD"),
-            ("en_cartera_total", "Total cartera $", "#2E7D32", "#E8F5E9"),
-            ("cobrado_count",    "Cobrados",        "#F57F17", "#FFFDE7"),
-            ("endosado_count",   "Endosados",       "#6D4C41", "#EFEBE9"),
+            ("en_cartera_count", "EN CARTERA",     "#1565C0", "#E3F2FD"),
+            ("en_cartera_total", "TOTAL CARTERA $", "#2E7D32", "#E8F5E9"),
+            ("cobrado_count",    "COBRADOS",        "#F57F17", "#FFFDE7"),
+            ("endosado_count",   "ENDOSADOS",       "#6D4C41", "#EFEBE9"),
         ]
         for col, (key, label, fg, bg) in enumerate(specs):
             card = ctk.CTkFrame(stats_frame, fg_color=bg, corner_radius=10)
@@ -108,7 +108,7 @@ class ChecksView:
         table_frame.grid_columnconfigure(0, weight=1)
 
         ctk.CTkLabel(table_frame, text="📋 Cheques",
-                     font=ctk.CTkFont(size=13, weight="bold")).pack(pady=(8, 4))
+                     font=ctk.CTkFont(size=16, weight="bold")).pack(pady=(10, 5))
 
         style = ttk.Style()
         style.theme_use("clam")
@@ -159,30 +159,30 @@ class ChecksView:
         W, H = 200, 38
 
         ctk.CTkButton(
-            footer, text="✅ Marcar Cobrado", width=W, height=H,
+            footer, text="✅ Marcar cobrado", width=W, height=H,
             fg_color="#2E7D32", hover_color="#1B5E20",
-            font=ctk.CTkFont(size=12, weight="bold"),
+            font=ctk.CTkFont(size=13, weight="bold"),
             command=self._on_cobrar
         ).grid(row=0, column=0, padx=8)
 
         ctk.CTkButton(
-            footer, text="🏭 Endosar a Proveedor", width=W, height=H,
+            footer, text="🏭 Endosar a proveedor", width=W, height=H,
             fg_color="#6D4C41", hover_color="#5D4037",
-            font=ctk.CTkFont(size=12, weight="bold"),
+            font=ctk.CTkFont(size=13, weight="bold"),
             command=self._on_endosar
         ).grid(row=0, column=1, padx=8)
 
         ctk.CTkButton(
-            footer, text="❌ Marcar Rechazado", width=W, height=H,
+            footer, text="❌ Marcar rechazado", width=W, height=H,
             fg_color="#C62828", hover_color="#B71C1C",
-            font=ctk.CTkFont(size=12, weight="bold"),
+            font=ctk.CTkFont(size=13, weight="bold"),
             command=self._on_rechazar
         ).grid(row=0, column=2, padx=8)
 
         ctk.CTkButton(
             footer, text="🔄 Actualizar", width=W, height=H,
             fg_color="#009688", hover_color="#00796B",
-            font=ctk.CTkFont(size=12, weight="bold"),
+            font=ctk.CTkFont(size=13, weight="bold"),
             command=lambda: self.controller.load_checks(self.filter_var.get())
         ).grid(row=0, column=3, padx=8)
 
@@ -246,14 +246,14 @@ class ChecksView:
         win.title("Endosar cheque a proveedor")
         win.transient(self.frame)
         win.grab_set()
-        center_window(win, 560, 420)
+        center_window(win, 600, 600)
 
         ctk.CTkLabel(win, text="Seleccione la compra de proveedor:",
-                     font=ctk.CTkFont(size=14, weight="bold")).pack(pady=(16, 8))
+                     font=ctk.CTkFont(size=16, weight="bold")).pack(pady=(16, 8))
 
-        cols = ("ID Compra", "Proveedor", "Fecha", "Total", "Pendiente")
+        cols = ("ID. C", "Proveedor", "Fecha", "Total", "Pendiente")
         tree = ttk.Treeview(win, columns=cols, show="headings", height=10)
-        for col, w in zip(cols, [80, 200, 100, 100, 100]):
+        for col, w in zip(cols, [50, 200, 130, 110, 120]):
             tree.column(col, width=w, anchor="center")
             tree.heading(col, text=col)
         for p in purchases:
@@ -271,9 +271,9 @@ class ChecksView:
 
         btn_f = ctk.CTkFrame(win, fg_color="transparent")
         btn_f.pack(pady=12)
-        ctk.CTkButton(btn_f, text="Endosar", fg_color="#6D4C41", hover_color="#5D4037",
+        ctk.CTkButton(btn_f, text="Endosar", fg_color="#6D4C41", hover_color="#5D4037", font=ctk.CTkFont(size=12, weight="bold"), height=30, width=100,
                       command=confirm).grid(row=0, column=0, padx=10)
-        ctk.CTkButton(btn_f, text="Cancelar", fg_color="#757575", hover_color="#616161",
+        ctk.CTkButton(btn_f, text="Cancelar", fg_color="#757575", hover_color="#616161", font=ctk.CTkFont(size=12, weight="bold"), height=30, width=100, 
                       command=win.destroy).grid(row=0, column=1, padx=10)
 
     # ----------------------------------------------------------------

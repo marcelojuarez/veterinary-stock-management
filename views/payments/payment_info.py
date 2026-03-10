@@ -1,6 +1,6 @@
 from tksheet import Sheet
 import customtkinter as ctk
-from utils.view_helpers import close_win
+from utils.view_helpers import center_window, close_win
 from utils.utils import iso_to_traditional, format_currency
 
 class PaymentInfo():
@@ -10,8 +10,8 @@ class PaymentInfo():
     def show_payment_info(self, parent, values):
         payment_info = ctk.CTkToplevel(parent)
         payment_info.title("Información del Pago")
-        payment_info.geometry("650x450")
         payment_info.resizable(False, False)
+        center_window(payment_info, 650, 450)
 
         payment_info.protocol(
             "WM_DELETE_WINDOW",
