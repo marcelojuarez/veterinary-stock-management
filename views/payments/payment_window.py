@@ -219,25 +219,38 @@ class PaymentWindow():
         purchase_frame.pack(fill='both', expand=True)
 
         self.purchase_tree = ttk.Treeview(purchase_frame, show="headings", height=8)
-        self.purchase_tree["columns"] = ("ID", "Cuit Proveedor", "Nombre Proveedor", "Tipo Comprobante", "Fecha", 
+        self.purchase_tree["columns"] = ("ID", "Cuit Proveedor", "Nombre Proveedor", "Tipo Comprobante", "Fecha",
                                          "Fecha Venc.", "Estado", "Saldo Pendiente", "Total")
-        for col in self.purchase_tree["columns"]:
-            self.purchase_tree.heading(col, text=col.capitalize())
-            if col == "ID":
-                self.purchase_tree.column(col, width=100, anchor="center")
-            else:
-                self.purchase_tree.column(col, width=150, anchor="center")
-        self.purchase_tree.pack(side="left", fill="both", expand=True)   
 
-        scrollbar = ttk.Scrollbar(purchase_frame, orient="vertical", command=self.purchase_tree.yview)
-        self.purchase_tree.configure(yscroll=scrollbar.set)
+        col_widths = {
+            "ID":               50,
+            "Cuit Proveedor":  110,
+            "Nombre Proveedor":150,
+            "Tipo Comprobante": 110,
+            "Fecha":            85,
+            "Fecha Venc.":      85,
+            "Estado":           80,
+            "Saldo Pendiente":  100,
+            "Total":            90,
+        }
+        for col in self.purchase_tree["columns"]:
+            self.purchase_tree.heading(col, text=col)
+            self.purchase_tree.column(col, width=col_widths.get(col, 100),
+                                      anchor="center", minwidth=50, stretch=True)
+
+        sx = ttk.Scrollbar(purchase_frame, orient="horizontal", command=self.purchase_tree.xview)
+        sy = ttk.Scrollbar(purchase_frame, orient="vertical",   command=self.purchase_tree.yview)
+        self.purchase_tree.configure(xscrollcommand=sx.set, yscrollcommand=sy.set)
+
+        sx.pack(side="bottom", fill="x")
+        sy.pack(side="right",  fill="y")
+        self.purchase_tree.pack(side="left", fill="both", expand=True)
 
         # Tags de color por estado
-        self.purchase_tree.tag_configure("PENDIENTE",  background="#FFF9C4")  # amarillo
-        self.purchase_tree.tag_configure("PAGADA",     background="#E8F5E9")  # verde
-        self.purchase_tree.tag_configure("BORRADOR",   background="#F5F5F5")  # gris
-        self.purchase_tree.tag_configure("orow",       background="white")
-        scrollbar.pack(side="right",fill="y")
+        self.purchase_tree.tag_configure("PENDIENTE", background="#FFF9C4")
+        self.purchase_tree.tag_configure("PAGADA",    background="#E8F5E9")
+        self.purchase_tree.tag_configure("BORRADOR",  background="#F5F5F5")
+        self.purchase_tree.tag_configure("orow",      background="white")
 
         return purchase_frame
 
