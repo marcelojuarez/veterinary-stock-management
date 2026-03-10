@@ -61,115 +61,86 @@ class PaymentForm:
 
         self.setup_payment_variables(supplier_cuit, purchase_id, amount)
 
-        """Ventana para registrar un nuevo pago"""
-
         if self.supplier_var.get() == "":
             show_warning("Por favor seleccione un Proveedor")
             return
 
         self.add_pay_win = ctk.CTkToplevel(parent if parent else self.frame)
         self.add_pay_win.title("Registrar nuevo pago")
-        self.add_pay_win.resizable(False, False)
+        self.add_pay_win.resizable(True, True)
 
-        self.add_pay_win.columnconfigure(0, weight=0)
-        self.add_pay_win.columnconfigure(1, weight=1)
+        # Limitar tamaño máximo a la pantalla disponible
+        sw = self.add_pay_win.winfo_screenwidth()
+        sh = self.add_pay_win.winfo_screenheight()
+        win_w, win_h = 520, min(560, sh - 80)
+        self.add_pay_win.geometry("{}x{}+{}+{}".format(
+            win_w, win_h,
+            sw // 2 - win_w // 2,
+            sh // 2 - win_h // 2
+        ))
+        self.add_pay_win.minsize(520, 400)
 
         self.add_pay_win.protocol("WM_DELETE_WINDOW", lambda: close_win(self.add_pay_win, parent))
-        
-        # Hacer que la ventana sea modal
         self.add_pay_win.transient(parent)
         self.add_pay_win.grab_set()
-        
-        # Centrar — tamaño base, se expande con los campos dinámicos
-        self.add_pay_win.geometry("550x370+{}+{}".format(
-            self.add_pay_win.winfo_screenwidth()//2 - 250,
-            self.add_pay_win.winfo_screenheight()//2 - 185
-        ))
-        
+
+        # Contenedor scrollable
+        self.add_pay_win.rowconfigure(0, weight=1)
+        self.add_pay_win.columnconfigure(0, weight=1)
+        scroll = ctk.CTkScrollableFrame(self.add_pay_win, fg_color="transparent")
+        scroll.grid(row=0, column=0, sticky="nsew", padx=0, pady=0)
+        scroll.columnconfigure(0, weight=0)
+        scroll.columnconfigure(1, weight=1)
+
+        # Alias para simplificar
+        W = scroll
+        FONT_LBL  = ctk.CTkFont(size=13, weight="bold")
+        FONT_ENTRY = ctk.CTkFont(size=13)
+        ENTRY_W, ENTRY_H = 220, 36
+
         # Título
-        title_label = ctk.CTkLabel(
-            self.add_pay_win,
-            text="Nuevo Pago",
-            font=ctk.CTkFont(size=18, weight="bold")
-        )
-        title_label.grid(row=0, column=0, columnspan=2, pady=(20, 20))
+        ctk.CTkLabel(W, text="Nuevo Pago", font=ctk.CTkFont(size=18, weight="bold")).grid(
+            row=0, column=0, columnspan=2, pady=(16, 14))
 
-        cuit_lbl = ctk.CTkLabel(self.add_pay_win, text="Cuit:", font=ctk.CTkFont(size=12, weight="bold"))
-        cuit_lbl.grid(row=1, column=0, padx=(20,10), pady=5)
+        # CUIT
+        ctk.CTkLabel(W, text="Cuit:", font=FONT_LBL).grid(row=1, column=0, padx=(20,8), pady=5, sticky="e")
+        ctk.CTkEntry(W, textvariable=self.supplier_var, width=ENTRY_W, height=ENTRY_H,
+                     state='readonly', font=FONT_ENTRY).grid(row=1, column=1, padx=(0,20), pady=5, sticky="w")
 
-        cuit_entry = ctk.CTkEntry(
-            self.add_pay_win,
-            textvariable=self.supplier_var,
-            width=200,
-            height=35,
-            state='readonly',
-            font=ctk.CTkFont(size=12)
-        )
-        cuit_entry.grid(row=1, column=1, padx=(15,20), pady=5)
+        # Monto
+        ctk.CTkLabel(W, text="Monto:", font=FONT_LBL).grid(row=2, column=0, padx=(20,8), pady=5, sticky="e")
+        ctk.CTkEntry(W, textvariable=self.amount_var, width=ENTRY_W, height=ENTRY_H,
+                     font=FONT_ENTRY).grid(row=2, column=1, padx=(0,20), pady=5, sticky="w")
 
-        # monto
-        amount_lbl = ctk.CTkLabel(self.add_pay_win, text="Monto:", font=ctk.CTkFont(size=12, weight="bold"))
-        amount_lbl.grid(row=2, column=0, padx=(20,10), pady=5)
+        # Nro recibo
+        ctk.CTkLabel(W, text="Numero de recibo:", font=FONT_LBL).grid(row=3, column=0, padx=(20,8), pady=5, sticky="e")
+        ctk.CTkEntry(W, textvariable=self.num_receipt_var, width=ENTRY_W, height=ENTRY_H,
+                     font=FONT_ENTRY).grid(row=3, column=1, padx=(0,20), pady=5, sticky="w")
 
-        amount_entry = ctk.CTkEntry(
-            self.add_pay_win, 
-            textvariable=self.amount_var,
-            width=200,
-            height=35
-        )
-        amount_entry.grid(row=2, column=1, padx=(15,20), pady=5)
+        # Observaciones
+        ctk.CTkLabel(W, text="Observaciones:", font=FONT_LBL).grid(row=4, column=0, padx=(20,8), pady=5, sticky="e")
+        ctk.CTkEntry(W, textvariable=self.observation_var, width=ENTRY_W, height=ENTRY_H,
+                     font=FONT_ENTRY).grid(row=4, column=1, padx=(0,20), pady=5, sticky="w")
 
-        # id recibo
-        id_receipt_lbl = ctk.CTkLabel(self.add_pay_win, text="Numero de recibo:", font=ctk.CTkFont(size=12, weight="bold"))
-        id_receipt_lbl.grid(row=3, column=0, padx=(20,10), pady=5)
-
-        id_receipt_entry = ctk.CTkEntry(
-            self.add_pay_win,
-            textvariable=self.num_receipt_var,
-            width=200,
-            height=35,
-            font=ctk.CTkFont(size=12),
-        )
-        id_receipt_entry.grid(row=3, column=1, padx=(15,20), pady=5)
-
-        # observaciones
-        ob_lbl = ctk.CTkLabel(self.add_pay_win, text="Observaciones:", font=ctk.CTkFont(size=12, weight="bold"))
-        ob_lbl.grid(row=4, column=0, padx=(20,10), pady=5)
-
-        ob_entry = ctk.CTkEntry(
-            self.add_pay_win,
-            textvariable=self.observation_var,
-            width=200,
-            height=50,
-            font=ctk.CTkFont(size=12),            
-        )
-        ob_entry.grid(row=4, column=1, padx=(15,20), pady=5)
-
-        # metodo de pago
-        method_lbl = ctk.CTkLabel(self.add_pay_win, text="Metodo de Pago:", font=ctk.CTkFont(size=12, weight="bold"))
-        method_lbl.grid(row=5, column=0, padx=(20,10), pady=5)
-
+        # Método
+        ctk.CTkLabel(W, text="Metodo de Pago:", font=FONT_LBL).grid(row=5, column=0, padx=(20,8), pady=5, sticky="e")
         method_combo = ctk.CTkComboBox(
-            self.add_pay_win,
-            values=["EFECTIVO", "TRANSFERENCIA", "CHEQUE"],
-            variable=self.method_var,
-            width=200,
-            height=35,
-            font=ctk.CTkFont(size=12),
-            state="readonly",
+            W, values=["EFECTIVO", "TRANSFERENCIA", "CHEQUE"],
+            variable=self.method_var, width=ENTRY_W, height=ENTRY_H,
+            font=FONT_ENTRY, state="readonly",
             command=lambda value: self.render_dynamic_fields(parent)
         )
         method_combo.set("")
-        method_combo.grid(row=5, column=1, padx=(15,20), pady=5)
+        method_combo.grid(row=5, column=1, padx=(0,20), pady=5, sticky="w")
 
-        self.dynamic_frame = ctk.CTkFrame(self.add_pay_win, fg_color="transparent")
-        self.dynamic_frame.grid(row=6, column=0, columnspan=2, pady=5)
+        # Frame dinámico
+        self.dynamic_frame = ctk.CTkFrame(W, fg_color="transparent")
+        self.dynamic_frame.grid(row=6, column=0, columnspan=2, pady=(4, 8), sticky="ew")
+        self.dynamic_frame.columnconfigure(0, weight=0)
+        self.dynamic_frame.columnconfigure(1, weight=1)
 
         self.create_dynamic_fields()
         self.create_action_buttons(parent)
-
-        self.dynamic_frame.columnconfigure(0, weight=0)
-        self.dynamic_frame.columnconfigure(1, weight=1)
         
     def create_dynamic_fields(self):
         # TRANSFERENCIA
@@ -269,7 +240,6 @@ class PaymentForm:
             self.render_buttons(6)
 
         self.add_pay_win.update_idletasks()
-        self.add_pay_win.geometry(f"500x{self.add_pay_win.winfo_reqheight()}")
 
     def _load_cartera(self):
         """Carga cheques EN_CARTERA en la tabla."""
