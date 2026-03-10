@@ -80,7 +80,7 @@ class PurchaseInfoInvoiceView():
             table_frame.pack(fill="both", expand=True, padx=10)
 
             headers = ["Id", "Nombre", "Envase", "Cantidad", "Precio Lista", "Dto %", 'Precio Costo', "Iva %", 
-                        "Monto Descuento", "Subtotal", "Monto Iva", "Total"]
+                        "Monto Descuento", "Subtotal", "Monto Total Iva", "Total"]
 
             self.sheet = Sheet(
                 table_frame,

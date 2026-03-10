@@ -14,9 +14,12 @@ class PaymentForm:
         self.checks_model = checks_model   # ← cartera de cheques
         self._selected_check = None        # cheque elegido de la cartera
 
-    def setup_payment_variables(self, supplier_var, purchase_id, amount):
-        self.supplier_var = tk.StringVar()
-        self.supplier_var.set(supplier_var)
+    def setup_payment_variables(self, supplier_id, supplier_cuit, purchase_id, amount):
+        self.supplier_id_var = tk.StringVar()
+        self.supplier_cuit_var = tk.StringVar()
+
+        self.supplier_id_var.set(supplier_id)
+        self.supplier_cuit_var.set(supplier_cuit)
 
         self.amount_var = tk.StringVar()
 
@@ -49,19 +52,23 @@ class PaymentForm:
         print(f"DEBUG: Controller asignado correctamente: {self.controller}")
 
     ## -- Formulario de pago -- ##
-    def add_payment_win(self, parent, supplier_cuit, purchase_id=None, amount=None):
-
-        if supplier_cuit == '':
+    def add_payment_win(self, parent, supplier_id, purchase_id=None, amount=None):
+        if supplier_id.strip() == '':
             show_warning('Por favor selecciona un Proveedor')
             return
 
+        supplier_data = self.model.core.find_supplier_by_id(supplier_id)
+
         if Decimal(self.pay_win.debt_var.get()) <= Decimal('0.00'):
-            show_warning(f'Atención. No se registra Deuda al proveedor: {supplier_cuit}')
+            show_warning(f'Atención. No se registra Deuda al proveedor: '\
+                         f'{supplier_data[1]} - {supplier_data[2]}')
             return
 
-        self.setup_payment_variables(supplier_cuit, purchase_id, amount)
+        self.setup_payment_variables(supplier_id, supplier_data[1], purchase_id, amount)
 
-        if self.supplier_var.get() == "":
+        """Ventana para registrar un nuevo pago"""
+
+        if self.supplier_cuit_var.get() == "":
             show_warning("Por favor seleccione un Proveedor")
             return
 
@@ -104,7 +111,7 @@ class PaymentForm:
 
         # CUIT
         ctk.CTkLabel(W, text="Cuit:", font=FONT_LBL).grid(row=1, column=0, padx=(20,8), pady=5, sticky="e")
-        ctk.CTkEntry(W, textvariable=self.supplier_var, width=ENTRY_W, height=ENTRY_H,
+        ctk.CTkEntry(W, textvariable=self.supplier_cuit_var, width=ENTRY_W, height=ENTRY_H,
                      state='readonly', font=FONT_ENTRY).grid(row=1, column=1, padx=(0,20), pady=5, sticky="w")
 
         # Monto
@@ -346,7 +353,7 @@ class PaymentForm:
 
         # Armar resumen legible según el método
         resumen = (
-            f"Proveedor (CUIT): {self.supplier_var.get()}\n"
+            f"Proveedor (CUIT): {self.supplier_cuit_var.get()}\n"
             f"Monto:             $ {amount}\n"
             f"Método de pago:    {method}\n"
             f"N° Recibo:         {self.num_receipt_var.get() or '—'}\n"
@@ -369,7 +376,7 @@ class PaymentForm:
 
         if ask_confirmation(resumen, "¿Confirmar registro de pago?"):
             self.controller.register_payment(
-                self.supplier_var, self.add_pay_win, parent, self.purchase_id
+                self.supplier_id_var.get(), self.add_pay_win, parent, self.purchase_id
             )
 
     ## -- Se obtienen datos del formulario de pago -- ##

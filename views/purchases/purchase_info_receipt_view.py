@@ -13,6 +13,9 @@ class PurchaseInfoReceiptView():
 
     def show_purchase_info(self, parent, values):
         try:
+            self.receipt_state = tk.StringVar()
+            self.receipt_state.set(values[6])
+
             purchase_info = ctk.CTkToplevel(parent)
             purchase_info.configure(fg_color="#e0e0e0")
             purchase_info.withdraw()
@@ -32,7 +35,7 @@ class PurchaseInfoReceiptView():
 
             header = ctk.CTkLabel(
                 header_frame,
-                text=f"Detalle de la compra: (ID: {values[0]})",
+                text=f"Detalle de la compra: {self.receipt_state.get()}",
                 font=ctk.CTkFont(size=20, weight="bold")
             )
             header.pack(side='left', anchor='w', padx=5)
@@ -73,7 +76,7 @@ class PurchaseInfoReceiptView():
             table_frame.pack(fill="both", expand=True, padx=10, pady=5)
 
             headers = ["Id", "Nombre", "Envase", "Cantidad", "Precio Lista", "Dto %", 'Precio Costo', "Iva %", 
-                        "Monto Descuento", "Subtotal", "Monto Iva", "Total"]
+                        "Monto Descuento", "Subtotal", "Monto Total Iva", "Total"]
 
             self.sheet = Sheet(
                 table_frame,
@@ -194,13 +197,12 @@ class PurchaseInfoReceiptView():
             'date': tk.StringVar(),
             'expiration': tk.StringVar(),
             'obs': tk.StringVar(),
-            'state': tk.StringVar(),
             'total': tk.StringVar()
         }
         
         self.load_receipt_data(doc_id)
 
-        if self.receipt_vars['state'].get() != "BORRADOR":
+        if self.receipt_state.get() != "BORRADOR":
             self.confirm_btn.configure(state=tk.DISABLED)
 
         def add_field(row, column, label, widget):
@@ -266,21 +268,9 @@ class PurchaseInfoReceiptView():
                         )
                     )
 
-        # ESTADO
-        add_field(
-            1, 2, "Estado: ", 
-            ctk.CTkEntry(
-                self.info_frame,
-                textvariable=self.receipt_vars["state"], 
-                width=120, 
-                font=ctk.CTkFont(size=13),
-                state='readonly'
-            )
-        )
-
         # Total
         add_field(
-            2, 2, "Total: ", 
+            1, 2, "Total: ", 
             ctk.CTkEntry(
                 self.info_frame, 
                 textvariable=self.receipt_vars["total"], 
@@ -309,7 +299,6 @@ class PurchaseInfoReceiptView():
         self.receipt_vars['date'].set(iso_to_traditional(receipt_data[3]))
         self.receipt_vars['expiration'].set(iso_to_traditional(receipt_data[4]))
         self.receipt_vars['obs'].set(receipt_data[5])
-        self.receipt_vars['state'].set(receipt_data[6])
         self.receipt_vars['total'].set(format_currency(receipt_data[7]))
 
     ## --  Obtener datos del recibo -- ##
@@ -368,7 +357,7 @@ class PurchaseInfoReceiptView():
 
             string_error = 'Error. No se pueden eliminar items de una compra ya confirmada'
 
-            state = self.receipt_vars['state'].get()
+            state = self.receipt_state.get()
             if state != 'BORRADOR': 
                 show_error(f'{string_error}') 
                 return
@@ -398,7 +387,7 @@ class PurchaseInfoReceiptView():
 
     ## --  Editar campos de los documentos asociados a la compra -- ##
     def edit(self, purchase_id):
-        if self.receipt_vars['state'].get() != 'BORRADOR':
+        if self.receipt_state.get() != 'BORRADOR':
             show_error('No se puede editar un remito ya confirmado.')
             return
 

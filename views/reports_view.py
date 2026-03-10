@@ -76,20 +76,7 @@ class ReportsView:
         
         current_month = datetime.now().month
         self.month_var.set(months[current_month - 1])
-
-        ctk.CTkComboBox(
-            period_frame,
-            variable=self.month_var,
-            values=months,
-            width=150,
-            height=35,
-            state="readonly"
-        ).pack(side="left", padx=5, pady=10)
-
-        current_year = datetime.now().year
-        years = [str(y) for y in range(current_year - 5, current_year + 2)]
-        self.year_var.set(str(current_year))
-
+        
         ctk.CTkComboBox(
             period_frame,
             variable=self.month_var,
@@ -103,6 +90,10 @@ class ReportsView:
             fg_color="white",
             text_color="#212121"
         ).pack(side="left", padx=5, pady=10)
+
+        current_year = datetime.now().year
+        years = [str(y) for y in range(current_year - 5, current_year + 2)]
+        self.year_var.set(str(current_year))
 
         ctk.CTkButton(
             period_frame,
@@ -625,15 +616,19 @@ class ReportsView:
 
     def load_reports(self):
         if self.controller:
-            months = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
-                      "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"]
+            months = [
+                "ENERO", "FEBRERO", "MARZO", "ABRIL", "MAYO", "JUNIO",
+                "JULIO", "AGOSTO", "SEPTIEMBRE", "OCTUBRE", "NOVIEMBRE", "DICIEMBRE"
+                ]
             month = months.index(self.month_var.get()) + 1
             year  = int(self.year_var.get())
             self.controller.load_period_reports(month, year)
 
     def load_current_month(self):
-        months = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
-                  "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"]
+        months = [
+            "ENERO", "FEBRERO", "MARZO", "ABRIL", "MAYO", "JUNIO",
+            "JULIO", "AGOSTO", "SEPTIEMBRE", "OCTUBRE", "NOVIEMBRE", "DICIEMBRE"
+            ]
         self.month_var.set(months[datetime.now().month - 1])
         self.year_var.set(str(datetime.now().year))
         self.load_reports()

@@ -16,11 +16,10 @@ class SupplierInvoiceController():
         self.purchase_view = purchase_view
 
     ## -- Agrega una nueva factura correspondiente a un proveedor -- ##
-    def add_new_invoice(self, win, parent):
+    def add_new_invoice(self, win, parent, supplier_id):
 
         try:
             data = self.form_view.get_invoice_form_data()
-            supplier_data = self.supplier_model.core.find_supplier_by_cuit(data['supplier_cuit'])
             
             if not self.validate_invoice_data(data):
                 win.focus_force()
@@ -33,7 +32,7 @@ class SupplierInvoiceController():
             state = 'BORRADOR'
 
             invoice_params = {
-                'supplier_id': supplier_data[0],
+                'supplier_id': supplier_id,
                 'invoice_id': data['invoice_id'],
                 'invoice_type': data['invoice_type'],
                 'date': traditional_to_iso(data['date']),
@@ -54,7 +53,7 @@ class SupplierInvoiceController():
             perception_parameters = self.prepare_perceptions_parameters(iibb_per, iva_per)
 
             purchase_params = {
-                'supplier_id': supplier_data[0],
+                'supplier_id': supplier_id,
                 'doc_type': "FACTURA",
                 'date': traditional_to_iso(data['date']),
                 'expiration_date': traditional_to_iso(data['expiration_date']),

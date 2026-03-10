@@ -25,7 +25,7 @@ class PurchaseWindow():
         self.receipt_controller.set_purchase_view(self)
 
         self.invoice_form = SupplierInvoiceForm(self, frame, invoice_controller, self.model)
-        self.receipt_form = SupplierReceiptForm(self, frame, receipt_controller)
+        self.receipt_form = SupplierReceiptForm(self, frame, receipt_controller, self.model)
 
         # Set controller
         self.controller = controller
@@ -44,8 +44,9 @@ class PurchaseWindow():
         btn_color = "#009688"
         btn_hover = "#00796B"
 
-        self.supplier_var = tk.StringVar()
-        self.purchase_filter.set_supplier_var(self.supplier_var)
+        self.supplier_id_var = tk.StringVar()
+        self.search_var = tk.StringVar()
+        self.purchase_filter.set_supplier_id_var(self.supplier_id_var)
         self.date_var = tk.StringVar()
 
         self.suppliers = self.model.core.get_all_suppliers()
@@ -72,10 +73,10 @@ class PurchaseWindow():
             win.grid_rowconfigure(i, weight=0)
         win.grid_rowconfigure(3, weight=1)
         win.grid_columnconfigure(0, weight=1)
-        win.grid_columnconfigure(1, weight=1)  
+        win.grid_columnconfigure(1, weight=1)
 
         select_supplier_frame = ctk.CTkFrame(win, fg_color="#f0f0f0")
-        select_supplier_frame.grid(row=1, column=0, columnspan=2, padx=5, pady=(10, 5), ipady=8, sticky="ew")
+        select_supplier_frame.grid(row=1, column=0, columnspan=2, pady=(5,0), sticky="ew")
 
         # Configuración de grilla
         select_supplier_frame.grid_columnconfigure(0, weight=0)
@@ -89,17 +90,18 @@ class PurchaseWindow():
             text="Seleccionar proveedor",
             fg_color=btn_color,
             hover_color=btn_hover,
-            font=ctk.CTkFont(size=13, weight="bold"),
+            font=ctk.CTkFont(size=12, weight="bold"),
             command=lambda: self.list_of_supplier(win)
         )
-        select_supplier_btn.grid(row=0, column=0, padx=(10, 5), pady=6, sticky="w")
+        select_supplier_btn.grid(row=0, column=0, padx=(10, 5), pady=5, sticky="w")
 
         select_supplier_entry = ctk.CTkEntry(
             select_supplier_frame,
-            textvariable=self.supplier_var,
-            font=ctk.CTkFont(size=13)
+            textvariable=self.search_var,
+            width=200,
+            font=ctk.CTkFont(size=12)
         )
-        select_supplier_entry.grid(row=0, column=1, padx=5, pady=6, sticky="w")
+        select_supplier_entry.grid(row=0, column=1, padx=5, pady=5, sticky="w")
 
         refresh_purchase_list_btn = ctk.CTkButton(
             select_supplier_frame,
@@ -109,7 +111,7 @@ class PurchaseWindow():
             font=ctk.CTkFont(size=13, weight="bold"),
             command=lambda: self.load_purchases(False)
         )
-        refresh_purchase_list_btn.grid(row=0, column=2, padx=(5, 10), pady=6)
+        refresh_purchase_list_btn.grid(row=0, column=2, padx=(5, 10), pady=5)
 
         filter_for_date_btn = ctk.CTkButton(
             select_supplier_frame,
@@ -117,17 +119,17 @@ class PurchaseWindow():
             text="Filtrar por fecha",
             fg_color=btn_color,
             hover_color=btn_hover,
-            font=ctk.CTkFont(size=13, weight="bold"),
+            font=ctk.CTkFont(size=12, weight="bold"),
             command=lambda: self.purchase_filter.filter_by_date(self.date_var.get())
         )
-        filter_for_date_btn.grid(row=0, column=3, padx=(10, 5), pady=6, sticky="w")
+        filter_for_date_btn.grid(row=0, column=3, padx=(10, 5), pady=5, sticky="w")
 
         date_entry = ctk.CTkEntry(
             select_supplier_frame,
             textvariable=self.date_var,
-            font=ctk.CTkFont(size=13),
+            font=ctk.CTkFont(size=12),
         )
-        date_entry.grid(row=0, column=4, padx=5, pady=6, sticky="w")
+        date_entry.grid(row=0, column=4, padx=5, pady=5, sticky="w")
 
         # frame para productos
         product_frame = ctk.CTkFrame(win)
@@ -300,7 +302,7 @@ class PurchaseWindow():
     def open_doc_type(self, parent):
         """Ventana para elegir un tipo de comprobante"""
 
-        if self.supplier_var.get() == "":
+        if self.supplier_id_var.get() == "":
             show_warning("Por favor seleccione un proveedor")
             return
 
@@ -395,9 +397,9 @@ class PurchaseWindow():
         """Función que se ejecuta al presionar cualquiera de los botones."""
 
         if doc_type == "Factura":
-            self.invoice_form.open_invoice_form(parent, self.supplier_var.get())
+            self.invoice_form.open_invoice_form(parent, self.supplier_id_var.get())
         elif doc_type == "Otro Comprobante":
-            self.receipt_form.open_receipt_form(parent, self.supplier_var.get())
+            self.receipt_form.open_receipt_form(parent, self.supplier_id_var.get())
         else:
             print('Error')
         
@@ -429,8 +431,6 @@ class PurchaseWindow():
 
         win.rowconfigure(0, weight=1)
         win.rowconfigure(1, weight=3)
-
-        self.search_var = tk.StringVar()
     
         btn_color = "#009688"
         btn_hover = "#00796B"
@@ -458,7 +458,9 @@ class PurchaseWindow():
             placeholder_text="Ingrese nombre del proveedor..."
         )
         self.find_entry.grid(row=0, column=1, padx=5)
-        win.after(100,self.find_entry.focus)
+
+        find_entry = self.find_entry
+        win.after(100, lambda e=find_entry, w=win: e.focus_set() if w.winfo_exists() else None)
 
         self.find_entry.bind("<KeyRelease>", self.on_key_release)
         self.search_after_id = None
@@ -489,7 +491,7 @@ class PurchaseWindow():
         self.supplier_tree.pack(side="left", fill="both", expand=True)
 
         for s in self.suppliers:
-            self.supplier_tree.insert("", "end", values=(s[1], s[2]))
+            self.supplier_tree.insert("", "end", iid=s[0], values=(s[1], s[2])) ## aca esta la clave
 
         # scrollbar
         scroll = ttk.Scrollbar(tree_frame, orient="vertical", command=self.supplier_tree.yview)
@@ -543,8 +545,8 @@ class PurchaseWindow():
                 return
             iid = selected[0]
             values = self.supplier_tree.item(iid, "values")
-            self.supplier_var.set(values[0])
-            self.search_var.set(values[0])
+            self.supplier_id_var.set(iid)
+            self.search_var.set(values[1])
 
             def action():
                 if parent.winfo_exists():
@@ -562,12 +564,12 @@ class PurchaseWindow():
         for item in self.supplier_tree.get_children():
             self.supplier_tree.delete(item)
 
-        for supplier in self.suppliers:
+        for s in self.suppliers:
             self.supplier_tree.insert(
-                parent='', index='end', iid=supplier[0],
+                parent='', index='end', iid=s[0],
                 values=(
-                    supplier[1],   # cuit
-                    supplier[2]   # name
+                    s[1],   # cuit
+                    s[2]   # name
                 ),
                 tag="orow"
             )
@@ -577,7 +579,7 @@ class PurchaseWindow():
     ## -- Cargar tabla de compras -- ## 
     def load_purchases(self, filter):
         if filter:
-            selected_supplier = self.supplier_var.get()
+            selected_supplier = self.supplier_id_var.get()
 
             if not selected_supplier:
                 return
@@ -585,7 +587,7 @@ class PurchaseWindow():
             purchases = self.model.purchase.get_all_purchases(selected_supplier)
 
         else:
-            self.supplier_var.set('')
+            self.supplier_id_var.set('')
             self.date_var.set('')
             purchases = self.model.purchase.get_all_purchases()
 
