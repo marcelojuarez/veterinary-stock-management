@@ -3,11 +3,12 @@ from utils.utils import string_to_2_dec
 from utils.view_helpers import show_warning, show_error, close_win
 
 class PaymentController():
-    def __init__(self, supplier_model, event_bus):
+    def __init__(self, supplier_model, event_bus, checks_model=None):
         self.supplier_model = supplier_model
         self.form_view = None
         self.pay_view = None
         self.event_bus = event_bus
+        self.checks_model = checks_model
 
     def set_form_view(self, view):
         self.form_view = view
@@ -77,6 +78,18 @@ class PaymentController():
             result = self.supplier_model.payment.register_payment(data, purchase_id)
             
             if result:
+                # Si se pagó con un cheque de cartera, marcarlo como ENDOSADO
+                check_id = payment_data.get('check_id')
+                if check_id and self.checks_model:
+                    try:
+                        purchase_id_val = int(purchase_id.get()) if purchase_id else None
+                        self.checks_model.update_status(
+                            check_id, "ENDOSADO", purchase_id=purchase_id_val
+                        )
+                        self.event_bus.publish('refresh_checks', None)
+                    except Exception as e:
+                        print(f"[PaymentController] No se pudo endosar el cheque: {e}")
+
                 self.pay_view.load_payment_movement(supplier_id)
                 self.pay_view.load_purchase_history(True)
                 self.event_bus.publish('refresh_supplier_table', None)
@@ -175,4 +188,4 @@ class PaymentController():
     @staticmethod
     def _is_str(value):
         try: str(value); return True
-        except: return False            
+        except: return False

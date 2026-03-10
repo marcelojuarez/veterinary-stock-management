@@ -28,7 +28,7 @@ def get_base_folder() -> str:
     else:  # Linux
         desktop = Path.home() / "Desktop"
 
-    base = desktop / "Veterinaria Fortin"
+    base = desktop / "Agroveterinaria El Fortin"
     base.mkdir(parents=True, exist_ok=True)
     return str(base)
 

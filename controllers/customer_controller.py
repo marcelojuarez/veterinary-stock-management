@@ -13,10 +13,11 @@ from decimal import Decimal, InvalidOperation
 
 
 class CustomerController: 
-    def __init__(self, customer_model, payment_model, event_bus):
+    def __init__(self, customer_model, payment_model, event_bus, checks_model=None):
         self.view = None
         self.model = customer_model
         self.payment_model = payment_model
+        self.checks_model = checks_model
         self.event_bus = event_bus
         self.all_customers = []
         self.event_bus.subscribe("price_changes", self.on_price_changes)
@@ -81,6 +82,43 @@ class CustomerController:
             return False
         except Exception as e:
             show_error(f"Error al registrar el cliente: {str(e)}")
+            return False
+
+    def edit_customer(self, customer_id, data, window):
+        """Guarda los cambios de un cliente existente"""
+        try:
+            if not self.__validate_customer_data(data):
+                return False
+            if not self.__validate_supplier_cuit(data["cuit"]):
+                return False
+            if data["phone"] and not self.__validate_supplier_phone(data["phone"]):
+                return False
+            if not self.__validate_cv(data["cv"]):
+                return False
+            if not self.__validate_cuig(data["cuig"]):
+                return False
+            if not self.__validate_renspa(data["renspa"]):
+                return False
+
+            data['cuig']   = data['cuig'].strip().replace(" ", "").replace("-", "").upper()
+            data['renspa'] = data['renspa'].replace("-", "").replace("/", "").strip()
+
+            # Verificar duplicados excluyendo el propio cliente
+            duplicate_error = self.model.check_duplicate_customer(data, exclude_id=customer_id)
+            if duplicate_error:
+                show_error(duplicate_error)
+                return False
+
+            self.model.edit_customer(customer_id, data)
+            self.refresh_customer_data()
+            window.destroy()
+            return True
+
+        except ValueError as e:
+            show_error(f"Error en los datos: {str(e)}")
+            return False
+        except Exception as e:
+            show_error(f"Error al editar el cliente: {str(e)}")
             return False
 
     def delete_customer(self, customer_id):
@@ -267,159 +305,212 @@ class CustomerController:
             self.view.show_warning("El cliente no tiene deudas pendientes")
             return
         
-        # Crear ventana modal con estilo
         win = ctk.CTkToplevel(self.view.frame)
         win.title("Pago Global a Cuenta")
         win.transient(self.view.frame)
         win.grab_set()
-        center_window(win, 450, 500)
+        center_window(win, 460, 600)
 
         # Header
         header = ctk.CTkFrame(win, fg_color="#009688", height=60, corner_radius=0)
         header.pack(fill="x")
-        
         ctk.CTkLabel(
-            header, 
+            header,
             text="Registrar Pago Global",
             font=ctk.CTkFont(size=18, weight="bold"),
             text_color="white"
         ).pack(pady=15)
 
         content = ctk.CTkFrame(win, fg_color="transparent")
-        content.pack(pady=20, padx=20, fill="both", expand=True)
+        content.pack(pady=10, padx=20, fill="both", expand=True)
 
         ctk.CTkLabel(
             content,
             text="Este pago se distribuirá automáticamente\nentre las deudas más antiguas.",
             font=ctk.CTkFont(size=12),
             text_color="gray"
-        ).pack(pady=(0, 20))
+        ).pack(pady=(0, 10))
 
-        # Input
-        ctk.CTkLabel(content, text="Monto a entregar:", font=ctk.CTkFont(weight="bold")).pack(anchor="w", pady=(0, 5))
-        
+        # Monto
+        ctk.CTkLabel(content, text="Monto a entregar:", font=ctk.CTkFont(weight="bold")).pack(anchor="w", pady=(0, 4))
         amount_var = ctk.StringVar()
-        entry_amount = ctk.CTkEntry(
-            content,
-            textvariable=amount_var,
-            width=250,
-            height=40,
+        ctk.CTkEntry(
+            content, textvariable=amount_var,
+            width=260, height=40,
             placeholder_text="$ 0.00",
             font=ctk.CTkFont(size=14)
-        )
-        entry_amount.pack()
+        ).pack()
 
         # Método de pago
-        ctk.CTkLabel(
-            content, 
-            text="Método de pago:", 
-            font=ctk.CTkFont(weight="bold")
-        ).pack(anchor="w", pady=(20, 5))
-
+        ctk.CTkLabel(content, text="Método de pago:", font=ctk.CTkFont(weight="bold")).pack(anchor="w", pady=(14, 4))
         method_var = ctk.StringVar(value="Efectivo")
         method_menu = ctk.CTkComboBox(
             content,
             variable=method_var,
-            values=["Efectivo", "Tarjeta", "Transferencia", "Cheque", "Otro"],
-            width=250,
-            height=40,
+            values=["Efectivo", "Tarjeta", "Transferencia", "Cheque", "eCheq", "Otro"],
+            width=260, height=40,
             font=ctk.CTkFont(size=14)
         )
         method_menu.pack()
 
-        # Separador visual
-        ctk.CTkFrame(content, fg_color="#e0e0e0", height=2).pack(fill="x", pady=(15, 8))
+        # ----------------------------------------------------------------
+        # Panel de cheque (visible solo si método es Cheque / eCheq)
+        # ----------------------------------------------------------------
+        check_frame = ctk.CTkFrame(content, fg_color="#f5f5f5", corner_radius=10)
 
-        # Mostrar deuda total destacada
+        def _lbl(parent, text):
+            ctk.CTkLabel(parent, text=text,
+                         font=ctk.CTkFont(size=12, weight="bold"),
+                         text_color="#333").pack(anchor="w", padx=10, pady=(8, 0))
+
+        check_number_var  = ctk.StringVar()
+        check_bank_var    = ctk.StringVar()
+        check_due_var     = ctk.StringVar(value=datetime.now().strftime("%d/%m/%Y"))
+
+        _lbl(check_frame, "Número de cheque *")
+        ctk.CTkEntry(check_frame, textvariable=check_number_var, width=260,
+                     placeholder_text="Ej: 00123456").pack(padx=10, pady=(2, 0))
+
+        _lbl(check_frame, "Banco *")
+        ctk.CTkEntry(check_frame, textvariable=check_bank_var, width=260,
+                     placeholder_text="Ej: Banco Nación").pack(padx=10, pady=(2, 0))
+
+        _lbl(check_frame, "Fecha de vencimiento * (DD/MM/YYYY)")
+        ctk.CTkEntry(check_frame, textvariable=check_due_var, width=260).pack(padx=10, pady=(2, 8))
+
+        def _toggle_check_panel(*_):
+            m = method_var.get()
+            if m in ("Cheque", "eCheq"):
+                check_frame.pack(fill="x", pady=(10, 0))
+                center_window(win, 460, 680)
+            else:
+                check_frame.pack_forget()
+                center_window(win, 460, 600)
+
+        method_var.trace_add("write", _toggle_check_panel)
+
+        # Deuda total destacada
+        ctk.CTkFrame(content, fg_color="#e0e0e0", height=2).pack(fill="x", pady=(12, 6))
         deuda_frame = ctk.CTkFrame(content, fg_color="#f5f5f5", corner_radius=8)
-        deuda_frame.pack(fill="x", pady=(0, 5))
+        deuda_frame.pack(fill="x")
+        ctk.CTkLabel(deuda_frame, text="Deuda total del cliente:",
+                     font=ctk.CTkFont(size=12), text_color="#666666").pack(pady=(8, 2))
+        ctk.CTkLabel(deuda_frame, text=f"${total_debt}",
+                     font=ctk.CTkFont(size=20, weight="bold"),
+                     text_color="#D32F2F").pack(pady=(0, 8))
 
-        ctk.CTkLabel(
-            deuda_frame,
-            text="Deuda total del cliente:",
-            font=ctk.CTkFont(size=12),
-            text_color="#666666"
-        ).pack(pady=(8, 2))
-
-        ctk.CTkLabel(
-            deuda_frame,
-            text=f"${total_debt}",
-            font=ctk.CTkFont(size=20, weight="bold"),
-            text_color="#D32F2F"
-        ).pack(pady=(0, 8))
-        
+        # ----------------------------------------------------------------
+        # Confirmar pago
+        # ----------------------------------------------------------------
         def process():
             try:
-                val = entry_amount.get().strip()
+                val = amount_var.get().strip()
                 if not val:
                     show_warning("Ingrese un monto.")
                     return
-                
-                amount = string_to_2_dec(val) 
-
+                amount = string_to_2_dec(val)
                 if amount is None:
                     raise ValueError()
-
                 if amount <= Decimal('0.00'):
                     show_warning("El monto debe ser mayor a 0.")
                     return
-
             except ValueError:
                 show_error("Monto inválido. Ingrese solo números.")
                 return
 
             if amount > total_debt:
-                show_warning(
-                    f"El monto ingresado (${amount}) supera la deuda total del cliente (${total_debt})."
-                )
-                amount = total_debt
+                show_warning(f"El monto (${amount}) supera la deuda (${total_debt}).")
                 amount_var.set(f"{total_debt}")
                 return
 
-            try:
-                method = method_var.get()
+            method = method_var.get()
 
-                result = self.payment_model.apply_global_payment(customer_id, amount, method=method)
+            # Validar datos de cheque si aplica
+            check_data = None
+            if method in ("Cheque", "eCheq"):
+                num    = check_number_var.get().strip()
+                bank   = check_bank_var.get().strip()
+                due    = check_due_var.get().strip()
+                if not all([num, bank, due]):
+                    show_warning("Complete todos los campos del cheque.")
+                    return
+                try:
+                    due_iso = datetime.strptime(due, "%d/%m/%Y").strftime("%Y-%m-%d")
+                except ValueError:
+                    show_error("Fecha de vencimiento inválida. Use DD/MM/YYYY.")
+                    return
+                check_data = {
+                    "number":     num,
+                    "bank":       bank,
+                    "check_type": method,
+                    "amount":     amount,
+                    "issue_date": datetime.now().strftime("%Y-%m-%d"),
+                    "due_date":   due_iso,
+                }
+
+            try:
+                # Crear cheque ANTES del pago para obtener su id
+                check_id = None
+                if check_data and self.checks_model:
+                    # Lo creamos sin client_payment_id todavía (lo linkeamos después)
+                    self.checks_model.create_check(
+                        number=check_data["number"],
+                        bank=check_data["bank"],
+                        check_type=check_data["check_type"],
+                        amount=check_data["amount"],
+                        issue_date=check_data["issue_date"],
+                        due_date=check_data["due_date"],
+                        origin="CLIENTE",
+                        commit=True
+                    )
+                    # Obtener el id recién insertado
+                    row = self.checks_model.db.fetch_one(
+                        "SELECT id FROM checks ORDER BY id DESC LIMIT 1"
+                    )
+                    check_id = row[0] if row else None
+
+                result = self.payment_model.apply_global_payment(
+                    customer_id, amount, method=method, check_id=check_id
+                )
 
                 if not result:
-                    show_error('Ocurrio un error al registar el pago.')
+                    show_error('Ocurrió un error al registrar el pago.')
                     return
 
-                # Construir mensaje de resultado
-                msg = ("Pago registrado con éxito.")
-                
-                show_success(msg) 
+                # Linkear el primer payment_id al cheque
+                if check_id and result.get("updated_debts"):
+                    first_payment = self.payment_model.db.fetch_one(
+                        "SELECT id FROM payments WHERE check_id = ? ORDER BY id ASC LIMIT 1",
+                        (check_id,)
+                    )
+                    if first_payment:
+                        self.checks_model.link_payment(check_id, first_payment[0])
+
+                show_success("Pago registrado con éxito.")
                 win.destroy()
-                
-                # 1. Actualizar tabla principal
+
                 self.refresh_customer_data()
                 self.current_client_id = customer_id
                 self.view.select_customer_in_table(customer_id)
-                
-                # 2. Actualizar ventana de deudas si está abierta
-                # Necesitamos volver a pedir los datos actualizados
-                debts = self.model.get_customer_debts(customer_id)
-                total = self.model.get_total_debt(customer_id)
+
+                debts  = self.model.get_customer_debts(customer_id)
+                total  = self.model.get_total_debt(customer_id)
                 credit = self.payment_model.get_customer_credit(customer_id)
-                net = norm_to_2_dec(max(Decimal('0.00'), total - credit))
+                net    = norm_to_2_dec(max(Decimal('0.00'), total - credit))
                 self.view.update_debt_window(debts, total, credit, net)
 
-                # 3. Generar comprobante
+                # Generar comprobante
                 fmt = self.ask_receipt_format()
                 if not fmt:
                     return
 
-                client_name = "Cliente"
-                for c in self.all_customers:
-                    if c[0] == customer_id:
-                        client_name = c[1]
-                        break
-
-                sales_with_items = {}
-                for sale_id, _ in result['updated_debts']:
-                    items = self.model.get_sale_items(sale_id)
-                    sales_with_items[sale_id] = items
-
+                client_name = next(
+                    (c[1] for c in self.all_customers if c[0] == customer_id), "Cliente"
+                )
+                sales_with_items = {
+                    sid: self.model.get_sale_items(sid)
+                    for sid, _ in result['updated_debts']
+                }
                 generate_receipts_for_payment(
                     mode="global",
                     format=fmt,
@@ -428,7 +519,8 @@ class CustomerController:
                     amount=amount,
                     customer_id=customer_id,
                     result_data=result,
-                    sales_with_items=sales_with_items
+                    sales_with_items=sales_with_items,
+                    check_data=check_data,
                 )
 
             except Exception as e:
@@ -436,41 +528,90 @@ class CustomerController:
 
         # Botones
         btn_frame = ctk.CTkFrame(win, fg_color="transparent")
-        btn_frame.pack(pady=(5,15), fill="x", padx=20)
+        btn_frame.pack(pady=(5, 15), fill="x", padx=20)
 
         ctk.CTkButton(
-            btn_frame, 
-            text="Confirmar Pago",
-            fg_color="#009688",
-            hover_color="#00796B",
-            height=40,
-            font=ctk.CTkFont(weight="bold"),
+            btn_frame, text="Confirmar Pago",
+            fg_color="#009688", hover_color="#00796B",
+            height=40, font=ctk.CTkFont(weight="bold"),
             command=process
         ).pack(side="left", padx=5, expand=True, fill="x")
 
         ctk.CTkButton(
-            btn_frame,
-            text="Cancelar",
-            width=150,
-            height=40,
-            fg_color="#757575",
-            hover_color="#616161",
+            btn_frame, text="Cancelar",
+            width=150, height=40,
+            fg_color="#757575", hover_color="#616161",
             font=ctk.CTkFont(size=13, weight="bold"),
             command=win.destroy
         ).pack(side="right", padx=5, expand=True, fill="x")
 
 
     def ask_receipt_format(self):
-        want_ticket = messagebox.askyesno("Formato", "¿Desea generar ticket (80mm)?")
-        want_a4 = messagebox.askyesno("Formato", "¿Desea generar A4 (extendido)?")
+        """
+        Modal para elegir formato de comprobante e imprimir.
+        Retorna: "ticket" | "a4" | "both" | None
+        """
+        result = {"fmt": None}
 
-        if want_ticket and want_a4:
-            return "both"
-        if want_ticket:
-            return "ticket"
-        if want_a4:
-            return "a4"
-        return None
+        win = ctk.CTkToplevel(self.view.frame)
+        win.title("Comprobante")
+        win.transient(self.view.frame)
+        win.grab_set()
+        center_window(win, 380, 280)
+        win.resizable(False, False)
+
+        ctk.CTkLabel(
+            win,
+            text="¿Generar comprobante?",
+            font=ctk.CTkFont(size=15, weight="bold")
+        ).pack(pady=(20, 6))
+
+        ctk.CTkLabel(
+            win,
+            text="Ticket: 80mm para impresora térmica\nA4: comprobante completo con detalle",
+            font=ctk.CTkFont(size=11),
+            text_color="gray"
+        ).pack(pady=(0, 16))
+
+        btn_frame = ctk.CTkFrame(win, fg_color="transparent")
+        btn_frame.pack(padx=20, fill="x")
+
+        W, H = 160, 40
+
+        def pick(fmt):
+            result["fmt"] = fmt
+            win.destroy()
+
+        ctk.CTkButton(
+            btn_frame, text="🧾 Ticket (80mm)", width=W, height=H,
+            fg_color="#009688", hover_color="#00796B",
+            font=ctk.CTkFont(weight="bold"),
+            command=lambda: pick("ticket")
+        ).grid(row=0, column=0, padx=6, pady=6)
+
+        ctk.CTkButton(
+            btn_frame, text="📄 A4", width=W, height=H,
+            fg_color="#1976D2", hover_color="#1565C0",
+            font=ctk.CTkFont(weight="bold"),
+            command=lambda: pick("a4")
+        ).grid(row=0, column=1, padx=6, pady=6)
+
+        ctk.CTkButton(
+            btn_frame, text="🖨️ Ambos", width=W, height=H,
+            fg_color="#6D4C41", hover_color="#5D4037",
+            font=ctk.CTkFont(weight="bold"),
+            command=lambda: pick("both")
+        ).grid(row=1, column=0, padx=6, pady=6)
+
+        ctk.CTkButton(
+            btn_frame, text="✖ Sin comprobante", width=W, height=H,
+            fg_color="#757575", hover_color="#616161",
+            font=ctk.CTkFont(weight="bold"),
+            command=lambda: pick(None)
+        ).grid(row=1, column=1, padx=6, pady=6)
+
+        win.wait_window()
+        return result["fmt"]
 
     def show_account_history(self, cliente_id, cliente_nombre):
         """Muestra el historial completo de cuenta del cliente"""

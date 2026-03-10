@@ -117,6 +117,37 @@ class CustomerModel:
         except Exception as e: 
             print(f'Error : {e}')
             return None 
+
+    def edit_customer(self, customer_id, data):
+        query = """
+            UPDATE customer SET
+                name          = ?,
+                cuit          = ?,
+                home          = ?,
+                phone         = ?,
+                iva_condition = ?,
+                cv            = ?,
+                cuig          = ?,
+                renspa        = ?,
+                establishment = ?
+            WHERE id = ?
+        """
+        params = [
+            data['name'].upper(),
+            data['cuit'] or None,
+            data['home'].upper(),
+            data['phone'] or None,
+            data['iva_condition'],
+            data.get('cv', ''),
+            data.get('cuig', ''),
+            data.get('renspa', ''),
+            data.get('establishment', '').upper(),
+            customer_id,
+        ]
+        try:
+            return db.execute_query(query, params)
+        except Exception as e:
+            raise ValueError(f"Error al actualizar cliente: {e}")
     
     def search_customer(self, search_term):
         # Busco a un cliente por nombre o id 

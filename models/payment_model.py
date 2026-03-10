@@ -9,16 +9,17 @@ class PaymentModel:
         self.sale_model = sales_model
         self.customer_model = customer_model
 
-    def create_payment(self, sale_id, client_id, amount, method=None, notes=None, conn=None, commit=True):
+    def create_payment(self, sale_id, client_id, amount, method=None, notes=None,
+                       check_id=None, conn=None, commit=True):
         """Registra un pago en la tabla payments."""
         date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         query = """
-            INSERT INTO payments (sale_id, client_id, amount, method, notes, date)
-            VALUES (?, ?, ?, ?, ?, ?)
+            INSERT INTO payments (sale_id, client_id, amount, method, notes, date, check_id)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
         """
         return self.db.execute_query(
-            query, 
-            (sale_id, client_id, str(amount), method, notes, date),
+            query,
+            (sale_id, client_id, str(amount), method, notes, date, check_id),
             conn=conn,
             commit=commit
         )
@@ -102,7 +103,7 @@ class PaymentModel:
 
         return norm_to_2_dec(amount)
 
-    def apply_global_payment(self, customer_id, amount, method="Efectivo"):
+    def apply_global_payment(self, customer_id, amount, method="Efectivo", check_id=None):
         """
         Aplica un pago global distribuido entre las deudas pendientes. 
         Nota: Usualmente es FIFO (ASC)
@@ -144,6 +145,7 @@ class PaymentModel:
                     amount=pay_amount,
                     method=method,
                     notes="Pago Global Automático",
+                    check_id=check_id,
                     conn=conn,
                     commit=False
                 )
@@ -278,4 +280,3 @@ class PaymentModel:
                 pass
 
         return status
-

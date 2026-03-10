@@ -115,7 +115,7 @@ class SupplierView():
     def create_tree_frame(self):
         """ Crea el frame para la tabla de Proveedores"""
         tree_frame = ctk.CTkFrame(self.frame)
-        tree_frame.grid(row=1, column=0, padx=5, pady=5, sticky='nsew')
+        tree_frame.grid(row=1, column=0, padx=10, pady=10, sticky='nsew')
         tree_frame.grid_rowconfigure(1, weight=1)
         tree_frame.grid_columnconfigure(0, weight=1)
 
@@ -137,14 +137,14 @@ class SupplierView():
             background='#f9f9f9',
             fieldbackground='#f9f9f9',
             foreground='#333333',
-            rowheight=28,
-            font=('Segoe UI', 10)
+            rowheight=20,
+            font=('Segoe UI', 8)
         )
         style.configure(
             'Treeview.Heading',
             background='#e6e6e6',
             foreground='#000000',
-            font=('Segoe UI', 10, 'bold')
+            font=('Segoe UI', 9, 'bold')
         )
         style.map('Treeview',
             background=[('selected', '#0078d4')]
@@ -158,7 +158,8 @@ class SupplierView():
 
         # Scrollbar vertical para los proveedores
         scrl_bar = ttk.Scrollbar(tree_frame, orient='vertical', command=self.supplier_tree.yview)
-        self.supplier_tree.configure(yscrollcommand=scrl_bar.set)
+        scrl_bar_x = ttk.Scrollbar(tree_frame, orient='horizontal', command=self.supplier_tree.xview)
+        self.supplier_tree.configure(yscrollcommand=scrl_bar.set, xscrollcommand=scrl_bar_x.set)
                            
         self.supplier_tree['columns'] = (
             "Id", "Nombre", "Cuit", "Domicilio", "Ciudad", "Provincia", "Telefono", "Email", "Condicion Iva", "Últ. Act. deuda"
@@ -183,8 +184,9 @@ class SupplierView():
             )
 
         self.supplier_tree.tag_configure('orow', background="#FFFFFF")
+        scrl_bar_x.pack(side="bottom", fill="x")
         scrl_bar.pack(side="right", fill="y")
-        self.supplier_tree.pack(side="left", fill="both", expand=True, padx=(20, 0), pady=20)
+        self.supplier_tree.pack(fill="both", expand=True, padx=(10, 0), pady=(0, 0))
 
     def create_buttons_frame(self):
         manage_frame = ctk.CTkFrame(self.frame)

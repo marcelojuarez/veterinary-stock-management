@@ -27,12 +27,12 @@ def setup_styles():
 
     # Treeview
     style.configure("Custom.Treeview",
-                    font=("Segoe UI", 10),
-                    rowheight=28,
+                    font=("Segoe UI", 8),
+                    rowheight=20,
                     borderwidth=0,
                     relief="flat")
     style.configure("Custom.Treeview.Heading",
-                    font=("Segoe UI", 10, "bold"),
+                    font=("Segoe UI", 9, "bold"),
                     padding=8)
     style.map("Custom.Treeview.Heading",
               background=[("active", "#3498DB")],

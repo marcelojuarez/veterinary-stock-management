@@ -99,14 +99,26 @@ class SalesView:
                             font=ctk.CTkFont(size=15, weight="bold"))
         label.pack(pady=(10, 5))
 
-        self.product_tree = ttk.Treeview(selector_frame, show="headings", height=12)
+        tree_frame = tk.Frame(selector_frame)
+        tree_frame.pack(padx=10, pady=10, fill="both", expand=True)
+        tree_frame.rowconfigure(0, weight=1)
+        tree_frame.columnconfigure(0, weight=1)
+        self.product_tree = ttk.Treeview(tree_frame, show="headings", height=12)
         self.product_tree["columns"] = ("Cód.", "Nombre", "Envase", "P. Venta", "Stock")
 
-        for col, w in zip(self.product_tree["columns"], [50, 350, 100, 100, 40]):
+        for col, w in zip(self.product_tree["columns"], [40, 280, 100, 80, 50]):
             self.product_tree.column(col, width=w)
             self.product_tree.heading(col, text=col)
 
-        self.product_tree.pack(padx=10, pady=10, fill="both", expand=True)
+        scroll_y = ttk.Scrollbar(tree_frame, orient="vertical", command=self.product_tree.yview)
+        scroll_x = ttk.Scrollbar(tree_frame, orient="horizontal", command=self.product_tree.xview)
+        self.product_tree.configure(yscrollcommand=scroll_y.set, xscrollcommand=scroll_x.set)
+
+        self.product_tree.grid(row=0, column=0, sticky="nsew")
+        scroll_y.grid(row=0, column=1, sticky="ns")
+        scroll_x.grid(row=1, column=0, sticky="ew")
+
+
 
         # Frame para botones (para que queden uno al lado del otro)
         button_frame = ctk.CTkFrame(selector_frame, fg_color="transparent")
@@ -147,11 +159,17 @@ class SalesView:
         self.sale_tree = ttk.Treeview(table_frame, show="headings", height=10)
         self.sale_tree["columns"] = ("Cód.", "Nombre", "Envase", "Cant.", "Precio Unit.", "Subtotal")
 
-        for col, w in zip(self.sale_tree["columns"], [60, 300, 80, 20, 100, 120]):
+        for col, w in zip(self.sale_tree["columns"], [60, 300, 80, 60, 100, 120]):
             self.sale_tree.column(col, width=w, anchor="center")
             self.sale_tree.heading(col, text=col)
 
-        self.sale_tree.grid(row=1, column=0, padx=10, pady=10, sticky="nsew")
+        scroll_y = ttk.Scrollbar(table_frame, orient="vertical", command=self.sale_tree.yview)
+        scroll_x = ttk.Scrollbar(table_frame, orient="horizontal", command=self.sale_tree.xview)
+        self.sale_tree.configure(yscrollcommand=scroll_y.set, xscrollcommand=scroll_x.set)
+
+        self.sale_tree.grid(row=1, column=0, padx=(10,0), pady=(10,0), sticky="nsew")
+        scroll_y.grid(row=1, column=1, sticky="ns", pady=(10,0))
+        scroll_x.grid(row=2, column=0, sticky="ew", padx=(10,0))
 
         total_label = ctk.CTkLabel(
             table_frame,
@@ -159,7 +177,7 @@ class SalesView:
             font=ctk.CTkFont(size=20, weight="bold"),
             text_color="#333333"
         )
-        total_label.grid(row=2, column=0, pady=(5, 15))
+        total_label.grid(row=3, column=0, pady=(5, 15))
 
     # --------------------------------------------------------------------
     # FOOTER - ACCIONES
@@ -246,9 +264,17 @@ class SalesView:
         except Exception as e:
             messagebox.showerror("Error", f"No se pudo agregar el producto: {e}")
 
-    def export_sales_day(self, rows):
-        pdf = DailySalesReportService().generate(rows)
-        messagebox.showinfo("PDF generado", f"Archivo guardado:\n\n{pdf}\n\nPuedes imprimirlo.")
+    def export_sales_day(self, rows, fecha_desde, fecha_hasta):
+        pdf = DailySalesReportService().generate(
+            rows,
+            fecha_desde,
+            fecha_hasta
+        )
+
+        messagebox.showinfo(
+            "PDF generado",
+            f"Archivo guardado:\n\n{pdf}"
+        )
 
     ## -- Permite generar el remito asociado a una venta -- ##
     def generate_delivery_note(self):
@@ -447,6 +473,10 @@ class SalesView:
         tree_height = min(max(n_items, 2), 5)  # mínimo 2 filas, máximo 5
         preview_tree = ttk.Treeview(products_frame, show="headings", height=tree_height)
         preview_tree["columns"] = ("Cant.", "Producto", "Envase", "P. Unit.", "Subtotal")
+
+        scroll_y = ttk.Scrollbar(products_frame, orient="vertical", command=preview_tree.yview)
+        preview_tree.configure(yscrollcommand=scroll_y.set)
+        scroll_y.pack(side="right", fill="y", padx=(0, 10))
         
         widths = [40, 280, 80, 100, 100]
         for col, w in zip(preview_tree["columns"], widths):
@@ -648,7 +678,7 @@ class SalesView:
     def open_sales_query_window(self):
         """Ventana completa de consulta de ventas con filtros por fecha"""
         width_win = 1000
-        height_win = 700
+        height_win = 720
         
         win = ctk.CTkToplevel(self.frame)
         win.title("Consulta de Ventas")
@@ -756,7 +786,7 @@ class SalesView:
         ).pack(side="left", padx=2)
 
         ctk.CTkButton(
-            quick_btns, text="Semana", width=70, height=28,
+            quick_btns, text="Semana", width=60, height=28,
             fg_color="#2196F3", hover_color="#1976D2",
             command=set_this_week
         ).pack(side="left", padx=2)
@@ -831,12 +861,12 @@ class SalesView:
         style = ttk.Style()
         style.configure(
             "Sales.Treeview",
-            rowheight=28,
-            font=("Segoe UI", 10)
+            rowheight=20,
+            font=("Segoe UI", 8)
         )
         style.configure(
             "Sales.Treeview.Heading",
-            font=("Segoe UI", 10, "bold")
+            font=("Segoe UI", 9, "bold")
         )
 
         cols = ("ID", "Fecha", "Hora", "Cliente", "Estado", "Total", "Pagado", "Saldo")
@@ -855,8 +885,10 @@ class SalesView:
 
         # Scrollbar
         scroll_y = ttk.Scrollbar(table_frame, orient="vertical", command=sales_tree.yview)
-        sales_tree.configure(yscrollcommand=scroll_y.set)
+        scroll_x = ttk.Scrollbar(table_frame, orient="horizontal", command=sales_tree.xview)
+        sales_tree.configure(yscrollcommand=scroll_y.set, xscrollcommand=scroll_x.set)
         scroll_y.pack(side="right", fill="y")
+        scroll_x.pack(side="bottom", fill="x")
         sales_tree.pack(fill="both", expand=True)
 
         # Tags para colores
@@ -1131,99 +1163,9 @@ class SalesView:
             text="El cliente realiza retenciones",
             variable=self.tiene_retenciones_var,
             font=ctk.CTkFont(size=13, weight="bold"),
-            command=self.toggle_retenciones
+            command=self.open_retenciones_dialog
         )
         retenciones_check.grid(row=5, column=0, columnspan=2, padx=10, pady=(15, 5), sticky="w")
-        
-        # Frame de retenciones (oculto por defecto)
-        self.retenciones_frame = ctk.CTkFrame(client_frame, fg_color="#e8f5e9")
-        self.retenciones_frame.grid(row=6, column=0, columnspan=2, padx=10, pady=5, sticky="ew")
-        self.retenciones_frame.grid_remove()  # Ocultar inicialmente
-        
-        # Retención IVA
-        ret_iva_container = ctk.CTkFrame(self.retenciones_frame, fg_color="transparent")
-        ret_iva_container.pack(fill="x", padx=10, pady=5)
-        
-        ctk.CTkLabel(
-            ret_iva_container,
-            text="Retención IVA $:",
-            font=ctk.CTkFont(size=12)
-        ).pack(side="left", padx=(0, 10))
-        
-        self.retencion_iva_var = tk.StringVar(value="0")
-        ctk.CTkEntry(
-            ret_iva_container,
-            textvariable=self.retencion_iva_var,
-            width=120,
-            height=30
-        ).pack(side="left")
-        
-        # Retención IIBB
-        ret_iibb_container = ctk.CTkFrame(self.retenciones_frame, fg_color="transparent")
-        ret_iibb_container.pack(fill="x", padx=10, pady=5)
-        
-        ctk.CTkLabel(
-            ret_iibb_container,
-            text="Retención IIBB $:",
-            font=ctk.CTkFont(size=12)
-        ).pack(side="left", padx=(0, 10))
-        
-        self.retencion_iibb_var = tk.StringVar(value="0")
-        ctk.CTkEntry(
-            ret_iibb_container,
-            textvariable=self.retencion_iibb_var,
-            width=120,
-            height=30
-        ).pack(side="left")
-        
-        # Retención Ganancias
-        ret_ganancias_container = ctk.CTkFrame(self.retenciones_frame, fg_color="transparent")
-        ret_ganancias_container.pack(fill="x", padx=10, pady=5)
-        
-        ctk.CTkLabel(
-            ret_ganancias_container,
-            text="Retención Ganancias $:",
-            font=ctk.CTkFont(size=12)
-        ).pack(side="left", padx=(0, 10))
-        
-        self.retencion_ganancias_var = tk.StringVar(value="0")
-        ctk.CTkEntry(
-            ret_ganancias_container,
-            textvariable=self.retencion_ganancias_var,
-            width=120,
-            height=30
-        ).pack(side="left")
-        
-        # Número de certificado
-        cert_container = ctk.CTkFrame(self.retenciones_frame, fg_color="transparent")
-        cert_container.pack(fill="x", padx=10, pady=5)
-        
-        ctk.CTkLabel(
-            cert_container,
-            text="Nº Certificado:",
-            font=ctk.CTkFont(size=12)
-        ).pack(side="left", padx=(0, 10))
-        
-        self.certificado_var = tk.StringVar()
-        ctk.CTkEntry(
-            cert_container,
-            textvariable=self.certificado_var,
-            width=200,
-            height=30,
-            placeholder_text="Ej: 001-00123456"
-        ).pack(side="left")
-
-    def toggle_retenciones(self):
-        """Mostrar/ocultar frame de retenciones"""
-        if self.tiene_retenciones_var.get():
-            self.retenciones_frame.grid()
-        else:
-            self.retenciones_frame.grid_remove()
-            # Limpiar valores
-            self.retencion_iva_var.set("0")
-            self.retencion_iibb_var.set("0")
-            self.retencion_ganancias_var.set("0")
-            self.certificado_var.set("")
 
     def get_retenciones(self):
         """Obtener datos de retenciones del formulario"""
@@ -1309,7 +1251,7 @@ class SalesView:
         dialog.transient(self.frame)
         dialog.grab_set()
         dialog.resizable(False, False)
-        center_window(dialog, 500, 450)
+        center_window(dialog, 500, 490)
         
         # Título
         ctk.CTkLabel(
@@ -1439,6 +1381,59 @@ class SalesView:
             hover_color="#616161",
             command=dialog.destroy
         ).grid(row=0, column=1, padx=10)
+
+    def open_retenciones_dialog(self):
+        if not self.tiene_retenciones_var.get():
+            return
+
+        win = ctk.CTkToplevel(self.frame)
+        win.title("Retenciones")
+        win.transient(self.frame)
+        win.grab_set()
+        win.resizable(False, False)
+
+        center_window(win, 350, 280)
+
+        ctk.CTkLabel(
+            win,
+            text="Retenciones del Cliente",
+            font=ctk.CTkFont(size=16, weight="bold")
+        ).pack(pady=10)
+
+        form = ctk.CTkFrame(win)
+        form.pack(padx=20, pady=10, fill="both")
+
+        # IVA
+        ctk.CTkLabel(form, text="Retención IVA $").grid(row=0, column=0, pady=5, sticky="w")
+        self.retencion_iva_var = tk.StringVar(value="0")
+        ctk.CTkEntry(form, textvariable=self.retencion_iva_var, width=120).grid(row=0, column=1, pady=5)
+
+        # IIBB
+        ctk.CTkLabel(form, text="Retención IIBB $").grid(row=1, column=0, pady=5, sticky="w")
+        self.retencion_iibb_var = tk.StringVar(value="0")
+        ctk.CTkEntry(form, textvariable=self.retencion_iibb_var, width=120).grid(row=1, column=1, pady=5)
+
+        # GAN
+        ctk.CTkLabel(form, text="Retención Ganancias $").grid(row=2, column=0, pady=5, sticky="w")
+        self.retencion_ganancias_var = tk.StringVar(value="0")
+        ctk.CTkEntry(form, textvariable=self.retencion_ganancias_var, width=120).grid(row=2, column=1, pady=5)
+
+        # Certificado
+        ctk.CTkLabel(form, text="N° Certificado").grid(row=3, column=0, pady=5, sticky="w")
+        self.certificado_var = tk.StringVar()
+        ctk.CTkEntry(form, textvariable=self.certificado_var, width=150).grid(row=3, column=1, pady=5)
+
+        def confirm():
+            win.destroy()
+
+        btn = ctk.CTkButton(
+            win,
+            text="Guardar",
+            width=120,
+            fg_color="#4CAF50",
+            command=confirm
+        )
+        btn.pack(pady=10)
 
     # Utilidades
     def show_success(self, msg): messagebox.showinfo("Éxito", msg)

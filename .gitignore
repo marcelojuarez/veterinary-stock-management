@@ -31,7 +31,8 @@ share/python-wheels/
 .installed.cfg
 *.egg
 MANIFEST
-models/.DS_Store
+.DS_Store
+**/.DS_Store
 
 # PyInstaller
 #  Usually these files are written by a python script from a template
@@ -220,7 +221,9 @@ __marimo__/
 db/stock.db
 db/*.db
 *.db
+db/.DS_Store
 
+olddata
 ventas
 facturas
 remitos

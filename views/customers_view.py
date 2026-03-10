@@ -25,49 +25,49 @@ class CustomersView:
         # footer se crea en attach_controller()
 
     def create_header(self):
-        header = ctk.CTkFrame(self.frame, fg_color="#e0e0e0", corner_radius=10)
-        header.grid(row=0, column=0, sticky="w", padx=10, pady=(8, 5))
+        header = ctk.CTkFrame(self.frame)
+        header.grid(row=0, column=0, sticky='w', padx=10, pady=10)
         header.grid_columnconfigure(0, weight=0)  # título
         header.grid_columnconfigure(1, weight=0)  # entry búsqueda
-        header.grid_columnconfigure(2, weight=0)  # botón buscar
+        # header.grid_columnconfigure(2, weight=0)  # botón buscar
 
         # --- Título ---
         title = ctk.CTkLabel(
             header,
-            text="👥 Gestión de Clientes",
-            font=ctk.CTkFont(size=17, weight="bold"),
-            text_color="#212121"
+            text="👥 Buscar Clientes",
+            font=ctk.CTkFont(size=14, weight='bold')
         )
-        title.grid(row=0, column=0, padx=(15, 10), pady=8, sticky="w")
+        title.grid(row=0, column=0, padx=15, pady=15)
 
         # --- Campo de búsqueda ---
         search_entry = ctk.CTkEntry(
             header,
             textvariable=self.search_var,
-            width=300,
+            width=600,
             height=35,
+            font=ctk.CTkFont(size=12),
             placeholder_text="Buscar cliente..."
         )
-        search_entry.grid(row=0, column=1, padx=10, pady=5, sticky="w")
+        search_entry.grid(row=0, column=1, padx=10, pady=15)
 
         search_entry.bind(
             "<KeyRelease>",
             lambda event: self.controller.filter_customers(self.search_var.get())
         )
 
-        # --- Botón Buscar ---
-        search_btn = ctk.CTkButton(
-            header,
-            text="Buscar",
-            width=120,
-            height=35,
-            font=ctk.CTkFont(size=12, weight="bold"),
-            fg_color="#009688",
-            hover_color="#00796B",
-            corner_radius=8,
-            command=lambda: self.controller.filter_customers(self.search_var.get()) if self.controller else None
-        )
-        search_btn.grid(row=0, column=2, padx=(5, 15), pady=5, sticky="w")
+        # # --- Botón Buscar ---
+        # search_btn = ctk.CTkButton(
+        #     header,
+        #     text="Buscar",
+        #     width=120,
+        #     height=35,
+        #     font=ctk.CTkFont(size=12, weight="bold"),
+        #     fg_color="#009688",
+        #     hover_color="#00796B",
+        #     corner_radius=8,
+        #     command=lambda: self.controller.filter_customers(self.search_var.get()) if self.controller else None
+        # )
+        # search_btn.grid(row=0, column=2, padx=(5, 15), pady=5, sticky="w")
 
     # --------------------------------------------------------------------
     # TABLE SECTION
@@ -97,14 +97,14 @@ class CustomersView:
             bordercolor="#d0d0d0",
             lightcolor="#d0d0d0",
             darkcolor="#d0d0d0",
-            rowheight=28,
-            font=("Segoe UI", 10)
+            rowheight=20,
+            font=("Segoe UI", 8)
         )
         style.configure(
             "Custom.Treeview.Heading",
             background="#e6e6e6",
             foreground="#000000",
-            font=("Segoe UI", 10, "bold")
+            font=("Segoe UI", 9, "bold")
         )
         style.map("Custom.Treeview.Heading",
                   background=[("active", "#dcdcdc")])
@@ -137,9 +137,11 @@ class CustomersView:
             self.table.heading(col, text=col, anchor="center")
 
         scroll_y = ttk.Scrollbar(table_frame, orient="vertical", command=self.table.yview)
-        self.table.configure(yscroll=scroll_y.set)
+        scroll_x = ttk.Scrollbar(table_frame, orient="horizontal", command=self.table.xview)
+        self.table.configure(yscrollcommand=scroll_y.set, xscrollcommand=scroll_x.set)
+        scroll_x.pack(side="bottom", fill="x")
         scroll_y.pack(side="right", fill="y")
-        self.table.pack(padx=10, pady=10, fill="both", expand=True)
+        self.table.pack(fill="both", expand=True, padx=(10, 0), pady=(0, 0))
         self.table.bind("<<TreeviewSelect>>", lambda e: self.update_debts_button_state())
 
     # --------------------------------------------------------------------
@@ -148,43 +150,46 @@ class CustomersView:
     def create_footer_buttons(self):
         footer = ctk.CTkFrame(self.frame)
         footer.grid(row=2, column=0, padx=10, pady=20, sticky="ew")
-        footer.grid_columnconfigure((0, 1, 2), weight=1)
+        footer.grid_columnconfigure((0, 1, 2, 3), weight=1)
         W, H = 250, 40
 
         # Guardar referencia al botón de deudas
         self.btn_ver_deudas = ctk.CTkButton(
             footer,
             text="💳 Ver Deudas",
-            width=W,
-            height=H,
+            width=W, height=H,
             font=ctk.CTkFont(size=13, weight="bold"),
-            fg_color="#009688",
-            hover_color="#00796B",
+            fg_color="#009688", hover_color="#00796B",
             command=self.open_selected_customer_debts
         )
-        self.btn_ver_deudas.grid(row=0, column=2, padx=20, pady=10)
+        self.btn_ver_deudas.grid(row=0, column=3, padx=20, pady=10)
 
         ctk.CTkButton(
             footer,
             text="🗑️ Eliminar Cliente",
-            width=W,
-            height=H,
+            width=W, height=H,
             font=ctk.CTkFont(size=13, weight="bold"),
-            fg_color="#009688",
-            hover_color="#00796B",
+            fg_color="#009688", hover_color="#00796B",
             command=self.delete_selected_customer
         ).grid(row=0, column=1, padx=20, pady=10)
 
         ctk.CTkButton(
             footer,
             text="➕ Agregar Cliente",
-            width=W,
-            height=H,
+            width=W, height=H,
             font=ctk.CTkFont(size=13, weight="bold"),
-            fg_color="#009688",
-            hover_color="#00796B",
+            fg_color="#009688", hover_color="#00796B",
             command=self.open_add_customer_window
         ).grid(row=0, column=0, padx=20, pady=10)
+
+        ctk.CTkButton(
+            footer,
+            text="✏️ Editar Cliente",
+            width=W, height=H,
+            font=ctk.CTkFont(size=13, weight="bold"),
+            fg_color="#009688", hover_color="#00796B",
+            command=self.open_edit_customer_window
+        ).grid(row=0, column=2, padx=20, pady=10)
 
 
     def update_debts_button_state(self):
@@ -360,6 +365,120 @@ class CustomersView:
         win.bind("<Return>", on_enter)
         
         # Cleanup al cerrar con X
+        win.protocol("WM_DELETE_WINDOW", cleanup_and_close)
+
+    # --------------------------------------------------------------------
+    # MODAL PARA EDITAR CLIENTE
+    # --------------------------------------------------------------------
+    def open_edit_customer_window(self):
+        selected = self.table.selection()
+        if not selected:
+            self.show_warning("Seleccione un cliente para editar.")
+            return
+
+        customer_id = self.table.item(selected[0])["values"][0]
+        customer = self.controller.model.find_customer_by_id(customer_id)
+        if not customer:
+            self.show_error("No se encontró el cliente.")
+            return
+
+        # customer: (id, name, cuit, home, phone, iva_condition, cv, cuig, renspa, establishment)
+        _, name, cuit, home, phone, iva_condition, cv, cuig, renspa, establishment = customer
+
+        win = ctk.CTkToplevel(self.frame)
+        win.configure(fg_color="#e0e0e0")
+        win.title(f"Editar Cliente - {name}")
+        win.transient(self.frame)
+        win.grab_set()
+        center_window(win, 450, 580)
+
+        name_var          = ctk.StringVar(value=name or "")
+        cuit_var          = ctk.StringVar(value=cuit or "")
+        home_var          = ctk.StringVar(value=home or "")
+        phone_var         = ctk.StringVar(value=phone or "")
+        iva_cond_var      = ctk.StringVar(value=iva_condition or "Consumidor Final")
+        cv_var            = ctk.StringVar(value=cv or "")
+        cuig_var          = ctk.StringVar(value=cuig or "")
+        renspa_var        = ctk.StringVar(value=renspa or "")
+        establecimiento_var = ctk.StringVar(value=establishment or "")
+
+        card_frame = ctk.CTkFrame(win, fg_color="white", corner_radius=20)
+        card_frame.pack(fill="both", expand=True, padx=20, pady=20)
+
+        ctk.CTkLabel(
+            card_frame,
+            text="Editar Cliente",
+            font=ctk.CTkFont(size=18, weight="bold")
+        ).pack(pady=(20, 10))
+
+        form_frame = ctk.CTkFrame(card_frame, fg_color="#f9f9f9", corner_radius=10)
+        form_frame.pack(pady=10, padx=20, fill="x")
+
+        def add_field(row, label, widget):
+            ctk.CTkLabel(
+                form_frame, text=label,
+                font=ctk.CTkFont(size=14, weight="bold"),
+                text_color="black"
+            ).grid(row=row, column=0, sticky="e", padx=(10, 10), pady=7)
+            widget.grid(row=row, column=1, sticky="w", padx=(10, 10), pady=7)
+
+        add_field(0, "Nombre: ",       ctk.CTkEntry(form_frame, textvariable=name_var, width=200))
+        add_field(1, "CUIT: ",         ctk.CTkEntry(form_frame, textvariable=cuit_var, width=200))
+        add_field(2, "Domicilio: ",    ctk.CTkEntry(form_frame, textvariable=home_var, width=200))
+        add_field(3, "Teléfono: ",     ctk.CTkEntry(form_frame, textvariable=phone_var, width=200))
+        add_field(4, "Condicion IVA: ",
+            ctk.CTkComboBox(form_frame,
+                values=["Consumidor Final", "R. Inscripto", "Exento", "Monotributista"],
+                variable=iva_cond_var, width=200))
+        add_field(5, "CV: ",           ctk.CTkEntry(form_frame, textvariable=cv_var, width=200))
+        add_field(6, "CUIG: ",         ctk.CTkEntry(form_frame, textvariable=cuig_var, width=200))
+        add_field(7, "RENSPA: ",       ctk.CTkEntry(form_frame, textvariable=renspa_var, width=200))
+        add_field(8, "Establecimiento: ", ctk.CTkEntry(form_frame, textvariable=establecimiento_var, width=200))
+
+        btn_frame = ctk.CTkFrame(card_frame, fg_color="transparent")
+        btn_frame.pack(pady=15)
+
+        def save_and_close():
+            data = {
+                "name":          name_var.get(),
+                "cuit":          cuit_var.get(),
+                "home":          home_var.get(),
+                "phone":         phone_var.get(),
+                "iva_condition": iva_cond_var.get(),
+                "cv":            cv_var.get(),
+                "cuig":          cuig_var.get(),
+                "renspa":        renspa_var.get(),
+                "establishment": establecimiento_var.get(),
+            }
+            if self.controller:
+                ok = self.controller.edit_customer(customer_id, data, win)
+                if ok:
+                    self.show_success("Cliente actualizado correctamente.")
+
+        def cleanup_and_close():
+            try:
+                if win.winfo_exists():
+                    win.unbind("<Return>")
+                    win.grab_release()
+                win.destroy()
+            except Exception:
+                pass
+
+        ctk.CTkButton(
+            btn_frame, text="Guardar", width=150, height=40,
+            fg_color="#009688", hover_color="#00796B",
+            font=ctk.CTkFont(size=13, weight="bold"),
+            command=save_and_close
+        ).grid(row=0, column=0, padx=15)
+
+        ctk.CTkButton(
+            btn_frame, text="Cancelar", width=150, height=40,
+            fg_color="#E74C3C", hover_color="#C0392B",
+            font=ctk.CTkFont(size=13, weight="bold"),
+            command=cleanup_and_close
+        ).grid(row=0, column=1, padx=15)
+
+        win.bind("<Return>", lambda e: save_and_close())
         win.protocol("WM_DELETE_WINDOW", cleanup_and_close)
 
     # --------------------------------------------------------------------
@@ -762,12 +881,12 @@ class CustomersView:
         style = ttk.Style()
         style.configure(
             "History.Treeview",
-            rowheight=28,
-            font=("Segoe UI", 10)
+            rowheight=20,
+            font=("Segoe UI", 8)
         )
         style.configure(
             "History.Treeview.Heading",
-            font=("Segoe UI", 10, "bold")
+            font=("Segoe UI", 9, "bold")
         )
 
         cols = ("Fecha", "Tipo", "Descripción", "Compra", "Pago", "Deuda")

@@ -18,6 +18,7 @@ def generate_global_payment_ticket(
     method,
     result_data,
     sales_with_items=None,
+    check_data=None,
     ticket_width_mm=80
 ):
     os.makedirs(os.path.dirname(file_path), exist_ok=True)
@@ -98,6 +99,20 @@ def generate_global_payment_ticket(
     tl(f"CLIENTE: {client_name}", 7.5)
     tl("PAGO A CUENTA", 7.5)
     tl(f"{method.upper()}", 7.5)
+
+    # Datos del cheque / eCheq
+    if check_data:
+        y -= 4
+        tl(f"Nro. Cheque: {check_data['number']}", 7.5)
+        tl(f"Banco: {check_data['bank']}", 7.5)
+        # Formatear fecha de vencimiento a DD/MM/YYYY
+        try:
+            from datetime import datetime as _dt
+            due_fmt = _dt.strptime(check_data['due_date'], "%Y-%m-%d").strftime("%d/%m/%Y")
+        except Exception:
+            due_fmt = check_data['due_date']
+        tl(f"Vencimiento: {due_fmt}", 7.5)
+
     y -= 2
     sep(True)
 

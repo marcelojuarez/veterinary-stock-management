@@ -291,3 +291,15 @@ class StockModel:
         query = "SELECT id FROM stock WHERE name = 'HONORARIOS'"
         row = db.fetch_one(query)
         return row[0] if row else None
+    
+    def update_product_quantity(self, product_id, new_quantity):
+        """
+        Actualizar solo la cantidad de stock de un producto
+        (usado para ajustes manuales)
+        """
+        query = """
+        UPDATE stock
+        SET quantity = ?
+        WHERE id = ?
+        """
+        self.db.execute_query(query, (new_quantity, product_id))

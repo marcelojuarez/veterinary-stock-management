@@ -357,6 +357,25 @@ class Database:
             conn.commit()
 
             cursor.execute('''
+                CREATE TABLE IF NOT EXISTS checks (
+                    id                INTEGER PRIMARY KEY AUTOINCREMENT,
+                    number            TEXT NOT NULL,
+                    bank              TEXT NOT NULL,
+                    type              TEXT NOT NULL DEFAULT 'FÍSICO',
+                    amount            TEXT NOT NULL,
+                    issue_date        TEXT NOT NULL,
+                    due_date          TEXT NOT NULL,
+                    status            TEXT NOT NULL DEFAULT 'EN_CARTERA',
+                    origin            TEXT NOT NULL DEFAULT 'CLIENTE',
+                    client_payment_id INTEGER NULL,
+                    purchase_id       INTEGER NULL,
+                    notes             TEXT NULL,
+                    FOREIGN KEY (client_payment_id) REFERENCES payments(id) ON DELETE SET NULL,
+                    FOREIGN KEY (purchase_id)       REFERENCES purchase(id) ON DELETE SET NULL
+                );
+            ''')
+
+            cursor.execute('''
                 CREATE TABLE IF NOT EXISTS payments (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     sale_id INTEGER NOT NULL,
@@ -365,8 +384,10 @@ class Database:
                     date TEXT DEFAULT CURRENT_TIMESTAMP,
                     method TEXT,
                     notes TEXT,
+                    check_id INTEGER NULL,
                     FOREIGN KEY(sale_id) REFERENCES sales(id) ON DELETE CASCADE,
-                    FOREIGN KEY(client_id) REFERENCES customer(id) ON DELETE CASCADE
+                    FOREIGN KEY(client_id) REFERENCES customer(id) ON DELETE CASCADE,
+                    FOREIGN KEY(check_id) REFERENCES checks(id) ON DELETE SET NULL
                 );
             ''')
 

@@ -1,6 +1,6 @@
 import tkinter as tk
 import customtkinter as ctk
-from tkinter import ttk
+from tkinter import ttk, messagebox
 from tkcalendar import DateEntry
 from datetime import datetime, timedelta
 from utils.utils import traditional_to_iso, iso_to_traditional
@@ -12,6 +12,7 @@ EVENT_LABELS = {
     'VENTA':        '🧾 Venta',
     'PRECIO':       '✏️ Precio',
     'PRECIO_MASIVO':'📈 Precio masivo',
+    'AJUSTE':       '🔧 Ajuste',  # ← NUEVO
 }
 
 EVENT_COLORS = {
@@ -19,16 +20,19 @@ EVENT_COLORS = {
     'VENTA':        '#E8F5E9',
     'PRECIO':       '#FFF3E0',
     'PRECIO_MASIVO':'#F3E5F5',
+    'AJUSTE':       '#FFF9C4',  # ← NUEVO (amarillo claro)
 }
 
 
 class StockMovementView:
-    def __init__(self, movement_model):
+    def __init__(self, movement_model, stock_model=None, controller=None):
         self.movement = movement_model
+        self.stock_model = stock_model  # ← NUEVO: necesario para ajustes
+        self.controller = controller
 
-    # ------------------------------------------------------------------ #
-    # VENTANA PRINCIPAL                                                   #
-    # ------------------------------------------------------------------ #
+    # ================================================================== #
+    # VENTANA PRINCIPAL                                                  #
+    # ================================================================== #
 
     def open(self, parent, product_id=None, product_name=None):
         """
@@ -103,7 +107,7 @@ class StockMovementView:
         ctk.CTkComboBox(
             filter_frame,
             variable=event_var,
-            values=["Todos", "Compra", "Venta", "Precio", "Precio masivo"],
+            values=["Todos", "Compra", "Venta", "Precio", "Precio masivo", "Ajuste"],  # ← AGREGADO "Ajuste"
             width=130,
             state="readonly"
         ).grid(row=0, column=5, padx=5, pady=10)
@@ -162,8 +166,8 @@ class StockMovementView:
                 "Precio Ant.", "Precio Act.")
 
         style = ttk.Style()
-        style.configure("Mov.Treeview", rowheight=26, font=("Segoe UI", 10))
-        style.configure("Mov.Treeview.Heading", font=("Segoe UI", 10, "bold"))
+        style.configure("Mov.Treeview", rowheight=20, font=("Segoe UI", 8))
+        style.configure("Mov.Treeview.Heading", font=("Segoe UI", 9, "bold"))
 
         tree = ttk.Treeview(
             table_frame,
@@ -190,13 +194,34 @@ class StockMovementView:
         scroll_x.pack(side="bottom", fill="x")
         tree.pack(fill="both", expand=True)
 
-        # ── Botón cerrar ─────────────────────────────────────────────────
+        # ── Botones ──────────────────────────────────────────────────────
+        # ✨ NUEVO: Frame para botones
+        button_frame = ctk.CTkFrame(win, fg_color="transparent")
+        button_frame.pack(pady=10)
+
+        # ✨ NUEVO: Botón Ajustar Stock (solo visible si es un producto específico)
+        if product_id and self.stock_model:
+            ctk.CTkButton(
+                button_frame,
+                text="🔧 Ajustar Stock",
+                width=140,
+                height=35,
+                fg_color="#FF9800",
+                hover_color="#F57C00",
+                font=ctk.CTkFont(size=12, weight="bold"),
+                command=lambda: self.open_adjust_stock_window(win, product_id, product_name, load)
+            ).pack(side="left", padx=5)
+
         ctk.CTkButton(
-            win, text="Cerrar", width=120, height=35,
-            fg_color="#E74C3C", hover_color="#C0392B",
+            button_frame,
+            text="Cerrar",
+            width=120,
+            height=35,
+            fg_color="#E74C3C",
+            hover_color="#C0392B",
             font=ctk.CTkFont(size=12, weight="bold"),
             command=win.destroy
-        ).pack(pady=10)
+        ).pack(side="left", padx=5)
 
         # ── Función de carga ─────────────────────────────────────────────
         def load():
@@ -217,6 +242,7 @@ class StockMovementView:
                 "Venta":        "VENTA",
                 "Precio":       "PRECIO",
                 "Precio masivo":"PRECIO_MASIVO",
+                "Ajuste":       "AJUSTE",  # ← AGREGADO
             }
             selected = event_var.get()
             if selected != "Todos":
@@ -261,3 +287,268 @@ class StockMovementView:
 
         center_window(win, 1200, 750)
         win.deiconify()
+
+    # ================================================================== #
+    # VENTANA AJUSTAR STOCK (NUEVA FUNCIONALIDAD)                        #
+    # ================================================================== #
+
+    def open_adjust_stock_window(self, parent, product_id, product_name, callback_refresh):
+        """
+        Ventana para ajustar stock manualmente con justificación
+        """
+        if not self.stock_model:
+            messagebox.showerror("Error", "No hay modelo de stock disponible")
+            return
+
+        # Obtener datos actuales del producto
+        try:
+            product = self.stock_model.get_product_by_id(product_id)
+            if not product:
+                messagebox.showerror("Error", "Producto no encontrado")
+                return
+            print(product)
+            current_stock = int(product[12])  # quantity está en índice 9
+            current_cost = product[6]  # cost_price
+            current_price = product[7]  # price
+            
+        except Exception as e:
+            messagebox.showerror("Error", f"Error al obtener datos del producto: {e}")
+            return
+
+        # Crear ventana modal
+        adjust_win = ctk.CTkToplevel(parent)
+        adjust_win.title("Ajustar Stock")
+        adjust_win.configure(fg_color="#e0e0e0")
+        adjust_win.transient(parent)
+        adjust_win.grab_set()
+        adjust_win.withdraw()
+
+        # Card principal
+        card = ctk.CTkFrame(adjust_win, fg_color="white", corner_radius=20)
+        card.pack(fill="both", expand=True, padx=20, pady=20)
+
+        # Título
+        ctk.CTkLabel(
+            card,
+            text="🔧 Ajustar Stock",
+            font=ctk.CTkFont(size=20, weight="bold"),
+            text_color="black"
+        ).pack(pady=(20, 10))
+
+        # Formulario
+        form = ctk.CTkFrame(card, fg_color="#f9f9f9", corner_radius=10)
+        form.pack(pady=10, padx=20, fill="x")
+
+        # Variables
+        new_stock_var = tk.StringVar()
+        reason_var = tk.StringVar(value="Vencimiento")
+        observations_var = tk.StringVar()
+
+        def add_field(row, label, widget, readonly=False):
+            ctk.CTkLabel(
+                form,
+                text=label,
+                font=ctk.CTkFont(size=13, weight="bold"),
+                text_color="black"
+            ).grid(row=row, column=0, sticky="e", padx=(15, 10), pady=8)
+            
+            if readonly:
+                widget.configure(state="readonly")
+            
+            widget.grid(row=row, column=1, sticky="w", padx=(0, 15), pady=8)
+            return widget
+
+        # Producto (readonly)
+        add_field(
+            0, "Producto:",
+            ctk.CTkEntry(form, width=300, textvariable=tk.StringVar(value=product_name)),
+            readonly=True
+        )
+
+        # Stock actual (readonly)
+        add_field(
+            1, "Stock Actual:",
+            ctk.CTkEntry(form, width=300, textvariable=tk.StringVar(value=str(current_stock))),
+            readonly=True
+        )
+
+        # Nuevo stock (editable)
+        new_stock_entry = add_field(
+            2, "Nuevo Stock:",
+            ctk.CTkEntry(form, width=300, textvariable=new_stock_var, placeholder_text="Ingrese el nuevo stock")
+        )
+        new_stock_entry.focus()
+
+        # Diferencia (calculada)
+        diff_var = tk.StringVar(value="—")
+        diff_label = add_field(
+            3, "Diferencia:",
+            ctk.CTkEntry(form, width=300, textvariable=diff_var),
+            readonly=True
+        )
+
+        # Calcular diferencia automáticamente
+        def update_diff(*args):
+            try:
+                new = int(new_stock_var.get())
+                diff = new - current_stock
+                sign = "+" if diff > 0 else ""
+                diff_var.set(f"{sign}{diff}")
+                
+                # Cambiar color según sea aumento o disminución
+                if diff > 0:
+                    diff_label.configure(text_color="#4CAF50")  # Verde
+                elif diff < 0:
+                    diff_label.configure(text_color="#F44336")  # Rojo
+                else:
+                    diff_label.configure(text_color="#757575")  # Gris
+            except ValueError:
+                diff_var.set("—")
+                diff_label.configure(text_color="#757575")
+
+        new_stock_var.trace_add("write", update_diff)
+
+        # Motivo (dropdown)
+        add_field(
+            4, "Motivo:",
+            ctk.CTkComboBox(
+                form,
+                width=300,
+                variable=reason_var,
+                values=[
+                    "Vencimiento",
+                    "Rotura/Daño",
+                    "Inventario (corrección)",
+                    "Devolución",
+                    "Pérdida",
+                    "Otro"
+                ],
+                state="readonly"
+            )
+        )
+
+        # Observaciones
+        add_field(
+            5, "Observaciones:",
+            ctk.CTkEntry(
+                form,
+                width=300,
+                textvariable=observations_var,
+                placeholder_text="Detalles adicionales (opcional)"
+            )
+        )
+
+        # Frame de confirmación (destacado)
+        confirm_frame = ctk.CTkFrame(card, fg_color="#FFF9C4", corner_radius=10)
+        confirm_frame.pack(pady=15, padx=20, fill="x", ipady=10)
+
+        ctk.CTkLabel(
+            confirm_frame,
+            text="⚠️ Este ajuste modificará el stock del producto",
+            font=ctk.CTkFont(size=12, weight="bold"),
+            text_color="#F57C00"
+        ).pack()
+
+        # Botones
+        btn_frame = ctk.CTkFrame(card, fg_color="transparent")
+        btn_frame.pack(pady=15)
+
+        def confirm_adjust():
+            """Confirmar y guardar ajuste"""
+            try:
+                # Validaciones
+                new_stock_str = new_stock_var.get().strip()
+                if not new_stock_str:
+                    messagebox.showwarning("Advertencia", "Ingrese el nuevo stock")
+                    return
+
+                new_stock = int(new_stock_str)
+                if new_stock < 0:
+                    messagebox.showwarning("Advertencia", "El stock no puede ser negativo")
+                    return
+
+                if new_stock == current_stock:
+                    messagebox.showinfo("Información", "El stock no ha cambiado")
+                    return
+
+                # Construir detalle del ajuste
+                reason = reason_var.get()
+                obs = observations_var.get().strip()
+                detail_parts = [f"Motivo: {reason}"]
+                if obs:
+                    detail_parts.append(f"Obs: {obs}")
+                detail = " | ".join(detail_parts)
+
+                # Confirmación final
+                diff = new_stock - current_stock
+                msg = (
+                    f"¿Confirmar ajuste de stock?\n\n"
+                    f"Producto: {product_name}\n"
+                    f"Stock actual: {current_stock}\n"
+                    f"Stock nuevo: {new_stock}\n"
+                    f"Diferencia: {diff:+d}\n\n"
+                    f"{detail}"
+                )
+
+                if not messagebox.askyesno("Confirmar Ajuste", msg):
+                    return
+
+                # 1. Actualizar stock en la tabla stock
+                self.stock_model.update_product_quantity(product_id, new_stock)
+
+                # 2. Registrar movimiento
+                self.movement.register(
+                    product_id=product_id,
+                    product_name=product_name,
+                    event_type="AJUSTE",
+                    detail=detail,
+                    qty_before=current_stock,
+                    qty_after=new_stock,
+                    cost_before=current_cost,
+                    cost_after=current_cost,  # No cambia
+                    price_before=current_price,
+                    price_after=current_price  # No cambia
+                )
+
+                messagebox.showinfo("Éxito", "Stock ajustado correctamente")
+                
+                # Refrescar tabla de movimientos
+                if callback_refresh:
+                    callback_refresh()
+                    self.controller.refresh_stock_table()
+                
+                adjust_win.destroy()
+
+            except ValueError:
+                messagebox.showerror("Error", "El stock debe ser un número entero")
+            except Exception as e:
+                messagebox.showerror("Error", f"Error al ajustar stock: {e}")
+
+        ctk.CTkButton(
+            btn_frame,
+            text="✓ Confirmar Ajuste",
+            width=160,
+            height=40,
+            fg_color="#4CAF50",
+            hover_color="#45a049",
+            font=ctk.CTkFont(size=13, weight="bold"),
+            command=confirm_adjust
+        ).grid(row=0, column=0, padx=10)
+
+        ctk.CTkButton(
+            btn_frame,
+            text="Cancelar",
+            width=160,
+            height=40,
+            fg_color="#757575",
+            hover_color="#616161",
+            font=ctk.CTkFont(size=13, weight="bold"),
+            command=adjust_win.destroy
+        ).grid(row=0, column=1, padx=10)
+
+        # Enter para confirmar
+        adjust_win.bind("<Return>", lambda e: confirm_adjust())
+
+        # Centrar y mostrar
+        center_window(adjust_win, 550, 580)
+        adjust_win.deiconify()
