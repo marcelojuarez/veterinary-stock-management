@@ -72,7 +72,7 @@ class PaymentForm:
         # Limitar tamaño máximo a la pantalla disponible
         sw = self.add_pay_win.winfo_screenwidth()
         sh = self.add_pay_win.winfo_screenheight()
-        win_w, win_h = 520, min(560, sh - 80)
+        win_w, win_h = 640, min(560, sh - 80)
         self.add_pay_win.geometry("{}x{}+{}+{}".format(
             win_w, win_h,
             sw // 2 - win_w // 2,
@@ -96,7 +96,7 @@ class PaymentForm:
         W = scroll
         FONT_LBL  = ctk.CTkFont(size=13, weight="bold")
         FONT_ENTRY = ctk.CTkFont(size=13)
-        ENTRY_W, ENTRY_H = 220, 36
+        ENTRY_W, ENTRY_H = 280, 36
 
         # Título
         ctk.CTkLabel(W, text="Nuevo Pago", font=ctk.CTkFont(size=18, weight="bold")).grid(
@@ -171,11 +171,11 @@ class PaymentForm:
             cartera_frame, columns=cols, show="headings",
             height=5, style="Cartera.Treeview"
         )
-        widths = {"ID": 0, "Nro.": 90, "Banco": 150, "Monto": 90, "Vence": 90}
+        widths = {"ID": 0, "Nro.": 120, "Banco": 150, "Monto": 90, "Vence": 90}
         for col in cols:
             w = widths[col]
             self.cartera_table.column(col, width=w, anchor="center",
-                                      minwidth=w, stretch=False)
+                                      minwidth=w, stretch=True)
             self.cartera_table.heading(col, text=col)
         # Ocultar columna ID
         self.cartera_table.column("ID", width=0, minwidth=0, stretch=False)
