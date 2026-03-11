@@ -1414,27 +1414,27 @@ class SalesView:
         ).pack(pady=10)
 
         form = ctk.CTkFrame(win)
-        form.pack(padx=20, pady=10, fill="both")
+        form.pack(padx=2, pady=10, fill="both")
 
         # IVA
-        ctk.CTkLabel(form, text="Retención IVA $").grid(row=0, column=0, pady=5, sticky="w")
+        ctk.CTkLabel(form, text="Retención IVA:", font=ctk.CTkFont(size=12, weight="bold")).grid(row=0, column=0, padx=10 ,pady=5, sticky="w")
         self.retencion_iva_var = tk.StringVar(value="0")
-        ctk.CTkEntry(form, textvariable=self.retencion_iva_var, width=120).grid(row=0, column=1, pady=5)
+        ctk.CTkEntry(form, textvariable=self.retencion_iva_var, width=120).grid(row=0, column=1,pady=5, sticky="ew")
 
         # IIBB
-        ctk.CTkLabel(form, text="Retención IIBB $").grid(row=1, column=0, pady=5, sticky="w")
+        ctk.CTkLabel(form, text="Retención IIBB:", font=ctk.CTkFont(size=12, weight="bold")).grid(row=1, column=0, padx=10,pady=5, sticky="w")
         self.retencion_iibb_var = tk.StringVar(value="0")
-        ctk.CTkEntry(form, textvariable=self.retencion_iibb_var, width=120).grid(row=1, column=1, pady=5)
+        ctk.CTkEntry(form, textvariable=self.retencion_iibb_var, width=120).grid(row=1, column=1, pady=5, sticky="ew")
 
         # GAN
-        ctk.CTkLabel(form, text="Retención Ganancias $").grid(row=2, column=0, pady=5, sticky="w")
+        ctk.CTkLabel(form, text="Retención Ganancias:", font=ctk.CTkFont(size=12, weight="bold")).grid(row=2, column=0, padx=10, pady=5, sticky="w")
         self.retencion_ganancias_var = tk.StringVar(value="0")
-        ctk.CTkEntry(form, textvariable=self.retencion_ganancias_var, width=120).grid(row=2, column=1, pady=5)
+        ctk.CTkEntry(form, textvariable=self.retencion_ganancias_var, width=120).grid(row=2, column=1, pady=5, sticky="ew")
 
         # Certificado
-        ctk.CTkLabel(form, text="N° Certificado").grid(row=3, column=0, pady=5, sticky="w")
+        ctk.CTkLabel(form, text="N° Certificado:", font=ctk.CTkFont(size=12, weight="bold")).grid(row=3, column=0, padx=10,pady=5, sticky="w")
         self.certificado_var = tk.StringVar()
-        ctk.CTkEntry(form, textvariable=self.certificado_var, width=150).grid(row=3, column=1, pady=5)
+        ctk.CTkEntry(form, textvariable=self.certificado_var, width=150).grid(row=3, column=1, pady=5, sticky="ew")
 
         def confirm():
             win.destroy()
@@ -1444,6 +1444,7 @@ class SalesView:
             text="Guardar",
             width=120,
             fg_color="#4CAF50",
+            font=ctk.CTkFont(size=12, weight="bold"),
             command=confirm
         )
         btn.pack(pady=10)

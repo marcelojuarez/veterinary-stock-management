@@ -356,40 +356,58 @@ class CustomerController:
         # ----------------------------------------------------------------
         # Panel de cheque (visible solo si método es Cheque / eCheq)
         # ----------------------------------------------------------------
-        check_frame = ctk.CTkFrame(content, fg_color="#f5f5f5", corner_radius=10)
-
-        def _lbl(parent, text):
-            ctk.CTkLabel(parent, text=text,
-                         font=ctk.CTkFont(size=12, weight="bold"),
-                         text_color="#333").pack(anchor="w", padx=10, pady=(8, 0))
+        check_frame = ctk.CTkFrame(content, fg_color="transparent", corner_radius=0)
 
         check_number_var  = ctk.StringVar()
         check_bank_var    = ctk.StringVar()
         check_due_var     = ctk.StringVar(value=datetime.now().strftime("%d/%m/%Y"))
 
-        _lbl(check_frame, "Número de cheque *")
-        ctk.CTkEntry(check_frame, textvariable=check_number_var, width=260,
-                     placeholder_text="Ej: 00123456").pack(padx=10, pady=(2, 0))
+        ctk.CTkLabel(
+            check_frame, text="Número de cheque:",
+            font=ctk.CTkFont(weight="bold")
+        ).pack(anchor="w", pady=(14, 4))
+        ctk.CTkEntry(
+            check_frame, textvariable=check_number_var,
+            width=260, height=40,
+            placeholder_text="Ej: 00123456",
+            font=ctk.CTkFont(size=14)
+        ).pack()
 
-        _lbl(check_frame, "Banco *")
-        ctk.CTkEntry(check_frame, textvariable=check_bank_var, width=260,
-                     placeholder_text="Ej: Banco Nación").pack(padx=10, pady=(2, 0))
+        ctk.CTkLabel(
+            check_frame, text="Banco:",
+            font=ctk.CTkFont(weight="bold")
+        ).pack(anchor="w", pady=(14, 4))
+        ctk.CTkEntry(
+            check_frame, textvariable=check_bank_var,
+            width=260, height=40,
+            placeholder_text="Ej: Banco Nación",
+            font=ctk.CTkFont(size=14)
+        ).pack()
 
-        _lbl(check_frame, "Fecha de vencimiento * (DD/MM/YYYY)")
-        ctk.CTkEntry(check_frame, textvariable=check_due_var, width=260).pack(padx=10, pady=(2, 8))
+        ctk.CTkLabel(
+            check_frame, text="Fecha de vencimiento (DD/MM/YYYY):",
+            font=ctk.CTkFont(weight="bold")
+        ).pack(anchor="w", pady=(14, 4))
+        ctk.CTkEntry(
+            check_frame, textvariable=check_due_var,
+            width=260, height=40,
+            font=ctk.CTkFont(size=14)
+        ).pack()
 
         def _toggle_check_panel(*_):
             m = method_var.get()
             if m in ("Cheque", "eCheq"):
-                check_frame.pack(fill="x", pady=(10, 0))
-                center_window(win, 460, 680)
+                check_frame.pack(fill="x", pady=(0, 0))
+                center_window(win, 460, 720)
             else:
                 check_frame.pack_forget()
                 center_window(win, 460, 600)
 
         method_var.trace_add("write", _toggle_check_panel)
 
-        # Deuda total destacada
+        # ----------------------------------------------------------------
+        # Deuda total destacada  ← esto va DESPUÉS del check_frame
+        # ----------------------------------------------------------------
         ctk.CTkFrame(content, fg_color="#e0e0e0", height=2).pack(fill="x", pady=(12, 6))
         deuda_frame = ctk.CTkFrame(content, fg_color="#f5f5f5", corner_radius=8)
         deuda_frame.pack(fill="x")
@@ -398,7 +416,6 @@ class CustomerController:
         ctk.CTkLabel(deuda_frame, text=f"${total_debt}",
                      font=ctk.CTkFont(size=20, weight="bold"),
                      text_color="#D32F2F").pack(pady=(0, 8))
-
         # ----------------------------------------------------------------
         # Confirmar pago
         # ----------------------------------------------------------------

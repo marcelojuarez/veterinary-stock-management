@@ -648,15 +648,15 @@ def seed_clients():
                 INSERT INTO customer (name, cuit, home, phone, iva_condition, cv, cuig, renspa, establishment)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, (
-                c['name'], 
-                c['cuit'], 
-                c['home'], 
+                c['name'].upper(), 
+                c['cuit'].upper(), 
+                c['home'].upper(), 
                 c['phone'], 
-                c['iva_condition'],
+                c['iva_condition'].upper(),
                 c['cv'],
-                c['cuig'],
+                c['cuig'].upper(),
                 c['renspa'],
-                c['establishment']
+                c['establishment'].upper()
             ))
             insertados += 1
         except sqlite3.IntegrityError:
@@ -878,14 +878,14 @@ def seed_suppliers():
         
         suppliers.append({
             "cuit": cuit,
-            "name": nombre,
-            "address": home,
-            "city": city,
-            "province": province,
-            "country": country,
+            "name": nombre.upper(),
+            "address": home.upper(),
+            "city": city.upper(),
+            "province": province.upper(),
+            "country": country.upper(),
             "phone": phone,
-            "email": email,
-            "iva_condition": iva_condition,
+            "email": email.upper(),
+            "iva_condition": iva_condition.upper(),
         })
     
     sales_model = SalesModel()

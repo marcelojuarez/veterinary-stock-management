@@ -423,7 +423,7 @@ class PaymentWindow():
             width=300,
             height=35,
             textvariable=self.find_search_var,
-            font=ctk.CTkFont(size=12),
+            font=ctk.CTkFont(size=12, weight='bold'),
             placeholder_text="Ingrese nombre del proveedor..."
         )
         self.find_entry.grid(row=0, column=1, padx=5)
