@@ -130,9 +130,8 @@ class StockView():
             find_frame,
             width=600,
             height=35,
-            textvariable=self.find_var,
-            font=ctk.CTkFont(size=12),
-            placeholder_text="Ingrese nombre del producto..."
+            font=ctk.CTkFont(size=12, weight="bold"),
+            placeholder_text="Digite nombre, código o envase del producto",
         )
         
         find_entry.grid(row=0, column=1, padx=10, pady=15)

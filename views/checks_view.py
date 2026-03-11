@@ -62,12 +62,12 @@ class ChecksView:
         filter_frame.grid(row=0, column=2, padx=15, pady=8)
 
         ctk.CTkLabel(filter_frame, text="Filtrar:",
-                     font=ctk.CTkFont(size=12)).pack(side="left", padx=(0, 6))
+                     font=ctk.CTkFont(size=14, weight="bold")).pack(side="left", padx=(0, 6))
 
         ctk.CTkComboBox(
             filter_frame,
             variable=self.filter_var,
-            values=["Todos", "EN_CARTERA", "COBRADO", "ENDOSADO", "RECHAZADO"],
+            values=["TODOS", "EN_CARTERA", "COBRADO", "ENDOSADO", "RECHAZADO"],
             width=160,
             command=lambda _: self.controller.load_checks(self.filter_var.get())
         ).pack(side="left")

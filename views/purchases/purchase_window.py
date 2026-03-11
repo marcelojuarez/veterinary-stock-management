@@ -139,12 +139,21 @@ class PurchaseWindow():
         self.purchase_tree = ttk.Treeview(product_frame, show="headings", height=8)
         self.purchase_tree["columns"] = ("Id", "Cuit", "Nombre", "Tipo Comprobante", "Fecha", 
                                         "Fecha Venc.", "Estado", "Saldo Pendiente", "Total")
+        column_widths = {
+            "Id": 50,
+            "Cuit": 110,
+            "Nombre": 180,
+            "Tipo Comprobante": 140,
+            "Fecha": 90,
+            "Fecha Venc.": 110,
+            "Estado": 110,
+            "Saldo Pendiente": 140,
+            "Total": 120
+        }
+
         for col in self.purchase_tree["columns"]:
             self.purchase_tree.heading(col, text=col)
-            if col == "Id":
-                self.purchase_tree.column(col, width=60, anchor="center")
-            else:
-                self.purchase_tree.column(col, width=150, anchor="center")
+            self.purchase_tree.column(col, width=column_widths[col], anchor="center", stretch=False)
 
         # Fix: forzar el estilo para que no pise los tag colors de las filas
         style = ttk.Style()
@@ -394,18 +403,18 @@ class PurchaseWindow():
             print(f'Error al obtener la compra: {e}')
 
     def handle_selection(self, doc_type, parent):
-        """Función que se ejecuta al presionar cualquiera de los botones."""
 
-        if doc_type == "Factura":
-            self.invoice_form.open_invoice_form(parent, self.supplier_id_var.get())
-        elif doc_type == "Otro Comprobante":
-            self.receipt_form.open_receipt_form(parent, self.supplier_id_var.get())
-        else:
-            print('Error')
-        
-        # Cerrar la ventana emergente
-        self.doc_type_win.grab_release()
-        self.doc_type_win.destroy()
+        if self.doc_type_win.winfo_exists():
+            self.doc_type_win.grab_release()
+            self.doc_type_win.destroy()
+
+        def open_next():
+            if doc_type == "Factura":
+                self.invoice_form.open_invoice_form(parent, self.supplier_id_var.get())
+            else:
+                self.receipt_form.open_receipt_form(parent, self.supplier_id_var.get())
+
+        parent.after(10, open_next)
 
     ## -- Supplier Selection -- ##
     def list_of_supplier(self, parent):
@@ -418,52 +427,111 @@ class PurchaseWindow():
         win.transient(parent)
         win.grab_set()
 
-        # centrar ventana
-        x_root = self.frame.winfo_x() 
-        y_root = self.frame.winfo_y()
-        width_root = self.frame.winfo_width()
-        height_root = self.frame.winfo_height()        
-
-        x = x_root + (width_root // 2) - (width_win // 2)
-        y = y_root + (height_root // 2) - (height_win // 2)
-
+        x = self.frame.winfo_x() + (self.frame.winfo_width() // 2) - (width_win // 2)
+        y = self.frame.winfo_y() + (self.frame.winfo_height() // 2) - (height_win // 2)
         win.geometry(f"{width_win}x{height_win}+{x}+{y}")
 
         win.rowconfigure(0, weight=1)
         win.rowconfigure(1, weight=3)
-    
+
         btn_color = "#009688"
         btn_hover = "#00796B"
 
         find_frame = ctk.CTkFrame(win)
-        find_frame.grid(row=0,column=0)
-
+        find_frame.grid(row=0, column=0)
         find_frame.columnconfigure(0, weight=1)
         find_frame.columnconfigure(1, weight=2)
         find_frame.columnconfigure(2, weight=1)
 
-        find_lbl = ctk.CTkLabel(
-            find_frame, 
+        ctk.CTkLabel(
+            find_frame,
             text="Buscar:",
             font=ctk.CTkFont(size=15, weight='bold')
-        )
-        find_lbl.grid(row=0, column=0, padx=(10, 5), pady=(0, 5))
+        ).grid(row=0, column=0, padx=(10, 5), pady=(0, 5))
 
-        self.find_entry = ctk.CTkEntry(
+        search_after_id = [None]
+
+        find_entry = ctk.CTkEntry(
             find_frame,
             width=300,
             height=35,
-            textvariable=self.search_var,
             font=ctk.CTkFont(size=12),
             placeholder_text="Ingrese nombre del proveedor..."
         )
-        self.find_entry.grid(row=0, column=1, padx=5)
+        find_entry.grid(row=0, column=1, padx=5)
 
-        find_entry = self.find_entry
-        win.after(100, lambda e=find_entry, w=win: e.focus_set() if w.winfo_exists() else None)
+        tree_frame = ctk.CTkFrame(win)
+        tree_frame.grid(row=1, column=0)
 
-        self.find_entry.bind("<KeyRelease>", self.on_key_release)
-        self.search_after_id = None
+        supplier_tree = ttk.Treeview(tree_frame, show='headings', height=10)
+        supplier_tree["columns"] = ("cuit", "nombre")
+
+        for col in supplier_tree["columns"]:
+            supplier_tree.heading(col, text=col.capitalize())
+            supplier_tree.column(col, anchor="center")
+
+        supplier_tree.pack(side="left", fill="both", expand=True)
+
+        for s in self.suppliers:
+            supplier_tree.insert("", "end", iid=s[0], values=(s[1], s[2]))
+
+        scroll = ttk.Scrollbar(tree_frame, orient="vertical", command=supplier_tree.yview)
+        supplier_tree.configure(yscroll=scroll.set)
+        scroll.pack(side="right", fill="y")
+
+        def refresh_table():
+            for item in supplier_tree.get_children():
+                supplier_tree.delete(item)
+            for s in self.suppliers:
+                supplier_tree.insert('', 'end', iid=s[0], values=(s[1], s[2]), tag="orow")
+            supplier_tree.tag_configure('orow', background="white", foreground='black')
+
+        def update_filter():
+            if not win.winfo_exists():
+                return
+            query = find_entry.get().lower()
+            if query == "":
+                refresh_table()
+                return
+            for row in supplier_tree.get_children():
+                supplier_tree.delete(row)
+            filtered = [s for s in self.suppliers if query in s[1] or query in s[2].lower()]
+            for s in filtered:
+                supplier_tree.insert('', 'end', iid=s[0], values=(s[1], s[2]), tag="orow")
+            supplier_tree.tag_configure('orow', background="white", foreground='black')
+
+        def on_key_release(event):
+            if not win.winfo_exists():
+                return
+            if search_after_id[0]:
+                find_entry.after_cancel(search_after_id[0])
+            search_after_id[0] = find_entry.after(200, update_filter)
+
+        def on_click():
+            selected = supplier_tree.selection()
+            if not selected:
+                return
+            iid = selected[0]
+            values = supplier_tree.item(iid, "values")
+            self.supplier_id_var.set(iid)
+            self.search_var.set(values[1])
+            if search_after_id[0]:
+                find_entry.after_cancel(search_after_id[0])
+
+            def action():
+                if parent.winfo_exists():
+                    self.load_purchases(True)
+                if win.winfo_exists():
+                    close_win(win, parent)
+
+            action()
+
+        def on_close():
+            if search_after_id[0]:
+                find_entry.after_cancel(search_after_id[0])
+            win.destroy()
+
+        find_entry.bind("<KeyRelease>", on_key_release)
 
         select_btn = ctk.CTkButton(
             find_frame,
@@ -473,108 +541,13 @@ class PurchaseWindow():
             height=30,
             fg_color=btn_color,
             hover_color=btn_hover,
-            command=lambda: self.on_click(win, parent),
+            command=on_click,
         )
         select_btn.grid(row=0, column=2, padx=5)
+
+        win.protocol("WM_DELETE_WINDOW", on_close)
         win.bind("<Return>", lambda event: select_btn.invoke())
-
-        tree_frame = ctk.CTkFrame(win)
-        tree_frame.grid(row=1, column=0)
-
-        self.supplier_tree = ttk.Treeview(tree_frame, show='headings', height=10)
-        self.supplier_tree["columns"] = ("cuit", "nombre")
-
-        for col in self.supplier_tree["columns"]:
-            self.supplier_tree.heading(col, text=col.capitalize())
-            self.supplier_tree.column(col, anchor="center")
-
-        self.supplier_tree.pack(side="left", fill="both", expand=True)
-
-        for s in self.suppliers:
-            self.supplier_tree.insert("", "end", iid=s[0], values=(s[1], s[2])) ## aca esta la clave
-
-        # scrollbar
-        scroll = ttk.Scrollbar(tree_frame, orient="vertical", command=self.supplier_tree.yview)
-        self.supplier_tree.configure(yscroll=scroll.set)
-        scroll.pack(side="right", fill="y")    
-
-    def on_key_release(self, event):
-        # Cancela búsquedas previas si el usuario sigue escribiendo
-        if self.search_after_id:
-            self.find_entry.after_cancel(self.search_after_id)
-        
-        # Ejecuta la búsqueda después de 150 ms
-        self.search_after_id = self.find_entry.after(200, self.update_treeview_filter)
-
-    def update_treeview_filter(self):
-        query = self.find_entry.get().lower()
-        # se verifica si el campo de busqueda esta vacio
-        if query == "":
-            self.refresh_supplier_table()
-            return
-        
-        # limpia el tree view
-        for row in self.supplier_tree.get_children():
-            self.supplier_tree.delete(row)
-            
-        # # Filtrar la lista de proveedores
-        filtered = [
-            s for s in self.suppliers
-            if query in s[1] or query in s[2].lower()
-        ]
-        
-        # Insertar solo los resultados filtrados
-        for s in filtered:
-            self.supplier_tree.insert(
-                parent='', index='end', iid=s[0],
-                values=(
-                    s[1],   # cuit
-                    s[2]   # name
-                ),
-                tag="orow"
-            )
-
-        self.supplier_tree.tag_configure('orow', background="white", foreground='black')  
-
-    def on_click(self, win, parent):
-        selected = self.supplier_tree.selection()
-
-        try:
-            # primer fila seleccionada
-            if not selected:
-                return
-            iid = selected[0]
-            values = self.supplier_tree.item(iid, "values")
-            self.supplier_id_var.set(iid)
-            self.search_var.set(values[1])
-
-            def action():
-                if parent.winfo_exists():
-                    self.load_purchases(True)
-
-                if win.winfo_exists():
-                    close_win(win, parent)
-
-            win.after(500, action)
-
-        except ValueError as e:
-            show_warning(f'Error en la seleccion del proveedor: {e}')
-
-    def refresh_supplier_table(self):
-        for item in self.supplier_tree.get_children():
-            self.supplier_tree.delete(item)
-
-        for s in self.suppliers:
-            self.supplier_tree.insert(
-                parent='', index='end', iid=s[0],
-                values=(
-                    s[1],   # cuit
-                    s[2]   # name
-                ),
-                tag="orow"
-            )
-
-        self.supplier_tree.tag_configure('orow', background="white", foreground='black') 
+ 
 
     ## -- Cargar tabla de compras -- ## 
     def load_purchases(self, filter):

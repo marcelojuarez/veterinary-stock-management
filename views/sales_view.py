@@ -62,10 +62,10 @@ class SalesView:
 
         search_entry = ctk.CTkEntry(
             header,
-            textvariable=self.search_var,
             width=300,
             height=35,
-            placeholder_text="Buscar producto..."
+            placeholder_text="Buscar producto...",
+            font=ctk.CTkFont(size=12, weight="bold")
         )
         search_entry.grid(row=0, column=1, padx=10)
         search_entry.bind("<KeyRelease>", lambda event: self.controller.search_products_live())
@@ -878,10 +878,23 @@ class SalesView:
             style="Sales.Treeview"
         )
 
-        col_widths = [60, 100, 80, 250, 90, 100, 100, 100]
-        for col, w in zip(cols, col_widths):
-            sales_tree.column(col, width=w, anchor="center" if col != "Cliente" else "w")
+        column_widths = {
+            "ID": 50,
+            "Fecha": 90,
+            "Hora": 70,
+            "Cliente": 160,
+            "Estado": 100,
+            "Total": 110,
+            "Pagado": 110,
+            "Saldo": 110
+        }
+
+        for col in cols:
+            anchor = "w" if col == "Cliente" else "center"
+            stretch = True if col == "Cliente" else False
+
             sales_tree.heading(col, text=col, anchor="center")
+            sales_tree.column(col, width=column_widths[col], anchor=anchor, stretch=stretch)
 
         # Scrollbar
         scroll_y = ttk.Scrollbar(table_frame, orient="vertical", command=sales_tree.yview)

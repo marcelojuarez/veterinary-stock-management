@@ -42,11 +42,10 @@ class CustomersView:
         # --- Campo de búsqueda ---
         search_entry = ctk.CTkEntry(
             header,
-            textvariable=self.search_var,
             width=600,
             height=35,
-            font=ctk.CTkFont(size=12),
-            placeholder_text="Buscar cliente..."
+            font=ctk.CTkFont(size=12, weight="bold"),
+            placeholder_text="Digite nombre, CUIT o teléfono del cliente",
         )
         search_entry.grid(row=0, column=1, padx=10, pady=15)
 
@@ -55,19 +54,6 @@ class CustomersView:
             lambda event: self.controller.filter_customers(self.search_var.get())
         )
 
-        # # --- Botón Buscar ---
-        # search_btn = ctk.CTkButton(
-        #     header,
-        #     text="Buscar",
-        #     width=120,
-        #     height=35,
-        #     font=ctk.CTkFont(size=12, weight="bold"),
-        #     fg_color="#009688",
-        #     hover_color="#00796B",
-        #     corner_radius=8,
-        #     command=lambda: self.controller.filter_customers(self.search_var.get()) if self.controller else None
-        # )
-        # search_btn.grid(row=0, column=2, padx=(5, 15), pady=5, sticky="w")
 
     # --------------------------------------------------------------------
     # TABLE SECTION
