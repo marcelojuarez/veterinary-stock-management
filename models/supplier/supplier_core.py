@@ -25,6 +25,14 @@ class SupplierCore():
             print(f'Error getting supplier by ID: {e}')
             return None
         
+    def find_supplier_by_cuit_and_name(self, cuit, name):
+        try:
+            query = "SELECT * FROM supplier WHERE cuit = ? AND UPPER(name) = ? LIMIT 1"
+            return self.db.fetch_one(query, (cuit, name.strip().upper()))
+        except ValueError as e:
+            print(f'Error getting supplier by cuit and name: {e}')
+            return None
+
     def find_supplier_by_address(self, address, city):
         try:
             query = "SELECT * FROM supplier WHERE UPPER(address) = ? AND UPPER(city) = ? LIMIT 1"

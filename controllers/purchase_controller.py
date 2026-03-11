@@ -201,10 +201,12 @@ class PurchaseController():
             # Obtener datos del formulario
             form_data = self.new_p_form.get_new_product_data()
 
-            print(f'form_data\n: {form_data}')
-
             # Validaciones
             if not self.validate_new_product_data(form_data) :
+                return
+
+            
+            if self.existing_product(form_data['Name'], form_data['Package']):
                 return
 
             product_data = {
@@ -282,6 +284,24 @@ class PurchaseController():
             
         return True
 
+    def existing_product(self, name_product, pack_product, product_id=None):
+        existing = self.supplier_model.purchase.find_product_by_name_and_pack(
+            name_product.strip().upper(),
+            pack_product.strip().upper()
+        )
+
+        if existing is None:
+            return False
+
+        if product_id is not None and str(existing[0]) == str(product_id):
+            return False
+
+        show_warning(
+            f"Ya existe un producto con el nombre: {name_product.upper()} "
+            f"y envase: {pack_product}."
+        )
+        return True
+
     ## -- Agregar un nuevo item de compra -- ##
     def add_purchase_item(self, win, parent):
         try:
@@ -294,13 +314,16 @@ class PurchaseController():
             purchase_id = int(item_data['Purchase_id'])
             product_id = int(item_data['Product_id'])
 
+            if self.existing_product(item_data['Product_name'], item_data['Pack'], product_id):
+                return
+
             if self.exists_product_on_purchase(win, parent, purchase_id, product_id):
                 return
 
             data = [
                 purchase_id,
                 product_id,
-                item_data['Product_name'],
+                item_data['Product_name'].upper(),
                 item_data['Pack'],
                 item_data['Qty'],
                 item_data['List_price'],
