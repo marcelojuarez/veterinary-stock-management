@@ -96,20 +96,6 @@ class SupplierView():
         self.find_entry.grid(row=0, column=1, padx=10, pady=15)
         self.find_entry.bind("<KeyRelease>", self.on_key_release)
         self.search_after_id = None
-        '''
-        find_btn = ctk.CTkButton(
-            find_frame,
-            text="!",
-            width=60,
-            height=35,
-            font=ctk.CTkFont(size=15, weight="bold"),
-            fg_color=btn_color,
-            hover_color=btn_hover,
-            command=lambda: show_warning("Ingrese un NOMBRE o CUIT para buscar un proveedor...")
-        )
-
-        find_btn.grid(row=0, column=2, padx=5, pady=5)
-        '''
 
     def create_tree_frame(self):
         """ Crea el frame para la tabla de Proveedores"""

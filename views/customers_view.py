@@ -40,18 +40,18 @@ class CustomersView:
         title.grid(row=0, column=0, padx=15, pady=15)
 
         # --- Campo de búsqueda ---
-        search_entry = ctk.CTkEntry(
+        self.search_entry = ctk.CTkEntry(
             header,
             width=600,
             height=35,
             font=ctk.CTkFont(size=12, weight="bold"),
             placeholder_text="Digite nombre, CUIT o teléfono del cliente",
         )
-        search_entry.grid(row=0, column=1, padx=10, pady=15)
+        self.search_entry.grid(row=0, column=1, padx=10, pady=15)
 
-        search_entry.bind(
+        self.search_entry.bind(
             "<KeyRelease>",
-            lambda event: self.controller.filter_customers(self.search_var.get())
+            lambda event: self.controller.filter_customers(self.search_entry.get())
         )
 
 

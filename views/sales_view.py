@@ -60,15 +60,15 @@ class SalesView:
                              font=ctk.CTkFont(size=15, weight="bold"))
         title.grid(row=0, column=0, padx=15, pady=10)
 
-        search_entry = ctk.CTkEntry(
+        self.search_entry = ctk.CTkEntry(
             header,
             width=300,
             height=35,
             placeholder_text="Buscar producto...",
             font=ctk.CTkFont(size=12, weight="bold")
         )
-        search_entry.grid(row=0, column=1, padx=10)
-        search_entry.bind("<KeyRelease>", lambda event: self.controller.search_products_live())
+        self.search_entry.grid(row=0, column=1, padx=10)
+        self.search_entry.bind("<KeyRelease>", lambda event: self.controller.search_products_live(self.search_entry.get()))
 
         search_btn = ctk.CTkButton(
             header, text="Buscar",

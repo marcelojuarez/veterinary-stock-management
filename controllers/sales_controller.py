@@ -69,9 +69,9 @@ class SalesController:
             self.sales_view.show_error("Ingrese una cantidad válida.")
             return False
 
-    def search_products_live(self):
+    def search_products_live(self, search_text):
         """Buscar productos en tiempo real mientras se escribe"""
-        search_text = self.sales_view.search_var.get().strip().lower()
+        search_text = search_text.strip().lower()
         
         # Si no hay texto de búsqueda, mostrar todos los productos
         if not search_text:

@@ -126,7 +126,7 @@ class StockView():
         )
         search_label.grid(row=0, column=0, padx=15, pady=15)
 
-        find_entry = ctk.CTkEntry(
+        self.find_entry = ctk.CTkEntry(
             find_frame,
             width=600,
             height=35,
@@ -134,8 +134,8 @@ class StockView():
             placeholder_text="Digite nombre, código o envase del producto",
         )
         
-        find_entry.grid(row=0, column=1, padx=10, pady=15)
-        find_entry.bind("<KeyRelease>", lambda event: self.controller.find_product_live(self.find_var.get()))
+        self.find_entry.grid(row=0, column=1, padx=10, pady=15)
+        self.find_entry.bind("<KeyRelease>", lambda event: self.controller.find_product_live(self.find_entry.get()))
 
         history_btn = ctk.CTkButton(
             find_frame,
