@@ -37,6 +37,8 @@ class PaymentWindow():
         self.search_var = tk.StringVar()
         self.debt_var = tk.StringVar()
         self.formatted_debt_var = tk.StringVar()
+        self.supplier_credit_var = tk.StringVar()
+        self.formatted_s_credit_var = tk.StringVar()
         self.suppliers = self.model.core.get_all_suppliers()
             
         win = ctk.CTkToplevel(self.frame)
@@ -60,7 +62,7 @@ class PaymentWindow():
         select_supplier_frame.grid_columnconfigure(0, weight=0)  # botón seleccionar
         select_supplier_frame.grid_columnconfigure(1, weight=0)  # entry
         select_supplier_frame.grid_columnconfigure(2, weight=0)  # espacio flexible empuja a los extremos
-        select_supplier_frame.grid_columnconfigure(3, weight=1)  # debt_frame
+        select_supplier_frame.grid_columnconfigure(3, weight=0)  # debt_frame
         select_supplier_frame.grid_columnconfigure(4, weight=0)  # refresh_btn
 
         select_supplier_btn = ctk.CTkButton(
@@ -106,6 +108,29 @@ class PaymentWindow():
             state='readonly'
         )
         debt_entry.grid(row=0, column=1, padx=5, pady=5, sticky="w")
+
+        credit_frame = ctk.CTkFrame(
+            select_supplier_frame,
+            fg_color=btn_color,
+            corner_radius=12
+        )
+        credit_frame.grid(row=0, column=3, padx=(0, 5), pady=5, sticky="w")
+
+        ctk.CTkLabel(
+            credit_frame,
+            text="Saldo a Favor",
+            font=ctk.CTkFont(size=12, weight="bold"),
+            text_color="#f8fffe"
+        ).grid(row=0, column=0, padx=15, pady=5, sticky="w")
+
+        ctk.CTkEntry(
+            credit_frame,
+            textvariable=self.formatted_s_credit_var,
+            width=120,
+            corner_radius=10,
+            fg_color="white",
+            state='readonly'
+        ).grid(row=0, column=1, padx=5, pady=5, sticky="w")        
 
         refresh_btn = ctk.CTkButton(
             select_supplier_frame,
@@ -365,16 +390,28 @@ class PaymentWindow():
                 return
             
             debt = self.model.purchase.get_debt_of_supplier(selected_supplier)
+            credit_amount = self.model.credit.get_credit_amount_of_supplier(selected_supplier)
             
+            # Monto deuda
             self.debt_var.set(debt)
             self.formatted_debt_var.set(format_currency(debt))
+
+            # Monto saldo a favor
+            self.supplier_credit_var.set(credit_amount)
+            self.formatted_s_credit_var.set(format_currency(credit_amount))
             purchases = self.model.purchase.get_all_confirmed_purchases(selected_supplier)
 
         else:
             self.supplier_id_var.set('')
             self.search_var.set('')
+
+            # Monto deuda
             self.debt_var.set('')
             self.formatted_debt_var.set('')
+
+            # Monto saldo a favor
+            self.supplier_credit_var.set('')
+            self.formatted_s_credit_var.set('')
             purchases = self.model.purchase.get_all_confirmed_purchases()
 
         # Limpiar tabla

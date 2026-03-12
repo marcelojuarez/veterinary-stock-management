@@ -3,7 +3,7 @@ import customtkinter as ctk
 from tkinter import ttk
 from decimal import Decimal
 from utils.view_helpers import close_win, show_warning, ask_confirmation
-from utils.utils import format_currency, clean_currency_input
+from utils.utils import clean_currency_input
 
 class PaymentForm:
 
