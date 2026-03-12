@@ -12,6 +12,7 @@ from views.start_view import StartView
 from views.stock_view import StockView
 from views.sales_view import SalesView
 from views.supplier_view import SupplierView
+from views.supplier_info_view import SupplierInfoView
 from views.customers_view import CustomersView
 from views.reports_view import ReportsView
 from views.checks_view import ChecksView
@@ -223,12 +224,15 @@ class App():
 
         # --- SUPPLIERS ---
         self.supplier_view = SupplierView(
-            self.notebook,self.supplier_controller, self.purchase_controller, 
+            self.notebook, self.supplier_controller, self.purchase_controller, 
             self.payment_controller, self.supplier_invoice_controller, self.receipt_controller,
             supplier_model, stock_model
         )
         
+        self.supplier_info_view = SupplierInfoView(self.notebook, self.supplier_controller, supplier_model)
+
         self.supplier_controller.set_view(self.supplier_view)
+        self.supplier_controller.set_info_view(self.supplier_info_view)
 
         self.notebook.add(self.supplier_view.frame, text='Proveedores')
 

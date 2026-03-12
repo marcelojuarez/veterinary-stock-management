@@ -1,12 +1,9 @@
 import customtkinter as ctk
 import tkinter as tk
 from tkinter import ttk
-from tksheet import Sheet
 from views.payments.payment_window import PaymentWindow
 from views.purchases.purchase_window import PurchaseWindow
 from utils.view_helpers import center_window, close_win
-from utils.utils import format_currency
-
 
 # Configurar tema y colores
 ctk.set_appearance_mode("light")  # "light" o "dark"
@@ -319,64 +316,6 @@ class SupplierView():
         )
 
         cancel_btn.grid(row=0, column=1, padx=15)     
-
-    ## -- Ventana de informacion con productos y deuda -- ##
-    def open_info_window(self, supplier, debt, parent):
-        self.frame.update_idletasks()  # calcula la posicion antes de renderizar ventana
-
-        info_win = ctk.CTkToplevel(self.frame)
-        info_win.title(f'Proveedor: {supplier[2]} -- {supplier[1]}')
-        info_win.transient(parent)
-        info_win.grab_set()
-
-        center_window(info_win, 1050, 450)
-
-        info_win.grid_rowconfigure(0, weight=1)
-        info_win.grid_rowconfigure(1, weight=0)
-        info_win.grid_columnconfigure(0, weight=3)
-        info_win.grid_columnconfigure(1, weight=1)
-
-        # --- Tksheet con productos ---
-        products = self.model.purchase.get_all_products_by_supplier_id(supplier_id=supplier[0])
-        products = [(p[0], p[1], p[2], p[5]) for p in products]
-
-        sheet = Sheet(info_win)
-        sheet.grid(row=0, column=0, sticky="nsew", padx=10, pady=(10, 0))
-        sheet.headers(["Id", "Nombre Artículo", "Envase", "Stock"])
-        sheet.set_sheet_data(products)
-        sheet.set_column_widths([100, 300, 200, 50])
-
-        # --- Panel de deuda ---
-        self.debt = tk.StringVar(value=f'{debt}')
-        self.last_update_debt = tk.StringVar(value=f'Ultima actualizacion deuda: \n {supplier[9]}')
-        right_frame = ctk.CTkFrame(info_win, corner_radius=10)
-        right_frame.grid(row=0, column=1, sticky="nsew", padx=10, pady=(10, 0))
-
-        lbl_title = ctk.CTkLabel(right_frame, text="Deuda proveedor", font=("Arial", 16, "bold"))
-        lbl_title.pack(pady=(20, 10))
-
-        self.lbl_debt = ctk.CTkLabel(right_frame, text=f'${format_currency(self.debt.get())}', font=("Arial", 24, "bold"), text_color="#059649")
-        self.lbl_debt.pack(pady=10)
-
-        lbl_note = ctk.CTkLabel(right_frame, textvariable=self.last_update_debt,  font=("Arial", 18, "bold"))
-        lbl_note.pack(pady=10)
-
-        # frame botones izquierda
-        left_btn_frame = ctk.CTkFrame(info_win, fg_color="transparent")
-        left_btn_frame.grid(row=1, column=0, sticky="we", pady=15)
-        left_btn_frame.grid_columnconfigure((0, 1), weight=1)
-
-        # Botón Cancelar 
-        cancel_btn = ctk.CTkButton(
-            left_btn_frame,
-            text='Cerrar',
-            fg_color="#E74C3C",
-            hover_color="#C0392B",
-            text_color="white",
-            font=ctk.CTkFont(size=13, weight="bold"),
-            command=info_win.destroy
-        )
-        cancel_btn.grid(row=0, column=1, padx=10, ipadx=5)
     
     def open_purchase_window(self, parent):
 

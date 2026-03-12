@@ -204,6 +204,14 @@ class SupplierPurchase():
         finally:
             conn.close() 
     
+    def find_product_by_name_and_pack(self, name, pack):
+        try:
+            query = "SELECT * FROM stock WHERE UPPER(name) = ? AND UPPER(pack) = ? LIMIT 1"
+            return self.db.fetch_one(query, (name, pack))
+        except Exception as e:
+            print(f'Error finding product: {e}')
+            return None
+
     ## -- Agrega un  nuevo Item de compra -- ##
     def add_purchase_item(self, params, conn=None, commit=True):
 
