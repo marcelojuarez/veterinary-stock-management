@@ -92,12 +92,11 @@ class SupplierController():
                 return
 
             iid = selected[0] # id proveedor
-            print(f'iid: {iid}')
             supplier_data = self.model.core.find_supplier_by_id(iid)
-            print(supplier_data)
             debt = self.model.purchase.get_debt_of_supplier(iid)
+            credit_amount = self.model.credit.get_credit_amount_of_supplier(iid)
 
-            self.info_view.open_info_window(supplier_data, debt, parent)
+            self.info_view.open_info_window(supplier_data, credit_amount, debt, parent)
         except Exception as e:
             print(f'Hubo un error: {e}')
     

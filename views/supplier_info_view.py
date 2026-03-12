@@ -10,7 +10,7 @@ class SupplierInfoView():
         self.controller = supplier_controller
         self.model = supplier_model
 
-    def open_info_window(self, supplier_data, debt, parent):
+    def open_info_window(self, supplier_data, credit_amount, debt, parent):
         self.frame.update_idletasks()
 
         info_win = ctk.CTkToplevel(self.frame)
@@ -37,6 +37,7 @@ class SupplierInfoView():
         # --- Panel derecho ---
         self.debt = tk.StringVar(value=f'{debt}')
         self.last_update_debt = tk.StringVar(value=supplier_data[10])
+        self.supplier_credit_var = tk.StringVar(value=f'${format_currency(credit_amount)}')
 
         right_frame = ctk.CTkFrame(info_win, corner_radius=14, fg_color="#ffffff")
         right_frame.grid(row=0, column=1, sticky="nsew", padx=(0, 10), pady=(10, 0))
@@ -54,31 +55,52 @@ class SupplierInfoView():
         )
         debt_card.grid(row=0, column=0, padx=12, pady=(12, 8), sticky="ew")
         debt_card.grid_columnconfigure(0, weight=1)
+        debt_card.grid_columnconfigure(1, weight=1)
 
-        ctk.CTkLabel(debt_card, text="💰", font=ctk.CTkFont(size=28)).grid(row=0, column=0, pady=(16, 2))
+        ctk.CTkLabel(
+            debt_card, text="💰", font=ctk.CTkFont(size=28)
+        ).grid(row=0, column=0, columnspan=2, pady=(16, 2))
+
         ctk.CTkLabel(
             debt_card, text="Deuda del Proveedor",
             font=ctk.CTkFont(size=12, weight="bold"), text_color="#6b7280"
-        ).grid(row=1, column=0, pady=(0, 4))
+        ).grid(row=1, column=0, columnspan=2, pady=(0, 4))
+
         ctk.CTkFrame(debt_card, height=2, fg_color="#a8dfc4", corner_radius=2).grid(
-            row=2, column=0, sticky="ew", padx=16, pady=(0, 8)
+            row=2, column=0, columnspan=2, sticky="ew", padx=16, pady=(0, 8)
         )
+
         self.lbl_debt = ctk.CTkLabel(
             debt_card, text=f'${format_currency(self.debt.get())}',
             font=ctk.CTkFont(size=24, weight="bold"), text_color="#059649"
         )
-        self.lbl_debt.grid(row=3, column=0, pady=(0, 10))
+        self.lbl_debt.grid(row=3, column=0, columnspan=2, pady=(0, 10))
+
         ctk.CTkFrame(debt_card, height=1, fg_color="#d1fae5", corner_radius=2).grid(
-            row=4, column=0, sticky="ew", padx=16, pady=(0, 8)
+            row=4, column=0, columnspan=2, sticky="ew", padx=16, pady=(0, 8)
         )
+
+        # Última actualización — izquierda
         ctk.CTkLabel(
             debt_card, text="Última actualización",
             font=ctk.CTkFont(size=11, weight="bold"), text_color="#9ca3af"
-        ).grid(row=5, column=0, pady=(0, 2))
+        ).grid(row=5, column=0, padx=(0, 8), pady=(0, 2), sticky="e")
+
         ctk.CTkLabel(
             debt_card, textvariable=self.last_update_debt,
             font=ctk.CTkFont(size=12, weight="bold"), text_color="#374151"
-        ).grid(row=6, column=0, pady=(0, 14))
+        ).grid(row=6, column=0, padx=6, pady=(0, 14), sticky="e")
+
+        # Saldo a favor — derecha
+        ctk.CTkLabel(
+            debt_card, text="Saldo a Favor",
+            font=ctk.CTkFont(size=11, weight="bold"), text_color="#9ca3af"
+        ).grid(row=5, column=1, padx=(8, 0), pady=(0, 2), sticky="w")
+
+        ctk.CTkLabel(
+            debt_card, textvariable=self.supplier_credit_var,
+            font=ctk.CTkFont(size=12, weight="bold"), text_color="#374151"
+        ).grid(row=6, column=1, padx=6, pady=(0, 14), sticky="w")
 
         # --- Card de datos del proveedor ---
         info_card = ctk.CTkFrame(
