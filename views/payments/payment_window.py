@@ -232,11 +232,12 @@ class PaymentWindow():
         purchase_frame.pack(fill='both', expand=True)
 
         self.purchase_tree = ttk.Treeview(purchase_frame, show="headings", height=8)
-        self.purchase_tree["columns"] = ("ID", "Cuit Proveedor", "Nombre Proveedor", "Tipo Comprobante", "Fecha",
+        self.purchase_tree["columns"] = ("ID", "supplier_id", "Cuit Proveedor", "Nombre Proveedor", "Tipo Comprobante", "Fecha",
                                          "Fecha Venc.", "Estado", "Saldo Pendiente", "Total")
 
         col_widths = {
             "ID":               50,
+            "supplier_id":       0,
             "Cuit Proveedor":  110,
             "Nombre Proveedor":150,
             "Tipo Comprobante": 110,
@@ -247,6 +248,9 @@ class PaymentWindow():
             "Total":            90,
         }
         for col in self.purchase_tree["columns"]:
+            if col == "supplier_id":
+                self.purchase_tree.column(col, width=0, stretch=False)
+                continue
             self.purchase_tree.heading(col, text=col)
             self.purchase_tree.column(col, width=col_widths.get(col, 100),
                                       anchor="center", minwidth=50, stretch=True)
@@ -286,33 +290,41 @@ class PaymentWindow():
 
     ## -- Pago de una compra -- ##
     def pay_for_a_purchase(self, parent):
+
         try:
+
             selected = self.purchase_tree.selection()
+
             if not selected:
                 show_warning('Por favor selecciona una compra')
                 return
-            
+
             iid = selected[0]
             values = self.purchase_tree.item(iid, "values")
-            if values[5] == 'PAGADA' or values[5] == 'CANCELADA':
-                show_warning(f'No puede pagar una compra: {values[5]}')
+
+            if values[7] in ("PAGADA", "CANCELADA"):
+                show_warning(f'No puede pagar una compra: {values[7]}')
                 return
 
-            self.supplier_id_var.set(iid)
-            supplier_data = self.model.core.find_supplier_by_id(iid)
+            purchase_id = values[0]
+            supplier_id = values[1]
+
+            self.supplier_id_var.set(supplier_id)
+
+            supplier_data = self.model.core.find_supplier_by_id(supplier_id)
             self.search_var.set(supplier_data[2])
-            amount = self.model.purchase.get_pending_of_purchase(values[0])
+
             self.load_purchase_history(True)
 
             self.payment_form.add_payment_win(
-                parent=parent, 
-                supplier_id=self.supplier_id_var.get(), 
-                purchase_id=values[0], 
-                amount=amount
+                parent=parent,
+                supplier_id=supplier_id,
+                purchase_id=purchase_id,
+                amount=values[8]
             )
 
         except ValueError as e:
-            show_warning(f'Error en la seleccion de la compra: {e}')
+            show_warning(f'Error en la selección de la compra: {e}')
 
     ## --  Carga de tabla de movimientos -- ##
     def load_payment_movement(self, supplier_id=None):
@@ -347,13 +359,13 @@ class PaymentWindow():
 
         if filter:
             selected_supplier = self.supplier_id_var.get()
-
+            print(selected_supplier)
             if not selected_supplier:
                 show_warning("Atención", "Primero selecciona un proveedor.")
                 return
             
             debt = self.model.purchase.get_debt_of_supplier(selected_supplier)
-
+            
             self.debt_var.set(debt)
             self.formatted_debt_var.set(format_currency(debt))
             purchases = self.model.purchase.get_all_confirmed_purchases(selected_supplier)
@@ -371,19 +383,24 @@ class PaymentWindow():
 
         # Cargar compras
         for p in purchases:
-            state = p[8]
+
+            state = p[9]
+
             self.purchase_tree.insert(
-                parent="", index="end", iid=p[1], # id proveedor
+                "",
+                "end",
+                iid=p[0],
                 values=(
-                    p[0],                    # id
-                    p[2],                    # cuit
-                    p[3],                    # nombre
-                    p[4],                    # comprobante
-                    iso_to_traditional(p[7]),# fecha
-                    iso_to_traditional(p[8]),# fecha venc
-                    p[9],                    # estado
-                    format_currency(p[11]),  # saldo pend
-                    format_currency(p[12])   # total
+                    p[0],      # id compra
+                    p[1],      # supplier_id  👈 agregar
+                    p[2],      # cuit
+                    p[3],      # nombre
+                    p[4],
+                    iso_to_traditional(p[7]),
+                    iso_to_traditional(p[8]),
+                    p[9],
+                    format_currency(p[11]),
+                    format_currency(p[12])
                 ),
                 tag=state if state in ("PENDIENTE", "PAGADA", "BORRADOR") else "orow"
             )

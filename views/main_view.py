@@ -16,6 +16,7 @@ from views.supplier_info_view import SupplierInfoView
 from views.customers_view import CustomersView
 from views.reports_view import ReportsView
 from views.checks_view import ChecksView
+from views.cash_view import CashView
 
 from models.company import CompanyModel
 from models.customer import CustomerModel
@@ -27,6 +28,7 @@ from models.sale import SalesModel
 from models.supplier import SupplierModel
 from models.stock import StockModel
 from models.checks_model import ChecksModel
+from models.cash_model import CashModel
 #from models.user import User
 from tkinter import messagebox
 from controllers.auth_controller import validate_data
@@ -182,6 +184,7 @@ class App():
         stock_model = StockModel(sales_model, payment_model, event_bus)
         supplier_model = SupplierModel(stock_model)
         checks_model = ChecksModel()   # ← crea tabla checks + migra check_id en payments
+        cash_model = CashModel()
 
         ## --- CONTROLLERS --- ##
         self.stock_controller = StockController(
@@ -247,10 +250,12 @@ class App():
         self.checks_controller.set_view(self.checks_view)
         self.notebook.add(self.checks_view.frame, text='Cheques')
 
+        self.cash_view = CashView(self.notebook, cash_model)
+        self.notebook.add(self.cash_view.frame, text='Caja')
+
         # --- REPORTES ---
         self.reports_view = ReportsView(self.notebook, controller=self.iva_reports_controller)
         self.iva_reports_controller.set_view(self.reports_view)
-
         self.notebook.add(self.reports_view.frame, text='Reportes')
 
         # --- BACKUPS ---
