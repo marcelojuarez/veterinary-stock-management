@@ -132,4 +132,43 @@ def format_percent(value):
     except (InvalidOperation, TypeError, ValueError):
         return "0.0%"
 
-
+def clean_currency_input(value):
+    """
+    Limpia formato monetario: "544.682,35" → "544682.35"
+    """
+    if value is None or value == '':
+        return "0"
+    
+    if isinstance(value, (int, float)):
+        return str(value)
+    
+    value_str = str(value).strip().replace(' ', '')
+    
+    if not value_str:
+        return "0"
+    
+    has_comma = ',' in value_str
+    has_dot = '.' in value_str
+    
+    if has_comma and has_dot:
+        last_comma_pos = value_str.rfind(',')
+        last_dot_pos = value_str.rfind('.')
+        
+        if last_comma_pos > last_dot_pos:
+            # Formato argentino: "1.234,56"
+            value_str = value_str.replace('.', '')   # Quitar miles
+            value_str = value_str.replace(',', '.')  # Coma → punto
+        else:
+            # Formato US: "1,234.56"
+            value_str = value_str.replace(',', '')
+    
+    elif has_comma and not has_dot:
+        value_str = value_str.replace(',', '.')
+    
+    # Limpiar
+    cleaned = ''
+    for char in value_str:
+        if char.isdigit() or char == '.' or char == '-':
+            cleaned += char
+    
+    return cleaned if cleaned and cleaned != '.' else "0"

@@ -3,6 +3,7 @@ import customtkinter as ctk
 from tkinter import ttk
 from decimal import Decimal
 from utils.view_helpers import close_win, show_warning, ask_confirmation
+from utils.utils import format_currency, clean_currency_input
 
 class PaymentForm:
 
@@ -26,7 +27,8 @@ class PaymentForm:
         if purchase_id is not None and amount is not None:
             self.purchase_id = tk.StringVar()
 
-            self.amount_var.set(amount)
+            cleaned_amount = clean_currency_input(amount)
+            self.amount_var.set(cleaned_amount)
             self.purchase_id.set(purchase_id)
 
         else:
@@ -74,43 +76,51 @@ class PaymentForm:
 
         self.add_pay_win = ctk.CTkToplevel(parent if parent else self.frame)
         self.add_pay_win.title("Registrar nuevo pago")
-        self.add_pay_win.resizable(True, True)
+        
+        # CAMBIO 1: Ventana más compacta inicialmente
+        self.add_pay_win.resizable(False, False)  # No redimensionable manualmente
 
-        # Limitar tamaño máximo a la pantalla disponible
+        # Tamaño inicial compacto (solo campos básicos)
         sw = self.add_pay_win.winfo_screenwidth()
         sh = self.add_pay_win.winfo_screenheight()
-        win_w, win_h = 640, min(560, sh - 80)
+        
+        # CAMBIO 2: Tamaño inicial pequeño
+        self.base_height = 410  # Altura base (sin campos dinámicos)
+        win_w = 580
+        
         self.add_pay_win.geometry("{}x{}+{}+{}".format(
-            win_w, win_h,
+            win_w, self.base_height,
             sw // 2 - win_w // 2,
-            sh // 2 - win_h // 2
+            sh // 2 - self.base_height // 2
         ))
-        self.add_pay_win.minsize(520, 400)
 
         self.add_pay_win.protocol("WM_DELETE_WINDOW", lambda: close_win(self.add_pay_win, parent))
         self.add_pay_win.transient(parent)
         self.add_pay_win.grab_set()
 
-        # Contenedor scrollable
-        self.add_pay_win.rowconfigure(0, weight=1)
-        self.add_pay_win.columnconfigure(0, weight=1)
-        scroll = ctk.CTkScrollableFrame(self.add_pay_win, fg_color="transparent")
-        scroll.grid(row=0, column=0, sticky="nsew", padx=0, pady=0)
-        scroll.columnconfigure(0, weight=0)
-        scroll.columnconfigure(1, weight=1)
+        # CAMBIO 3: Frame principal sin scroll (scroll solo si es necesario)
+        main_container = ctk.CTkFrame(self.add_pay_win, fg_color="#f0f0f0")
+        main_container.pack(fill="both", expand=True, padx=0, pady=0)
+
+        # Card principal
+        card = ctk.CTkFrame(main_container, fg_color="white", corner_radius=15)
+        card.pack(fill="both", expand=True, padx=20, pady=20)
+        
+        W = card
+        W.columnconfigure(0, weight=0)
+        W.columnconfigure(1, weight=1)
 
         # Alias para simplificar
-        W = scroll
         FONT_LBL  = ctk.CTkFont(size=13, weight="bold")
         FONT_ENTRY = ctk.CTkFont(size=13)
         ENTRY_W, ENTRY_H = 280, 36
 
         # Título
-        ctk.CTkLabel(W, text="Nuevo Pago", font=ctk.CTkFont(size=18, weight="bold")).grid(
+        ctk.CTkLabel(W, text="💳 Nuevo Pago", font=ctk.CTkFont(size=18, weight="bold")).grid(
             row=0, column=0, columnspan=2, pady=(16, 14))
 
         # CUIT
-        ctk.CTkLabel(W, text="Cuit:", font=FONT_LBL).grid(row=1, column=0, padx=(20,8), pady=5, sticky="e")
+        ctk.CTkLabel(W, text="CUIT:", font=FONT_LBL).grid(row=1, column=0, padx=(20,8), pady=5, sticky="e")
         ctk.CTkEntry(W, textvariable=self.supplier_cuit_var, width=ENTRY_W, height=ENTRY_H,
                      state='readonly', font=FONT_ENTRY).grid(row=1, column=1, padx=(0,20), pady=5, sticky="w")
 
@@ -120,7 +130,7 @@ class PaymentForm:
                      font=FONT_ENTRY).grid(row=2, column=1, padx=(0,20), pady=5, sticky="w")
 
         # Nro recibo
-        ctk.CTkLabel(W, text="Numero de recibo:", font=FONT_LBL).grid(row=3, column=0, padx=(20,8), pady=5, sticky="e")
+        ctk.CTkLabel(W, text="Nº de recibo:", font=FONT_LBL).grid(row=3, column=0, padx=(20,8), pady=5, sticky="e")
         ctk.CTkEntry(W, textvariable=self.num_receipt_var, width=ENTRY_W, height=ENTRY_H,
                      font=FONT_ENTRY).grid(row=3, column=1, padx=(0,20), pady=5, sticky="w")
 
@@ -130,33 +140,36 @@ class PaymentForm:
                      font=FONT_ENTRY).grid(row=4, column=1, padx=(0,20), pady=5, sticky="w")
 
         # Método
-        ctk.CTkLabel(W, text="Metodo de Pago:", font=FONT_LBL).grid(row=5, column=0, padx=(20,8), pady=5, sticky="e")
+        ctk.CTkLabel(W, text="Método de Pago:", font=FONT_LBL).grid(row=5, column=0, padx=(20,8), pady=5, sticky="e")
         method_combo = ctk.CTkComboBox(
             W, values=["EFECTIVO", "TRANSFERENCIA", "CHEQUE"],
             variable=self.method_var, width=ENTRY_W, height=ENTRY_H,
             font=FONT_ENTRY, state="readonly",
-            command=lambda value: self.render_dynamic_fields(parent)
+            command=lambda value: self.render_dynamic_fields(parent, W)
         )
         method_combo.set("")
         method_combo.grid(row=5, column=1, padx=(0,20), pady=5, sticky="w")
 
-        # Frame dinámico
+        # CAMBIO 4: Frame dinámico dentro del card
         self.dynamic_frame = ctk.CTkFrame(W, fg_color="transparent")
-        self.dynamic_frame.grid(row=6, column=0, columnspan=2, pady=(4, 8), sticky="ew")
+        self.dynamic_frame.grid(row=6, column=0, columnspan=2, pady=(8, 8), sticky="ew")
         self.dynamic_frame.columnconfigure(0, weight=0)
         self.dynamic_frame.columnconfigure(1, weight=1)
+
+        # Guardar referencia al contenedor principal
+        self.main_card = W
 
         self.create_dynamic_fields()
         self.create_action_buttons(parent)
         
     def create_dynamic_fields(self):
         # TRANSFERENCIA
-        self.op_num_lbl = ctk.CTkLabel(self.dynamic_frame, text="Numero de operacion:", font=ctk.CTkFont(size=12, weight="bold"))
-        self.op_num_entry = ctk.CTkEntry(self.dynamic_frame, textvariable=self.opt_num_var, width=200, height=35, font=ctk.CTkFont(size=12))
-        self.origin_lbl = ctk.CTkLabel(self.dynamic_frame, text="CBU/Alias (Cuenta Emisora):", font=ctk.CTkFont(size=12, weight="bold"))
-        self.origin_entry = ctk.CTkEntry(self.dynamic_frame, textvariable=self.origin_var, width=200, height=35, font=ctk.CTkFont(size=12))
-        self.destino_lbl = ctk.CTkLabel(self.dynamic_frame, text="CBU/Alias (Cuenta Receptora):", font=ctk.CTkFont(size=12, weight="bold"))
-        self.destino_entry = ctk.CTkEntry(self.dynamic_frame, textvariable=self.destinatation_var, width=200, height=35, font=ctk.CTkFont(size=12))
+        self.op_num_lbl = ctk.CTkLabel(self.dynamic_frame, text="Nº de operación:", font=ctk.CTkFont(size=12, weight="bold"))
+        self.op_num_entry = ctk.CTkEntry(self.dynamic_frame, textvariable=self.opt_num_var, width=280, height=35, font=ctk.CTkFont(size=12))
+        self.origin_lbl = ctk.CTkLabel(self.dynamic_frame, text="CBU/Alias Emisor:", font=ctk.CTkFont(size=12, weight="bold"))
+        self.origin_entry = ctk.CTkEntry(self.dynamic_frame, textvariable=self.origin_var, width=280, height=35, font=ctk.CTkFont(size=12))
+        self.destino_lbl = ctk.CTkLabel(self.dynamic_frame, text="CBU/Alias Receptor:", font=ctk.CTkFont(size=12, weight="bold"))
+        self.destino_entry = ctk.CTkEntry(self.dynamic_frame, textvariable=self.destinatation_var, width=280, height=35, font=ctk.CTkFont(size=12))
 
         # CHEQUE — selector de cartera
         self.cartera_lbl = ctk.CTkLabel(
@@ -166,19 +179,19 @@ class PaymentForm:
         )
 
         # Tabla de cheques en cartera
-        cartera_frame = ctk.CTkFrame(self.dynamic_frame, fg_color="transparent")
+        cartera_frame = ctk.CTkFrame(self.dynamic_frame, fg_color="#f9f9f9", corner_radius=8)
         self.cartera_frame = cartera_frame
 
         style = ttk.Style()
-        style.configure("Cartera.Treeview", rowheight=20, font=("Segoe UI", 8))
-        style.configure("Cartera.Treeview.Heading", font=("Segoe UI", 8, "bold"))
+        style.configure("Cartera.Treeview", rowheight=24, font=("Segoe UI", 9))
+        style.configure("Cartera.Treeview.Heading", font=("Segoe UI", 9, "bold"))
 
         cols = ("ID", "Nro.", "Banco", "Monto", "Vence")
         self.cartera_table = ttk.Treeview(
             cartera_frame, columns=cols, show="headings",
-            height=5, style="Cartera.Treeview"
+            height=4, style="Cartera.Treeview"
         )
-        widths = {"ID": 0, "Nro.": 120, "Banco": 150, "Monto": 90, "Vence": 90}
+        widths = {"ID": 0, "Nro.": 100, "Banco": 140, "Monto": 90, "Vence": 90}
         for col in cols:
             w = widths[col]
             self.cartera_table.column(col, width=w, anchor="center",
@@ -189,8 +202,8 @@ class PaymentForm:
 
         sy = ttk.Scrollbar(cartera_frame, orient="vertical", command=self.cartera_table.yview)
         self.cartera_table.configure(yscrollcommand=sy.set)
-        sy.pack(side="right", fill="y")
-        self.cartera_table.pack(fill="x")
+        sy.pack(side="right", fill="y", padx=(0, 4), pady=4)
+        self.cartera_table.pack(fill="both", expand=True, padx=4, pady=4)
         self.cartera_table.bind("<<TreeviewSelect>>", self._on_check_selected)
 
         # Aviso de excedente
@@ -204,14 +217,14 @@ class PaymentForm:
 
         # Campos de cheque (readonly, se completan al seleccionar)
         self.check_bank_lbl   = ctk.CTkLabel(self.dynamic_frame, text="Banco:", font=ctk.CTkFont(size=12, weight="bold"))
-        self.check_bank_entry = ctk.CTkEntry(self.dynamic_frame, textvariable=self.bank_var, width=200, height=32,
+        self.check_bank_entry = ctk.CTkEntry(self.dynamic_frame, textvariable=self.bank_var, width=280, height=32,
                                               state="readonly", font=ctk.CTkFont(size=12))
-        self.check_num_lbl    = ctk.CTkLabel(self.dynamic_frame, text="Numero de cheque:", font=ctk.CTkFont(size=12, weight="bold"))
-        self.check_num_entry  = ctk.CTkEntry(self.dynamic_frame, textvariable=self.check_num_var, width=200, height=32,
+        self.check_num_lbl    = ctk.CTkLabel(self.dynamic_frame, text="Nº de cheque:", font=ctk.CTkFont(size=12, weight="bold"))
+        self.check_num_entry  = ctk.CTkEntry(self.dynamic_frame, textvariable=self.check_num_var, width=280, height=32,
                                               state="readonly", font=ctk.CTkFont(size=12))
 
     ## -- Renderiza distintos campos segun el metodo de pago -- ##
-    def render_dynamic_fields(self, parent):
+    def render_dynamic_fields(self, parent, card_widget):
         method = self.method_var.get()
 
         if method not in ("EFECTIVO", "TRANSFERENCIA", "CHEQUE"):
@@ -221,32 +234,61 @@ class PaymentForm:
         self._selected_check = None
         self.excedente_var.set("")
 
+        # CAMBIO 5: Ajustar tamaño de ventana según método
         if method == "TRANSFERENCIA":
-            self.op_num_lbl.grid(row=0, column=0, padx=20, pady=5)
-            self.op_num_entry.grid(row=0, column=1, padx=(0,40), pady=5)
-            self.origin_lbl.grid(row=1, column=0, padx=20, pady=5)
-            self.origin_entry.grid(row=1, column=1, padx=(0,40), pady=5)
-            self.destino_lbl.grid(row=2, column=0, padx=20, pady=5)
-            self.destino_entry.grid(row=2, column=1, padx=(0,40), pady=5)
-            self.render_buttons(9)
+            self.op_num_lbl.grid(row=0, column=0, padx=(20,8), pady=4, sticky="e")
+            self.op_num_entry.grid(row=0, column=1, padx=(0,20), pady=4, sticky="w")
+            self.origin_lbl.grid(row=1, column=0, padx=(20,8), pady=4, sticky="e")
+            self.origin_entry.grid(row=1, column=1, padx=(0,20), pady=4, sticky="w")
+            self.destino_lbl.grid(row=2, column=0, padx=(20,8), pady=4, sticky="e")
+            self.destino_entry.grid(row=2, column=1, padx=(0,20), pady=4, sticky="w")
+            self.render_buttons(3)
+            
+            # Ajustar ventana para transferencia (3 campos extra)
+            new_height = self.base_height + 150
+            self._resize_window(new_height)
 
         elif method == "CHEQUE":
             # Cargar cheques en cartera
             self._load_cartera()
 
-            self.cartera_lbl.grid(row=0, column=0, columnspan=2, padx=20, pady=(8, 2), sticky="w")
+            self.cartera_lbl.grid(row=0, column=0, columnspan=2, padx=20, pady=(4, 2), sticky="w")
             self.cartera_frame.grid(row=1, column=0, columnspan=2, padx=20, pady=(0, 4), sticky="ew")
             self.excedente_lbl.grid(row=2, column=0, columnspan=2, padx=20, pady=(0, 2), sticky="w")
-            self.check_bank_lbl.grid(row=3, column=0, padx=20, pady=4)
-            self.check_bank_entry.grid(row=3, column=1, padx=(0, 40), pady=4)
-            self.check_num_lbl.grid(row=4, column=0, padx=20, pady=4)
-            self.check_num_entry.grid(row=4, column=1, padx=(0, 40), pady=4)
+            self.check_bank_lbl.grid(row=3, column=0, padx=(20,8), pady=4, sticky="e")
+            self.check_bank_entry.grid(row=3, column=1, padx=(0,20), pady=4, sticky="w")
+            self.check_num_lbl.grid(row=4, column=0, padx=(20,8), pady=4, sticky="e")
+            self.check_num_entry.grid(row=4, column=1, padx=(0,20), pady=4, sticky="w")
             self.render_buttons(5)
+            
+            # Ajustar ventana para cheque (tabla + campos)
+            new_height = self.base_height + 270
+            self._resize_window(new_height)
 
         elif method == "EFECTIVO":
-            self.render_buttons(6)
+            self.render_buttons(0)
+            
+            # Volver al tamaño base
+            self._resize_window(self.base_height)
 
         self.add_pay_win.update_idletasks()
+
+    # CAMBIO 6: Método para redimensionar ventana dinámicamente
+    def _resize_window(self, new_height):
+        """Ajusta el tamaño de la ventana de forma animada"""
+        sw = self.add_pay_win.winfo_screenwidth()
+        sh = self.add_pay_win.winfo_screenheight()
+        win_w = 580
+        
+        # Limitar altura máxima
+        max_height = sh - 100
+        new_height = min(new_height, max_height)
+        
+        # Centrar ventana
+        x = sw // 2 - win_w // 2
+        y = sh // 2 - new_height // 2
+        
+        self.add_pay_win.geometry(f"{win_w}x{new_height}+{x}+{y}")
 
     def _load_cartera(self):
         """Carga cheques EN_CARTERA en la tabla."""
@@ -316,22 +358,29 @@ class PaymentForm:
 
         self.add_button = ctk.CTkButton(
             self.button_frame,
-            text="Agregar Pago",
-            width=120, height=35,
-            font=ctk.CTkFont(size=15, weight="bold"),
+            text="✓ Agregar Pago",
+            width=140, height=38,
+            font=ctk.CTkFont(size=14, weight="bold"),
             fg_color="#4CAF50", hover_color="#45a049",
             command=lambda: self.confirm_payment(parent)
         )
-        self.add_button.grid(row=0, column=0, padx=15, pady=10)
+        self.add_button.grid(row=0, column=0, padx=10, pady=12)
 
-        self.cancel_button = ctk.CTkButton(self.button_frame, text="Cancelar", width=120, height=35, font=ctk.CTkFont(size=15, weight="bold"),
-            fg_color="#757575", hover_color="#616161", command= lambda: close_win(self.add_pay_win, parent))
-        self.cancel_button.grid(row=0, column=1, padx=15, pady=10) 
+        self.cancel_button = ctk.CTkButton(
+            self.button_frame, 
+            text="Cancelar", 
+            width=140, height=38, 
+            font=ctk.CTkFont(size=14, weight="bold"),
+            fg_color="#757575", 
+            hover_color="#616161", 
+            command=lambda: close_win(self.add_pay_win, parent)
+        )
+        self.cancel_button.grid(row=0, column=1, padx=10, pady=12) 
 
     ## -- Renderiza botones de accion -- ##
     def render_buttons(self, row_num):
         # Botones
-        self.button_frame.grid(row=row_num, column=0, columnspan=2)
+        self.button_frame.grid(row=row_num, column=0, columnspan=2, pady=(8, 0))
 
     ## -- Elimina campos dinamicos -- ##
     def clear_dynamic_frame(self):

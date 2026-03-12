@@ -354,8 +354,6 @@ class Database:
                 );
             ''')
 
-            conn.commit()
-
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS checks (
                     id                INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -405,6 +403,19 @@ class Database:
                     reference TEXT,
                     FOREIGN KEY (client_id) REFERENCES customer(id)
                 );                          
+            ''')
+
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS cash_expenses (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    date TEXT NOT NULL,
+                    category TEXT NOT NULL,
+                    description TEXT NOT NULL,
+                    amount TEXT NOT NULL,
+                    payment_method TEXT DEFAULT 'EFECTIVO',
+                    observations TEXT,
+                    created_at TEXT DEFAULT CURRENT_TIMESTAMP
+                );
             ''')
 
 
