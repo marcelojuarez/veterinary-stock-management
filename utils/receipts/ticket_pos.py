@@ -104,7 +104,7 @@ def generate_global_payment_ticket(
     if check_data:
         y -= 4
         tl(f"Nro. Cheque: {check_data['number']}", 7.5)
-        tl(f"Banco: {check_data['bank']}", 7.5)
+        tl(f"Banco: {check_data['bank'].upper()}", 7.5)
         # Formatear fecha de vencimiento a DD/MM/YYYY
         try:
             from datetime import datetime as _dt

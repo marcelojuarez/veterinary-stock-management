@@ -21,10 +21,10 @@ STATUS_COLORS = {
 }
 
 STATUS_LABELS = {
-    "EN_CARTERA": "🟦 En cartera",
-    "COBRADO":    "🟩 Cobrado",
-    "ENDOSADO":   "🟫 Endosado",
-    "RECHAZADO":  "🟥 Rechazado",
+    "EN_CARTERA": "🟦 EN CARTERA",
+    "COBRADO":    "🟩 COBRADO",
+    "ENDOSADO":   "🟫 ENDOSADO",
+    "RECHAZADO":  "🟥 RECHAZADO",
 }
 
 

@@ -152,7 +152,7 @@ def generate_global_payment_receipt(*,
         except Exception:
             due_fmt = check_data['due_date']
         draw_text_left(f"Nro. Cheque: {check_data['number']}", 10, extra_spacing=1)
-        draw_text_left(f"Banco: {check_data['bank']}", 10, extra_spacing=1)
+        draw_text_left(f"Banco: {check_data['bank'].upper()}", 10, extra_spacing=1)
         draw_text_left(f"Vencimiento: {due_fmt}", 10, extra_spacing=2)
 
     draw_separator(extra_spacing=15)

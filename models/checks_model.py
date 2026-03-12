@@ -23,14 +23,23 @@ class ChecksModel:
         query = """
             INSERT INTO checks
                 (number, bank, type, amount, issue_date, due_date,
-                 status, origin, client_payment_id, purchase_id, notes)
+                 status, origin, client_payment_id, purchase_id, notes) 
             VALUES (?, ?, ?, ?, ?, ?, 'EN_CARTERA', ?, ?, ?, ?)
         """
         return self.db.execute_query(
             query,
-            (number, bank, check_type, str(amount),
-             issue_date, due_date, origin,
-             client_payment_id, purchase_id, notes),
+            (
+                number.strip().upper(),
+                bank.strip().upper(),
+                check_type.strip().upper(),
+                str(amount),
+                issue_date,
+                due_date,
+                origin.strip().upper(),
+                client_payment_id,
+                purchase_id,
+                notes.strip().upper() if notes else None,
+            ),
             conn=conn, commit=commit
         )
 
@@ -78,6 +87,7 @@ class ChecksModel:
     # ----------------------------------------------------------------
     def update_status(self, check_id, new_status, purchase_id=None):
         """Cambia el estado del cheque. Si se endosa, guarda purchase_id."""
+        new_status = new_status.upper()
         if purchase_id:
             return self.db.execute_query(
                 "UPDATE checks SET status = ?, purchase_id = ? WHERE id = ?",
