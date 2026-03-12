@@ -362,28 +362,29 @@ class PaymentForm:
         if not sel:
             return
         vals         = self.cartera_table.item(sel[0])["values"]
-        check_amount = Decimal(str(vals[3]).replace("$", "").strip())
+        checks_data = self.checks_model.get_check_by_id(vals[0])
 
         self._selected_check = {
             "id":     vals[0],
             "number": vals[1],
             "bank":   vals[2],
-            "amount": check_amount,
+            "amount": checks_data[4],
         }
         self.bank_var.set(vals[2])
         self.check_num_var.set(str(vals[1]))
-        self._check_excedente(check_amount)
+        self._check_excedente(checks_data[4])
 
     def _check_excedente(self, check_amount):
         try:
             monto_pago = Decimal(self.amount_var.get().strip() or "0")
-        except Exception:
+        except Exception as e:
             monto_pago = Decimal("0")
+            print(e)
 
-        if check_amount > monto_pago > Decimal("0"):
-            excedente = check_amount - monto_pago
+        if Decimal(check_amount) > monto_pago > Decimal("0"):
+            excedente = Decimal(check_amount) - monto_pago
             self.excedente_var.set(
-                f"⚠️  El cheque supera el monto en ${excedente:.2f}. "
+                f"⚠️  El cheque supera el monto en ${excedente}. "
                 f"El excedente deberá gestionarse en la veterinaria."
             )
         else:

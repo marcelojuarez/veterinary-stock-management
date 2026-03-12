@@ -308,7 +308,7 @@ class PaymentWindow():
                 parent=parent, 
                 supplier_id=self.supplier_id_var.get(), 
                 purchase_id=values[0], 
-                amount=values[7]
+                amount=amount
             )
 
         except ValueError as e:
