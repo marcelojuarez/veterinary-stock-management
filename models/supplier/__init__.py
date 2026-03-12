@@ -14,4 +14,4 @@ class SupplierModel():
         movement_model = StockMovementModel()
         self.purchase = SupplierPurchase(db, stock_model, movement_model)
         self.payment = SupplierPayment(db, self.purchase)
-        self.credit - SupplierCredit(db)
+        self.credit = SupplierCredit(db)

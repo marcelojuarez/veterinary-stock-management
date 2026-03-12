@@ -101,7 +101,7 @@ class Database:
 
             # Tabla de saldo a favor proveedores
             cursor.execute('''
-                CREATE TABLE supplier_credit_movements (
+                CREATE TABLE IF NOT EXISTS supplier_credit_movements (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     supplier_id INTEGER NOT NULL,
                     date TEXT DEFAULT CURRENT_DATE,
