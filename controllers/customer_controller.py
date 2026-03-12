@@ -435,19 +435,26 @@ class CustomerController:
                 show_error("Monto inválido. Ingrese solo números.")
                 return
 
-            if amount > total_debt:
-                show_warning(f"El monto (${amount}) supera la deuda (${total_debt}).")
+            method = method_var.get()
+
+            # Solo cheque/eCheq puede superar la deuda (el doc no es por el monto exacto)
+            if amount > total_debt and method not in ("Cheque", "eCheq"):
+                show_warning(
+                    f"El monto (${amount}) supera la deuda (${total_debt}).\n"
+                    f"Solo se permite superar la deuda pagando con Cheque o eCheq."
+                )
                 amount_var.set(f"{total_debt}")
                 return
 
-            method = method_var.get()
+            # Calcular excedente (solo relevante para cheque/eCheq)
+            excedente = norm_to_2_dec(max(Decimal('0.00'), amount - total_debt))
 
             # Validar datos de cheque si aplica
             check_data = None
             if method in ("Cheque", "eCheq"):
-                num    = check_number_var.get().strip()
-                bank   = check_bank_var.get().strip()
-                due    = check_due_var.get().strip()
+                num  = check_number_var.get().strip()
+                bank = check_bank_var.get().strip()
+                due  = check_due_var.get().strip()
                 if not all([num, bank, due]):
                     show_warning("Complete todos los campos del cheque.")
                     return
@@ -460,7 +467,7 @@ class CustomerController:
                     "number":     num,
                     "bank":       bank,
                     "check_type": method,
-                    "amount":     amount,
+                    "amount":     amount,   # monto real del cheque
                     "issue_date": datetime.now().strftime("%Y-%m-%d"),
                     "due_date":   due_iso,
                 }
@@ -469,7 +476,6 @@ class CustomerController:
                 # Crear cheque ANTES del pago para obtener su id
                 check_id = None
                 if check_data and self.checks_model:
-                    # Lo creamos sin client_payment_id todavía (lo linkeamos después)
                     self.checks_model.create_check(
                         number=check_data["number"],
                         bank=check_data["bank"],
@@ -480,30 +486,57 @@ class CustomerController:
                         origin="CLIENTE",
                         commit=True
                     )
-                    # Obtener el id recién insertado
                     row = self.checks_model.db.fetch_one(
                         "SELECT id FROM checks ORDER BY id DESC LIMIT 1"
                     )
                     check_id = row[0] if row else None
 
+                # Aplicar solo la parte que cubre la deuda
+                amount_to_apply = min(amount, total_debt)
                 result = self.payment_model.apply_global_payment(
-                    customer_id, amount, method=method, check_id=check_id
+                    customer_id, amount_to_apply, method=method
                 )
 
                 if not result:
                     show_error('Ocurrió un error al registrar el pago.')
                     return
 
-                # Linkear el primer payment_id al cheque
+                # Linkear cheque al último payment creado
                 if check_id and result.get("updated_debts"):
                     first_payment = self.payment_model.db.fetch_one(
-                        "SELECT id FROM payments WHERE check_id = ? ORDER BY id ASC LIMIT 1",
-                        (check_id,)
+                        "SELECT id FROM payments WHERE client_id = ? ORDER BY id DESC LIMIT 1",
+                        (customer_id,)
                     )
                     if first_payment:
                         self.checks_model.link_payment(check_id, first_payment[0])
 
-                show_success("Pago registrado con éxito.")
+                # Registrar excedente del cheque como saldo a favor
+                if excedente > Decimal('0.00'):
+                    self.payment_model.add_customer_credit(
+                        client_id=customer_id,
+                        amount=excedente,
+                        reason=f"Excedente cheque {check_data['number']} · {check_data['bank']}",
+                        sale_id=None,
+                    )
+                    self.model.add_row_in_customer_ledger({
+                        'client_id':    customer_id,
+                        'type':         'SALDO FAVOR',
+                        'description':  f"Saldo a favor · Cheque {check_data['number']} · ${excedente:,.2f}",
+                        'amount':       Decimal('0.00'),
+                        'payment':      excedente,
+                        'debt':         self.model.get_total_debt(customer_id),
+                        'reference_id': check_id,
+                        'reference':    f"Excedente cheque {method}",
+                    })
+
+                if excedente > Decimal('0.00'):
+                    show_success(
+                        f"Pago registrado con éxito.\n\n"
+                        f"El excedente de ${excedente:,.2f} quedó registrado "
+                        f"como saldo a favor del cliente."
+                    )
+                else:
+                    show_success("Pago registrado con éxito.")
                 win.destroy()
 
                 self.refresh_customer_data()
@@ -533,11 +566,10 @@ class CustomerController:
                     format=fmt,
                     client_name=client_name,
                     method=method,
-                    amount=amount,
+                    amount=amount_to_apply,
                     customer_id=customer_id,
                     result_data=result,
                     sales_with_items=sales_with_items,
-                    check_data=check_data,
                 )
 
             except Exception as e:
