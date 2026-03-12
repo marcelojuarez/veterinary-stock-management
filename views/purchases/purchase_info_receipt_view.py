@@ -3,7 +3,7 @@ from tksheet import Sheet
 import customtkinter as ctk
 from services.purchase_detail import PurchaseDetail
 from utils.utils import iso_to_traditional, format_currency, format_currency_flex
-from utils.view_helpers import close_win, ask_confirmation, show_success, show_warning, show_error
+from utils.view_helpers import center_window, close_win, ask_confirmation, show_success, show_warning, show_error
 
 class PurchaseInfoReceiptView():
     def __init__(self, model, controller):
@@ -72,8 +72,9 @@ class PurchaseInfoReceiptView():
 
             sep.pack(anchor="w", padx=20, pady=(5, 5))
 
-            table_frame = ctk.CTkFrame(main_frame, corner_radius=10)
-            table_frame.pack(fill="both", expand=True, padx=10, pady=5)
+            table_frame = ctk.CTkFrame(main_frame, corner_radius=10, height=260)
+            table_frame.pack(fill="x", padx=10, pady=5)
+            table_frame.pack_propagate(False)
 
             headers = ["Id", "Nombre", "Envase", "Cantidad", "Precio Lista", "Dto %", 'Precio Costo', "Iva %", 
                         "Monto Descuento", "Subtotal", "Monto Total Iva", "Total"]
@@ -96,7 +97,7 @@ class PurchaseInfoReceiptView():
             self.load_data_into_the_sheet()
 
             btn_frame = ctk.CTkFrame(main_frame, fg_color="#f5f5f5", corner_radius=10)
-            btn_frame.pack(fill='x', padx=10, pady=(5, 10), side='bottom')
+            btn_frame.pack(fill='x', padx=10, pady=(5, 10))
 
             for i in (0, 6):
                 btn_frame.grid_columnconfigure(i, weight=1)
@@ -164,20 +165,10 @@ class PurchaseInfoReceiptView():
             )
             close_btn.grid(row=0, column=5, padx=6, pady=10)
 
-            width_win = 750
-            height_win = 650
+            width_win = 1100
+            height_win = 700
 
-            x_root = parent.winfo_x()
-            y_root = parent.winfo_y()
-            width_root = parent.winfo_width()
-            height_root = parent.winfo_height()
-
-            x = x_root + (width_root // 2) - (width_win // 2)
-            y = y_root + (height_root // 2) - (height_win // 2)
-
-            purchase_info.geometry(f"{width_win}x{height_win}+{x}+{y}")
-            purchase_info.resizable(False, False)
-
+            center_window(purchase_info, width_win, height_win)
             purchase_info.deiconify()
 
             purchase_info.transient(parent)

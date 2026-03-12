@@ -1,7 +1,7 @@
 import datetime
 import tkinter as tk
 import customtkinter as ctk
-from utils.view_helpers import close_win, show_warning
+from utils.view_helpers import center_window, close_win, show_warning
 
 class SupplierReceiptForm():
     def __init__(self, view, frame, receipt_controller, supp_mdl):
@@ -200,16 +200,7 @@ class SupplierReceiptForm():
         # centrar ventana
         width_win = 500
         height_win = 550
-
-        x_root = parent.winfo_x() 
-        y_root = parent.winfo_y()
-        width_root = parent.winfo_width()
-        height_root = parent.winfo_height()
-
-        x = x_root + (width_root // 2) - (width_win // 2)
-        y = y_root + (height_root // 2) - (height_win // 2)
-
-        self.receipt_win.geometry(f"{width_win}x{height_win}+{x}+{200}")
+        center_window(self.receipt_win, width_win, height_win)
         self.receipt_win.deiconify()
         self.receipt_win.transient(parent)
         self.receipt_win.grab_set()

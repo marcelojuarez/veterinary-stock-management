@@ -421,8 +421,8 @@ class PurchaseWindow():
         win = ctk.CTkToplevel(parent)
         win.title("Lista de proveedores")
 
-        width_win = 500
-        height_win = 400
+        width_win = 570
+        height_win = 480
 
         win.transient(parent)
         win.grab_set()
@@ -431,96 +431,129 @@ class PurchaseWindow():
         y = self.frame.winfo_y() + (self.frame.winfo_height() // 2) - (height_win // 2)
         win.geometry(f"{width_win}x{height_win}+{x}+{y}")
 
-        win.rowconfigure(0, weight=1)
-        win.rowconfigure(1, weight=3)
+        win.grid_columnconfigure(0, weight=1)
+        win.grid_rowconfigure(1, weight=1)
 
         btn_color = "#009688"
         btn_hover = "#00796B"
 
+        # ---------- BUSCADOR ----------
         find_frame = ctk.CTkFrame(win)
-        find_frame.grid(row=0, column=0)
-        find_frame.columnconfigure(0, weight=1)
-        find_frame.columnconfigure(1, weight=2)
-        find_frame.columnconfigure(2, weight=1)
+        find_frame.grid(row=0, column=0, sticky="ew", padx=15, pady=10)
+
+        find_frame.grid_columnconfigure(1, weight=1)
 
         ctk.CTkLabel(
             find_frame,
             text="Buscar:",
             font=ctk.CTkFont(size=15, weight='bold')
-        ).grid(row=0, column=0, padx=(10, 5), pady=(0, 5))
+        ).grid(row=0, column=0, padx=(15,10), pady=12, sticky="w")
 
         search_after_id = [None]
 
         find_entry = ctk.CTkEntry(
             find_frame,
-            width=300,
-            height=35,
-            font=ctk.CTkFont(size=12),
+            height=36,
+            font=ctk.CTkFont(size=12, weight='bold'),
             placeholder_text="Ingrese nombre del proveedor..."
         )
-        find_entry.grid(row=0, column=1, padx=5)
 
+        find_entry.grid(row=0, column=1, padx=5, pady=10, sticky="ew")
+
+        select_btn = ctk.CTkButton(
+            find_frame,
+            text="Seleccionar",
+            font=ctk.CTkFont(size=12, weight='bold'),
+            width=110,
+            height=34,
+            fg_color=btn_color,
+            hover_color=btn_hover,
+            command=lambda: on_click(),
+        )
+        select_btn.grid(row=0, column=2, padx=(10,15), pady=10)
+
+        # ---------- TABLA ----------
         tree_frame = ctk.CTkFrame(win)
-        tree_frame.grid(row=1, column=0)
+        tree_frame.grid(row=1, column=0, sticky="nsew", padx=10, pady=(0,10))
 
-        supplier_tree = ttk.Treeview(tree_frame, show='headings', height=10)
+        tree_frame.grid_columnconfigure(0, weight=1)
+        tree_frame.grid_rowconfigure(0, weight=1)
+
+        supplier_tree = ttk.Treeview(tree_frame, show='headings')
         supplier_tree["columns"] = ("cuit", "nombre")
 
         for col in supplier_tree["columns"]:
             supplier_tree.heading(col, text=col.capitalize())
             supplier_tree.column(col, anchor="center")
 
-        supplier_tree.pack(side="left", fill="both", expand=True)
+        supplier_tree.grid(row=0, column=0, sticky="nsew")
+
+        scroll = ttk.Scrollbar(tree_frame, orient="vertical", command=supplier_tree.yview)
+        scroll.grid(row=0, column=1, sticky="ns")
+
+        supplier_tree.configure(yscroll=scroll.set)
 
         for s in self.suppliers:
             supplier_tree.insert("", "end", iid=s[0], values=(s[1], s[2]))
 
-        scroll = ttk.Scrollbar(tree_frame, orient="vertical", command=supplier_tree.yview)
-        supplier_tree.configure(yscroll=scroll.set)
-        scroll.pack(side="right", fill="y")
-
+        # ---------- FUNCIONES ----------
         def refresh_table():
             for item in supplier_tree.get_children():
                 supplier_tree.delete(item)
+
             for s in self.suppliers:
                 supplier_tree.insert('', 'end', iid=s[0], values=(s[1], s[2]), tag="orow")
+
             supplier_tree.tag_configure('orow', background="white", foreground='black')
 
         def update_filter():
             if not win.winfo_exists():
                 return
+
             query = find_entry.get().lower()
+
             if query == "":
                 refresh_table()
                 return
+
             for row in supplier_tree.get_children():
                 supplier_tree.delete(row)
+
             filtered = [s for s in self.suppliers if query in s[1] or query in s[2].lower()]
+
             for s in filtered:
                 supplier_tree.insert('', 'end', iid=s[0], values=(s[1], s[2]), tag="orow")
+
             supplier_tree.tag_configure('orow', background="white", foreground='black')
 
         def on_key_release(event):
             if not win.winfo_exists():
                 return
+
             if search_after_id[0]:
                 find_entry.after_cancel(search_after_id[0])
+
             search_after_id[0] = find_entry.after(200, update_filter)
 
         def on_click():
             selected = supplier_tree.selection()
+
             if not selected:
                 return
+
             iid = selected[0]
             values = supplier_tree.item(iid, "values")
+
             self.supplier_id_var.set(iid)
             self.search_var.set(values[1])
+
             if search_after_id[0]:
                 find_entry.after_cancel(search_after_id[0])
 
             def action():
                 if parent.winfo_exists():
                     self.load_purchases(True)
+
                 if win.winfo_exists():
                     close_win(win, parent)
 
@@ -529,21 +562,10 @@ class PurchaseWindow():
         def on_close():
             if search_after_id[0]:
                 find_entry.after_cancel(search_after_id[0])
+
             win.destroy()
 
         find_entry.bind("<KeyRelease>", on_key_release)
-
-        select_btn = ctk.CTkButton(
-            find_frame,
-            text="Seleccionar",
-            font=ctk.CTkFont(size=12, weight='bold'),
-            width=50,
-            height=30,
-            fg_color=btn_color,
-            hover_color=btn_hover,
-            command=on_click,
-        )
-        select_btn.grid(row=0, column=2, padx=5)
 
         win.protocol("WM_DELETE_WINDOW", on_close)
         win.bind("<Return>", lambda event: select_btn.invoke())
