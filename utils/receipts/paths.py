@@ -151,3 +151,11 @@ def estado_cuenta(client_name: str) -> str:
 def remito_path(client_name: str, remito_number: int) -> str:
     """Remito del cliente"""
     return get_remito_path(client_name, remito_number)
+
+
+def orden_pago_path(supplier_name: str) -> str:
+    """Orden de pago a proveedor"""
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    folder = os.path.join(get_supplier_folder(supplier_name), "ordenes_pago")
+    os.makedirs(folder, exist_ok=True)
+    return os.path.join(folder, f"orden_pago_{timestamp}.pdf")

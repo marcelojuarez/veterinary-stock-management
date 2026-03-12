@@ -16,8 +16,9 @@ class PaymentWindow():
         self.model = model
         self.frame = frame
 
-        checks_model = getattr(controller, 'checks_model', None)
-        self.payment_form = PaymentForm(self, model, frame, checks_model=checks_model)
+        checks_model   = getattr(controller, 'checks_model',    None)
+        supplier_credit = getattr(controller, 'supplier_credit', None)
+        self.payment_form = PaymentForm(self, model, frame, checks_model=checks_model, supplier_credit=supplier_credit)
 
         self.controller = controller
         self.controller.set_pay_view(self)
@@ -68,7 +69,7 @@ class PaymentWindow():
         select_supplier_btn = ctk.CTkButton(
             select_supplier_frame,
             width=140,
-            text="Seleccionar proveedor",
+            text="Seleccionar Proveedor",
             fg_color=btn_color,
             hover_color=btn_hover,
             font=ctk.CTkFont(size=12, weight="bold"),
@@ -477,7 +478,7 @@ class PaymentWindow():
             width=300,
             height=35,
             textvariable=self.find_search_var,
-            font=ctk.CTkFont(size=12, weight='bold'),
+            font=ctk.CTkFont(size=12),
             placeholder_text="Ingrese nombre del proveedor..."
         )
         self.find_entry.grid(row=0, column=1, padx=5)

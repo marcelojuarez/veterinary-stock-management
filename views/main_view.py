@@ -29,6 +29,7 @@ from models.supplier import SupplierModel
 from models.stock import StockModel
 from models.checks_model import ChecksModel
 from models.cash_model import CashModel
+from models.supplier.supplier_credit import SupplierCredit
 #from models.user import User
 from tkinter import messagebox
 from controllers.auth_controller import validate_data
@@ -183,8 +184,9 @@ class App():
         remito_model = RemitoModel()
         stock_model = StockModel(sales_model, payment_model, event_bus)
         supplier_model = SupplierModel(stock_model)
-        checks_model = ChecksModel()   # ← crea tabla checks + migra check_id en payments
+        checks_model = ChecksModel()
         cash_model = CashModel()
+        supplier_credit = SupplierCredit(supplier_model.db)   # ← saldo a favor proveedores
 
         ## --- CONTROLLERS --- ##
         self.stock_controller = StockController(
@@ -198,7 +200,11 @@ class App():
         self.iva_reports_controller = ReportsController(iva_model)
 
         self.purchase_controller = PurchaseController(supplier_model, stock_model, event_bus)
-        self.payment_controller = PaymentController(supplier_model, event_bus, checks_model=checks_model)
+        self.payment_controller = PaymentController(
+            supplier_model, event_bus,
+            checks_model=checks_model,
+            supplier_credit=supplier_credit,
+        )
         self.supplier_invoice_controller = SupplierInvoiceController(supplier_model)
         self.receipt_controller = SupplierReceiptController(supplier_model)
         self.invoice_controller = InvoiceController(invoice_model, customer_model, stock_model)

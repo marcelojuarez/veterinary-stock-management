@@ -155,36 +155,38 @@ class ChecksView:
     def _create_footer(self):
         footer = ctk.CTkFrame(self.frame, fg_color="transparent")
         footer.grid(row=3, column=0, padx=10, pady=12, sticky="ew")
-        footer.grid_columnconfigure((0, 1, 2, 3), weight=1)
+        footer.grid_columnconfigure((0, 1, 2), weight=1)
         W, H = 200, 38
 
         ctk.CTkButton(
-            footer, text="✅ Marcar cobrado", width=W, height=H,
-            fg_color="#2E7D32", hover_color="#1B5E20",
+            footer, text="✅ Marcar Cobrado", width=W, height=H,
+            fg_color="#009688", hover_color="#00796B",
             font=ctk.CTkFont(size=13, weight="bold"),
             command=self._on_cobrar
         ).grid(row=0, column=0, padx=8)
 
+        '''
         ctk.CTkButton(
             footer, text="🏭 Endosar a proveedor", width=W, height=H,
             fg_color="#6D4C41", hover_color="#5D4037",
             font=ctk.CTkFont(size=13, weight="bold"),
             command=self._on_endosar
         ).grid(row=0, column=1, padx=8)
+        '''
 
         ctk.CTkButton(
-            footer, text="❌ Marcar rechazado", width=W, height=H,
-            fg_color="#C62828", hover_color="#B71C1C",
+            footer, text="❌ Marcar Rechazado", width=W, height=H,
+            fg_color="#009688", hover_color="#00796B",
             font=ctk.CTkFont(size=13, weight="bold"),
             command=self._on_rechazar
-        ).grid(row=0, column=2, padx=8)
+        ).grid(row=0, column=1, padx=8)
 
         ctk.CTkButton(
             footer, text="🔄 Actualizar", width=W, height=H,
             fg_color="#009688", hover_color="#00796B",
             font=ctk.CTkFont(size=13, weight="bold"),
             command=lambda: self.controller.load_checks(self.filter_var.get())
-        ).grid(row=0, column=3, padx=8)
+        ).grid(row=0, column=2, padx=8)
 
     # ----------------------------------------------------------------
     # ACCIONES
