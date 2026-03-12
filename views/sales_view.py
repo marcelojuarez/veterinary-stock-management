@@ -220,7 +220,7 @@ class SalesView:
             item = self.product_tree.item(selected[0])["values"]
             p_data = self.stock_model.get_product_by_id(item[0])
 
-            product_id, name, pack, _, _, _ ,_ , _, _, \
+            product_id, name, pack, _, _, _, _ ,_ , _, _, \
             price_with_iva, _, _, stock = p_data
             price = norm_to_2_dec(price_with_iva)
 
@@ -359,7 +359,7 @@ class SalesView:
         """Cargar productos disponibles y guardar en caché"""
         try:
             products = self.stock_model.get_all_products()
-            self.all_products = [p for p in products if p[12] > 0]  # Solo productos con stock
+            self.all_products = [p for p in products if Decimal(p[13]) > 0]  # Solo productos con stock
             
             # Mostrar todos los productos inicialmente
             self.refresh_product_tree(self.all_products)
@@ -372,15 +372,14 @@ class SalesView:
         self.product_tree.delete(*self.product_tree.get_children())
         
         for p in products:
-            (pid, name, pack, _, _, _, _, _, 
+            (pid, name, pack, _, _, _, _, _, _, 
             _, price_with_iva, _, _, qty) = p
-            
-            if qty > 0:  # Solo mostrar productos con stock
-                self.product_tree.insert(
-                    "", 
-                    "end", 
-                    values=(pid, name, pack, format_currency(price_with_iva), qty)
-                )
+
+            self.product_tree.insert(
+                "", 
+                "end", 
+                values=(pid, name, pack, format_currency(price_with_iva), qty)
+            )
 
     def show_sale_confirmation(self):
         """Mostrar ventana de confirmación con preview de la venta"""
@@ -543,7 +542,7 @@ class SalesView:
 
             try:
                 product = self.stock_model.get_product_by_id(pid)
-                iva_pct = Decimal(str(product[8])) if product and product[8] else Decimal('0.00')
+                iva_pct = Decimal(str(product[9])) if product and product[9] else Decimal('0.00')
             except Exception:
                 iva_pct = Decimal('0.00')
 

@@ -307,9 +307,9 @@ class StockMovementView:
                 messagebox.showerror("Error", "Producto no encontrado")
                 return
             print(product)
-            current_stock = int(product[12])  # quantity está en índice 9
-            current_cost = product[6]  # cost_price
-            current_price = product[7]  # price
+            current_stock = int(product[13])  # quantity está en índice 9
+            current_cost = product[7]  # cost_price
+            current_price = product[8]  # price
             
         except Exception as e:
             messagebox.showerror("Error", f"Error al obtener datos del producto: {e}")

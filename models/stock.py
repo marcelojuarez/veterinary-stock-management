@@ -19,7 +19,7 @@ class StockModel:
     def get_all_products(self):
         """Obtener todos los productos del stock"""
         query = """
-            SELECT id, name, pack, list_price, discount, cost_price, profit, price, iva, 
+            SELECT id, name, pack, kg_per_unit, list_price, discount, cost_price, profit, price, iva, 
                    price_with_iva, created_at, last_price_update, quantity
             FROM stock 
             WHERE name != "HONORARIOS"
@@ -35,7 +35,7 @@ class StockModel:
     def get_product_by_id(self, product_id):
         """Obtener un producto por su ID"""
         query = """
-            SELECT id, name, pack, profit, list_price, discount, cost_price, 
+            SELECT id, name, pack, kg_per_unit, profit, list_price, discount, cost_price, 
             price, iva, price_with_iva, created_at, last_price_update, quantity
             FROM stock 
             WHERE id = ?
@@ -69,9 +69,9 @@ class StockModel:
             # Guardar estado ANTERIOR antes de actualizar
             prev = self.get_product_by_id(product_id)
             p_name       = prev[1]  if prev else str(product_id)
-            cost_before  = prev[6]  if prev else None  # cost_price
-            price_before = prev[7]  if prev else None  # price (sin iva)
-            qty          = prev[12] if prev else None  # quantity (no cambia)
+            cost_before  = prev[7]  if prev else None  # cost_price
+            price_before = prev[8]  if prev else None  # price (sin iva)
+            qty          = prev[13] if prev else None  # quantity (no cambia)
 
             # Actualizar precio
             self.update_product_price(product_id, product_data, conn=conn, commit=False)
@@ -175,23 +175,7 @@ class StockModel:
     def update_quantity(self, product_id, quantity, conn=None, commit=True):
         """Actualizar solo la cantidad de un producto"""
         query = "UPDATE stock SET quantity = quantity + ? WHERE id = ?"
-        return db.execute_query(query, (quantity, product_id), conn=conn, commit=commit)
-        
-    def reduce_quantity(self, product_id, quantity_to_reduce):
-        """Reducir la cantidad de un producto (para ventas)"""
-        current_product = self.get_product_by_id(product_id)
-        if not current_product:
-            raise ValueError(f"Producto {product_id} no encontrado")
-        current_quantity = current_product[-1]  # quantity está en la última posición
-        print("Current cantidad: ", current_quantity)
-        
-        if current_quantity < quantity_to_reduce:
-            raise ValueError(
-                f"Stock insuficiente. Disponible: {current_quantity}, Solicitado: {quantity_to_reduce}"
-            )
-        
-        new_quantity = current_quantity - quantity_to_reduce
-        return self.update_quantity(product_id, new_quantity)
+        return db.execute_query(query, (str(quantity), product_id), conn=conn, commit=commit)
     
     def search_products(self, search_term):
         """Buscar productos por nombre, ID o envase"""
@@ -204,19 +188,6 @@ class StockModel:
         """
         search_pattern = f"%{search_term}%"
         return db.fetch_all(query, (search_pattern, search_pattern, search_pattern))
-    
-    def get_low_stock_products(self, threshold):
-        """Obtener productos con stock bajo (cantidad menor que el umbral)"""
-        try: 
-            with self.db.cursor() as cursor:
-                cursor.execute(
-                    "SELECT id, name, pack, quantity FROM stock WHERE quantity < ? ORDER BY quantity", 
-                    (threshold,)
-                )
-                return cursor.fetchall()
-        except Exception as e:
-            print(f"Error getting low stock products: {e}")
-            return []
     
     def get_available_price_dates(self):
         """Obtener fechas disponibles de última modificación de precios"""
@@ -302,4 +273,4 @@ class StockModel:
         SET quantity = ?
         WHERE id = ?
         """
-        self.db.execute_query(query, (new_quantity, product_id))
+        self.db.execute_query(query, (str(new_quantity), product_id))

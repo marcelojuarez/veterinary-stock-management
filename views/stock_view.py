@@ -1,7 +1,7 @@
+import os
+import csv
 import tkinter as tk
 import customtkinter as ctk
-import csv
-import os
 from datetime import datetime
 from decimal import Decimal
 from models.stock import StockModel
@@ -226,15 +226,16 @@ class StockView():
             return
 
         total     = len(products)
-        low       = sum(1 for p in products if 0 < float(p[12] or 0) < 3)
-        no_stock  = sum(1 for p in products if float(p[12] or 0) == 0)
+        low       = sum(1 for p in products if 0 < Decimal(p[13] or 0) < 3)
+        no_stock  = sum(1 for p in products if Decimal(p[13] or 0) == 0)
         try:
             valor = sum(
-                float(p[5] or 0) * float(p[12] or 0)   # cost_price * quantity
+                Decimal(p[6] or 0) * Decimal(p[13] or 0)   # cost_price * quantity
                 for p in products
             )
-            valor_fmt = f"${valor:,.0f}".replace(",", ".")
-        except Exception:
+            valor_fmt = f"${format_currency(str(valor))}"
+        except Exception as e:
+            print(f'Error: {e}')
             valor_fmt = "—"
 
         self._stat_total.set(str(total))
@@ -371,7 +372,7 @@ class StockView():
                 self.show_error(f"Producto {product_id} no encontrado")
                 return
 
-            _, name, _, profit, _, _, cost_price, _, iva, _, _, _, _ = product
+            _, name, _, _, profit, _, _, cost_price, _, iva, _, _, _, _ = product
 
             window = ctk.CTkToplevel(self.frame)
             window.title(f"Actualizar Precio - {name}")
@@ -726,12 +727,6 @@ class StockView():
             var.set("")
         self.pack_var.set("UNIDAD")
         self.iva_var.set("21%")
-
-    def get_find_data(self):
-        """Obtener datos del formulario"""
-        return {
-            'name': self.find_var.get().strip(),
-        }
         
     def get_selected_product(self):
         """Obtener producto seleccionado del tree"""
@@ -873,8 +868,10 @@ class StockView():
             self.stock_tree.delete(item)
 
         for product in products:
-            (id, name, pack, list_price, discount, cost_price, profit, price,
+            (id, name, pack, _, list_price, discount, cost_price, profit, price,
             iva, price_with_iva, created_at, last_price_update, quantity) = product
+
+            quantity = int(quantity)
 
             if quantity < 3:
                 tag = "low_stock"
@@ -1039,7 +1036,7 @@ class StockView():
                 self.show_error(f"Producto {product_id} no encontrado")
                 return
 
-            _, name, pack, _, _, _, _, _, _, _, _, _, _ = product
+            _, name, pack, _, _, _, _, _, _, _, _, _, _, _ = product
 
             window = ctk.CTkToplevel(self.frame)
             window.title(f"Editar Producto - {name}")
@@ -1086,27 +1083,7 @@ class StockView():
                 1,"Envase: ",
                 ctk.CTkComboBox(
                     form_frame,
-                    values=[
-                        "UNIDAD",
-                        "10 ML",
-                        "20 ML",
-                        "25 ML",
-                        "50 ML",
-                        "90 ML",
-                        "100 ML",
-                        "200 ML",
-                        "250 ML",
-                        "300 ML",
-                        "500 ML",
-                        "400 GR",
-                        "5 KG",
-                        "10 KG",
-                        "12 KG",
-                        "15 KG",
-                        "20 KG",
-                        "25 KG",
-                        "40 DS",
-                    ],
+                    values=["UNIDAD","ML", "GR", "KG"],
                     variable=pack_var,
                     width=200,
                     height=35

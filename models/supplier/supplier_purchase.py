@@ -164,12 +164,13 @@ class SupplierPurchase():
         """Agregar un nuevo producto"""
         query = """
             INSERT INTO stock 
-            (name, pack, list_price, discount, cost_price, profit, price, iva, price_with_iva, quantity, created_at, last_price_update) 
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            (name, pack, kg_per_unit, list_price, discount, cost_price, profit, price, iva, price_with_iva, quantity, created_at, last_price_update) 
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """
         params = (
             product_data['Name'],
             product_data['Package'],
+            product_data['KgPerUnit'], 
             product_data['ListPrice'],
             product_data['Discount'],
             product_data['CostPrice'],
@@ -439,9 +440,9 @@ class SupplierPurchase():
 
                 # --- Guardar estado ANTERIOR del producto ---
                 prev = self.stock_model.get_product_by_id(i_data['id'])
-                qty_before   = prev[12] if prev else None  # quantity
-                cost_before  = prev[6]  if prev else None  # cost_price
-                price_before = prev[7]  if prev else None  # price (sin iva)
+                qty_before   = prev[13] if prev else None  # quantity
+                cost_before  = prev[7]  if prev else None  # cost_price
+                price_before = prev[8]  if prev else None  # price (sin iva)
 
                 p_data = self.prepare_item_to_add_to_stock(i_data)
 
@@ -516,7 +517,7 @@ class SupplierPurchase():
             iva = item['iva_rate'] # porcentaje de iva
             last_price_upd = date # fecha de ult. act de precio
 
-            profit = Decimal(1 + Decimal(p[3]) / Decimal('100'))
+            profit = Decimal(1 + Decimal(p[4]) / Decimal('100'))
 
             sale_price = cost_price * profit
             # precio con iva

@@ -16,8 +16,8 @@ class InvoiceController:
         """
         try:
             product = self.stock_model.get_product_by_id(product_id)
-            if product and product[8]:  # columna 'iva' en stock
-                iva_pct = Decimal(str(product[8]))
+            if product and product[9]:  # columna 'iva' en stock
+                iva_pct = Decimal(str(product[9]))
                 rate = iva_pct / Decimal("100")
                 divisor = Decimal("1") + rate
                 return divisor, rate

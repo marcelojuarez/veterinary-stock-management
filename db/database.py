@@ -51,6 +51,7 @@ class Database:
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 name TEXT NOT NULL,
                 pack TEXT NOT NULL,
+                kg_per_unit TEXT DEFAULT NULL,
                 list_price TEXT NOT NULL,
                 discount TEXT NOT NULL,
                 cost_price TEXT NOT NULL,
@@ -58,7 +59,7 @@ class Database:
                 price TEXT NOT NULL,
                 iva TEXT NOT NULL,
                 price_with_iva TEXT NOT NULL,
-                quantity INTEGER NOT NULL,
+                quantity TEXT NOT NULL,
                 created_at TEXT DEFAULT CURRENT_DATE,
                 last_price_update TEXT DEFAULT CURRENT_DATE,
                 UNIQUE (name, pack)           
@@ -184,8 +185,9 @@ class Database:
                     product_id INTEGER NOT NULL,
                     product_name TEXT NOT NULL,
                     pack TEXT NOT NULL,
+                    kg_per_unit TEXT DEFAULT NULL,
 
-                    quantity INTEGER NOT NULL,
+                    quantity TEXT NOT NULL,
                     list_price TEXT NOT NULL,
                     discount TEXT NOT NULL,
                     cost_price TEXT NOT NULL,

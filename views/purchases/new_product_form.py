@@ -13,6 +13,7 @@ class NewProductForm():
         """Configurar variables del formulario"""
         self.name_var = tk.StringVar()
         self.pack_var = tk.StringVar()
+        self.kg_per_unit_var = tk.StringVar()
         self.profit_var = tk.StringVar()
         self.profit = None
         self.list_price_var = tk.StringVar()
@@ -37,7 +38,7 @@ class NewProductForm():
         add_win.grab_set()
     
         # Centrar la ventana
-        width_win = 560
+        width_win = 580
         height_win = 480
 
         x_parent = parent.winfo_x() 
@@ -69,60 +70,128 @@ class NewProductForm():
         sep = ctk.CTkFrame(card_frame, fg_color="#e0e0e0", height=2)
         sep.pack(fill="x", padx=20, pady=(0, 10))
 
-        # contenedor del formulario — 2 columnas
         form_frame = ctk.CTkFrame(card_frame, fg_color="white")
         form_frame.pack(pady=5, padx=10, fill="x")
         form_frame.grid_columnconfigure(1, weight=1)
         form_frame.grid_columnconfigure(3, weight=1)
         
-        def add_field(row, col, label, widget):
+        def add_field(row, col, label, widget, text_color="#333333"):
             field_lbl = ctk.CTkLabel(
                 form_frame,
                 text=label,
-                font=ctk.CTkFont(size=13, weight="bold"),
-                text_color="#333333"
+                font=ctk.CTkFont(size=12, weight="bold"),
+                text_color=text_color
             )
             field_lbl.grid(row=row, column=col*2, sticky="e", padx=(15, 8), pady=6)
             widget.grid(row=row, column=col*2+1, sticky="w", padx=(0, 15), pady=6)
 
+            return field_lbl, widget
+
         # Columna izquierda
         add_field(0, 0, "Nombre:", 
-                ctk.CTkEntry(form_frame, textvariable=self.name_var, width=180))
+                ctk.CTkEntry(
+                    form_frame, 
+                    textvariable=self.name_var, 
+                    font=ctk.CTkFont(size=11, weight="bold"),
+                    width=250
+                )
+        )
         
         add_field(1, 0, "Envase:",
             ctk.CTkComboBox(
                 form_frame,
-                values=["UNIDAD","10ML","20ML","25ML","50ML","90ML","100ML",
-                        "200ML","250ML","300ML","500ML","400GR","5KG","10KG",
-                        "12KG","15KG","20KG","25KG","40DS"],
-                variable=self.pack_var, width=180, height=34
+                values=["UNIDAD","ML", "GR", "KG"],
+                variable=self.pack_var,
+                font=ctk.CTkFont(size=11, weight="bold"),
+                width=180, 
+                height=34
             )
         )
+
+        kg_label, kg_entry = add_field(2, 0, "KG/U:",
+            ctk.CTkEntry(
+                form_frame,
+                textvariable=self.kg_per_unit_var,
+                font=ctk.CTkFont(size=11, weight="bold"),
+                width=180,
+                placeholder_text="Ej: 15",
+                state="disabled"  
+            ),
+            text_color="#ADA2A2"
+        )
+
         self.pack_var.set("UNIDAD")
 
-        add_field(2, 0, "Stock:",
-                ctk.CTkEntry(form_frame, textvariable=self.qnt_var, state='readonly', width=180))
+        def on_pack_change(*args):
+            if self.pack_var.get() == "KG":
+                kg_entry.configure(state="normal")
+                kg_label.configure(text_color="#333333")
+            else:
+                kg_entry.configure(state="disabled")
+                kg_label.configure(text_color="#ADA2A2")
+                self.kg_per_unit_var.set("")
+
+        self.pack_var.trace_add("write", on_pack_change)
+
+        add_field(3, 0, "Stock:",
+                ctk.CTkEntry(
+                    form_frame, 
+                    textvariable=self.qnt_var, 
+                    font=ctk.CTkFont(size=11, weight="bold"),
+                    state='readonly', 
+                    width=180))
         self.qnt_var.set("0")
 
-        add_field(3, 0, "% IVA:",
-                ctk.CTkComboBox(form_frame, values=["21.00", "10.50", "0.00"],
-                variable=self.iva_var, state='readonly', width=180, height=34))
+        add_field(4, 0, "% IVA:",
+                ctk.CTkComboBox(
+                    form_frame, 
+                    values=["21.00", "10.50", "0.00"], 
+                    variable=self.iva_var, 
+                    state='readonly', 
+                    font=ctk.CTkFont(size=11, weight="bold"),
+                    width=180, 
+                    height=34
+                )
+        )
         self.iva_var.set("21.00")
 
-        # Columna derecha — precios
         add_field(0, 1, "Precio Lista:",
-                ctk.CTkEntry(form_frame, textvariable=self.list_price_var, width=180))
+                ctk.CTkEntry(
+                    form_frame, 
+                    textvariable=self.list_price_var, 
+                    font=ctk.CTkFont(size=11, weight="bold"),
+                    width=180
+                )
+        )
         
         add_field(1, 1, "% Rentabilidad:",
-                ctk.CTkEntry(form_frame, textvariable=self.profit_var, width=180))
+                ctk.CTkEntry(
+                    form_frame, 
+                    textvariable=self.profit_var, 
+                    font=ctk.CTkFont(size=11, weight="bold"),
+                    width=180
+                )
+        )
 
         add_field(2, 1, "Precio Venta:",
-                ctk.CTkEntry(form_frame, textvariable=self.sale_price_var, width=180))
-        self.sale_price_var.set('0.0')
+                ctk.CTkEntry(
+                    form_frame, 
+                    textvariable=self.sale_price_var,
+                    font=ctk.CTkFont(size=11, weight="bold"),
+                    width=180
+                    )
+        )
+        self.sale_price_var.set('0.00')
 
         add_field(3, 1, "Monto IVA:",
-                  ctk.CTkEntry(form_frame, textvariable=self.iva_amount, width=180))
-        self.iva_amount.set('0.0')
+                  ctk.CTkEntry(
+                      form_frame, 
+                      textvariable=self.iva_amount,
+                      font=ctk.CTkFont(size=11, weight="bold"),
+                      width=180
+                )
+        )
+        self.iva_amount.set('0.00')
 
         # Precio final — fila completa destacada
         final_lbl = ctk.CTkLabel(
@@ -131,14 +200,14 @@ class NewProductForm():
             font=ctk.CTkFont(size=13, weight="bold"),
             text_color="#333333"
         )
-        final_lbl.grid(row=4, column=0, sticky="e", padx=(15, 8), pady=(10, 6))
+        final_lbl.grid(row=4, column=2, sticky="e", padx=(15, 8), pady=(10, 6))
         final_entry = ctk.CTkEntry(
             form_frame, textvariable=self.final_price,
             width=180, font=ctk.CTkFont(size=13, weight="bold"),
             fg_color="#E8F5E9", border_color="#4CAF50"
         )
-        final_entry.grid(row=4, column=1, sticky="w", padx=(0, 15), pady=(10, 6))
-        self.final_price.set('0.0')
+        final_entry.grid(row=4, column=3, sticky="w", padx=(0, 15), pady=(10, 6))
+        self.final_price.set('0.00')
 
         def recalc(*args):
             try:
@@ -203,6 +272,7 @@ class NewProductForm():
         data = (
             f"Nombre: {self.name_var.get().upper()}\n"
             f"Pack: {self.pack_var.get()}\n"
+            f"KG por unidad: {self.kg_per_unit_var.get() or 'N/A'}\n"
             f"Cantidad: {self.qnt_var.get()}\n"
             f"Precio Lista $: {self.list_price_var.get()}\n"
             f"Rentabilidad %: {self.profit_var.get()}\n"
@@ -221,6 +291,7 @@ class NewProductForm():
         return {
             'Name': self.name_var.get().strip(),
             'Package': self.pack_var.get().strip(),
+            'KgPerUnit': self.kg_per_unit_var.get().strip() or None,
             'Profit': self.profit_var.get().strip(),
             'ListPrice': self.list_price_var.get().strip(),
             'Iva': self.iva_var.get().strip(),

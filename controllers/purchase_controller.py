@@ -21,7 +21,7 @@ class PurchaseController():
         )
 
         products = self.stock_model.get_all_products()
-        self.products = [(p[0], p[1], p[2], p[12]) for p in products]
+        self.products = [(p[0], p[1], p[2], p[13]) for p in products]
 
     def set_view(self, view):
         self.view = view
@@ -43,7 +43,7 @@ class PurchaseController():
 
     def refresh_products_on_p_win(self):
         products = self.stock_model.get_all_products()
-        self.products = [(p[0], p[1], p[2], p[10]) for p in products]
+        self.products = [(p[0], p[1], p[2], p[13]) for p in products]
 
     ## -- Confirmar Compra -- ##
     def confirm_purchase(self, purchase_id):
@@ -205,13 +205,13 @@ class PurchaseController():
             if not self.validate_new_product_data(form_data) :
                 return
 
-            
             if self.existing_product(form_data['Name'], form_data['Package']):
                 return
 
             product_data = {
                 'Name': (form_data['Name']).upper(),
                 'Package': form_data['Package'],
+                'KgPerUnit': form_data['KgPerUnit'],
                 'ListPrice': form_data['ListPrice'],
                 'Discount': '0.00',
                 'CostPrice': form_data['ListPrice'],
@@ -228,7 +228,7 @@ class PurchaseController():
                 window.destroy()
         
             products = self.stock_model.get_all_products()
-            self.products = [(p[0], p[1], p[2], p[10]) for p in products]
+            self.products = [(p[0], p[1], p[2], p[13]) for p in products]
 
             # Refrescar tabla
             self.form_view.load_products()
@@ -260,6 +260,21 @@ class PurchaseController():
                 return False
         
         # Validar Tipos Numéricos
+
+        # Validar KG por unidad si el envase es KG
+        if form_data['Package'] == 'KG':
+            if not form_data['KgPerUnit']:
+                show_warning('Por favor complete el campo "KG por unidad"')
+                return False
+            try:
+                kg = Decimal(form_data['KgPerUnit'])
+                if kg <= Decimal('0'):
+                    show_error('Error. KG por unidad debe ser mayor a 0')
+                    return False
+            except Exception:
+                show_warning('Error. Formato incorrecto en KG por unidad')
+                return False
+
         ## Precio de costo
         try:
             Decimal(form_data['ListPrice'])
