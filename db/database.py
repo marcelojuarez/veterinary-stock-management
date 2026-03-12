@@ -99,6 +99,21 @@ class Database:
                 );
             ''')
 
+            # Tabla de saldo a favor proveedores
+            cursor.execute('''
+                CREATE TABLE supplier_credit_movements (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    supplier_id INTEGER NOT NULL,
+                    date TEXT DEFAULT CURRENT_DATE,
+                    amount TEXT NOT NULL,
+                    type TEXT,
+                    reference_id INTEGER,
+                    notes TEXT,
+                    FOREIGN KEY (supplier_id) REFERENCES supplier(id)
+                );
+            '''
+            )
+
             # Tabla de empresa
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS company (
