@@ -70,7 +70,7 @@ class CashModel:
 
             cash_summary = Decimal('0.00')
             for ventas in self.db.fetch_all(ventas_query, (date,)):
-                if self.customer_model._is_cash_sale(ventas[0], date):
+                if self.customer_model._is_cash_sale(ventas[0]):
                     cash_summary += Decimal(ventas[1])
 
             return norm_to_2_dec(cash_summary)

@@ -383,7 +383,7 @@ class CustomerModel:
 
         return norm_to_2_dec(total_pending)
 
-    def _is_cash_sale(self, sale_id, date):
+    def _is_cash_sale(self, sale_id):
         """
         Determina si una venta fue de CONTADO.
         
