@@ -994,3 +994,7 @@ class CustomerController:
             self.view.show_error(f"Error al resetear cuenta: {e}")
             import traceback
             traceback.print_exc()
+
+
+    def get_customer_with_debts(self):
+        return self.model.get_customers_with_debt()

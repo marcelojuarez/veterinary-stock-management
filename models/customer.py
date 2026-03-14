@@ -450,3 +450,14 @@ class CustomerModel:
         }
 
         return movements, summary
+
+    def get_customers_with_debt(self):
+        query = """
+            SELECT DISTINCT c.id, c.name, c.cuit, c.home, c.phone,
+                c.iva_condition, c.cv, c.cuig, c.renspa, c.establishment
+            FROM customer c
+            JOIN sales s ON s.cliente_id = c.id
+            WHERE s.estado IN ('pending', 'partial')
+        """
+        return self.db.fetch_all(query)
+
