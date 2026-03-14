@@ -935,7 +935,9 @@ class CustomersView:
                 elif tipo == "AJUSTE PRECIO":
                     history_table.item(item, tags=("ajuste",))
                 elif tipo == "SALDO FAVOR":
-                    history_table.item(item, tags=("saldo",))
+                    history_table.item(item, tags=("pago",))
+                elif tipo == "CHEQUE RECHAZADO":
+                    history_table.item(item, tags=("cheque_rechazado",))    
                 else:
                     print(f'tipo de venta: {type}')
 
@@ -943,7 +945,7 @@ class CustomersView:
         history_table.tag_configure("pago", background="#E8F5E9")      # verde muy claro
         history_table.tag_configure("crédito", background="#E3F2FD")   # azul muy claro
         history_table.tag_configure("ajuste", background="#F3E5F5")    # violeta muy suave
-        history_table.tag_configure("saldo", background="#FCE4EC")     # rosa muy claro
+        history_table.tag_configure("cheque_rechazado", background="#FCE4EC")     # rosa muy claro
 
         tag_rows()
 

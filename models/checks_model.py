@@ -18,12 +18,12 @@ class ChecksModel:
     # ----------------------------------------------------------------
     def create_check(self, *, number, bank, check_type, amount,
                      issue_date, due_date, origin="CLIENTE",
-                     client_payment_id=None, purchase_id=None, notes=None,
+                     client_id, purchase_id=None, notes=None,
                      conn=None, commit=True):
         query = """
             INSERT INTO checks
                 (number, bank, type, amount, issue_date, due_date,
-                 status, origin, client_payment_id, purchase_id, notes) 
+                 status, origin, client_id, purchase_id, notes) 
             VALUES (?, ?, ?, ?, ?, ?, 'EN_CARTERA', ?, ?, ?, ?)
         """
         return self.db.execute_query(
@@ -36,7 +36,7 @@ class ChecksModel:
                 issue_date,
                 due_date,
                 origin.strip().upper(),
-                client_payment_id,
+                client_id,
                 purchase_id,
                 notes.strip().upper() if notes else None,
             ),
@@ -61,14 +61,13 @@ class ChecksModel:
         where = ("WHERE " + " AND ".join(where_clauses)) if where_clauses else ""
 
         query = f"""
-            SELECT
-                c.id, c.number, c.bank, c.type,
-                c.amount, c.issue_date, c.due_date, c.status, c.origin,
-                c.client_payment_id, c.purchase_id, c.notes,
-                cu.name AS client_name
-            FROM checks c
-            LEFT JOIN payments  p  ON p.id  = c.client_payment_id
-            LEFT JOIN customer  cu ON cu.id = p.client_id
+        SELECT
+            c.id, c.number, c.bank, c.type,
+            c.amount, c.issue_date, c.due_date, c.status, c.origin,
+            c.client_id, c.purchase_id, c.notes,
+            cu.name AS client_name
+        FROM checks c
+        LEFT JOIN customer cu ON cu.id = c.client_id
             {where}
             ORDER BY c.due_date ASC
         """
@@ -113,13 +112,13 @@ class ChecksModel:
     # ----------------------------------------------------------------
     # LINK payment → check (post-insert)
     # ----------------------------------------------------------------
-    def link_payment(self, check_id, payment_id, conn=None, commit=True):
-        """Una vez creado el payment, enlaza su id al cheque."""
-        return self.db.execute_query(
-            "UPDATE checks SET client_payment_id = ? WHERE id = ?",
-            (payment_id, check_id),
-            conn=conn, commit=commit
-        )
+    # def link_payment(self, check_id, payment_id, conn=None, commit=True):
+    #     """Una vez creado el payment, enlaza su id al cheque."""
+    #     return self.db.execute_query(
+    #         "UPDATE checks SET client_payment_id = ? WHERE id = ?",
+    #         (payment_id, check_id),
+    #         conn=conn, commit=commit
+    #     )
 
     # ----------------------------------------------------------------
     # STATS

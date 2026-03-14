@@ -380,11 +380,11 @@ class Database:
                     due_date          TEXT NOT NULL,
                     status            TEXT NOT NULL DEFAULT 'EN_CARTERA',
                     origin            TEXT NOT NULL DEFAULT 'CLIENTE',
-                    client_payment_id INTEGER NULL,
+                    client_id         INTEGER NULL,
                     purchase_id       INTEGER NULL,
                     notes             TEXT NULL,
-                    FOREIGN KEY (client_payment_id) REFERENCES payments(id) ON DELETE SET NULL,
-                    FOREIGN KEY (purchase_id)       REFERENCES purchase(id) ON DELETE SET NULL
+                    FOREIGN KEY (client_id) REFERENCES customer(id) ON DELETE SET NULL,
+                    FOREIGN KEY (purchase_id) REFERENCES purchase(id) ON DELETE SET NULL
                 );
             ''')
 

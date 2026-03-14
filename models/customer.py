@@ -273,15 +273,30 @@ class CustomerModel:
         }
         self.add_row_in_customer_ledger(data, conn=conn, commit=commit)
 
+    ## -- Registra un movimiento de saldo a favor  en el historial del cliente -- ##
     def register_credit_balance_in_account(self, client_id, sale_id, amount, description, conn=None, commit=True):
         data = {
             'client_id': client_id,
             'type': 'SALDO FAVOR',
-            'description': f"Saldo a favor · Ajuste Vta #{sale_id} · ${amount}",
+            'description': description,
             'amount': Decimal('0.00'),
             'payment': Decimal('0.00'),
             'debt': Decimal('0.00'),  
             'reference_id': sale_id,
+            'reference': 'Ajuste de precio'
+        }
+        self.add_row_in_customer_ledger(data, conn=conn, commit=commit)
+
+    ## -- Registra la operacion de cheque rechazado en el historial del cliente -- ##
+    def register_bounced_check_in_account(self, client_id, check_amount, debt_amount, conn=None, commit=True):
+        data = {
+            'client_id': client_id,
+            'type': 'CHEQUE RECHAZADO',
+            'description': f'Cheque rechazado · Monto: ${check_amount} ',
+            'amount': Decimal('0.00'),
+            'payment': Decimal('0.00'),
+            'debt': debt_amount,  
+            'reference_id': None,
             'reference': 'Ajuste de precio'
         }
         self.add_row_in_customer_ledger(data, conn=conn, commit=commit)
@@ -312,6 +327,7 @@ class CustomerModel:
             pagado = self.pay_model.get_total_amount_of_pay_for_a_sale(sale_id)
             estado_es = state_map.get(estado, estado)
             saldo = Decimal(total) - Decimal(pagado)
+            print(f'saldo : {saldo}')
 
             fecha_formateada = iso_to_traditional(date.split()[0]) if date else ""
 
@@ -341,27 +357,33 @@ class CustomerModel:
         self.db.execute_query(query, (sale_id,))
 
     def get_total_debt(self, cliente_id, conn=None):
-        """Devuelve el total pendiente del cliente (suma de saldos positivos)."""
         query = """
-            SELECT 
-                s.id,
-                total
+            SELECT s.id, s.total
             FROM sales s
-            WHERE s.cliente_id = ? AND s.estado IN ('pending', 'partial')
-            GROUP BY s.id
+            WHERE s.cliente_id = ?
+            AND (
+                s.estado IN ('pending', 'partial')
+                OR (
+                    s.estado = 'paid' 
+                    AND EXISTS (
+                        SELECT 1 FROM payments p WHERE p.sale_id = s.id
+                    )
+                )
+            )
         """
-
         rows = self.db.fetch_all(query, (cliente_id,), conn=conn)
         total_pending = Decimal('0.00')
+
         for sale_id, total in rows:
             paid = self.pay_model.get_total_amount_of_pay_for_a_sale(sale_id, conn=conn)
             saldo = Decimal(total) - paid
+            print(f'saldo: {saldo}')
             if saldo > Decimal('0.00'):
                 total_pending += saldo
 
         return norm_to_2_dec(total_pending)
 
-    def _is_cash_sale(self, sale_id, fecha_venta):
+    def _is_cash_sale(self, sale_id):
         """
         Determina si una venta fue de CONTADO.
         

@@ -25,6 +25,8 @@ class PaymentModel:
             commit=commit
         )
     
+    #def get
+
     ## -- Obtiene el monto total de una venta -- ##
     def get_sale_total(self, sale_id, conn=None):
 
@@ -60,6 +62,7 @@ class PaymentModel:
         return status
 
     def generate_overpay_credit(self, sale_id, client_id, paid, total, check_id=None, conn=None, commit=True):
+        print(f'Se ejecuta generate_overpay_credit')
         overpay = norm_to_2_dec(paid - total)
         if overpay <= Decimal('0.00'):
             return
@@ -225,4 +228,4 @@ class PaymentModel:
         WHERE check_id = ?
         """
 
-        self.db.execute_query(query, (1, check_id), conn=conn, commit=commit)
+        self.db.execute_query(query, (0, check_id), conn=conn, commit=commit)
