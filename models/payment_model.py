@@ -101,6 +101,24 @@ class PaymentModel:
             amount += Decimal(row[0])
 
         return norm_to_2_dec(amount)
+    
+    ## -- Devuelve el monto total de pagos asociados a un cliente -- ##
+    ## -- Excluye aplicaciones de saldo a favor-- ##
+    def get_total_amount_of_payments_associated_with_a_customer(self, client_id, conn=None):
+        query = """
+        SELECT amount 
+        FROM payments 
+        WHERE client_id = ? and valid = ? and method != ?
+        """
+
+        rows = self.db.fetch_all(query, (client_id, 1, 'Saldo a Favor'), conn=conn)
+
+        amount = Decimal('0.00')
+
+        for row in rows:
+            amount += Decimal(row[0])
+
+        return norm_to_2_dec(amount)
 
     def apply_global_payment(self, customer_id, amount, method="Efectivo", check_id=None):
         """
