@@ -48,4 +48,4 @@ class CustomerCredit:
         WHERE check_id = ?
         """
 
-        self.db.execute_query(query, (1, check_id), conn=conn, commit=commit)
+        self.db.execute_query(query, (0, check_id), conn=conn, commit=commit)

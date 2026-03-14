@@ -8,11 +8,12 @@ from utils.view_helpers import show_error
 from db.database import db
 
 class ChecksController:
-    def __init__(self, checks_model, payment_model, customer_credit, event_bus=None):
+    def __init__(self, checks_model, payment_model, customer_credit, customer_model, event_bus=None):
         self.model = checks_model
         self.db = db
         self.payment_model = payment_model
         self.customer_credit = customer_credit
+        self.customer_model = customer_model
         self.view = None
         if event_bus:
             event_bus.subscribe('refresh_checks', lambda _: self.load_checks(
@@ -40,6 +41,21 @@ class ChecksController:
             self.load_checks(self.view.filter_var.get())
         except Exception as e:
             self.view.show_error(f"Error: {e}")
+
+    def manage_check_rechazado(self, check_id, check_state):
+        result = self.mark_rechazado(check_id, check_state)
+
+        if result:
+            check_data = self.model.get_check_by_id(check_id)
+            client_id = check_data[9]
+            new_debt = self.customer_model.get_total_debt(client_id)
+            ## Se genera fila en customer_ledger
+            self.customer_model.register_bounced_check_in_account(client_id, check_amount=check_data[4], debt_amount=new_debt)
+            return True, 'Cambios en Deuda y Saldo a Favor...'
+
+        else:
+            return False, 'Ocurrio un error.'
+
 
     def mark_rechazado(self, check_id, check_state):
         try:

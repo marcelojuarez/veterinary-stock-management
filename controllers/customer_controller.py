@@ -478,6 +478,7 @@ class CustomerController:
                         issue_date=check_data["issue_date"],
                         due_date=check_data["due_date"],
                         origin="CLIENTE",
+                        client_id=customer_id,
                         commit=True
                     )
                     # Obtener el id recién insertado
@@ -493,15 +494,6 @@ class CustomerController:
                 if not result:
                     show_error('Ocurrió un error al registrar el pago.')
                     return
-
-                # Linkear el primer payment_id al cheque
-                if check_id and result.get("updated_debts"):
-                    first_payment = self.payment_model.db.fetch_one(
-                        "SELECT id FROM payments WHERE check_id = ? ORDER BY id ASC LIMIT 1",
-                        (check_id,)
-                    )
-                    if first_payment:
-                        self.checks_model.link_payment(check_id, first_payment[0])
 
                 show_success("Pago registrado con éxito.")
                 win.destroy()

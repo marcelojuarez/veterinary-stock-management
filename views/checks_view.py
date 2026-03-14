@@ -235,12 +235,11 @@ class ChecksView:
             messagebox.showwarning("Atención", "No se puede rechazar en este estado.")
             return
         if messagebox.askyesno("Confirmar", "¿Marcar este cheque como RECHAZADO?"):
-            result = self.controller.mark_rechazado(check_id, status)
+            result, msg = self.controller.manage_check_rechazado(check_id, status)
             if result:
-                self.show_success('Hubo cambios en deuda y saldo')
-                ## Agregar fila a customer_ledger
+                self.show_success(f'Operación realizada con exito \n {msg}')
             else:
-                self.show_error('Algo salio mal')
+                self.show_error(msg)
 
     def _open_endorse_window(self, check_id):
         """Ventana para elegir a qué compra de proveedor se endosa."""
@@ -316,7 +315,7 @@ class ChecksView:
         total_cartera = sum(Decimal(c[4]) for c in en_cartera)
 
         self._stats_cards["en_cartera_count"].configure(text=str(len(en_cartera)))
-        self._stats_cards["en_cartera_total"].configure(text=f"${total_cartera:.2f}")
+        self._stats_cards["en_cartera_total"].configure(text=f"${total_cartera}")
         self._stats_cards["cobrado_count"].configure(text=str(len(cobrados)))
         self._stats_cards["endosado_count"].configure(text=str(len(endosados)))
 
