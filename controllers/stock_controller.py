@@ -89,54 +89,6 @@ class StockController:
             print(f"Error updating product field: {e}")
             return False
     
-    ## -- -- ##
-    def _reconcile_sales_with_product(self, product_id, old_price, new_price):
-        print('Se USA ESTA FUNCION?')
-        """Actualizar precios en ventas que contengan el producto modificado"""
-        if abs(old_price - new_price) < Decimal('0.01'):
-            return
-        
-        try: 
-            query = """
-                SELECT DISTINCT s.id, s.cliente_id, c.name
-                FROM sales s
-                JOIN sale_items si ON si.sale_id = s.id
-                LEFT JOIN customer c ON c.id = s.cliente_id
-                WHERE si.product_id = ? AND s.estado IN ('pending', 'partial')
-            """
-            affected_sales = db.fetch_all(query, (product_id,))
-
-            if not affected_sales:
-                return
-            
-            reconciled_count = 0
-            credits_generate = 0
-
-            for sale_id, _, _ in affected_sales:
-                old_status = db.fetch_one("SELECT estado FROM sales WHERE id = ?", (sale_id,))[0]
-                new_status = self.payment_model.reconcile_sale(sale_id)
-                reconciled_count += 1
-
-                if old_status != 'paid' and new_status == 'paid':
-                    credits_generate += 1
-
-            if reconciled_count > 0:
-                msg = f"✅ Se recalcularon {reconciled_count} venta(s) afectada(s) por el cambio de precio."
-                
-                if credits_generate > 0:
-                    msg += f"\n{credits_generate} venta(s) quedaron pagadas y se generó saldo a favor."
-                
-                if new_price < old_price:
-                    msg += f"\nPrecio bajó: ${old_price:.2f} → ${new_price:.2f}"
-                else:
-                    msg += f"\nPrecio subió: ${old_price:.2f} → ${new_price:.2f}"
-                
-                messagebox.showinfo("Ventas Reconciliadas", msg)
-            
-        except Exception as e:
-            print(f"⚠️ Error al reconciliar ventas: {e}")
-            # No bloqueamos la actualización de precio si falla la reconciliación
-    
     def show_all_products(self):
         self.refresh_stock_table()
         self.view.show_success("Mostrando todos los artículos del inventario")

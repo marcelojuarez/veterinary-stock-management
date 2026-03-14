@@ -6,9 +6,10 @@ from datetime import datetime
 from decimal import Decimal
 from utils.utils import norm_to_2_dec, iso_to_traditional
 class CustomerModel:
-    def __init__(self, pay_model, db_connection=None):
+    def __init__(self, pay_model, customer_credit, db_connection=None):
         self.db = db_connection or db 
         self.pay_model = pay_model
+        self.customer_credit = customer_credit
 
     def get_all_customers(self): 
         # Obtener todos los clientes
@@ -272,7 +273,7 @@ class CustomerModel:
         }
         self.add_row_in_customer_ledger(data, conn=conn, commit=commit)
 
-    def register_credit_balance_in_account(self, client_id, sale_id, amount, conn=None, commit=True):
+    def register_credit_balance_in_account(self, client_id, sale_id, amount, description, conn=None, commit=True):
         data = {
             'client_id': client_id,
             'type': 'SALDO FAVOR',
@@ -414,7 +415,7 @@ class CustomerModel:
                 if result and result[0] == 'paid':
                     sales_paid += 1
 
-        credit = self.pay_model.get_customer_credit(client_id)
+        credit = self.customer_credit.get_customer_credit(client_id)
 
         summary = {
             'total_purchased': total_purchased,

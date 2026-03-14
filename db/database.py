@@ -398,6 +398,7 @@ class Database:
                     method TEXT,
                     notes TEXT,
                     check_id INTEGER NULL,
+                    valid INTEGER NOT NULL,
                     FOREIGN KEY(sale_id) REFERENCES sales(id) ON DELETE CASCADE,
                     FOREIGN KEY(client_id) REFERENCES customer(id) ON DELETE CASCADE,
                     FOREIGN KEY(check_id) REFERENCES checks(id) ON DELETE SET NULL
@@ -442,8 +443,11 @@ class Database:
                     reason TEXT,
                     created_at TEXT DEFAULT CURRENT_TIMESTAMP,
                     sale_id INTEGER,
+                    check_id INTEGER NULL,
+                    valid INTEGER NOT NULL,
                     FOREIGN KEY(client_id) REFERENCES customer(id) ON DELETE CASCADE,
                     FOREIGN KEY(sale_id) REFERENCES sales(id) ON DELETE SET NULL
+                    FOREIGN KEY(check_id) REFERENCES checks(id) ON DELETE SET NULL
                 );
             ''')
 

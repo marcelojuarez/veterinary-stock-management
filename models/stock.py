@@ -1,5 +1,6 @@
 from decimal import Decimal
 from db.database import db
+from utils.utils import norm_to_2_dec
 from models.stock_movement import StockMovementModel
 
 class StockModel:
@@ -113,37 +114,41 @@ class StockModel:
                         self.sales_model.update_sale_item(sale_id, product_id, product_data['PriceWIva'], conn=conn, commit=False)
                         self.sales_model.recalculate_sale_total(sale_id, conn=conn, commit=False)
 
-                    self.sales_model.update_sale_item(sale_id, product_id, product_data['PriceWIva'], conn=conn, commit=False)
-                    self.sales_model.recalculate_sale_total(sale_id, conn=conn, commit=False)
+                        new_total_row = db.fetch_one("SELECT total FROM sales WHERE id = ?", (sale_id,), conn=conn)
+                        new_total = Decimal(new_total_row[0]) if new_total_row else Decimal('0.00')
 
-                    print(f"DEBUG STOCK: llamando update_sale_status para venta {sale_id}")
-                    new_total_row = db.fetch_one("SELECT total FROM sales WHERE id = ?", (sale_id,), conn=conn)
-                    new_total = Decimal(new_total_row[0]) if new_total_row else Decimal('0.00')
-
-                    # ← Registrar ajuste solo si hubo cambio y hay cliente
-                    if client and old_total != new_total:
-                        self.payment_model.customer_model.register_price_adjustment_in_account(
-                            sale_id=sale_id,
-                            client_id=client_id,
-                            old_total=old_total,
-                            new_total=new_total,
-                            conn=conn,
-                            commit=False
-                        )
-
-                    new_status  = self.payment_model.update_sale_status(sale_id, conn=conn, commit=False)
-                    if new_status == 'paid':
-                        paid = self.payment_model.get_total_amount_of_pay_for_a_sale(sale_id) # Monto de pagos de la venta
-                        overpayment = paid - new_total
-                        if overpayment > Decimal('0.00'):
-                            self.changes.append(
-                                f"✅ Venta #{sale_id} PAGADA - Saldo a favor: ${overpayment}"
+                        if client and old_total != new_total:
+                            self.payment_model.customer_model.register_price_adjustment_in_account(
+                                sale_id=sale_id,
+                                client_id=client_id,
+                                old_total=old_total,
+                                new_total=new_total,
+                                conn=conn,
+                                commit=False
                             )
-                        else:
-                            self.changes.append(f"✅ Venta #{sale_id} quedó PAGADA por cambio de precio")
 
-                    else:
-                        self.changes.append(f"✅ Venta #{sale_id} Cambia su monto por cambio de precio")
+                        # ← sin skip_credit_generation
+                        new_status = self.payment_model.update_sale_status(sale_id, conn=conn, commit=False)
+
+                        if new_status == 'paid':
+                            paid = self.payment_model.get_total_amount_of_pay_for_a_sale(sale_id, conn=conn)
+                            # ← genera crédito explícitamente
+                            self.payment_model.generate_overpay_credit(
+                                sale_id=sale_id,
+                                client_id=client_id,
+                                paid=paid,
+                                total=new_total,
+                                check_id=None,
+                                conn=conn,
+                                commit=False
+                            )
+                            overpayment = norm_to_2_dec(paid - new_total)
+                            if overpayment > Decimal('0.00'):
+                                self.changes.append(f"✅ Venta #{sale_id} PAGADA - Saldo a favor: ${overpayment}")
+                            else:
+                                self.changes.append(f"✅ Venta #{sale_id} quedó PAGADA por cambio de precio")
+                        else:
+                            self.changes.append(f"✅ Venta #{sale_id} Cambia su monto por cambio de precio")
 
                     print(f'changes: \n{self.changes}')
 
@@ -161,8 +166,6 @@ class StockModel:
         finally:
             conn.close()
 
-
-    
     def update_field(self, db_field, new_value, product_id):
         query = f"UPDATE stock SET {db_field} = ? WHERE id = ?"
         db.execute_query(query, (new_value, product_id))

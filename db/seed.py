@@ -11,6 +11,7 @@ from models.sale import SalesModel
 from models.payment_model import PaymentModel
 from models.stock import StockModel
 from models.security import gen_password
+from models.customer_credit import CustomerCredit
 from utils.utils import norm_to_2_dec, flex_dec
 from decimal import Decimal
 
@@ -889,7 +890,8 @@ def seed_suppliers():
         })
     
     sales_model = SalesModel()
-    payment_model = PaymentModel(sales_model)
+    customer_credit = CustomerCredit()
+    payment_model = PaymentModel(sales_model, customer_credit)
     stock_model = StockModel(sales_model, payment_model, None)
     supplier_mdl = SupplierModel(stock_model)
     

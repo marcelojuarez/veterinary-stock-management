@@ -85,17 +85,19 @@ class ChecksModel:
     # ----------------------------------------------------------------
     # CAMBIOS DE ESTADO
     # ----------------------------------------------------------------
-    def update_status(self, check_id, new_status, purchase_id=None):
+    def update_status(self, check_id, new_status, purchase_id=None, conn=None, commit=True):
         """Cambia el estado del cheque. Si se endosa, guarda purchase_id."""
         new_status = new_status.upper()
         if purchase_id:
             return self.db.execute_query(
                 "UPDATE checks SET status = ?, purchase_id = ? WHERE id = ?",
-                (new_status, purchase_id, check_id)
+                (new_status, purchase_id, check_id),
+                conn=conn, commit=commit
             )
         return self.db.execute_query(
             "UPDATE checks SET status = ? WHERE id = ?",
-            (new_status, check_id)
+            (new_status, check_id),
+            conn=conn, commit=commit
         )
 
     def endorse_to_purchase(self, check_id, purchase_id):
@@ -105,8 +107,8 @@ class ChecksModel:
     def mark_cobrado(self, check_id):
         return self.update_status(check_id, "COBRADO")
 
-    def mark_rechazado(self, check_id):
-        return self.update_status(check_id, "RECHAZADO")
+    def mark_rechazado(self, check_id, conn=None, commit=True):
+        return self.update_status(check_id, "RECHAZADO", None, conn=conn, commit=commit)
 
     # ----------------------------------------------------------------
     # LINK payment → check (post-insert)

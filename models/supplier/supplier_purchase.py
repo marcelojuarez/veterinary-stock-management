@@ -767,7 +767,6 @@ class SupplierPurchase():
         finally:
             conn.close()
 
-
     ## -- Transaccion para agregar venta y factura -- ##
     def create_invoice_and_purchase(self, invoice_params, perception_parameters, purchase_params):
         try:

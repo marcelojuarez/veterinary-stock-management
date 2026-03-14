@@ -4,21 +4,23 @@ from datetime import datetime
 from utils.utils import norm_to_2_dec
 
 class PaymentModel:
-    def __init__(self, sales_model, customer_model=None):
+    def __init__(self, sales_model, customer_credit, customer_model=None):
         self.db = db
         self.sale_model = sales_model
+        self.customer_credit = customer_credit
         self.customer_model = customer_model
 
-    def create_payment(self, sale_id, client_id, amount, method=None, notes=None, conn=None, commit=True):
+    def create_payment(self, sale_id, client_id, amount, method=None, notes=None,
+                       check_id=None, conn=None, commit=True):
         """Registra un pago en la tabla payments."""
         date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         query = """
-            INSERT INTO payments (sale_id, client_id, amount, method, notes, date)
-            VALUES (?, ?, ?, ?, ?, ?)
+            INSERT INTO payments (sale_id, client_id, amount, method, notes, date, check_id, valid)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         """
         return self.db.execute_query(
-            query, 
-            (sale_id, client_id, str(amount), method, notes, date),
+            query,
+            (sale_id, client_id, str(amount), method, notes, date, check_id, 1),
             conn=conn,
             commit=commit
         )
@@ -32,68 +34,63 @@ class PaymentModel:
 
         return self.db.fetch_one(query, (sale_id, ), conn=conn)
     
-    def update_sale_status(self, sale_id, skip_credit_generation=False, conn=None, commit=True):
+    def update_sale_status(self, sale_id, conn=None, commit=True):
         row_sale = self.db.fetch_one(
             "SELECT cliente_id, estado, total FROM sales WHERE id = ?",
-            (sale_id,),
-            conn=conn
+            (sale_id,), conn=conn
         )
-
         if not row_sale:
             return False
-        
-        client_id, _, total = row_sale
 
+        _, _, total = row_sale
         total = Decimal(total)
         paid = self.get_total_amount_of_pay_for_a_sale(sale_id, conn=conn)
 
         if paid <= Decimal('0.00'):
             status = "pending"
-        elif Decimal('0.00') < paid < total:
+        elif paid < total:
             status = "partial"
         else:
             status = "paid"
 
         self.db.execute_query(
             "UPDATE sales SET estado = ? WHERE id = ?",
-            (status, sale_id),
+            (status, sale_id), conn=conn, commit=commit
+        )
+        return status
+
+    def generate_overpay_credit(self, sale_id, client_id, paid, total, check_id=None, conn=None, commit=True):
+        overpay = norm_to_2_dec(paid - total)
+        if overpay <= Decimal('0.00'):
+            return
+
+        self.customer_credit.add_customer_credit(
+            {
+                'client_id': client_id,
+                'amount': overpay,
+                'reason': f"AJUSTE: Sobrepago en venta #{sale_id}",
+                'sale_id': sale_id
+            },
+            check_id=check_id,
+            conn=conn,
+            commit=commit
+        )
+        self.customer_model.register_credit_balance_in_account(
+            client_id=client_id,
+            sale_id=sale_id,
+            amount=overpay,
+            description=f"Saldo a favor · Ajuste Vta #{sale_id} · ${overpay}",
             conn=conn,
             commit=commit
         )
 
-        # Solo generar crédito si NO viene de aplicación de saldo a favor
-        if not skip_credit_generation:
-            overpay = Decimal(paid - total)
-            if overpay > Decimal('0.00'):
-                print(f"DEBUG CREDIT: overpay={overpay}, sale={sale_id}, skip={skip_credit_generation}")
-                ## Generacion de saldo a favor debito a una venta
-                self.add_customer_credit(
-                    client_id=client_id,
-                    amount=overpay,
-                    reason=f"AJUSTE: Sobrepago en venta #{sale_id}",
-                    sale_id=sale_id,
-                    conn=conn,
-                    commit=commit
-                )
-
-                ## Registrar fila informativa en ledger
-                self.customer_model.register_credit_balance_in_account(
-                    client_id=client_id,
-                    sale_id=sale_id,
-                    amount=overpay,
-                    conn=conn,
-                    commit=commit
-                )
-
-        return status
-
     ## -- Devuelve el monto total de pagos asociados a una venta -- ##
     def get_total_amount_of_pay_for_a_sale(self, sale_id, conn=None):
         query = """
-        SELECT amount FROM payments WHERE sale_id = ?
+        SELECT amount FROM payments WHERE sale_id = ? and valid = ?
         """
 
-        rows = self.db.fetch_all(query, (sale_id, ), conn=conn)
+        rows = self.db.fetch_all(query, (sale_id, 1), conn=conn)
 
         amount = Decimal('0.00')
 
@@ -102,7 +99,7 @@ class PaymentModel:
 
         return norm_to_2_dec(amount)
 
-    def apply_global_payment(self, customer_id, amount, method="Efectivo"):
+    def apply_global_payment(self, customer_id, amount, method="Efectivo", check_id=None):
         """
         Aplica un pago global distribuido entre las deudas pendientes. 
         Nota: Usualmente es FIFO (ASC)
@@ -144,13 +141,14 @@ class PaymentModel:
                     amount=pay_amount,
                     method=method,
                     notes="Pago Global Automático",
+                    check_id=check_id,
                     conn=conn,
                     commit=False
                 )
 
                 # Actualizar estado de la venta
                 sale_status = self.update_sale_status(
-                    sale_id, skip_credit_generation=True, conn=conn, commit=False
+                    sale_id, conn=conn, commit=False
                 )
                 
                 # Se registra el movimiento en la cuenta del cliente
@@ -167,6 +165,30 @@ class PaymentModel:
 
                 remaining = remaining - pay_amount
                 updated_debts.append((sale_id, pay_amount))
+
+            print(f'remaining: {remaining}')
+
+            # Verifica si se genera saldo a favor al pagar con cheque
+            if remaining > Decimal('0.00') and check_id is not None:
+                self.customer_credit.add_customer_credit(
+                    {
+                        'client_id': customer_id,
+                        'amount': remaining,
+                        'reason': "Saldo a favor por pago con cheque",
+                        'sale_id': None
+                    },
+                    check_id=check_id,
+                    conn=conn,
+                    commit=False
+                )
+                self.customer_model.register_credit_balance_in_account(
+                    client_id=customer_id,
+                    sale_id=None,
+                    amount=remaining,
+                    description=f"Saldo a favor · Cheque cargado. ${remaining}",
+                    conn=conn,
+                    commit=False
+                )
 
             # Obtener el total de todas las ventas
             all_sales = self.sale_model.get_total_of_all_sales(customer_id, conn=conn)
@@ -194,87 +216,13 @@ class PaymentModel:
         finally:
             conn.close()
 
-    def get_customer_credit(self, client_id) -> Decimal:
-        rows = self.db.fetch_all(
-            "SELECT amount FROM customer_credit WHERE client_id = ?", 
-            (client_id,)
-        )
-
-        total = Decimal('0.00')
-        for row in rows:
-            total += Decimal(row[0])
-
-        return norm_to_2_dec(total)
-
-    def add_customer_credit(self, client_id: int, amount: Decimal, reason: str, sale_id: int, conn=None, commit=True): 
+    ## --  Cancela pagos asociados a un cheque o echeq -- ##
+    def cancel_check_payments(self, check_id, conn=None, commit=True):
         query = """
-            INSERT INTO customer_credit (client_id, amount, reason, sale_id)
-            VALUES (?, ?, ?, ?)
+        UPDATE payments
+        SET 
+            valid = ?
+        WHERE check_id = ?
         """
-        return self.db.execute_query(query, (client_id, str(amount), reason, sale_id), conn=conn, commit=commit)
 
-    def reconcile_sale(self, sale_id, conn=None, commit=True):
-        """
-        Recalcula una venta con los precios actuales.
-        - Si con lo pagado ya alcanza: la pasa a paid (y congela total_cerrado)
-        - Si hay sobrepago: crea saldo a favor (customer_credit)
-        """
-        row_sale = self.db.fetch_one(
-            "SELECT cliente_id, estado, total FROM sales WHERE id = ?",
-            (sale_id,),
-            conn=conn
-        )
-
-        if not row_sale:
-            return None
-
-        client_id, current_status, total = row_sale
-
-        # Recalcular con precios actuales
-        total = Decimal(self.get_sale_total(sale_id, conn=conn))
-        paid = self.get_total_amount_of_pay_for_a_sale(sale_id, conn=conn)
-
-        # Determinar nuevo estado
-        if paid <= Decimal('0.00'):
-            status = "pending"
-        elif Decimal('0.00') < paid < total:
-            status = "partial"
-        else:
-            status = "paid"
-
-        # Guardar nuevo estado
-        self.db.execute_query(
-            "UPDATE sales SET estado = ? WHERE id = ?",
-            (status, sale_id),
-            conn=conn,
-            commit=commit
-        )
-
-        overpay = Decimal(paid - total)
-        if overpay > Decimal('0.00'):
-            # Verificar si ya existe un ajuste de sobrepago para esta venta
-            exists = self.db.fetch_one(
-                """
-                SELECT 1
-                FROM customer_credit
-                WHERE sale_id = ?
-                AND client_id = ?
-                AND reason LIKE 'AJUSTE:%'
-                LIMIT 1
-                """,
-                (sale_id, client_id)
-            )
-            
-            if not exists:
-                self.add_customer_credit(
-                    client_id=client_id,
-                    amount=overpay,
-                    reason=f"AJUSTE: Diferencia por cambio de precio (venta #{sale_id})",
-                    sale_id=sale_id
-                )
-
-            else:
-                # Se actualiza uno ?
-                pass
-
-        return status
+        self.db.execute_query(query, (1, check_id), conn=conn, commit=commit)

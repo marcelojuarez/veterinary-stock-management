@@ -30,6 +30,7 @@ from models.stock import StockModel
 from models.checks_model import ChecksModel
 from models.cash_model import CashModel
 from models.supplier.supplier_credit import SupplierCredit
+from models.customer_credit import CustomerCredit
 #from models.user import User
 from tkinter import messagebox
 from controllers.auth_controller import validate_data
@@ -178,15 +179,16 @@ class App():
         iva_model = IVAModel()
         company_model = CompanyModel()
         sales_model = SalesModel()
-        payment_model = PaymentModel(sales_model)
-        customer_model = CustomerModel(payment_model)
+        customer_credit = CustomerCredit()
+        payment_model = PaymentModel(sales_model, customer_credit)
+        customer_model = CustomerModel(payment_model, customer_credit)
         payment_model.customer_model = customer_model
         remito_model = RemitoModel()
         stock_model = StockModel(sales_model, payment_model, event_bus)
         supplier_model = SupplierModel(stock_model)
         checks_model = ChecksModel()
         cash_model = CashModel()
-        supplier_credit = SupplierCredit(supplier_model.db)   # ← saldo a favor proveedores
+        supplier_credit = SupplierCredit(supplier_model.db)
 
         ## --- CONTROLLERS --- ##
         self.stock_controller = StockController(
@@ -194,9 +196,9 @@ class App():
         )
         self.supplier_controller = SupplierController(supplier_model, event_bus)
         self.customer_controller = CustomerController(
-            customer_model, payment_model, event_bus, checks_model=checks_model
+            customer_model, payment_model, customer_credit, event_bus, checks_model=checks_model
         )
-        self.checks_controller = ChecksController(checks_model, checks_model.db, event_bus=event_bus)
+        self.checks_controller = ChecksController(checks_model, payment_model, customer_credit, event_bus=event_bus)
         self.iva_reports_controller = ReportsController(iva_model)
 
         self.purchase_controller = PurchaseController(supplier_model, stock_model, event_bus)

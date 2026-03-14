@@ -4,12 +4,15 @@ Controlador de cartera de cheques.
 from decimal import Decimal
 from datetime import datetime
 from tkinter import messagebox
-
+from utils.view_helpers import show_error
+from db.database import db
 
 class ChecksController:
-    def __init__(self, checks_model, db, event_bus=None):
+    def __init__(self, checks_model, payment_model, customer_credit, event_bus=None):
         self.model = checks_model
         self.db = db
+        self.payment_model = payment_model
+        self.customer_credit = customer_credit
         self.view = None
         if event_bus:
             event_bus.subscribe('refresh_checks', lambda _: self.load_checks(
@@ -38,13 +41,39 @@ class ChecksController:
         except Exception as e:
             self.view.show_error(f"Error: {e}")
 
-    def mark_rechazado(self, check_id):
+    def mark_rechazado(self, check_id, check_state):
         try:
-            self.model.mark_rechazado(check_id)
+            conn = self.db.get_connection()
+
+            # Iniciar transacción
+            conn.execute("BEGIN")
+
+            if check_state == 'EN_CARTERA':
+                # Genera deuda en el cliente
+                # Descuenta de saldo a favor 
+                self.payment_model.cancel_check_payments(check_id, conn=conn, commit=False)
+                self.customer_credit.cancel_check_credit(check_id, conn=conn, commit=False)
+
+            elif check_state == 'ENDOSADO':
+                pass
+            else:
+                show_error('Ocurrio un error')
+                raise Exception
+
+            self.model.mark_rechazado(check_id, conn=conn, commit=False)
             self.view.show_success("Cheque marcado como RECHAZADO.")
             self.load_checks(self.view.filter_var.get())
+
+            conn.commit()
+            return True
+
         except Exception as e:
+            conn.rollback()
             self.view.show_error(f"Error: {e}")
+            return False
+        
+        finally:
+            conn.close()
 
     def endorse_check(self, check_id, purchase_id):
         """

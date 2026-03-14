@@ -430,7 +430,7 @@ class PaymentWindow():
                 iid=p[0],
                 values=(
                     p[0],      # id compra
-                    p[1],      # supplier_id  👈 agregar
+                    p[1],      # supplier_id
                     p[2],      # cuit
                     p[3],      # nombre
                     p[4],

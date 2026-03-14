@@ -11,13 +11,13 @@ from utils.utils import norm_to_2_dec, string_to_2_dec
 \
 from decimal import Decimal, InvalidOperation
 
-
 class CustomerController: 
-    def __init__(self, customer_model, payment_model, event_bus, checks_model=None):
+    def __init__(self, customer_model, payment_model, customer_credit, event_bus, checks_model=None):
         self.view = None
         self.model = customer_model
         self.payment_model = payment_model
         self.checks_model = checks_model
+        self.customer_credit = customer_credit
         self.event_bus = event_bus
         self.all_customers = []
         self.event_bus.subscribe("price_changes", self.on_price_changes)
@@ -253,7 +253,7 @@ class CustomerController:
 
             debts = self.model.get_customer_debts(cliente_id)
             total = self.model.get_total_debt(cliente_id)
-            credit = norm_to_2_dec(self.payment_model.get_customer_credit(cliente_id))
+            credit = norm_to_2_dec(self.customer_credit.get_customer_credit(cliente_id))
 
             net = norm_to_2_dec(max(Decimal('0.00'), total - credit))
             self.view.open_debt_window(cliente_id, cliente_nombre, debts, total, credit, net)
@@ -420,6 +420,7 @@ class CustomerController:
         # Confirmar pago
         # ----------------------------------------------------------------
         def process():
+            method = method_var.get()
             try:
                 val = amount_var.get().strip()
                 if not val:
@@ -435,26 +436,18 @@ class CustomerController:
                 show_error("Monto inválido. Ingrese solo números.")
                 return
 
-            method = method_var.get()
-
-            # Solo cheque/eCheq puede superar la deuda (el doc no es por el monto exacto)
-            if amount > total_debt and method not in ("Cheque", "eCheq"):
-                show_warning(
-                    f"El monto (${amount}) supera la deuda (${total_debt}).\n"
-                    f"Solo se permite superar la deuda pagando con Cheque o eCheq."
-                )
-                amount_var.set(f"{total_debt}")
-                return
-
-            # Calcular excedente (solo relevante para cheque/eCheq)
-            excedente = norm_to_2_dec(max(Decimal('0.00'), amount - total_debt))
+            if amount > total_debt:
+                if not method in ("Cheque", "eCheq"):
+                    show_warning(f"El monto (${amount}) supera la deuda (${total_debt}).")
+                    amount_var.set(f"{total_debt}")
+                    return
 
             # Validar datos de cheque si aplica
             check_data = None
             if method in ("Cheque", "eCheq"):
-                num  = check_number_var.get().strip()
-                bank = check_bank_var.get().strip()
-                due  = check_due_var.get().strip()
+                num    = check_number_var.get().strip()
+                bank   = check_bank_var.get().strip()
+                due    = check_due_var.get().strip()
                 if not all([num, bank, due]):
                     show_warning("Complete todos los campos del cheque.")
                     return
@@ -467,7 +460,7 @@ class CustomerController:
                     "number":     num,
                     "bank":       bank,
                     "check_type": method,
-                    "amount":     amount,   # monto real del cheque
+                    "amount":     amount,
                     "issue_date": datetime.now().strftime("%Y-%m-%d"),
                     "due_date":   due_iso,
                 }
@@ -476,6 +469,7 @@ class CustomerController:
                 # Crear cheque ANTES del pago para obtener su id
                 check_id = None
                 if check_data and self.checks_model:
+                    # Lo creamos sin client_payment_id todavía (lo linkeamos después)
                     self.checks_model.create_check(
                         number=check_data["number"],
                         bank=check_data["bank"],
@@ -486,57 +480,30 @@ class CustomerController:
                         origin="CLIENTE",
                         commit=True
                     )
+                    # Obtener el id recién insertado
                     row = self.checks_model.db.fetch_one(
                         "SELECT id FROM checks ORDER BY id DESC LIMIT 1"
                     )
                     check_id = row[0] if row else None
 
-                # Aplicar solo la parte que cubre la deuda
-                amount_to_apply = min(amount, total_debt)
                 result = self.payment_model.apply_global_payment(
-                    customer_id, amount_to_apply, method=method
+                    customer_id, amount, method=method, check_id=check_id
                 )
 
                 if not result:
                     show_error('Ocurrió un error al registrar el pago.')
                     return
 
-                # Linkear cheque al último payment creado
+                # Linkear el primer payment_id al cheque
                 if check_id and result.get("updated_debts"):
                     first_payment = self.payment_model.db.fetch_one(
-                        "SELECT id FROM payments WHERE client_id = ? ORDER BY id DESC LIMIT 1",
-                        (customer_id,)
+                        "SELECT id FROM payments WHERE check_id = ? ORDER BY id ASC LIMIT 1",
+                        (check_id,)
                     )
                     if first_payment:
                         self.checks_model.link_payment(check_id, first_payment[0])
 
-                # Registrar excedente del cheque como saldo a favor
-                if excedente > Decimal('0.00'):
-                    self.payment_model.add_customer_credit(
-                        client_id=customer_id,
-                        amount=excedente,
-                        reason=f"Excedente cheque {check_data['number']} · {check_data['bank']}",
-                        sale_id=None,
-                    )
-                    self.model.add_row_in_customer_ledger({
-                        'client_id':    customer_id,
-                        'type':         'SALDO FAVOR',
-                        'description':  f"Saldo a favor · Cheque {check_data['number']} · ${excedente:,.2f}",
-                        'amount':       Decimal('0.00'),
-                        'payment':      excedente,
-                        'debt':         self.model.get_total_debt(customer_id),
-                        'reference_id': check_id,
-                        'reference':    f"Excedente cheque {method}",
-                    })
-
-                if excedente > Decimal('0.00'):
-                    show_success(
-                        f"Pago registrado con éxito.\n\n"
-                        f"El excedente de ${excedente:,.2f} quedó registrado "
-                        f"como saldo a favor del cliente."
-                    )
-                else:
-                    show_success("Pago registrado con éxito.")
+                show_success("Pago registrado con éxito.")
                 win.destroy()
 
                 self.refresh_customer_data()
@@ -545,7 +512,7 @@ class CustomerController:
 
                 debts  = self.model.get_customer_debts(customer_id)
                 total  = self.model.get_total_debt(customer_id)
-                credit = self.payment_model.get_customer_credit(customer_id)
+                credit = self.customer_credit.get_customer_credit(customer_id)
                 net    = norm_to_2_dec(max(Decimal('0.00'), total - credit))
                 self.view.update_debt_window(debts, total, credit, net)
 
@@ -566,10 +533,11 @@ class CustomerController:
                     format=fmt,
                     client_name=client_name,
                     method=method,
-                    amount=amount_to_apply,
+                    amount=amount,
                     customer_id=customer_id,
                     result_data=result,
                     sales_with_items=sales_with_items,
+                    check_data=check_data,
                 )
 
             except Exception as e:
@@ -705,7 +673,7 @@ class CustomerController:
     def apply_credit_to_debts(self, customer_id, customer_name):
         """Aplica el saldo a favor del cliente a sus deudas pendientes"""
         try:
-            credit = self.payment_model.get_customer_credit(customer_id)
+            credit = self.customer_credit.get_customer_credit(customer_id)
 
             if credit <= Decimal('0.00'):
                 self.view.show_warning("El cliente no tiene saldo a favor.")
@@ -768,7 +736,7 @@ class CustomerController:
                         )
 
                         sale_status = self.payment_model.update_sale_status(
-                            sale_id, skip_credit_generation=True, conn=conn, commit=False
+                            sale_id, conn=conn, commit=False
                         )
 
                         self.model.register_payment_in_account(
@@ -788,11 +756,14 @@ class CustomerController:
                 # Descontar del crédito SOLO lo que se usó realmente
                 credit_used = amount_to_apply - remaining
                 if credit_used > Decimal('0.00'):
-                    self.payment_model.add_customer_credit(
-                        client_id=customer_id,
-                        amount=-credit_used,
-                        reason="Aplicación de crédito a deudas pendientes",
-                        sale_id=None,
+                    self.customer_credit.add_customer_credit(
+                        {
+                            'client_id': customer_id,
+                            'amount': -credit_used,
+                            'reason': "Aplicación de crédito a deudas pendientes",
+                            'sale_id': None,
+                        },
+                        check_id=None,
                         conn=conn,
                         commit=False
                     )
@@ -811,7 +782,7 @@ class CustomerController:
             credit_used = amount_to_apply - remaining
             
             # Obtener valores actualizados
-            new_credit = self.payment_model.get_customer_credit(customer_id)
+            new_credit = self.customer_credit.get_customer_credit(customer_id)
             remaining_debt = self.model.get_total_debt(customer_id)
 
             # Actualizar la UI
@@ -880,7 +851,7 @@ class CustomerController:
         try:
             # Verificar que no tenga deudas
             total_debt = self.model.get_total_debt(cliente_id)
-            credit = self.payment_model.get_customer_credit(cliente_id)
+            credit = self.customer_credit.get_customer_credit(cliente_id)
             #net = norm_to_2_dec(max(Decimal('0.00'), total_debt - credit))
 
             if total_debt > Decimal('0.00'):

@@ -235,7 +235,12 @@ class ChecksView:
             messagebox.showwarning("Atención", "No se puede rechazar en este estado.")
             return
         if messagebox.askyesno("Confirmar", "¿Marcar este cheque como RECHAZADO?"):
-            self.controller.mark_rechazado(check_id)
+            result = self.controller.mark_rechazado(check_id, status)
+            if result:
+                self.show_success('Hubo cambios en deuda y saldo')
+                ## Agregar fila a customer_ledger
+            else:
+                self.show_error('Algo salio mal')
 
     def _open_endorse_window(self, check_id):
         """Ventana para elegir a qué compra de proveedor se endosa."""
