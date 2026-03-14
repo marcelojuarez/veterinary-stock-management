@@ -187,7 +187,7 @@ class App():
         stock_model = StockModel(sales_model, payment_model, event_bus)
         supplier_model = SupplierModel(stock_model)
         checks_model = ChecksModel()
-        cash_model = CashModel()
+        cash_model = CashModel(customer_model)
         supplier_credit = SupplierCredit(supplier_model.db)
 
         ## --- CONTROLLERS --- ##
