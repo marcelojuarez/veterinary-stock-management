@@ -16,6 +16,102 @@ class CashModel:
         self.customer_model = customer_model
 
     # ================================================================== #
+    # APERTURA Y CIERRE DE CAJA                                           #
+    # ================================================================== #
+    
+    def get_cash_opening(self, date):
+        """Obtener apertura de caja para una fecha"""
+        query = """
+        SELECT id, date, opening_amount, closing_amount, expected_closing, 
+               difference, notes, opened_by, closed_by, opened_at, closed_at, status
+        FROM cash_opening
+        WHERE date = ?
+        """
+        result = self.db.fetch_one(query, (date,))
+        if result:
+            return {
+                'id': result[0],
+                'date': result[1],
+                'opening_amount': Decimal(result[2]),
+                'closing_amount': Decimal(result[3]) if result[3] else None,
+                'expected_closing': Decimal(result[4]) if result[4] else None,
+                'difference': Decimal(result[5]) if result[5] else None,
+                'notes': result[6],
+                'opened_by': result[7],
+                'closed_by': result[8],
+                'opened_at': result[9],
+                'closed_at': result[10],
+                'status': result[11]
+            }
+        return None
+    
+    def open_cash(self, date, opening_amount, opened_by='Usuario', notes=''):
+        """Abrir caja para una fecha"""
+        opened_at = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        
+        query = """
+        INSERT INTO cash_opening (date, opening_amount, opened_by, opened_at, notes, status)
+        VALUES (?, ?, ?, ?, ?, 'ABIERTA')
+        """
+        
+        params = (date, str(opening_amount), opened_by, opened_at, notes)
+        self.db.execute_query(query, params)
+    
+    def close_cash(self, date, closing_amount, closed_by='Usuario', notes=''):
+        """Cerrar caja para una fecha"""
+        # Calcular saldo esperado
+        summary = self.get_cash_summary(date)
+        opening = self.get_cash_opening(date)
+        
+        if not opening:
+            raise Exception("No hay apertura de caja para esta fecha")
+        
+        # FIX: Usar saldo_final en lugar de saldo
+        expected_closing = summary['saldo_final']
+        difference = Decimal(closing_amount) - expected_closing
+        closed_at = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        
+        query = """
+        UPDATE cash_opening
+        SET closing_amount = ?,
+            expected_closing = ?,
+            difference = ?,
+            closed_by = ?,
+            closed_at = ?,
+            notes = ?,
+            status = 'CERRADA'
+        WHERE date = ?
+        """
+        
+        params = (
+            str(closing_amount),
+            str(expected_closing),
+            str(difference),
+            closed_by,
+            closed_at,
+            notes,
+            date
+        )
+        
+        self.db.execute_query(query, params)
+        
+        return {
+            'expected_closing': expected_closing,
+            'actual_closing': Decimal(closing_amount),
+            'difference': difference
+        }
+    
+    def is_cash_open(self, date):
+        """Verificar si la caja está abierta para una fecha"""
+        opening = self.get_cash_opening(date)
+        return opening and opening['status'] == 'ABIERTA'
+    
+    def is_cash_closed(self, date):
+        """Verificar si la caja está cerrada para una fecha"""
+        opening = self.get_cash_opening(date)
+        return opening and opening['status'] == 'CERRADA'
+    
+    # ================================================================== #
     # GASTOS                                                              
     # ================================================================== #
     
@@ -59,17 +155,21 @@ class CashModel:
     # ================================================================== #
     # RESUMEN DE CAJA                                                     #
     # ================================================================== #
+    
     def get_cash_sales(self, date):
-        """Obtener ventas del dia (solo de contado)"""
+        """Obtener ventas del dia (solo de contado - pagadas y sin pagos asociados)"""
         try:
+            # FIX: Agregar ambos estados 'paid' y 'pagada'
             ventas_query = """
                 SELECT id, total 
                 FROM sales 
-                WHERE DATE(date) = ?
+                WHERE DATE(date) = ? 
+                AND (estado = 'paid' OR estado = 'pagada')
                 """
 
             cash_summary = Decimal('0.00')
             for ventas in self.db.fetch_all(ventas_query, (date,)):
+                # Verificar que sea venta de contado (no fiada)
                 if self.customer_model._is_cash_sale(ventas[0]):
                     cash_summary += Decimal(ventas[1])
 
@@ -105,7 +205,6 @@ class CashModel:
                 SELECT amount
                 FROM supplier_payment
                 WHERE DATE(date) = ?
-                -- posible validacion adicional: AND valid = 1
             """
 
             compras_summary = Decimal('0.00')
@@ -143,6 +242,10 @@ class CashModel:
         Obtener resumen completo de caja para una fecha
         Retorna dict con ingresos, egresos y saldo
         """
+        # 0. SALDO INICIAL - Apertura de caja
+        opening = self.get_cash_opening(date)
+        saldo_inicial = opening['opening_amount'] if opening else Decimal('0.00')
+        
         # 1. INGRESOS - Ventas del día (solo contado)
         ventas = self.get_cash_sales(date)
         
@@ -158,9 +261,11 @@ class CashModel:
         # Calcular totales
         total_ingresos = ventas + cobros
         total_egresos = compras + gastos
-        saldo = total_ingresos - total_egresos
+        saldo_movimientos = total_ingresos - total_egresos
+        saldo_final = saldo_inicial + saldo_movimientos
         
         return {
+            'saldo_inicial': saldo_inicial,
             'ingresos': {
                 'ventas': ventas,
                 'cobros': cobros,
@@ -171,26 +276,31 @@ class CashModel:
                 'gastos': gastos,
                 'total': total_egresos
             },
-            'saldo': saldo,
-            'tipo': 'POSITIVO' if saldo >= 0 else 'NEGATIVO'
-        }  
+            'saldo_movimientos': saldo_movimientos,
+            'saldo_final': saldo_final,
+            'saldo': saldo_movimientos,  # Mantener por compatibilidad
+            'tipo': 'POSITIVO' if saldo_final >= 0 else 'NEGATIVO',
+            'caja_abierta': opening is not None and opening['status'] == 'ABIERTA',
+            'caja_cerrada': opening is not None and opening['status'] == 'CERRADA'
+        }
+    
     # ================================================================== #
     # DETALLE DE MOVIMIENTOS                                              #
     # ================================================================== #
 
     def get_movements_sales(self, date):
-        """Obtener los detalles de la ventas del dia"""
+        """Obtener los detalles de la ventas del dia (solo contado)"""
         ventas_query = """
             SELECT date, id, total 
             FROM sales 
             WHERE DATE(date) = ? 
-            AND estado IN ('pagada', 'paid')
+            AND (estado = 'pagada' OR estado = 'paid')
             AND id NOT IN (SELECT sale_id FROM payments)
         """
-
         return self.db.fetch_all(ventas_query, (date,))
 
     def get_movements_cobros(self, date):
+        """Obtener cobros del día"""
         query = """
             SELECT p.date, p.amount, COALESCE(c.name, 'Consumidor Final'), p.sale_id
             FROM payments p
@@ -201,6 +311,7 @@ class CashModel:
         return self.db.fetch_all(query, (date,))
 
     def get_movements_compras(self, date):
+        """Obtener pagos a proveedores del día"""
         query = """
             SELECT sp.date, pp.amount_applied, sp.method, pp.purchase_id, s.name
             FROM purchase_payment pp
@@ -218,38 +329,30 @@ class CashModel:
             WHERE date = ?
         """
         return self.db.fetch_all(query, (date,))
-
-    def get_movements_sales_fiadas(self, date):
-        """Ventas fiadas del día (no entran en caja)"""
-        query = """
-            SELECT date, id, total
-            FROM sales
-            WHERE DATE(date) = ?
-            AND estado IN ('pagada', 'paid')
-            AND id IN (SELECT sale_id FROM payments)
-        """
-        return self.db.fetch_all(query, (date,))
         
     def get_movements_detail(self, date):
+        """Obtener detalle completo de movimientos del día"""
         movements = []
 
+        # Ventas de contado
         for row in self.get_movements_sales(date):
             movements.append((row[0], 'VENTA', f'Venta #{row[1]}', Decimal(row[2])))
 
-        for row in self.get_movements_sales_fiadas(date):
-            movements.append((row[0], 'FIADA', f'Venta #{row[1]} (fiada — cobro pendiente o ya cobrado)', Decimal('0.00')))
-
+        # Cobros
         for row in self.get_movements_cobros(date):
             nombre  = row[2]
             sale_id = row[3]
             movements.append((row[0], 'COBRO', f'Cobro cliente: {nombre} — Venta #{sale_id}', Decimal(row[1])))
 
+        # Pagos a proveedores
         for row in self.get_movements_compras(date):
             movements.append((row[0], 'PAGO PROV', f'[{row[4]}] Compra #{row[3]} — {row[2]}', -Decimal(row[1])))
 
+        # Gastos varios
         for row in self.get_movements_gastos(date):
             movements.append((row[0], 'GASTO', f'[{row[2]}] {row[3]}', -Decimal(row[1])))
 
+        # Ordenar por fecha/hora
         movements.sort(key=lambda x: x[0])
         return movements
 
@@ -303,14 +406,16 @@ class CashModel:
         SELECT COALESCE(SUM(CAST(amount AS REAL)), 0)
         FROM payments
         WHERE DATE(date) BETWEEN ? AND ?
+        AND valid = 1
         """
         cobros = float(self.db.fetch_one(cobros_query, (date_from, date_to))[0])
         
         # Egresos - Pagos a proveedores (fecha real del pago)
+        # FIX: Usar sp.date en lugar de pp.applied_at
         compras_query = """
-        SELECT COALESCE(SUM(CAST(pp.amount_applied AS REAL)), 0)
-        FROM purchase_payment pp
-        WHERE DATE(pp.applied_at) BETWEEN ? AND ?
+        SELECT COALESCE(SUM(CAST(sp.amount AS REAL)), 0)
+        FROM supplier_payment sp
+        WHERE DATE(sp.date) BETWEEN ? AND ?
         """
         compras = float(self.db.fetch_one(compras_query, (date_from, date_to))[0])
         

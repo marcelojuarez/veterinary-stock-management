@@ -469,6 +469,23 @@ class Database:
                 )
             ''')
 
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS cash_opening (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    date TEXT NOT NULL UNIQUE,
+                    opening_amount TEXT NOT NULL DEFAULT '0.00',
+                    closing_amount TEXT,
+                    expected_closing TEXT,
+                    difference TEXT,
+                    notes TEXT,
+                    opened_by TEXT,
+                    closed_by TEXT,
+                    opened_at TEXT NOT NULL,
+                    closed_at TEXT,
+                    status TEXT NOT NULL DEFAULT 'ABIERTA'
+                )
+            """)
+
             conn.commit()
 
     def execute_query(self, query, params=None, conn=None, commit=True):

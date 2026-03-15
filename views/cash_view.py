@@ -22,7 +22,6 @@ class CashView:
         self.date_var = tk.StringVar(value=datetime.now().strftime("%d/%m/%Y"))
         self.ingresos_var = tk.StringVar(value="$0.00")
         self.egresos_var = tk.StringVar(value="$0.00")
-        self.saldo_var = tk.StringVar(value="$0.00")
         
         self.create_widgets()
         self.load_data()
@@ -89,12 +88,17 @@ class CashView:
     def create_summary_cards(self):
         cards_frame = ctk.CTkFrame(self.frame, fg_color="transparent")
         cards_frame.grid(row=1, column=0, sticky="ew", padx=10, pady=8)
-        cards_frame.grid_columnconfigure((0, 1, 2), weight=1)
-
+        cards_frame.grid_columnconfigure((0, 1, 2, 3), weight=1)  # ← 4 columnas
+        
+        # Agregar variables
+        self.saldo_inicial_var = tk.StringVar(value="$0.00")
+        self.saldo_final_var = tk.StringVar(value="$0.00")
+        
         specs = [
+            ("opening", "🏦 SALDO INICIAL", "#607D8B", "#ECEFF1", self.saldo_inicial_var, "—"),
             ("income",  "💰 INGRESOS", "#2E7D32", "#E8F5E9", self.ingresos_var, "Ventas: $0 | Cobros: $0"),
             ("expense", "💸 EGRESOS",  "#C62828", "#FFEBEE", self.egresos_var,  "Compras: $0 | Gastos: $0"),
-            ("balance", "📊 SALDO",    "#1565C0", "#E3F2FD", self.saldo_var,    "—"),
+            ("balance", "📊 SALDO FINAL",    "#1565C0", "#E3F2FD", self.saldo_final_var,    "—"),
         ]
 
         for col, (key, label, fg, bg, var, detail_text) in enumerate(specs):
@@ -113,7 +117,10 @@ class CashView:
                                     font=ctk.CTkFont(size=11), text_color="#666")
             detail_lbl.pack(pady=(2, 8))
 
-            if key == "income":
+            if key == "opening":
+                self.opening_label = val_lbl
+                self.opening_detail = detail_lbl
+            elif key == "income":
                 self.income_label  = val_lbl
                 self.income_detail = detail_lbl
             elif key == "expense":
@@ -167,21 +174,22 @@ class CashView:
     def create_buttons(self):
         btn_frame = ctk.CTkFrame(self.frame, fg_color="transparent")
         btn_frame.grid(row=3, column=0, sticky="ew", padx=10, pady=12)
-        btn_frame.grid_columnconfigure((0, 1, 2), weight=1)
-
-        W, H = 200, 38
+        btn_frame.grid_columnconfigure((0, 1, 2, 3), weight=1)  # ← 4 columnas
+    
         buttons = [
-            ("💸 Registrar gasto", self.open_expense_window),
-            ("📄 Cerrar caja",     self.open_close_cash_window),
-            ("🔄 Actualizar",      self.load_data),
+            ("🏦 Abrir caja",      self.open_cash_opening_window, "#4CAF50", "#45a049"),
+            ("💸 Registrar gasto", self.open_expense_window,       "#FF9800", "#F57C00"),
+            ("📄 Cerrar caja",     self.open_close_cash_window,    "#F44336", "#D32F2F"),
+            ("🔄 Actualizar",      self.load_data,                 "#009688", "#00796B"),
         ]
-        for col, (text, cmd) in enumerate(buttons):
+        
+        for col, (text, cmd, fg, hover) in enumerate(buttons):
             ctk.CTkButton(
-                btn_frame, text=text, width=W, height=H,
-                fg_color="#009688", hover_color="#00796B",
+                btn_frame, text=text, width=180, height=38,
+                fg_color=fg, hover_color=hover,
                 font=ctk.CTkFont(size=13, weight="bold"),
                 command=cmd
-            ).grid(row=0, column=col, padx=8)
+            ).grid(row=0, column=col, padx=4)
     
     # ================================================================== #
     # LÓGICA                                                              #
@@ -203,9 +211,17 @@ class CashView:
             summary = self.cash_model.get_cash_summary(self.current_date)
             
             # Actualizar cards
+            self.saldo_inicial_var.set(f"${summary['saldo_inicial']:,.2f}")
             self.ingresos_var.set(f"${summary['ingresos']['total']:,.2f}")
             self.egresos_var.set(f"${summary['egresos']['total']:,.2f}")
-            self.saldo_var.set(f"${summary['saldo']:,.2f}")
+            self.saldo_final_var.set(f"${summary['saldo_final']:,.2f}")
+
+            if summary['caja_cerrada']:
+                self.opening_detail.configure(text="Caja cerrada", text_color="#F44336")
+            elif summary['caja_abierta']:
+                self.opening_detail.configure(text="Caja abierta", text_color="#4CAF50")
+            else:
+                self.opening_detail.configure(text="Sin abrir", text_color="#FF9800")
             
             # Actualizar detalles
             self.income_detail.configure(
@@ -215,14 +231,20 @@ class CashView:
                 text=f"Pagos Prov: ${summary['egresos']['compras']:,.2f} | Gastos: ${summary['egresos']['gastos']:,.2f}"
             )
             
-            # Actualizar color del saldo
-            if summary['saldo'] >= 0:
+            # Actualizar color y texto del saldo final
+            saldo_final = summary['saldo_final']
+            if saldo_final >= 0:
                 self.balance_label.configure(text_color="#4CAF50")
-                self.balance_status.configure(text="✓ Positivo", text_color="#4CAF50")
+                self.balance_status.configure(
+                    text=f"Movimientos: ${summary['saldo_movimientos']:,.2f}",
+                    text_color="#4CAF50"
+                )
             else:
                 self.balance_label.configure(text_color="#F44336")
-                self.balance_status.configure(text="✗ Negativo", text_color="#F44336")
-            
+                self.balance_status.configure(
+                    text=f"Movimientos: ${summary['saldo_movimientos']:,.2f}",
+                    text_color="#F44336"
+                )
             # Cargar movimientos
             self.load_movements()
             
@@ -250,10 +272,7 @@ class CashView:
                 
                 # Formatear monto
                 monto_str = f"${abs(monto):,.2f}"
-                if tipo == 'FIADA':
-                    monto_str = "$0.00"
-                    tag = "fiada"
-                elif monto > 0:
+                if monto > 0:
                     monto_str = f"+{monto_str}"
                     tag = "ingreso"
                 else:
@@ -280,6 +299,139 @@ class CashView:
     # ================================================================== #
     # VENTANAS                                                            #
     # ================================================================== #
+
+    def open_cash_opening_window(self):
+        """Ventana para abrir caja"""
+        # Verificar si ya está abierta
+        if self.cash_model.is_cash_open(self.current_date):
+            messagebox.showwarning(
+                "Advertencia",
+                f"La caja para {self.date_var.get()} ya está abierta"
+            )
+            return
+        
+        if self.cash_model.is_cash_closed(self.current_date):
+            messagebox.showwarning(
+                "Advertencia",
+                f"La caja para {self.date_var.get()} ya está cerrada"
+            )
+            return
+        
+        win = ctk.CTkToplevel(self.frame)
+        win.title("Abrir Caja")
+        win.configure(fg_color="#e0e0e0")
+        win.transient(self.frame)
+        win.grab_set()
+        win.withdraw()
+        
+        # Card
+        card = ctk.CTkFrame(win, fg_color="white", corner_radius=20)
+        card.pack(fill="both", expand=True, padx=20, pady=20)
+        
+        # Título
+        ctk.CTkLabel(
+            card,
+            text=f"🏦 Abrir Caja - {self.date_var.get()}",
+            font=ctk.CTkFont(size=18, weight="bold"),
+            text_color="black"
+        ).pack(pady=(20, 10))
+        
+        # Info
+        ctk.CTkLabel(
+            card,
+            text="Ingrese el saldo inicial en efectivo",
+            font=ctk.CTkFont(size=12),
+            text_color="#666"
+        ).pack(pady=(0, 20))
+        
+        # Form
+        form = ctk.CTkFrame(card, fg_color="transparent")
+        form.pack(padx=30, pady=10, fill="x")
+        
+        # Variables
+        amount_var = tk.StringVar()
+        notes_var = tk.StringVar()
+        
+        def add_field(row, label_text, widget):
+            ctk.CTkLabel(
+                form, text=label_text,
+                font=ctk.CTkFont(size=13, weight="bold"),
+                anchor="w", text_color="black"
+            ).grid(row=row, column=0, sticky="w", pady=8)
+            widget.grid(row=row, column=1, sticky="ew", pady=8)
+            return widget
+        
+        amount_entry = add_field(0, "Saldo Inicial:", ctk.CTkEntry(
+            form, width=300, textvariable=amount_var,
+            placeholder_text="0.00", font=ctk.CTkFont(size=14)
+        ))
+        amount_entry.focus()
+        
+        add_field(1, "Observaciones:", ctk.CTkEntry(
+            form, width=300, textvariable=notes_var,
+            placeholder_text="Opcional"
+        ))
+        
+        form.grid_columnconfigure(1, weight=1)
+        
+        # Botones
+        btn_frame = ctk.CTkFrame(card, fg_color="transparent")
+        btn_frame.pack(pady=20)
+        
+        def save_opening():
+            try:
+                if not amount_var.get().strip():
+                    messagebox.showwarning("Advertencia", "Ingrese el saldo inicial")
+                    return
+                
+                amount = float(amount_var.get())
+                if amount < 0:
+                    messagebox.showwarning("Advertencia", "El saldo no puede ser negativo")
+                    return
+                
+                # Abrir caja
+                self.cash_model.open_cash(
+                    date=self.current_date,
+                    opening_amount=amount,
+                    notes=notes_var.get().strip()
+                )
+                
+                messagebox.showinfo("Éxito", "Caja abierta correctamente")
+                win.destroy()
+                self.load_data()
+                
+            except ValueError:
+                messagebox.showerror("Error", "El monto debe ser un número válido")
+            except Exception as e:
+                messagebox.showerror("Error", f"Error al abrir caja: {e}")
+        
+        ctk.CTkButton(
+            btn_frame,
+            text="🏦 Abrir Caja",
+            width=150,
+            height=40,
+            fg_color="#4CAF50",
+            hover_color="#45a049",
+            font=ctk.CTkFont(size=13, weight="bold"),
+            command=save_opening
+        ).grid(row=0, column=0, padx=10)
+        
+        ctk.CTkButton(
+            btn_frame,
+            text="Cancelar",
+            width=150,
+            height=40,
+            fg_color="#757575",
+            hover_color="#616161",
+            font=ctk.CTkFont(size=13, weight="bold"),
+            command=win.destroy
+        ).grid(row=0, column=1, padx=10)
+        
+        win.bind("<Return>", lambda e: save_opening())
+        
+        from utils.view_helpers import center_window
+        center_window(win, 500, 350)
+        win.deiconify()
     
     def open_expense_window(self):
         """Abrir ventana para registrar gasto"""
@@ -420,10 +572,26 @@ class CashView:
         center_window(win, 520, 520)
         win.deiconify()
     
+
     def open_close_cash_window(self):
-        """Ventana de cierre de caja"""
+        """Ventana de cierre de caja con arqueo"""
         try:
+            # Verificar que esté abierta
+            if not self.cash_model.is_cash_open(self.current_date):
+                if self.cash_model.is_cash_closed(self.current_date):
+                    messagebox.showwarning(
+                        "Advertencia",
+                        "La caja ya está cerrada para esta fecha"
+                    )
+                else:
+                    messagebox.showwarning(
+                        "Advertencia",
+                        "Debe abrir la caja antes de cerrarla"
+                    )
+                return
+            
             summary = self.cash_model.get_cash_summary(self.current_date)
+            opening = self.cash_model.get_cash_opening(self.current_date)
             
             win = ctk.CTkToplevel(self.frame)
             win.title("Cierre de Caja")
@@ -448,13 +616,28 @@ class CashView:
             summary_frame = ctk.CTkFrame(card, fg_color="#f9f9f9", corner_radius=10)
             summary_frame.pack(padx=20, pady=10, fill="x")
             
-            # Ingresos
+            # SALDO INICIAL
             ctk.CTkLabel(
                 summary_frame,
-                text="💰 INGRESOS",
-                font=ctk.CTkFont(size=14, weight="bold"),
-                text_color="#4CAF50"
+                text="🏦 SALDO INICIAL",
+                font=ctk.CTkFont(size=13, weight="bold"),
+                text_color="#607D8B"
             ).pack(pady=(15, 5))
+            
+            ctk.CTkLabel(
+                summary_frame,
+                text=f"${summary['saldo_inicial']:,.2f}",
+                font=ctk.CTkFont(size=14, weight="bold"),
+                text_color="#607D8B"
+            ).pack(pady=(0, 10))
+            
+            # INGRESOS
+            ctk.CTkLabel(
+                summary_frame,
+                text="💰 INGRESOS DEL DÍA",
+                font=ctk.CTkFont(size=13, weight="bold"),
+                text_color="#4CAF50"
+            ).pack(pady=(5, 5))
             
             ctk.CTkLabel(
                 summary_frame,
@@ -473,13 +656,13 @@ class CashView:
                 text=f"TOTAL: ${summary['ingresos']['total']:,.2f}",
                 font=ctk.CTkFont(size=13, weight="bold"),
                 text_color="#4CAF50"
-            ).pack(pady=(5, 15))
+            ).pack(pady=(5, 10))
             
-            # Egresos
+            # EGRESOS
             ctk.CTkLabel(
                 summary_frame,
-                text="💸 EGRESOS",
-                font=ctk.CTkFont(size=14, weight="bold"),
+                text="💸 EGRESOS DEL DÍA",
+                font=ctk.CTkFont(size=13, weight="bold"),
                 text_color="#F44336"
             ).pack(pady=(5, 5))
             
@@ -500,34 +683,192 @@ class CashView:
                 text=f"TOTAL: ${summary['egresos']['total']:,.2f}",
                 font=ctk.CTkFont(size=13, weight="bold"),
                 text_color="#F44336"
-            ).pack(pady=(5, 15))
+            ).pack(pady=(5, 10))
             
-            # Saldo
-            saldo_color = "#4CAF50" if summary['saldo'] >= 0 else "#F44336"
+            # SALDO ESPERADO
+            expected = summary['saldo_final']
             
             ctk.CTkLabel(
                 summary_frame,
-                text=f"📊 Saldo Final: ${summary['saldo']:,.2f}",
+                text=f"📊 SALDO ESPERADO",
+                font=ctk.CTkFont(size=14, weight="bold"),
+                text_color="#1565C0"
+            ).pack(pady=(10, 5))
+            
+            expected_label = ctk.CTkLabel(
+                summary_frame,
+                text=f"${expected:,.2f}",
                 font=ctk.CTkFont(size=16, weight="bold"),
-                text_color=saldo_color
-            ).pack(pady=(10, 20))
+                text_color="#1565C0"
+            )
+            expected_label.pack(pady=(0, 15))
+            
+            # ARQUEO - Input saldo real
+            ctk.CTkLabel(
+                card,
+                text="💵 Arqueo de Caja",
+                font=ctk.CTkFont(size=15, weight="bold"),
+                text_color="black"
+            ).pack(pady=(10, 5))
+            
+            ctk.CTkLabel(
+                card,
+                text="Ingrese el efectivo real contado:",
+                font=ctk.CTkFont(size=12),
+                text_color="#666"
+            ).pack()
+            
+            actual_var = tk.StringVar()
+            notes_var = tk.StringVar()
+            difference_var = tk.StringVar(value="$0.00")
+            
+            entry_frame = ctk.CTkFrame(card, fg_color="transparent")
+            entry_frame.pack(pady=10)
+            
+            actual_entry = ctk.CTkEntry(
+                entry_frame,
+                width=200,
+                height=40,
+                textvariable=actual_var,
+                placeholder_text="0.00",
+                font=ctk.CTkFont(size=16),
+                justify="center"
+            )
+            actual_entry.pack()
+            actual_entry.focus()
+            
+            # Diferencia
+            diff_frame = ctk.CTkFrame(card, fg_color="#FFF9C4", corner_radius=10)
+            diff_frame.pack(padx=20, pady=10, fill="x")
+            
+            ctk.CTkLabel(
+                diff_frame,
+                text="📊 Diferencia:",
+                font=ctk.CTkFont(size=13),
+                text_color="#666"
+            ).pack(pady=(10, 0))
+            
+            diff_label = ctk.CTkLabel(
+                diff_frame,
+                textvariable=difference_var,
+                font=ctk.CTkFont(size=18, weight="bold"),
+                text_color="#F57C00"
+            )
+            diff_label.pack(pady=(0, 10))
+            
+            # Calcular diferencia automáticamente
+            def calculate_difference(*args):
+                try:
+                    if actual_var.get().strip():
+                        actual = float(actual_var.get())
+                        diff = actual - float(expected)
+                        difference_var.set(f"${diff:,.2f}")
+                        
+                        if diff == 0:
+                            diff_label.configure(text_color="#4CAF50")
+                            diff_frame.configure(fg_color="#E8F5E9")
+                        elif diff > 0:
+                            diff_label.configure(text_color="#2196F3")
+                            diff_frame.configure(fg_color="#E3F2FD")
+                        else:
+                            diff_label.configure(text_color="#F44336")
+                            diff_frame.configure(fg_color="#FFEBEE")
+                    else:
+                        difference_var.set("$0.00")
+                        diff_label.configure(text_color="#F57C00")
+                        diff_frame.configure(fg_color="#FFF9C4")
+                except ValueError:
+                    difference_var.set("Inválido")
+                    diff_label.configure(text_color="#F44336")
+            
+            actual_var.trace('w', calculate_difference)
+            
+            # Observaciones
+            ctk.CTkLabel(
+                card,
+                text="Observaciones:",
+                font=ctk.CTkFont(size=12),
+                text_color="#666"
+            ).pack(pady=(10, 5))
+            
+            ctk.CTkEntry(
+                card,
+                width=400,
+                textvariable=notes_var,
+                placeholder_text="Opcional: Explique diferencias si las hay"
+            ).pack(pady=(0, 10))
             
             # Botones
             btn_frame = ctk.CTkFrame(card, fg_color="transparent")
             btn_frame.pack(pady=15)
             
+            def close_cash():
+                try:
+                    if not actual_var.get().strip():
+                        messagebox.showwarning("Advertencia", "Ingrese el saldo real")
+                        return
+                    
+                    actual = float(actual_var.get())
+                    if actual < 0:
+                        messagebox.showwarning("Advertencia", "El saldo no puede ser negativo")
+                        return
+                    
+                    # Confirmar si hay diferencia
+                    diff = actual - float(expected)
+                    if abs(diff) > 0.01:
+                        msg = f"Hay una diferencia de ${diff:,.2f}\n\n¿Desea continuar con el cierre?"
+                        if not messagebox.askyesno("Confirmar", msg):
+                            return
+                    
+                    # Cerrar caja
+                    result = self.cash_model.close_cash(
+                        date=self.current_date,
+                        closing_amount=actual,
+                        notes=notes_var.get().strip()
+                    )
+                    
+                    messagebox.showinfo(
+                        "Éxito",
+                        f"Caja cerrada correctamente\n\n"
+                        f"Esperado: ${result['expected_closing']:,.2f}\n"
+                        f"Real: ${result['actual_closing']:,.2f}\n"
+                        f"Diferencia: ${result['difference']:,.2f}"
+                    )
+                    
+                    win.destroy()
+                    self.load_data()
+                    
+                except ValueError:
+                    messagebox.showerror("Error", "El monto debe ser un número válido")
+                except Exception as e:
+                    messagebox.showerror("Error", f"Error al cerrar caja: {e}")
+            
             ctk.CTkButton(
                 btn_frame,
-                text="Cerrar",
+                text="✅ Cerrar Caja",
+                width=150,
+                height=40,
+                fg_color="#4CAF50",
+                hover_color="#45a049",
+                font=ctk.CTkFont(size=13, weight="bold"),
+                command=close_cash
+            ).grid(row=0, column=0, padx=10)
+            
+            ctk.CTkButton(
+                btn_frame,
+                text="Cancelar",
                 width=150,
                 height=40,
                 fg_color="#757575",
                 hover_color="#616161",
                 font=ctk.CTkFont(size=13, weight="bold"),
                 command=win.destroy
-            ).pack()
+            ).grid(row=0, column=1, padx=10)
             
-            center_window(win, 450, 550)
+            win.bind("<Return>", lambda e: close_cash())
+            
+            from utils.view_helpers import center_window
+            center_window(win, 500, 950)
             win.deiconify()
             
         except Exception as e:
