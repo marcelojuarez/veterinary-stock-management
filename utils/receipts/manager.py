@@ -36,29 +36,28 @@ def _open_file(path: str):
 
 def generate_receipts_for_payment(
     *,
-    mode: str,                 # "sale" | "global"
-    format: str,               # "ticket" | "a4" | "both"
+    mode: str,                  # "sale" | "global"
+    format: str,                # "ticket" | "a4" | "both"
     client_name: str,
     method: str,
     amount: Decimal,
+    check_data: dict | None = None,   # datos del cheque/eCheq si aplica
 
     # Para sale:
     sale_id: int | None = None,
     sale_info=None,
     payments=None,
-    sales_with_items=None, 
+    sales_with_items=None,
 
     # Para global:
     customer_id: int | None = None,
     result_data=None,
+
+    # Impresión directa
+    auto_print: bool = False,
 ):
     paths = []
 
-    # ================================================================
-    # TICKET (80mm) - Simple, solo monto para el cliente
-    # ================================================================
-    print(f'format: {format}')
-    print(f'mode: {mode}')
     if format in ("ticket", "both"):
         ticket_path = ticket_pago_global(client_name)
         generate_global_payment_ticket(
@@ -70,13 +69,11 @@ def generate_receipts_for_payment(
             amount=amount,
             method=method,
             result_data=result_data,
-            sales_with_items=sales_with_items
+            sales_with_items=sales_with_items,
+            check_data=check_data,
         )
-        paths.append(ticket_path)
+        paths.append(("ticket", ticket_path))
 
-    # ================================================================
-    # COMPROBANTE A4 - Completo con detalle de productos
-    # ================================================================
     if format in ("a4", "both"):
         a4_path = a4_pago_global(client_name)
         generate_global_payment_receipt(
@@ -88,15 +85,18 @@ def generate_receipts_for_payment(
             payment_amount=amount,
             method=method,
             result_data=result_data,
-            sales_with_items=sales_with_items
+            sales_with_items=sales_with_items,
+            check_data=check_data,
         )
-        paths.append(a4_path)
+        paths.append(("a4", a4_path))
 
-    # Abrir archivos generados
-    for p in paths:
-        _open_file(p)
+    for fmt_type, p in paths:
+        if auto_print:
+            print_file(p)
+        else:
+            _open_file(p)
 
-    return paths
+    return [p for _, p in paths]
 
 
 def generate_orden_pago_proveedor(

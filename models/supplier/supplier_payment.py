@@ -70,6 +70,34 @@ class SupplierPayment():
             print(f'Error getting supplier payment by id: {e}')
             return None  
 
+    def add_payment(self, pay_data, check_id=None, conn=None, commit=True):
+     
+            date = datetime.now().strftime("%Y-%m-%d")
+            
+            # registra un pago
+            query = """
+                INSERT INTO supplier_payment (supplier_id, receipt_number, amount, method, observation, operation_num, 
+                origin, destination, check_id, check_number, bank, date)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ? ,? ,?, ?)
+            """
+
+            params = [
+                pay_data['Supplier_id'],
+                pay_data['Receipt_number'],
+                str(pay_data['Amount']),
+                pay_data['Method'],
+                pay_data['Observation'],
+                pay_data['Operation_num'],
+                pay_data['Origin'],
+                pay_data['Destination'],
+                check_id,
+                pay_data['Check_number'],
+                pay_data['Bank'],
+                date
+            ]
+
+            return self.db.execute_query(query, params, conn=conn, commit=commit)
+
     ## -- Agrega una relacion entre un pago y una compra -- ##
     def add_purchase_payment_relation(self, data, conn=None, commit=True):
         date = datetime.now().strftime("%Y-%m-%d")
@@ -101,37 +129,14 @@ class SupplierPayment():
             return None
 
     ## -- Transaccion que registra un pago -- ##
-    def register_payment(self, pay_data, purchase_id=None):
+    def register_payment_and_set_relation(self, pay_data, purchase_id=None):
         try:
             conn = self.db.get_connection()
 
             # Iniciar transacción
             conn.execute("BEGIN")
 
-            date = datetime.now().strftime("%Y-%m-%d")
-            
-            # registra un pago
-            query = """
-                INSERT INTO supplier_payment (supplier_id, receipt_number, amount, method, observation, operation_num, 
-                origin, destination, check_number, bank, date)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ? ,? ,?, ?)
-            """
-
-            params = [
-                pay_data['Supplier_id'],
-                pay_data['Receipt_number'],
-                str(pay_data['Amount']),
-                pay_data['Method'],
-                pay_data['Observation'],
-                pay_data['Operation_num'],
-                pay_data['Origin'],
-                pay_data['Destination'],
-                pay_data['Check_number'],
-                pay_data['Bank'],
-                date
-            ]
-
-            payment_id = self.db.execute_query(query, params, conn=conn, commit=False)
+            payment_id = self.add_payment(pay_data, conn=conn, commit=False)
             total_amount = pay_data['Amount']
 
             if purchase_id is not None:
@@ -237,3 +242,66 @@ class SupplierPayment():
             conn.close() 
             return True    
         
+    ## -- Obtiene los pagos a un proveedor vinculados con un cheque -- ##
+    def get_supplier_payments_by_check(self, check_id, conn=None):
+        query = """
+            SELECT id
+            FROM supplier_payment
+            WHERE check_id = ? AND valid = 1
+        """
+        return self.db.fetch_all(query, (check_id,), conn=conn)
+    
+    ## -- Obtiene las compras afectadas por un pago en particular -- ##
+    def get_purchases_affected_by_payment(self, supplier_payment_id, conn=None):
+        query = """
+            SELECT purchase_id, amount_applied
+            FROM purchase_payment
+            WHERE payment_id = ?
+        """
+        return self.db.fetch_all(query, (supplier_payment_id,), conn=conn)
+    
+    def revert_purchase_pending(self, purchase_id, amount_applied, conn=None, commit=True):
+        # Obtener pending actual
+        row = self.db.fetch_one(
+            "SELECT pending, document_type, invoice_id, receipt_id FROM purchase WHERE id = ?",
+            (purchase_id,), conn=conn
+        )
+        if not row:
+            return
+        
+        current_pending, doc_type, invoice_id, receipt_id = row
+        
+        new_pending = norm_to_2_dec(Decimal(current_pending) + Decimal(amount_applied))
+        
+        # reutilizar set_new_debt_purchase
+        doc_id = receipt_id if doc_type == 'REMITO' else invoice_id
+        self.purchase.set_new_debt_purchase(purchase_id, doc_id, doc_type, new_pending, conn=conn, commit=commit)
+
+    ## -- Cancela Registros de pago a un proveedor asociados a un cheque -- ##
+    def cancel_check_supplier_payments(self, check_id, conn=None, commit=True):
+        # Pagos vinculados al cheque
+        payments = self.get_supplier_payments_by_check(check_id, conn=conn)
+        print(f'payments: {len(payments)}')
+
+        if not payments:
+            return
+        
+        for pay_id in payments:
+            # Por cada pago se obtienen las compras afectadas
+            purchases = self.get_purchases_affected_by_payment(pay_id, conn=conn)
+
+            for purchase_id, amount_applied in purchases:
+                # Se revierte el pendiente de cada compra
+                self.revert_purchase_pending(purchase_id, amount_applied, conn=conn, commit=commit)
+
+            # Se eliminan las relacionas que involucran el pago invalido
+            self.db.execute_query(
+                "DELETE FROM purchase_payment WHERE payment_id = ?",
+                (pay_id,), conn=conn, commit=False
+            )
+
+            # Se setea el pago como invalido
+            self.db.execute_query(
+                "UPDATE supplier_payment SET valid = 0 WHERE id = ?",
+                (pay_id,), conn=conn, commit=False
+            )

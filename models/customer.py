@@ -274,15 +274,15 @@ class CustomerModel:
         self.add_row_in_customer_ledger(data, conn=conn, commit=commit)
 
     ## -- Registra un movimiento de saldo a favor  en el historial del cliente -- ##
-    def register_credit_balance_in_account(self, client_id, sale_id, amount, description, conn=None, commit=True):
+    def register_credit_balance_in_account(self, client_id, reference_id, payment, description, conn=None, commit=True):
         data = {
             'client_id': client_id,
             'type': 'SALDO FAVOR',
             'description': description,
             'amount': Decimal('0.00'),
-            'payment': Decimal('0.00'),
-            'debt': Decimal('0.00'),  
-            'reference_id': sale_id,
+            'payment': payment,
+            'debt': self.get_total_debt(client_id, conn=conn),  
+            'reference_id': reference_id,
             'reference': 'Ajuste de precio'
         }
         self.add_row_in_customer_ledger(data, conn=conn, commit=commit)

@@ -80,8 +80,8 @@ class PaymentModel:
         )
         self.customer_model.register_credit_balance_in_account(
             client_id=client_id,
-            sale_id=sale_id,
-            amount=overpay,
+            reference_id=sale_id,
+            payment=overpay,
             description=f"Saldo a favor · Ajuste Vta #{sale_id} · ${overpay}",
             conn=conn,
             commit=commit
@@ -108,10 +108,10 @@ class PaymentModel:
         query = """
         SELECT amount 
         FROM payments 
-        WHERE client_id = ? and valid = ? and method != ?
+        WHERE client_id = ? and valid = ?
         """
 
-        rows = self.db.fetch_all(query, (client_id, 1, 'Saldo a Favor'), conn=conn)
+        rows = self.db.fetch_all(query, (client_id, 1), conn=conn)
 
         amount = Decimal('0.00')
 
@@ -120,7 +120,7 @@ class PaymentModel:
 
         return norm_to_2_dec(amount)
 
-    def apply_global_payment(self, customer_id, amount, method="Efectivo", check_id=None):
+    def apply_global_payment(self, customer_id, amount, method="Efectivo", check_id=None, check_data=None):
         """
         Aplica un pago global distribuido entre las deudas pendientes. 
         Nota: Usualmente es FIFO (ASC)
@@ -188,6 +188,7 @@ class PaymentModel:
                 updated_debts.append((sale_id, pay_amount))
 
             print(f'remaining: {remaining}')
+            surplus = Decimal('0.00')
 
             # Verifica si se genera saldo a favor al pagar con cheque
             if remaining > Decimal('0.00') and check_id is not None:
@@ -195,7 +196,7 @@ class PaymentModel:
                     {
                         'client_id': customer_id,
                         'amount': remaining,
-                        'reason': "Saldo a favor por pago con cheque",
+                        'reason': f"Excedente cheque {check_data['number']} · {check_data['bank']}",
                         'sale_id': None
                     },
                     check_id=check_id,
@@ -204,12 +205,14 @@ class PaymentModel:
                 )
                 self.customer_model.register_credit_balance_in_account(
                     client_id=customer_id,
-                    sale_id=None,
-                    amount=remaining,
+                    reference_id=check_id,
+                    payment=remaining,
                     description=f"Saldo a favor · Cheque cargado. ${remaining}",
                     conn=conn,
                     commit=False
                 )
+
+                surplus = remaining
 
             # Obtener el total de todas las ventas
             all_sales = self.sale_model.get_total_of_all_sales(customer_id, conn=conn)
@@ -226,6 +229,7 @@ class PaymentModel:
                 "remaining": norm_to_2_dec(remaining),
                 "updated_debts": updated_debts,
                 "still_owed": still_owed,
+                "surplus": surplus,
                 "credit_added": norm_to_2_dec(remaining) if remaining > Decimal("0.00") else Decimal("0.00"),
             }
 
