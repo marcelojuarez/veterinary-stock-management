@@ -10,6 +10,7 @@ from models.supplier.__init__ import SupplierModel
 from models.sale import SalesModel
 from models.payment_model import PaymentModel
 from models.stock import StockModel
+from models.checks_model import ChecksModel
 from models.security import gen_password
 from models.customer_credit import CustomerCredit
 from utils.utils import norm_to_2_dec, flex_dec
@@ -932,7 +933,8 @@ def seed_suppliers():
     
     sales_model = SalesModel()
     customer_credit = CustomerCredit()
-    payment_model = PaymentModel(sales_model, customer_credit)
+    checks_model = ChecksModel()
+    payment_model = PaymentModel(sales_model, customer_credit, checks_model)
     stock_model = StockModel(sales_model, payment_model, None)
     supplier_mdl = SupplierModel(stock_model)
     

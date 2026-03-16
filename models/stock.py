@@ -131,14 +131,15 @@ class StockModel:
                         new_status = self.payment_model.update_sale_status(sale_id, conn=conn, commit=False)
 
                         if new_status == 'paid':
-                            paid = self.payment_model.get_total_amount_of_pay_for_a_sale(sale_id, conn=conn)
+                            payments = self.payment_model.get_payments_for_sale(sale_id, conn=conn)
+                            paid = norm_to_2_dec(sum(Decimal(p[1]) for p in payments))
+
                             # ← genera crédito explícitamente
                             self.payment_model.generate_overpay_credit(
                                 sale_id=sale_id,
                                 client_id=client_id,
-                                paid=paid,
                                 total=new_total,
-                                check_id=None,
+                                payments=payments,
                                 conn=conn,
                                 commit=False
                             )
