@@ -948,10 +948,10 @@ if __name__ == "__main__":
     print("-" * 50)
     
     seed_company_data()
-    seed_suppliers()
+    #seed_suppliers()
     seed_client()
-    seed_clients()
-    seed_stock()
+    #seed_clients()
+    #seed_stock()
     #seed_sales_with_products()
     seed_consumidor_final()
     

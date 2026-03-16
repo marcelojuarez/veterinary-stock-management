@@ -293,7 +293,7 @@ class PaymentForm:
             self.check_num_lbl.grid(row=4, column=0, padx=(20,8), pady=4, sticky="e")
             self.check_num_entry.grid(row=4, column=1, padx=(0,20), pady=4, sticky="w")
             self.render_buttons(5)
-            self._resize_window(self._base_h + 270)
+            self._resize_window(self._base_h + 300)
 
         elif method == "EFECTIVO":
             self.render_buttons(0)
@@ -306,7 +306,7 @@ class PaymentForm:
         req_h = self.add_pay_win.winfo_reqheight()
         h  = max(new_height, req_h)
         sh = getattr(self, '_screen_h', self.add_pay_win.winfo_screenheight())
-        h  = min(h, sh - 100)
+        h  = min(h, sh - 20)
         w  = getattr(self, '_win_w', 580)
         sw = getattr(self, '_screen_w', self.add_pay_win.winfo_screenwidth())
         x  = sw // 2 - w // 2
