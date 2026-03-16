@@ -179,20 +179,40 @@ class CashModel:
             return Decimal('0.00')
 
     def get_payment_client(self, date):
-        """Obtener cobros a clientes del día"""
+        """Obtener cobros a clientes del día (monto REAL ingresado, incluyendo cheques completos)"""
         try:
+            # Query que considera el monto real del cheque cuando existe
             cobros_query = """
-                SELECT amount 
-                FROM payments 
-                WHERE DATE(date) = ? 
-                AND valid = 1
-                """
+                SELECT 
+                    p.id,
+                    p.amount as amount_applied,
+                    p.method,
+                    p.check_id,
+                    c.amount as check_amount
+                FROM payments p
+                LEFT JOIN checks c ON c.id = p.check_id
+                WHERE DATE(p.date) = ? 
+                AND p.valid = 1
+            """
 
             cobros_summary = Decimal('0.00')
-            for cobros in self.db.fetch_all(cobros_query, (date,)):
-                cobros_summary += Decimal(cobros[0])
+            
+            for pago in self.db.fetch_all(cobros_query, (date,)):
+                payment_id = pago[0]
+                amount_applied = Decimal(pago[1])
+                method = pago[2]
+                check_id = pago[3]
+                check_amount = pago[4]
+                
+                # Si es pago con cheque, usar el monto del cheque (monto REAL que ingresó)
+                if check_id and check_amount:
+                    cobros_summary += Decimal(check_amount)
+                else:
+                    # Si es efectivo/transferencia, usar el monto aplicado
+                    cobros_summary += amount_applied
 
             return norm_to_2_dec(cobros_summary)
+            
         except Exception as e:
             print(f"Error al obtener cobros a clientes: {e}")
             return Decimal('0.00')
@@ -300,11 +320,20 @@ class CashModel:
         return self.db.fetch_all(ventas_query, (date,))
 
     def get_movements_cobros(self, date):
-        """Obtener cobros del día"""
+        """Obtener cobros del día (con monto real de cheques)"""
         query = """
-            SELECT p.date, p.amount, COALESCE(c.name, 'Consumidor Final'), p.sale_id
+            SELECT 
+                p.date, 
+                p.amount as amount_applied,
+                COALESCE(c.name, 'Consumidor Final') as client_name,
+                p.sale_id,
+                p.method,
+                p.check_id,
+                ch.amount as check_amount,
+                ch.number as check_number
             FROM payments p
             LEFT JOIN customer c ON c.id = p.client_id
+            LEFT JOIN checks ch ON ch.id = p.check_id
             WHERE DATE(p.date) = ?
             AND p.valid = 1
         """
@@ -338,11 +367,33 @@ class CashModel:
         for row in self.get_movements_sales(date):
             movements.append((row[0], 'VENTA', f'Venta #{row[1]}', Decimal(row[2])))
 
-        # Cobros
+        # Cobros (con monto real de cheques)
         for row in self.get_movements_cobros(date):
-            nombre  = row[2]
+            fecha = row[0]
+            amount_applied = Decimal(row[1])
+            client_name = row[2]
             sale_id = row[3]
-            movements.append((row[0], 'COBRO', f'Cobro cliente: {nombre} — Venta #{sale_id}', Decimal(row[1])))
+            method = row[4]
+            check_id = row[5]
+            check_amount = row[6] if row[6] else None
+            check_number = row[7] if row[7] else None
+            
+            # Determinar monto real y concepto
+            if check_id and check_amount:
+                # Pago con cheque - mostrar monto total del cheque
+                monto_real = Decimal(check_amount)
+                concepto = f'Cobro cliente: {client_name} — Venta #{sale_id} — Cheque #{check_number}'
+                
+                # Si hay diferencia, indicar saldo a favor
+                diferencia = monto_real - amount_applied
+                if diferencia > 0:
+                    concepto += f' — Saldo a favor: ${diferencia:,.2f}'
+            else:
+                # Pago en efectivo/transferencia - monto aplicado
+                monto_real = amount_applied
+                concepto = f'Cobro cliente: {client_name} — Venta #{sale_id}'
+            
+            movements.append((fecha, 'COBRO', concepto, monto_real))
 
         # Pagos a proveedores
         for row in self.get_movements_compras(date):

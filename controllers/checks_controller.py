@@ -49,9 +49,15 @@ class ChecksController:
             check_data = self.model.get_check_by_id(check_id)
             client_id = check_data[9]
             new_debt = self.customer_model.get_total_debt(client_id)
+            client_data = self.customer_model.find_customer_by_id(client_id)
             ## Se genera fila en customer_ledger
-            self.customer_model.register_bounced_check_in_account(client_id, check_amount=check_data[4], debt_amount=new_debt)
-            return True, 'Cambios en Deuda y Saldo a Favor...'
+            self.customer_model.register_bounced_check_in_account(
+                client_id, 
+                check_amount=check_data[4], 
+                debt_amount=new_debt
+            )
+
+            return True, f'La Cuenta Corriente de: {client_data[1]} fue modificada'
 
         else:
             return False, 'Ocurrio un error.'
@@ -66,12 +72,22 @@ class ChecksController:
 
             if check_state == 'EN_CARTERA':
                 # Genera deuda en el cliente
-                # Descuenta de saldo a favor 
                 self.payment_model.cancel_check_payments(check_id, conn=conn, commit=False)
+                # Descuenta de saldo a favor 
                 self.customer_credit.cancel_check_credit(check_id, conn=conn, commit=False)
 
             elif check_state == 'ENDOSADO':
-                pass
+                # Genera deuda con el proveedor
+                # Descuenta el saldo a favor para pagar al proveedor
+                self.payment_model.cancel_check_supplier_payments(check_id, conn=conn, commit=False)
+                # Como el cheque proviene de un cliente, se ve afectado
+                
+
+                # Genera deuda en el cliente
+                self.payment_model.cancel_check_payments(check_id, conn=conn, commit=False)
+                # Descuenta de saldo a favor 
+                self.customer_credit.cancel_check_credit(check_id, conn=conn, commit=False)
+
             else:
                 show_error('Ocurrio un error')
                 raise Exception

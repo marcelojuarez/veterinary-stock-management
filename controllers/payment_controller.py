@@ -78,7 +78,7 @@ class PaymentController():
                 'Bank':           payment_data['bank'],
             }
 
-            result = self.supplier_model.payment.register_payment(data, purchase_id)
+            result = self.supplier_model.payment.register_payment_and_set_relation(data, purchase_id)
 
             if result:
                 # ── Usar saldo a favor ────────────────────────────────

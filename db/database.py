@@ -149,13 +149,16 @@ class Database:
                     destination TEXT,
                            
                     -- CHEQUE
-                    check_number TEXT, 
+                    check_id INTEGER NULL,    
+                    check_number TEXT,
                            
                     -- TRANSFERENCIA o CHEQUE
                     bank TEXT,  
 
-                    date TEXT DEFAULT CURRENT_DATE,
+                    date TEXT DEFAULT CURRENT_DATE,    
+                    valid INTEGER NOT NULL DEFAULT 1,
                     FOREIGN KEY (supplier_id) REFERENCES supplier (id)
+                    FOREIGN KEY (check_id) REFERENCES checks(id) ON DELETE SET NULL
                 );
             ''')
 
@@ -440,13 +443,14 @@ class Database:
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     client_id INTEGER NOT NULL,
                     amount TEXT NOT NULL,
+                    used TEXT NOT NULL DEFAULT '0.00',
                     reason TEXT,
                     created_at TEXT DEFAULT CURRENT_TIMESTAMP,
                     sale_id INTEGER,
                     check_id INTEGER NULL,
-                    valid INTEGER NOT NULL,
+                    valid INTEGER NOT NULL DEFAULT 1,
                     FOREIGN KEY(client_id) REFERENCES customer(id) ON DELETE CASCADE,
-                    FOREIGN KEY(sale_id) REFERENCES sales(id) ON DELETE SET NULL
+                    FOREIGN KEY(sale_id) REFERENCES sales(id) ON DELETE SET NULL,
                     FOREIGN KEY(check_id) REFERENCES checks(id) ON DELETE SET NULL
                 );
             ''')

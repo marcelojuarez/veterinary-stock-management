@@ -3,6 +3,7 @@ from tkinter import ttk, messagebox
 from utils.utils import format_currency
 from utils.view_helpers import center_window
 from decimal import Decimal
+from models.customer import CustomerModel
 ctk.set_appearance_mode("light")
 ctk.set_default_color_theme("blue")
 
@@ -11,6 +12,7 @@ class CustomersView:
     def __init__(self, parent, controller):
         self.controller = controller
         self.frame = ctk.CTkFrame(parent, fg_color="#f0f0f0")
+
 
         # Variables principales
         self.search_var = ctk.StringVar()
@@ -53,6 +55,19 @@ class CustomersView:
             "<KeyRelease>",
             lambda event: self.controller.filter_customers(self.search_entry.get())
         )
+
+        self.showing_debtors = False 
+
+        self.filter_debts_btn = ctk.CTkButton(
+            header, text="Ver deudores",
+            width=120, height=35,
+            fg_color="#009688", hover_color="#00796B",
+            font=ctk.CTkFont(size=12, weight="bold"),
+            command=lambda: self.filters_customer_debts()
+        )
+
+        self.filter_debts_btn.grid(row=0, column=2, padx=10, pady=15)
+
 
 
     # --------------------------------------------------------------------
@@ -795,6 +810,18 @@ class CustomersView:
                 self.table.see(row)
                 break
 
+    def filters_customer_debts(self):
+        """Obtener todos los clientes deudores"""
+        if not self.showing_debtors:
+            debtors = self.controller.get_customer_with_debts()
+            self.refresh_customer_table(debtors)
+            self.showing_debtors = True
+            self.filter_debts_btn.configure(text="Ver todos")
+        else: 
+            self.controller.filter_customers("")
+            self.showing_debtors = False
+            self.filter_debts_btn.configure(text="Ver deudores")
+    
     def open_account_history_window(self, cliente_id, cliente_nombre, movements, summary):
         """Ventana de historial de cuenta completo"""
         width_win = 950

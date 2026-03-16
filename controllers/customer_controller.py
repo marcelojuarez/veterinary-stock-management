@@ -488,14 +488,21 @@ class CustomerController:
                     check_id = row[0] if row else None
 
                 result = self.payment_model.apply_global_payment(
-                    customer_id, amount, method=method, check_id=check_id
+                    customer_id, amount, method=method, check_id=check_id, check_data=check_data
                 )
 
                 if not result:
                     show_error('Ocurrió un error al registrar el pago.')
                     return
 
-                show_success("Pago registrado con éxito.")
+                if result['surplus'] > Decimal('0.00'):
+                    show_success(
+                        f"Pago registrado con éxito.\n\n"
+                        f"El excedente de ${result['surplus']} quedó registrado "
+                        f"como saldo a favor del cliente."
+                    )
+                else:
+                    show_success("Pago registrado con éxito.")
                 win.destroy()
 
                 self.refresh_customer_data()
@@ -529,7 +536,7 @@ class CustomerController:
                     customer_id=customer_id,
                     result_data=result,
                     sales_with_items=sales_with_items,
-                    check_data=check_data,
+                    check_data=check_data
                 )
 
             except Exception as e:
@@ -699,66 +706,84 @@ class CustomerController:
                     WHERE cliente_id = ? AND estado IN ('pending', 'partial')
                     ORDER BY date ASC
                 """
-                rows = self.payment_model.db.fetch_all(query, (customer_id,), conn=conn)
+                sales = self.payment_model.db.fetch_all(query, (customer_id,), conn=conn)
                 remaining = amount_to_apply
                 payment_applied = []
 
-                for row in rows:
+                # Obtengo la lista de creditos disponibles
+                credit_rows = list(self.customer_credit.get_valid_rows_from_customer_credit(customer_id, conn=conn))
+
+                for sale in sales:
+                    if not credit_rows:
+                        break
+
                     if remaining <= Decimal('0.00'):
                         break
 
-                    sale_id, total = row
+                    sale_id, total = sale
                     paid = self.payment_model.get_total_amount_of_pay_for_a_sale(sale_id, conn=conn)
                     balance = Decimal(total) - paid
 
                     if balance <= Decimal('0.00'):
                         continue
 
-                    pay_amount = norm_to_2_dec(min(balance, remaining))
+                    for i, (credit_id, credit_amount, credit_used, check_id) in enumerate(credit_rows):
+                        # Se aplican micro pagos para poder heredar los check_id en caso de rechazar el cheque
 
-                    if pay_amount > Decimal('0.00'):
-                        self.payment_model.create_payment(
-                            sale_id=sale_id,
-                            client_id=customer_id,
-                            amount=pay_amount,
-                            method="Saldo a Favor",
-                            notes="Aplicacion de credito disponible",
-                            conn=conn,
-                            commit=False
-                        )
+                        # Si el monto a aplicar es cero cortar
+                        if remaining <= Decimal('0.00'):
+                            break
 
-                        sale_status = self.payment_model.update_sale_status(
-                            sale_id, conn=conn, commit=False
-                        )
+                        # Si la venta fue pagada, pasar a la siguiente
+                        if balance <= Decimal('0.00'):
+                            break
+                        
+                        available = Decimal(credit_amount) - Decimal(credit_used)
 
-                        self.model.register_payment_in_account(
-                            sale_id,
-                            customer_id,
-                            pay_amount,
-                            "Saldo a Favor",
-                            "CRÉDITO",
-                            sale_status,
-                            conn=conn,
-                            commit=False
-                        )
+                        # En caso de que la fila actual ese agotada
+                        if available <= Decimal('0.00'):
+                            continue  
 
-                        remaining -= pay_amount
-                        payment_applied.append((sale_id, pay_amount))
+                        pay_amount = norm_to_2_dec(min(balance, available, remaining))
 
-                # Descontar del crédito SOLO lo que se usó realmente
-                credit_used = amount_to_apply - remaining
-                if credit_used > Decimal('0.00'):
-                    self.customer_credit.add_customer_credit(
-                        {
-                            'client_id': customer_id,
-                            'amount': -credit_used,
-                            'reason': "Aplicación de crédito a deudas pendientes",
-                            'sale_id': None,
-                        },
-                        check_id=None,
-                        conn=conn,
-                        commit=False
-                    )
+                        if pay_amount > Decimal('0.00'):
+                            self.payment_model.create_payment(
+                                sale_id=sale_id,
+                                client_id=customer_id,
+                                amount=pay_amount,
+                                method="Saldo a Favor",
+                                notes="Aplicacion de credito disponible",
+                                check_id=check_id,
+                                conn=conn,
+                                commit=False
+                            )
+
+                            sale_status = self.payment_model.update_sale_status(
+                                sale_id, conn=conn, commit=False
+                            )
+
+                            self.model.register_payment_in_account(
+                                sale_id,
+                                customer_id,
+                                pay_amount,
+                                "Saldo a Favor",
+                                "CRÉDITO",
+                                sale_status,
+                                conn=conn,
+                                commit=False
+                            )
+
+                            # Se actualiza el credito usado
+                            new_used = norm_to_2_dec(Decimal(credit_used) + pay_amount)
+                            self.customer_credit.update_credit_used(credit_id, credit_amount, new_used, conn=conn, commit=False)
+
+                            # Se actualiza la lista de creditos en memoria
+                            credit_rows[i] = (credit_id, credit_amount, str(new_used), check_id)
+
+                            remaining -= pay_amount
+                            balance -= pay_amount
+                            payment_applied.append((sale_id, pay_amount))
+
 
                 conn.commit()
 
@@ -994,3 +1019,7 @@ class CustomerController:
             self.view.show_error(f"Error al resetear cuenta: {e}")
             import traceback
             traceback.print_exc()
+
+
+    def get_customer_with_debts(self):
+        return self.model.get_customers_with_debt()

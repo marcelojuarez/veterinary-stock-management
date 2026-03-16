@@ -16,9 +16,9 @@ class PaymentForm:
         self.checks_model   = checks_model
         self.supplier_credit = supplier_credit
         self._selected_check = None
-        self._credit_applied = Decimal("0")
-        self._credit_amount  = Decimal("0")   # saldo disponible del proveedor
-        self._deuda_original = Decimal("0")   # deuda antes de aplicar crédito
+        self._credit_applied = Decimal("0.00")
+        self._credit_amount  = Decimal("0.00")   # saldo disponible del proveedor
+        self._deuda_original = Decimal("0.00")   # deuda antes de aplicar crédito
 
     # ──────────────────────────────────────────────────────────────
     # VARIABLES
@@ -27,6 +27,7 @@ class PaymentForm:
         self.supplier_id_var  = tk.StringVar(value=supplier_id)
         self.supplier_cuit_var = tk.StringVar(value=supplier_cuit)
         self.amount_var       = tk.StringVar()
+        self.amount_field_var = tk.StringVar()
         self.method_var       = tk.StringVar()
         self.num_receipt_var  = tk.StringVar()
         self.observation_var  = tk.StringVar()
@@ -47,7 +48,7 @@ class PaymentForm:
             self._deuda_original = Decimal(str(cleaned))
         else:
             self.purchase_id = None
-            self._deuda_original = Decimal("0")
+            self._deuda_original = Decimal("0.00")
 
     def set_controller(self, controller):
         self.controller = controller
@@ -65,9 +66,9 @@ class PaymentForm:
         try:
             debt_total = Decimal(str(self.pay_win.debt_var.get()))
         except Exception:
-            debt_total = Decimal("0")
+            debt_total = Decimal("0.00")
 
-        if debt_total <= Decimal("0"):
+        if debt_total <= Decimal("0.00"):
             show_warning(
                 f'Atención. No se registra Deuda al proveedor: '
                 f'{supplier_data[1]} - {supplier_data[2]}'
@@ -77,18 +78,20 @@ class PaymentForm:
         self.setup_payment_variables(supplier_id, supplier_data[1], purchase_id, amount)
 
         # ── Calcular crédito disponible ────────────────────────────
+        prueba = getattr(self.model, 'credit', None)
+        print(f'Prueba en payment_form: {prueba}')
         credit_source = getattr(self.model, 'credit', None) or self.supplier_credit
         if credit_source:
             try:
                 self._credit_amount = Decimal(str(
-                    credit_source.get_credit_amount_of_supplier(supplier_id) or "0"
+                    credit_source.get_credit_amount_of_supplier(supplier_id) or "0.00"
                 ))
             except Exception as e:
                 print(f"[PaymentForm] Error leyendo saldo a favor: {e}")
 
         # ── Aplicar crédito automáticamente ───────────────────────
         # credit_applied = min(crédito, deuda)  → puede cubrir todo o solo parte
-        if self._credit_amount > Decimal("0") and self._deuda_original > Decimal("0"):
+        if self._credit_amount > Decimal("0.00") and self._deuda_original > Decimal("0.00"):
             aplicar = min(self._credit_amount, self._deuda_original)
             self._credit_applied = aplicar
             resto = self._deuda_original - aplicar
@@ -134,14 +137,14 @@ class PaymentForm:
                      state='readonly', font=FE).grid(row=row, column=1, padx=(0,20), pady=5, sticky="w"); row += 1
 
         # ── Banner crédito (antes de monto) ───────────────────────
-        if self._credit_applied > Decimal("0"):
+        if self._credit_applied > Decimal("0.00"):
             banner = ctk.CTkFrame(W, fg_color="#E8F5E9", corner_radius=8)
             banner.grid(row=row, column=0, columnspan=2, padx=20, pady=(4, 2), sticky="ew"); row += 1
             if self._credit_applied >= self._deuda_original:
-                txt = f"✅  Saldo a favor cubre el total: $ {self._credit_applied:,.2f}"
+                txt = f"✅  Saldo a favor cubre el total: $ {self._credit_applied}"
             else:
-                txt = (f"✅  Saldo a favor aplicado: $ {self._credit_applied:,.2f}"
-                       f"  —  Resta pagar: $ {self._deuda_original - self._credit_applied:,.2f}")
+                txt = (f"✅  Saldo a favor aplicado: $ {self._credit_applied}"
+                       f"  —  Resta pagar: $ {self._deuda_original - self._credit_applied}")
             ctk.CTkLabel(banner, text=txt,
                          font=ctk.CTkFont(size=12, weight="bold"),
                          text_color="#2E7D32").pack(side="left", padx=10, pady=6)
@@ -151,8 +154,9 @@ class PaymentForm:
         if resto > Decimal("0"):
             ctk.CTkLabel(W, text="Monto a pagar:", font=FL).grid(
                 row=row, column=0, padx=(20,8), pady=5, sticky="e")
-            ctk.CTkEntry(W, textvariable=self.amount_var, width=EW, height=EH,
-                         font=FE).grid(row=row, column=1, padx=(0,20), pady=5, sticky="w"); row += 1
+            self.amount_entry = ctk.CTkEntry(W, textvariable=self.amount_field_var, width=EW, height=EH,
+                         font=FE)
+            self.amount_entry.grid(row=row, column=1, padx=(0,20), pady=5, sticky="w"); row += 1
 
         # Nro recibo
         ctk.CTkLabel(W, text="Nº de recibo:", font=FL).grid(row=row, column=0, padx=(20,8), pady=5, sticky="e")
@@ -263,6 +267,10 @@ class PaymentForm:
         if method not in ("EFECTIVO", "TRANSFERENCIA", "CHEQUE"):
             return
 
+        if self.amount_entry: 
+            self.amount_entry.configure(state='normal')
+            self.amount_field_var.set(self.amount_var.get())
+
         self.clear_dynamic_frame()
         self._selected_check = None
         self.excedente_var.set("")
@@ -279,6 +287,9 @@ class PaymentForm:
 
         elif method == "CHEQUE":
             self._load_cartera()
+            if self.amount_entry: 
+                self.amount_var
+                self.amount_entry.configure(state='readonly')
             self.cartera_lbl.grid(row=0, column=0, columnspan=2, padx=20, pady=(4, 2), sticky="w")
             self.cartera_frame.grid(row=1, column=0, columnspan=2, padx=20, pady=(0, 4), sticky="ew")
             self.excedente_lbl.grid(row=2, column=0, columnspan=2, padx=20, pady=(0, 2), sticky="w")
@@ -311,6 +322,10 @@ class PaymentForm:
     # CARTERA DE CHEQUES
     # ──────────────────────────────────────────────────────────────
     def _load_cartera(self):
+
+        # Campo de monto no editable
+        
+
         for row in self.cartera_table.get_children():
             self.cartera_table.delete(row)
         if not self.checks_model:
