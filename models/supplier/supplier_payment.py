@@ -78,7 +78,7 @@ class SupplierPayment():
             query = """
                 INSERT INTO supplier_payment (supplier_id, receipt_number, amount, method, observation, operation_num, 
                 origin, destination, check_id, check_number, bank, date)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ? ,? ,?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ? ,? ,?, ?, ?)
             """
 
             params = [
