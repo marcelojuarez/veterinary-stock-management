@@ -54,11 +54,12 @@ class SupplierPayment():
             query = """
             SELECT supplier_payment.id, supplier.cuit, supplier_payment.receipt_number, supplier_payment.amount,
             supplier_payment.method, supplier_payment.observation, supplier_payment.operation_num, supplier_payment.origin, 
-            supplier_payment.destination, supplier_payment.check_number, supplier_payment.bank, supplier_payment.date
+            supplier_payment.destination, supplier_payment.check_number, supplier_payment.bank, supplier_payment.date,
+            supplier_payment.created_at
             FROM supplier_payment 
             JOIN supplier ON supplier_payment.supplier_id = supplier.id
             WHERE (? IS NULL OR supplier.id = ?)
-            ORDER BY supplier_payment.date DESC, supplier_payment.id DESC
+            ORDER BY supplier_payment.created_at DESC, supplier_payment.id DESC
             """
             params = [
                supplier_id,
@@ -73,12 +74,13 @@ class SupplierPayment():
     def add_payment(self, pay_data, check_id=None, conn=None, commit=True):
      
             date = datetime.now().strftime("%Y-%m-%d")
+            created_at = datetime.now().strftime("%Y-%m-%d %H:%M:%S")  # ← NUEVO: Hora exacta
             
             # registra un pago
             query = """
                 INSERT INTO supplier_payment (supplier_id, receipt_number, amount, method, observation, operation_num, 
-                origin, destination, check_id, check_number, bank, date)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ? ,? ,?, ?, ?)
+                origin, destination, check_id, check_number, bank, date, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """
 
             params = [
@@ -93,7 +95,8 @@ class SupplierPayment():
                 check_id,
                 pay_data['Check_number'],
                 pay_data['Bank'],
-                date
+                date,
+                created_at  # ← NUEVO
             ]
 
             return self.db.execute_query(query, params, conn=conn, commit=commit)

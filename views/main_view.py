@@ -286,10 +286,6 @@ class App():
 
         if selected_tab == "Venta":
             self.sales_view.load_available_products()
-        
-        if selected_tab == "Cheques":
-            self.checks_view.load
-
 
     def load_initial_data(self):
         try:

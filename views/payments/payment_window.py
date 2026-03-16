@@ -168,7 +168,12 @@ class PaymentWindow():
             height=40,
             width=90,
             font=ctk.CTkFont(size=14, weight="bold"),
-            command=lambda: self.payment_form.add_payment_win(win, self.supplier_id_var.get())
+            command=lambda: self.payment_form.add_payment_win(
+                win, 
+                self.supplier_id_var.get(),
+                purchase_id=None,
+                amount=self.debt_var.get()
+            )
         )
         confirm_btn.grid(row=0, column=0, padx=5, pady=10)
 

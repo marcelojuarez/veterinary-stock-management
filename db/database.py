@@ -147,17 +147,19 @@ class Database:
                     operation_num INTEGER,  
                     origin TEXT,
                     destination TEXT,
-                           
+                        
                     -- CHEQUE
                     check_id INTEGER NULL,    
                     check_number TEXT,
-                           
+                        
                     -- TRANSFERENCIA o CHEQUE
                     bank TEXT,  
 
-                    date TEXT DEFAULT CURRENT_DATE,    
+                    date TEXT DEFAULT CURRENT_DATE,
+                    created_at TEXT DEFAULT CURRENT_TIMESTAMP,  -- ← NUEVO: Guarda fecha + hora
                     valid INTEGER NOT NULL DEFAULT 1,
-                    FOREIGN KEY (supplier_id) REFERENCES supplier (id)
+                    
+                    FOREIGN KEY (supplier_id) REFERENCES supplier (id),
                     FOREIGN KEY (check_id) REFERENCES checks(id) ON DELETE SET NULL
                 );
             ''')

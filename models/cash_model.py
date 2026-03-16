@@ -342,7 +342,12 @@ class CashModel:
     def get_movements_compras(self, date):
         """Obtener pagos a proveedores del día"""
         query = """
-            SELECT sp.date, pp.amount_applied, sp.method, pp.purchase_id, s.name
+            SELECT 
+                COALESCE(sp.created_at, sp.date || ' 00:00:00') as datetime,
+                pp.amount_applied, 
+                sp.method, 
+                pp.purchase_id, 
+                s.name
             FROM purchase_payment pp
             JOIN supplier_payment sp ON sp.id = pp.payment_id
             JOIN supplier s ON s.id = sp.supplier_id

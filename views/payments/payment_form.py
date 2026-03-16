@@ -43,11 +43,17 @@ class PaymentForm:
         if purchase_id is not None and amount is not None:
             self.purchase_id = tk.StringVar(value=purchase_id)
             cleaned = clean_currency_input(amount)
+            print(f"amount: {amount}, cleaned: {cleaned}, type: {type(cleaned)}")
             self.amount_var.set(cleaned)
             self._deuda_original = Decimal(str(cleaned))
         else:
             self.purchase_id = None
-            self._deuda_original = Decimal("0")
+            if amount is not None:
+                cleaned = clean_currency_input(amount)
+                self.amount_var.set(cleaned)
+                self._deuda_original = Decimal(str(cleaned))
+            else:
+                self._deuda_original = Decimal("0")
 
     def set_controller(self, controller):
         self.controller = controller
