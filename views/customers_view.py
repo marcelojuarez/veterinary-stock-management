@@ -209,8 +209,8 @@ class CustomersView:
         # Obtener el nombre del cliente (columna 1)
         values = self.table.item(selected[0])["values"]
         nombre_cliente = values[1] if len(values) > 1 else ""
-        
-        if nombre_cliente == "Consumidor Final":
+        print(nombre_cliente)
+        if nombre_cliente == "CONSUMIDOR FINAL":
             # Cliente "Consumidor Final": deshabilitado
             self.btn_ver_deudas.configure(
                 state="disabled",

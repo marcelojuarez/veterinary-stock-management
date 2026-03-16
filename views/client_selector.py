@@ -211,7 +211,7 @@ class ClientSelectorDialog:
     
     def select_consumidor_final(self):
         """Seleccionar consumidor final"""
-        self.selected_client = "Consumidor Final"
+        self.selected_client = "CONSUMIDOR FINAL"
         self.dialog.destroy()
     
     def get_selected(self):

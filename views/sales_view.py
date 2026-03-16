@@ -1213,7 +1213,7 @@ class SalesView:
     
     def on_client_selected(self, selected_name):
         try:
-            if selected_name == "Consumidor Final":
+            if selected_name == "CONSUMIDOR FINAL":
                 self.client_cuit_var.set("")
                 self.client_address_var.set("")
                 self.client_iva_var.set("Consumidor Final")

@@ -666,6 +666,47 @@ def seed_clients():
     conn.commit()
     conn.close()
 
+def seed_consumidor_final():
+    clientes = [
+        {
+            "name": "Consumidor Final", 
+            "cuit": "", 
+            "home": "", 
+            "phone": "", 
+            "iva_condition": "Consumidor Final",
+            "cv": "",
+            "cuig": "",
+            "renspa": "",
+            "establishment": ""
+        }
+    ]
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+
+    for c in clientes:
+        try:
+            cursor.execute("""
+                INSERT INTO customer (name, cuit, home, phone, iva_condition, cv, cuig, renspa, establishment)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (
+                c['name'].upper(), 
+                c['cuit'].upper(), 
+                c['home'].upper(), 
+                c['phone'], 
+                c['iva_condition'].upper(),
+                c['cv'],
+                c['cuig'].upper(),
+                c['renspa'],
+                c['establishment'].upper()
+            ))
+
+        except sqlite3.IntegrityError:
+            continue
+    
+    conn.commit()
+    conn.close()
+    print("Consumidor Final Insertado")
+
 def seed_sales_with_products():
     """
     MEJORADO: Crea ventas con productos usando estados correctos
@@ -905,11 +946,12 @@ if __name__ == "__main__":
     print("-" * 50)
     
     seed_company_data()
-    seed_suppliers()
+    #seed_suppliers()
     seed_client()
-    seed_clients()
-    seed_stock()
+    #seed_clients()
+    #seed_stock()
     #seed_sales_with_products()
+    seed_consumidor_final()
     
     print("-" * 50)
     print("✅ ¡Seed completado exitosamente!")
