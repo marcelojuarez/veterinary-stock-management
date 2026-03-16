@@ -274,13 +274,13 @@ class CustomerModel:
         self.add_row_in_customer_ledger(data, conn=conn, commit=commit)
 
     ## -- Registra un movimiento de saldo a favor  en el historial del cliente -- ##
-    def register_credit_balance_in_account(self, client_id, reference_id, payment, description, conn=None, commit=True):
+    def register_credit_balance_in_account(self, client_id, reference_id, description, conn=None, commit=True):
         data = {
             'client_id': client_id,
             'type': 'SALDO FAVOR',
             'description': description,
             'amount': Decimal('0.00'),
-            'payment': payment,
+            'payment': Decimal('0.00'),
             'debt': self.get_total_debt(client_id, conn=conn),  
             'reference_id': reference_id,
             'reference': 'Ajuste de precio'
@@ -417,7 +417,10 @@ class CustomerModel:
 
         # Monto total en pagos reales — excluye aplicaciones de saldo a favor
         # (tipo CRÉDITO = plata interna, no dinero nuevo recibido)
-        total_paid = self.pay_model.get_total_amount_of_payments_associated_with_a_customer(client_id)
+        total_paid = sum(
+            Decimal(m[6]) for m in movements
+            if m[3] not in ("CRÉDITO")
+        )
         print(f'total_paid: {total_paid}')
 
         # Deuda total

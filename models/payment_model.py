@@ -81,7 +81,6 @@ class PaymentModel:
         self.customer_model.register_credit_balance_in_account(
             client_id=client_id,
             reference_id=sale_id,
-            payment=overpay,
             description=f"Saldo a favor · Ajuste Vta #{sale_id} · ${overpay}",
             conn=conn,
             commit=commit
@@ -206,7 +205,6 @@ class PaymentModel:
                 self.customer_model.register_credit_balance_in_account(
                     client_id=customer_id,
                     reference_id=check_id,
-                    payment=remaining,
                     description=f"Saldo a favor · Cheque cargado. ${remaining}",
                     conn=conn,
                     commit=False
