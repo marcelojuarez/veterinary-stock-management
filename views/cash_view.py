@@ -603,17 +603,21 @@ class CashView:
             # Card
             card = ctk.CTkFrame(win, fg_color="white", corner_radius=20)
             card.pack(fill="both", expand=True, padx=20, pady=20)
+
+            # Scroll
+            scroll = ctk.CTkScrollableFrame(card, fg_color="white")
+            scroll.pack(fill="both", expand=True, padx=10, pady=10)
             
             # Título
             ctk.CTkLabel(
-                card,
+                scroll,
                 text=f"📄 Cierre de Caja - {self.date_var.get()}",
                 font=ctk.CTkFont(size=18, weight="bold"),
                 text_color="black"
             ).pack(pady=(20, 15))
             
             # Resumen
-            summary_frame = ctk.CTkFrame(card, fg_color="#f9f9f9", corner_radius=10)
+            summary_frame = ctk.CTkFrame(scroll, fg_color="#f9f9f9", corner_radius=10)
             summary_frame.pack(padx=20, pady=10, fill="x")
             
             # SALDO INICIAL
@@ -705,14 +709,14 @@ class CashView:
             
             # ARQUEO - Input saldo real
             ctk.CTkLabel(
-                card,
+                scroll,
                 text="💵 Arqueo de Caja",
                 font=ctk.CTkFont(size=15, weight="bold"),
                 text_color="black"
             ).pack(pady=(10, 5))
             
             ctk.CTkLabel(
-                card,
+                scroll,
                 text="Ingrese el efectivo real contado:",
                 font=ctk.CTkFont(size=12),
                 text_color="#666"
@@ -722,7 +726,7 @@ class CashView:
             notes_var = tk.StringVar()
             difference_var = tk.StringVar(value="$0.00")
             
-            entry_frame = ctk.CTkFrame(card, fg_color="transparent")
+            entry_frame = ctk.CTkFrame(scroll, fg_color="transparent")
             entry_frame.pack(pady=10)
             
             actual_entry = ctk.CTkEntry(
@@ -738,7 +742,7 @@ class CashView:
             actual_entry.focus()
             
             # Diferencia
-            diff_frame = ctk.CTkFrame(card, fg_color="#FFF9C4", corner_radius=10)
+            diff_frame = ctk.CTkFrame(scroll, fg_color="#FFF9C4", corner_radius=10)
             diff_frame.pack(padx=20, pady=10, fill="x")
             
             ctk.CTkLabel(
@@ -785,21 +789,21 @@ class CashView:
             
             # Observaciones
             ctk.CTkLabel(
-                card,
+                scroll,
                 text="Observaciones:",
                 font=ctk.CTkFont(size=12),
                 text_color="#666"
             ).pack(pady=(10, 5))
             
             ctk.CTkEntry(
-                card,
+                scroll,
                 width=400,
                 textvariable=notes_var,
                 placeholder_text="Opcional: Explique diferencias si las hay"
             ).pack(pady=(0, 10))
             
             # Botones
-            btn_frame = ctk.CTkFrame(card, fg_color="transparent")
+            btn_frame = ctk.CTkFrame(scroll, fg_color="transparent")
             btn_frame.pack(pady=15)
             
             def close_cash():
