@@ -180,13 +180,13 @@ class App():
         company_model = CompanyModel()
         sales_model = SalesModel()
         customer_credit = CustomerCredit()
-        payment_model = PaymentModel(sales_model, customer_credit)
+        checks_model = ChecksModel()
+        payment_model = PaymentModel(sales_model, customer_credit, checks_model)
         customer_model = CustomerModel(payment_model, customer_credit)
         payment_model.customer_model = customer_model
         remito_model = RemitoModel()
         stock_model = StockModel(sales_model, payment_model, event_bus)
         supplier_model = SupplierModel(stock_model)
-        checks_model = ChecksModel()
         cash_model = CashModel(customer_model)
         supplier_credit = SupplierCredit(supplier_model.db)
 

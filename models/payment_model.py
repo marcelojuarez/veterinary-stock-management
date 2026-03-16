@@ -4,10 +4,11 @@ from datetime import datetime
 from utils.utils import norm_to_2_dec
 
 class PaymentModel:
-    def __init__(self, sales_model, customer_credit, customer_model=None):
+    def __init__(self, sales_model, customer_credit, checks_model, customer_model=None):
         self.db = db
         self.sale_model = sales_model
         self.customer_credit = customer_credit
+        self.checks_model = checks_model
         self.customer_model = customer_model
 
     def create_payment(self, sale_id, client_id, amount, method=None, notes=None,
@@ -61,30 +62,47 @@ class PaymentModel:
         )
         return status
 
-    def generate_overpay_credit(self, sale_id, client_id, paid, total, check_id=None, conn=None, commit=True):
-        print(f'Se ejecuta generate_overpay_credit')
-        overpay = norm_to_2_dec(paid - total)
-        if overpay <= Decimal('0.00'):
-            return
+    def generate_overpay_credit(self, sale_id, client_id, total, payments, conn=None, commit=True):
+        self.db.execute_query(
+            "UPDATE customer_credit SET valid = 0 WHERE sale_id = ? AND valid = 1",
+            (sale_id,), conn=conn, commit=False
+        )
+        remaining_total = Decimal(total)
 
-        self.customer_credit.add_customer_credit(
-            {
-                'client_id': client_id,
-                'amount': overpay,
-                'reason': f"AJUSTE: Sobrepago en venta #{sale_id}",
-                'sale_id': sale_id
-            },
-            check_id=check_id,
-            conn=conn,
-            commit=commit
-        )
-        self.customer_model.register_credit_balance_in_account(
-            client_id=client_id,
-            reference_id=sale_id,
-            description=f"Saldo a favor · Ajuste Vta #{sale_id} · ${overpay}",
-            conn=conn,
-            commit=commit
-        )
+        for _, amount, check_id in payments:
+            amount = Decimal(amount)
+
+            if remaining_total <= Decimal('0.00'):
+                overpay = amount 
+
+            elif amount <= remaining_total:
+                # cubre deuda, no hay overpay
+                remaining_total -= amount
+                continue
+            else:
+                # parte cubre deuda, parte es overpay
+                overpay = norm_to_2_dec(amount - remaining_total)
+                remaining_total = Decimal('0.00')
+
+            if overpay > Decimal('0.00'):
+                self.customer_credit.add_customer_credit(
+                    {
+                        'client_id': client_id,
+                        'amount': overpay,
+                        'reason': f"AJUSTE: Sobrepago en venta #{sale_id}",
+                        'sale_id': sale_id
+                    },
+                    check_id=check_id,
+                    conn=conn,
+                    commit=commit
+                )
+                self.customer_model.register_credit_balance_in_account(
+                    client_id=client_id,
+                    reference_id=sale_id,
+                    description=f"Saldo a favor · Ajuste Vta #{sale_id} · ${overpay}",
+                    conn=conn,
+                    commit=commit
+                )
 
     ## -- Devuelve el monto total de pagos asociados a una venta -- ##
     def get_total_amount_of_pay_for_a_sale(self, sale_id, conn=None):
@@ -102,22 +120,36 @@ class PaymentModel:
         return norm_to_2_dec(amount)
     
     ## -- Devuelve el monto total de pagos asociados a un cliente -- ##
-    ## -- Excluye aplicaciones de saldo a favor-- ##
-    def get_total_amount_of_payments_associated_with_a_customer(self, client_id, conn=None):
+    def get_total_paid_by_client(self, client_id, conn=None):
+        check_amount = self.checks_model.get_cartera_total_from_client(client_id)
+
         query = """
-        SELECT amount 
-        FROM payments 
-        WHERE client_id = ? and valid = ?
+            SELECT amount 
+            FROM payments 
+            WHERE client_id = ? 
+            AND valid = ?
+            AND check_id IS NULL
+            AND method != 'Saldo a Favor'
         """
 
         rows = self.db.fetch_all(query, (client_id, 1), conn=conn)
 
-        amount = Decimal('0.00')
+        amount = Decimal(check_amount)
 
-        for row in rows:
-            amount += Decimal(row[0])
+        for amount_row, in rows:
+            amount += Decimal(amount_row)
 
         return norm_to_2_dec(amount)
+
+
+    def get_payments_for_sale(self, sale_id, conn=None):
+        query = """
+            SELECT id, amount, check_id
+            FROM payments
+            WHERE sale_id = ? AND valid = 1
+            ORDER BY id ASC
+        """
+        return self.db.fetch_all(query, (sale_id,), conn=conn)
 
     def apply_global_payment(self, customer_id, amount, method="Efectivo", check_id=None, check_data=None):
         """

@@ -128,3 +128,23 @@ class ChecksModel:
             "SELECT amount FROM checks WHERE status = 'EN_CARTERA'"
         )
         return sum((Decimal(r[0]) for r in rows), Decimal('0.00'))
+
+    def get_cartera_total_from_client(self, client_id):
+        rows = self.db.fetch_all(
+            """
+            SELECT amount 
+            FROM checks 
+            WHERE status = 'EN_CARTERA' and client_id = ?
+            """,
+            (client_id, )
+        )
+        return sum((Decimal(r[0]) for r in rows), Decimal('0.00'))
+
+
+    def get_sales_affected_by_check(self, check_id, conn=None):
+        query = """
+            SELECT DISTINCT sale_id, client_id
+            FROM payments
+            WHERE check_id = ?
+        """
+        return self.db.fetch_all(query, (check_id,), conn=conn)

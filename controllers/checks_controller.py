@@ -71,22 +71,15 @@ class ChecksController:
             conn.execute("BEGIN")
 
             if check_state == 'EN_CARTERA':
-                # Genera deuda en el cliente
                 self.payment_model.cancel_check_payments(check_id, conn=conn, commit=False)
-                # Descuenta de saldo a favor 
                 self.customer_credit.cancel_check_credit(check_id, conn=conn, commit=False)
+                self._recalculate_credits_after_bounce(check_id, conn=conn)
 
             elif check_state == 'ENDOSADO':
-                # Genera deuda con el proveedor
-                # Descuenta el saldo a favor para pagar al proveedor
                 self.payment_model.cancel_check_supplier_payments(check_id, conn=conn, commit=False)
-                # Como el cheque proviene de un cliente, se ve afectado
-                
-
-                # Genera deuda en el cliente
                 self.payment_model.cancel_check_payments(check_id, conn=conn, commit=False)
-                # Descuenta de saldo a favor 
                 self.customer_credit.cancel_check_credit(check_id, conn=conn, commit=False)
+                self._recalculate_credits_after_bounce(check_id, conn=conn)
 
             else:
                 show_error('Ocurrio un error')
@@ -233,3 +226,21 @@ class ChecksController:
         except Exception as e:
             print(f"[ChecksController] get_open_purchases: {e}")
             return []
+    
+    def _recalculate_credits_after_bounce(self, check_id, conn=None):
+        affected_sales = self.model.get_sales_affected_by_check(check_id, conn=conn)
+
+        for sale_id, client_id in affected_sales:
+            new_status = self.payment_model.update_sale_status(sale_id, conn=conn, commit=False)
+
+            if new_status == 'paid':
+                payments = self.payment_model.get_payments_for_sale(sale_id, conn=conn)
+                total_row = self.payment_model.get_sale_total(sale_id, conn=conn)
+                self.payment_model.generate_overpay_credit(
+                    sale_id=sale_id,
+                    client_id=client_id,
+                    total=Decimal(total_row[0]),
+                    payments=payments,
+                    conn=conn,
+                    commit=False
+                )
