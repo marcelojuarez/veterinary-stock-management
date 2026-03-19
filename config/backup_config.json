@@ -1,0 +1,7 @@
+{
+    "auto_backup_enabled": true,
+    "backup_interval_minutes": 30,
+    "max_backups": 50,
+    "retention_days": 30,
+    "compress_backups": false
+}

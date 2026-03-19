@@ -6,6 +6,12 @@ __pycache__/
 # C extensions
 *.so
 
+# veterinary doc
+comprobantes/
+
+# Seed
+seed/
+
 # Distribution / packaging
 .Python
 build/
@@ -25,6 +31,9 @@ share/python-wheels/
 .installed.cfg
 *.egg
 MANIFEST
+.DS_Store
+**/.DS_Store
+datos_csv_nuevos
 
 # PyInstaller
 #  Usually these files are written by a python script from a template
@@ -60,6 +69,9 @@ cover/
 local_settings.py
 db.sqlite3
 db.sqlite3-journal
+db/stock.db
+
+
 
 # Flask stuff:
 instance/
@@ -205,3 +217,19 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# database
+db/stock.db
+db/*.db
+*.db
+db/.DS_Store
+
+olddata
+ventas
+facturas
+remitos
+comprobantes
+backups
+logs
+credentials.json
+token.json
