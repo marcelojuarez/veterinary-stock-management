@@ -46,7 +46,6 @@ class SupplierCredit:
             LIMIT 1
         """
 
-
         row = self.db.fetch_one(query, (supplier_id, ))
 
         if not row:

@@ -47,7 +47,9 @@ class PurchaseWindow():
         self.supplier_id_var = tk.StringVar()
         self.search_var = tk.StringVar()
         self.purchase_filter.set_supplier_id_var(self.supplier_id_var)
+        self.purchase_filter.set_search_var(self.search_var)
         self.date_var = tk.StringVar()
+        self.invoice_number_var = tk.StringVar()
 
         self.suppliers = self.model.core.get_all_suppliers()
 
@@ -115,12 +117,12 @@ class PurchaseWindow():
 
         filter_for_date_btn = ctk.CTkButton(
             select_supplier_frame,
-            width=150,
+            width=180,
             text="Filtrar por fecha",
             fg_color=btn_color,
             hover_color=btn_hover,
             font=ctk.CTkFont(size=12, weight="bold"),
-            command=lambda: self.purchase_filter.filter_by_date(self.date_var.get())
+            command=lambda: self.purchase_filter.filter_by_date(self.date_var.get(), self.invoice_number_var)
         )
         filter_for_date_btn.grid(row=0, column=3, padx=(10, 5), pady=5, sticky="w")
 
@@ -130,6 +132,24 @@ class PurchaseWindow():
             font=ctk.CTkFont(size=12),
         )
         date_entry.grid(row=0, column=4, padx=5, pady=5, sticky="w")
+
+        filter_for_invoice_btn = ctk.CTkButton(
+            select_supplier_frame,
+            width=180,
+            text="Filtrar por N° de factura",
+            fg_color=btn_color,
+            hover_color=btn_hover,
+            font=ctk.CTkFont(size=12, weight="bold"),
+            command=lambda: self.purchase_filter.filter_by_invoice_number(self.invoice_number_var.get())
+        )
+        filter_for_invoice_btn.grid(row=1, column=3, padx=(10, 5), pady=5, sticky="w")
+
+        invoice_entry = ctk.CTkEntry(
+            select_supplier_frame,
+            textvariable=self.invoice_number_var,
+            font=ctk.CTkFont(size=12),
+        )
+        invoice_entry.grid(row=1, column=4, padx=5, pady=5, sticky="w")
 
         # frame para productos
         product_frame = ctk.CTkFrame(win)
@@ -546,6 +566,7 @@ class PurchaseWindow():
 
             self.supplier_id_var.set(iid)
             self.search_var.set(values[1])
+            self.invoice_number_var.set('')
 
             if search_after_id[0]:
                 find_entry.after_cancel(search_after_id[0])
@@ -582,8 +603,10 @@ class PurchaseWindow():
             purchases = self.model.purchase.get_all_purchases(selected_supplier)
 
         else:
+            self.search_var.set('')
             self.supplier_id_var.set('')
             self.date_var.set('')
+            self.invoice_number_var.set('')
             purchases = self.model.purchase.get_all_purchases()
 
         # Limpiar tabla

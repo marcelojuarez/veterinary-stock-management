@@ -610,8 +610,17 @@ class CustomersView:
 
         self.debt_table.pack(padx=10, pady=10, fill="x")
 
-        for d in debts:
-            self.debt_table.insert("", "end", values=d)
+        for s_id, date, total, pay, balance, state in debts:
+            self.debt_table.insert("", "end", 
+                                   values=(
+                                    s_id,
+                                    date,
+                                    format_currency(total),       
+                                    format_currency(pay),
+                                    format_currency(balance),
+                                    state
+                                   )
+                                )
 
         # ----------------------------------------------------------------
         # Detalle de productos (vacío al inicio)
@@ -744,8 +753,17 @@ class CustomersView:
                 self.debt_table.delete(row)
 
             # Insertar nuevas deudas
-            for d in debts:
-                self.debt_table.insert("", "end", values=d)
+            for s_id, date, total, pay, balance, state in debts:
+                self.debt_table.insert("", "end", 
+                        values=(
+                        s_id,
+                        date,
+                        format_currency(total),       
+                        format_currency(pay),
+                        format_currency(balance),
+                        state
+                        )
+                    )
 
             # Actualizar label de total
             if hasattr(self, "debt_total_label") and self.debt_total_label.winfo_exists():

@@ -227,7 +227,7 @@ class Database:
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     supplier_id INTEGER,
                            
-                    invoice_id TEXT,
+                    invoice_id TEXT UNIQUE,
                     invoice_type TEXT,
                     
                     date TEXT CURRENT_DATE,

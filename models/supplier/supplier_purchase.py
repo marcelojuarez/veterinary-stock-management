@@ -50,6 +50,30 @@ class SupplierPurchase():
             print(f'Error al obtener la compra: {e}')
             return None
 
+    ## -- Obtener compra por Numero de factura -- ##
+    def get_purchase_by_invoice_number(self, invoice_number):
+        try:
+            query = """
+                SELECT 
+                    purchase.id,
+                    supplier.cuit,
+                    supplier.name,
+                    purchase.document_type,
+                    purchase.date,
+                    purchase.expiration_date,
+                    purchase.state,
+                    purchase.pending,
+                    purchase.total
+                FROM purchase
+                JOIN supplier_invoice ON purchase.invoice_id = supplier_invoice.id
+                JOIN supplier ON purchase.supplier_id = supplier.id
+                WHERE supplier_invoice.invoice_id = ?
+            """
+            return self.db.fetch_one(query, (invoice_number,))
+        except Exception as e:
+            print(f'Error al obtener compra por numero de factura: {e}')
+            return None
+
     ## -- Obtener saldo pendiente de una compra --##
     def get_pending_of_purchase(self, purchase_id):
         try:

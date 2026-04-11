@@ -25,6 +25,7 @@ class SupplierInvoiceController():
                 win.focus_force()
                 return
 
+            invoice_id = ''.join(data['invoice_id'].split())
             iibb_per = string_to_flex_dec(data['iibb_per'])
             iva_per = string_to_flex_dec(data['iva_per'])
             discount = string_to_flex_dec(data['discount'])
@@ -33,7 +34,7 @@ class SupplierInvoiceController():
 
             invoice_params = {
                 'supplier_id': supplier_id,
-                'invoice_id': data['invoice_id'],
+                'invoice_id':   invoice_id,
                 'invoice_type': data['invoice_type'],
                 'date': traditional_to_iso(data['date']),
                 'expiration_date': traditional_to_iso(data['expiration_date']),
@@ -93,6 +94,15 @@ class SupplierInvoiceController():
             if not data[field]:
                 show_error(f'Por favor complete el campo: "{label}"')
                 return False
+            
+        # N° de factura
+        if not cls.is_valid_invoice_number(data['invoice_id']):
+            show_error(
+                'Error. Formato incorrecto de N°factura.\n '
+                'Por favor coloque solamente digitos.\n'
+                'Ejemplo: 1213 23332121'
+            )
+            return False
         
         ## Fecha de Vencimiento
         if not cls.is_valid_date(data['expiration_date']):
@@ -133,6 +143,15 @@ class SupplierInvoiceController():
             show_error('Error. El porcentaje de descuento debe rondar entre 0 y 99 %')
             return False
 
+        return True
+    
+    @staticmethod
+    def is_valid_invoice_number(invoice_number):
+        invoice_number = ''.join(invoice_number.split())
+
+        if not invoice_number.isdigit():
+            return False
+        
         return True
 
     ## -- Valida si una fecha esta en el formato correcto -- ##
