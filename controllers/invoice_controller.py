@@ -40,9 +40,9 @@ class InvoiceController:
 
         for item in items:
             if len(item) == 6:
-                product_id, name, pack, quantity, price, observations = item
+                product_id, name, pack, quantity, price, observations, _, _ = item
             else:
-                product_id, name, pack, quantity, price = item
+                product_id, name, pack, quantity, price, _, _ = item
                 observations = None
 
             price    = flex_dec(price)  # precio con IVA incluido
@@ -84,9 +84,9 @@ class InvoiceController:
 
         for item in items:
             if len(item) == 6:
-                product_id, _, _, quantity, price, _ = item
+                product_id, _, _, quantity, price, _, _, _ = item
             else:
-                product_id, _, _, quantity, price = item
+                product_id, _, _, quantity, price, _, _ = item
 
             quantity   = flex_dec(quantity)
             price      = flex_dec(price)

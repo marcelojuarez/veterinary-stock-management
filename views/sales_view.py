@@ -8,16 +8,18 @@ from views.client_selector import ClientSelectorDialog
 from services.daily_sales_report import DailySalesReportService
 from utils.view_helpers import center_window, show_error
 from utils.utils import iso_to_traditional, norm_to_2_dec, format_currency, string_to_2_dec, traditional_to_iso
+from views.fraction_sale_dialog import FractionSaleDialog
 
 ctk.set_appearance_mode("light")
 ctk.set_default_color_theme("blue")
 
 class SalesView:
-    def __init__(self, parent, controller, stock_model, customer_model):
+    def __init__(self, parent, controller, stock_model, customer_model, fraction_model=None):
         self.controller = controller
         self.frame = ctk.CTkFrame(parent, fg_color="#f0f0f0")
         self.stock_model = stock_model
         self.customer_model = customer_model
+        self.fraction_model = fraction_model
         self.setup_variables()
         self.create_layout()
 
@@ -216,51 +218,61 @@ class SalesView:
             if not selected:
                 messagebox.showwarning("Advertencia", "Seleccione un producto.")
                 return
-
-            item = self.product_tree.item(selected[0])["values"]
-            p_data = self.stock_model.get_product_by_id(item[0])
-
-            product_id, name, pack, _, _, _ ,_ , _, _, \
-            price_with_iva, _, _, stock = p_data
+ 
+            item    = self.product_tree.item(selected[0])["values"]
+            p_data  = self.stock_model.get_product_by_id(item[0])
+            product_id, name, pack, _, _, _, _, _, iva_rate, price_with_iva, _, _, stock = p_data
             price = norm_to_2_dec(price_with_iva)
-
-            # Ventana emergente para cantidad
-            qty_win = ctk.CTkToplevel(self.frame)
+ 
+            # ── ¿Es fraccionable? ─────────────────────────────────────────
+            if self.fraction_model and self.fraction_model.is_fractional(product_id):
+                FractionSaleDialog(
+                    parent         = self.frame,
+                    controller     = self.controller,
+                    fraction_model = self.fraction_model,
+                    product_id     = product_id,
+                    name           = name,
+                    pack           = pack,
+                    iva_rate       = iva_rate,
+                    on_confirm     = lambda: (self.refresh_sale_table(), self.update_total())
+                )
+                return   # el diálogo se encarga del resto
+ 
+            # ── Flujo normal (sin cambios) ────────────────────────────────
+            qty_win    = ctk.CTkToplevel(self.frame)
             card_frame = ctk.CTkFrame(qty_win, fg_color="white", corner_radius=20)
             card_frame.pack(fill="both", expand=True, padx=20, pady=20)
-            qty_win.title(f"Agregar Producto")
+            qty_win.title("Agregar Producto")
             qty_win.transient(self.frame)
             qty_win.grab_set()
             center_window(qty_win, 420, 270)
-
-            ctk.CTkLabel(
-                card_frame, 
-                text=f"AGREGAR: \n {name} {pack}", 
-                font=ctk.CTkFont(size=12, weight="bold")).pack(pady=(15, 5))
-            ctk.CTkLabel(card_frame, text=f"Stock disponible: {stock}", font=ctk.CTkFont(size=13)).pack()
-
-            qty_var = tk.StringVar()
-            qty_entry = ctk.CTkEntry(card_frame, textvariable=qty_var, width=80, height=35, justify="center")
+ 
+            ctk.CTkLabel(card_frame, text=f"AGREGAR: \\n {name} {pack}",
+                         font=ctk.CTkFont(size=12, weight="bold")).pack(pady=(15, 5))
+            ctk.CTkLabel(card_frame, text=f"Stock disponible: {stock}",
+                         font=ctk.CTkFont(size=13)).pack()
+ 
+            qty_var = tk.StringVar(value="1")
+            qty_entry = ctk.CTkEntry(card_frame, textvariable=qty_var,
+                                     width=80, height=35, justify="center")
             qty_entry.pack(pady=10)
-            qty_var.set("1")
             qty_entry.focus()
             qty_entry.icursor("end")
-
+ 
             def confirm_add():
                 self.controller.add_product_to_sale(product_id, name, pack, price, stock, qty_var.get())
                 self.refresh_sale_table()
                 self.update_total()
                 qty_win.destroy()
-
+ 
             confirm_btn = ctk.CTkButton(card_frame, text="Agregar", width=120, height=35,
                           fg_color="#4CAF50", hover_color="#45a049", command=confirm_add)
             confirm_btn.pack(pady=(10, 5))
-
             qty_win.bind("<Return>", lambda event: confirm_btn.invoke())
-
             ctk.CTkButton(card_frame, text="Cancelar", width=120, height=35,
-                          fg_color="#757575", hover_color="#616161", command=qty_win.destroy).pack(pady=(0, 10))
-
+                          fg_color="#757575", hover_color="#616161",
+                          command=qty_win.destroy).pack(pady=(0, 10))
+ 
         except Exception as e:
             messagebox.showerror("Error", f"No se pudo agregar el producto: {e}")
 
@@ -295,11 +307,12 @@ class SalesView:
         for item in self.items_in_sale:
             # Puede tener 4 o 5 elementos (con o sin observaciones)
             if len(item) == 6:
-                pid, name, pack, qty, price, observations = item
+                pid, name, pack, qty, price, observations, _, _ = item
                 # Mostrar nombre con preview de observaciones
                 display_name = f"{name} - {observations[:40]}..." if len(observations) > 40 else f"{name} - {observations}"
             else:
-                pid, name, pack, qty, price = item
+                print(item)
+                pid, name, pack, qty, price, _, _ = item
                 display_name = name if name else self._get_product_name(pid)
             
             subtotal = norm_to_2_dec(price * qty)
@@ -319,9 +332,9 @@ class SalesView:
         total = Decimal('0.00')
         for item in self.items_in_sale:
             if len(item) == 6:  # Tiene observaciones (honorarios)
-                _, _, _, qty, price, _ = item
+                _, _, _, qty, price, _, _, _ = item
             else:  # Producto normal
-                _, _, _, qty, price = item
+                _, _, _, qty, price, _, _ = item
 
             total += qty * price
         
@@ -359,7 +372,13 @@ class SalesView:
         """Cargar productos disponibles y guardar en caché"""
         try:
             products = self.stock_model.get_all_products()
-            self.all_products = [p for p in products if p[12] > 0]  # Solo productos con stock
+            def has_stock(p):
+                if self.fraction_model and self.fraction_model.is_fractional(p[0]):
+                    info = self.fraction_model.get_available_stock_info(p[0])
+                    return info.get('total_units', 0) > 0
+                return p[12] > 0
+    
+            self.all_products = [p for p in products if has_stock(p)]
             
             # Mostrar todos los productos inicialmente
             self.refresh_product_tree(self.all_products)
@@ -376,10 +395,18 @@ class SalesView:
             _, price_with_iva, _, _, qty) = p
             
             if qty > 0:  # Solo mostrar productos con stock
+                is_frac = self.fraction_model and self.fraction_model.is_fractional(pid)
+                if is_frac:
+                    info = self.fraction_model.get_available_stock_info(pid)
+                    stock_display = f"{info.get('total_units', qty)} {info.get('unit', '')}"
+                    name_display  = f"⚖️ {name}"
+                else:
+                    stock_display = qty
+                    name_display  = name
+        
                 self.product_tree.insert(
-                    "", 
-                    "end", 
-                    values=(pid, name, pack, format_currency(price_with_iva), qty)
+                    "", "end",
+                    values=(pid, name_display, pack, format_currency(price_with_iva), stock_display)
                 )
 
     def show_sale_confirmation(self):
@@ -488,10 +515,10 @@ class SalesView:
         for item in self.items_in_sale:
             # Manejar items con y sin observaciones
             if len(item) == 6:
-                pid, name, pack, qty, price, observations = item
+                pid, name, pack, qty, price, observations, _, _ = item
                 product_name = f"{name}\n({observations[:50]}...)" if len(observations) > 50 else f"{name}\n({observations})"
             else:
-                pid, name, pack, qty, price = item
+                pid, name, pack, qty, price, _, _ = item
                 product_name = name
                 if not product_name:
                     for tree_item in self.product_tree.get_children():
@@ -534,9 +561,9 @@ class SalesView:
 
         for item in self.items_in_sale:
             if len(item) == 6:
-                pid, _, _, qty, price, _ = item
+                pid, _, _, qty, price, _, _, _ = item
             else:
-                pid, _, _, qty, price = item
+                pid, _, _, qty, price, _, _ = item
 
             qty_d   = Decimal(str(qty))
             price_d = Decimal(str(price))

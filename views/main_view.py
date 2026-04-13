@@ -31,6 +31,8 @@ from models.checks_model import ChecksModel
 from models.cash_model import CashModel
 from models.supplier.supplier_credit import SupplierCredit
 from models.customer_credit import CustomerCredit
+from models.fraction import FractionModel
+ 
 #from models.user import User
 from tkinter import messagebox
 from controllers.auth_controller import validate_data
@@ -189,6 +191,7 @@ class App():
         supplier_model = SupplierModel(stock_model)
         cash_model = CashModel(customer_model)
         supplier_credit = SupplierCredit(supplier_model.db)
+        fraction_model = FractionModel()
 
         ## --- CONTROLLERS --- ##
         self.stock_controller = StockController(
@@ -213,7 +216,7 @@ class App():
         self.receipt_controller = SupplierReceiptController(supplier_model)
         self.invoice_controller = InvoiceController(invoice_model, customer_model, stock_model)
         self.sales_controller = SalesController(
-            customer_model, remito_model, sales_model, stock_model, self.invoice_controller, event_bus
+            customer_model, remito_model, sales_model, stock_model, self.invoice_controller, event_bus, fraction_model = fraction_model
         )
 
         ## --- VIEWS --- ##
@@ -222,14 +225,14 @@ class App():
         self.notebook.add(self.start_view.frame, text='Inicio')
 
         # --- STOCK ---
-        self.stock_view = StockView(self.notebook, self.stock_controller, stock_model)
+        self.stock_view = StockView(self.notebook, self.stock_controller, stock_model, fraction_model = fraction_model)
         self.stock_controller.set_view(self.stock_view)
 
         self.notebook.add(self.stock_view.frame, text='Inventario')
 
         # --- SALES ---
         self.sales_view = SalesView(
-            self.notebook, self.sales_controller, stock_model, customer_model
+            self.notebook, self.sales_controller, stock_model, customer_model, fraction_model = fraction_model
         )
         self.sales_controller.set_view(self.sales_view)
 
