@@ -37,6 +37,7 @@ class PaymentModel:
 
         return self.db.fetch_one(query, (sale_id, ), conn=conn)
     
+    ##
     def update_sale_status(self, sale_id, conn=None, commit=True):
         row_sale = self.db.fetch_one(
             "SELECT cliente_id, estado, total FROM sales WHERE id = ?",

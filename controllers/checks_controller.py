@@ -8,12 +8,13 @@ from utils.view_helpers import show_error
 from db.database import db
 
 class ChecksController:
-    def __init__(self, checks_model, payment_model, customer_credit, customer_model, event_bus=None):
+    def __init__(self, checks_model, payment_model, customer_credit, customer_model, sales_model, event_bus=None):
         self.model = checks_model
         self.db = db
         self.payment_model = payment_model
         self.customer_credit = customer_credit
         self.customer_model = customer_model
+        self.sales_model = sales_model
         self.view = None
         if event_bus:
             event_bus.subscribe('refresh_checks', lambda _: self.load_checks(
@@ -73,13 +74,13 @@ class ChecksController:
             if check_state == 'EN_CARTERA':
                 self.payment_model.cancel_check_payments(check_id, conn=conn, commit=False)
                 self.customer_credit.cancel_check_credit(check_id, conn=conn, commit=False)
-                self._recalculate_credits_after_bounce(check_id, conn=conn)
+                self._recalculate_credits_after_bounce(check_id, conn=conn, commit=False)
 
             elif check_state == 'ENDOSADO':
                 self.payment_model.cancel_check_supplier_payments(check_id, conn=conn, commit=False)
                 self.payment_model.cancel_check_payments(check_id, conn=conn, commit=False)
                 self.customer_credit.cancel_check_credit(check_id, conn=conn, commit=False)
-                self._recalculate_credits_after_bounce(check_id, conn=conn)
+                self._recalculate_credits_after_bounce(check_id, conn=conn, commit=False)
 
             else:
                 show_error('Ocurrio un error')
@@ -94,7 +95,7 @@ class ChecksController:
 
         except Exception as e:
             conn.rollback()
-            self.view.show_error(f"Error: {e}")
+            show_error(f"Error: {e}")
             return False
         
         finally:
@@ -227,20 +228,30 @@ class ChecksController:
             print(f"[ChecksController] get_open_purchases: {e}")
             return []
     
-    def _recalculate_credits_after_bounce(self, check_id, conn=None):
+    def _recalculate_credits_after_bounce(self, check_id, conn=None, commit=True):
         affected_sales = self.model.get_sales_affected_by_check(check_id, conn=conn)
 
         for sale_id, client_id in affected_sales:
-            new_status = self.payment_model.update_sale_status(sale_id, conn=conn, commit=False)
+            # actualizar monto venta con precio actual
+            self.sales_model.update_sale_amount(sale_id, conn=conn, commit=False)
 
-            if new_status == 'paid':
-                payments = self.payment_model.get_payments_for_sale(sale_id, conn=conn)
-                total_row = self.payment_model.get_sale_total(sale_id, conn=conn)
-                self.payment_model.generate_overpay_credit(
-                    sale_id=sale_id,
-                    client_id=client_id,
-                    total=Decimal(total_row[0]),
-                    payments=payments,
-                    conn=conn,
-                    commit=False
-                )
+            # actualiza el estado de venta
+            new_status = self.payment_model.update_sale_status(sale_id, conn=conn, commit=False)
+            print(f'new_status: {new_status}')
+
+            # if new_status == 'paid':
+            #     print('Entro aca?')
+            #     # Al cancelar 
+            #     payments = self.payment_model.get_payments_for_sale(sale_id, conn=conn)
+            #     total_row = self.payment_model.get_sale_total(sale_id, conn=conn)
+            #     self.payment_model.generate_overpay_credit(
+            #         sale_id=sale_id,
+            #         client_id=client_id,
+            #         total=Decimal(total_row[0]),
+            #         payments=payments,
+            #         conn=conn,
+            #         commit=False
+            #     )
+            
+            # else:
+            #     print('else')

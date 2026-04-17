@@ -182,7 +182,7 @@ class App():
         customer_credit = CustomerCredit()
         checks_model = ChecksModel()
         payment_model = PaymentModel(sales_model, customer_credit, checks_model)
-        customer_model = CustomerModel(payment_model, customer_credit)
+        customer_model = CustomerModel(payment_model, customer_credit, sales_model)
         payment_model.customer_model = customer_model
         remito_model = RemitoModel()
         stock_model = StockModel(sales_model, payment_model, event_bus)
@@ -199,7 +199,7 @@ class App():
             customer_model, payment_model, customer_credit, event_bus, checks_model=checks_model
         )
         self.checks_controller = ChecksController(
-            checks_model, payment_model, customer_credit, customer_model, event_bus=event_bus
+            checks_model, payment_model, customer_credit, customer_model, sales_model, event_bus=event_bus
         )
         self.iva_reports_controller = ReportsController(iva_model)
 

@@ -6,10 +6,11 @@ from datetime import datetime
 from decimal import Decimal
 from utils.utils import norm_to_2_dec, iso_to_traditional
 class CustomerModel:
-    def __init__(self, pay_model, customer_credit, db_connection=None):
+    def __init__(self, pay_model, customer_credit, sales_model, db_connection=None):
         self.db = db_connection or db 
         self.pay_model = pay_model
         self.customer_credit = customer_credit
+        self.sales_model = sales_model
 
     def get_all_customers(self): 
         # Obtener todos los clientes
@@ -413,7 +414,8 @@ class CustomerModel:
 
         ## Generar resumen
         # Monto total en compras
-        total_purchased = sum((Decimal(m[5]) for m in movements), Decimal('0.00'))
+        data_total_p = self.sales_model.get_total_of_all_sales(client_id)
+        total_purchased = sum((Decimal(m[1]) for m in data_total_p), Decimal('0.00'))
 
         # Monto total en pagos reales — excluye aplicaciones de saldo a favor
         # (tipo CRÉDITO = plata interna, no dinero nuevo recibido)

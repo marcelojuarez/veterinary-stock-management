@@ -171,7 +171,7 @@ class SalesModel:
             for i, s in enumerate(sales):
                 # Se obtiene el monto total de pagos
                 query = """
-                SELECT amount FROM payments WHERE sale_id = ?
+                SELECT amount FROM payments WHERE sale_id = ? AND valid = 1
                 """
 
                 payments = self.db.fetch_all(query, (s[0], ))
@@ -201,7 +201,7 @@ class SalesModel:
 
         return self.db.fetch_all(query, (client_id, ), conn=conn)
     
-    def get_sale_items(self, sale_id):
+    def get_sale_items(self, sale_id, conn=None):
         query = """
             SELECT 
                 si.product_id,
@@ -288,6 +288,69 @@ class SalesModel:
         ]
 
         self.db.execute_query(query, params, conn=conn, commit=commit)
+
+    def update_sale_amount(self, sale_id, conn=None, commit=True):
+        data_tuples = self.update_sales_items_and_get_new_sales_amount(sale_id, conn=conn, commit=commit)
+
+        new_amount = sum(Decimal(row[0]) for row in data_tuples)
+
+        query = """
+        UPDATE sales SET
+            total = ?
+        WHERE id = ?
+        """
+        self.db.execute_query(query, (str(new_amount), sale_id), conn=conn, commit=commit)
+
+    def update_sales_items_and_get_new_sales_amount(self, sale_id, conn=None, commit=True):
+        try:
+            # obtiene los items de venta de una compra
+            query = """
+            SELECT * FROM sale_items WHERE sale_id = ?
+            """
+            sale_items = self.db.fetch_all(query, (sale_id, ), conn=conn)
+
+            # se actualiza cada item de venta
+            for item in sale_items:
+                s_item_id = item[0]
+                p_id = item[2]
+                quantity = item[3]
+
+                # obtiene info del producto en stock
+                query ="""
+                SELECT iva, price_with_iva FROM stock WHERE id = ?
+                """
+                product_data = self.db.fetch_one(query, (p_id, ), conn=conn)
+                iva_rate = Decimal(product_data[0])
+                price_with_iva = Decimal(product_data[1])
+
+                # Descomponer precio
+                divisor = Decimal('1') + (iva_rate / Decimal('100'))
+                price_without_iva   = norm_to_2_dec(price_with_iva / divisor)
+                subtotal_with_iva   = norm_to_2_dec(price_with_iva * quantity)
+                subtotal_without_iva = norm_to_2_dec(price_without_iva * quantity)
+                iva_amount          = norm_to_2_dec(subtotal_without_iva * (iva_rate / Decimal('100')))
+                query = """
+                UPDATE sale_items SET
+                    price = ?,
+                    subtotal = ?,
+                    iva_rate = ?,
+                    iva_amount = ?
+                WHERE id = ?
+                """
+                params = [str(price_with_iva), str(subtotal_with_iva), str(iva_rate), str(iva_amount), s_item_id]
+                self.db.execute_query(query, params, conn=conn, commit=commit)
+
+
+            query = """
+            SELECT subtotal FROM sale_items WHERE sale_id = ?
+            """
+
+            return self.db.fetch_all(query, (sale_id, ), conn=conn)
+
+        except ValueError as e:
+            print(f'Ocurrio un error: {e}')
+            return
+
 
     ## -- Recalcula el monto total de una venta -- ##
     def recalculate_sale_total(self, sale_id, conn=None, commit=True):

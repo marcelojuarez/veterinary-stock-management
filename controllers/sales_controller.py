@@ -155,7 +155,6 @@ class SalesController:
         """Mostrar ventas del día en una vista con tabla"""
         try:
             rows = self.sales_model.get_today_sales()
-            print(rows)
             if not rows:
                 self.sales_view.show_warning("No hay ventas registradas hoy.")
                 return
