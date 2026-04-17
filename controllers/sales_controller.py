@@ -1,10 +1,5 @@
 """
-controllers/sales_controller.py  (con soporte de fraccionamiento)
-=================================================================
-Cambios respecto a la versión original:
-  - add_product_to_sale() acepta parámetros opcionales is_fractional, unit, fraction_price
-  - Para productos fraccionados valida stock en unidades fraccionadas
-  - confirm_sale() ya funciona sin cambios (lee el flag del ítem)
+controllers/sales_controller.py
 """
 
 from decimal import Decimal
@@ -22,16 +17,16 @@ class SalesController:
             stock_model,
             invoice_controller,
             event_bus,
-            fraction_model=None        # ← nuevo parámetro opcional
+            fraction_model=None
         ):
-        self.sales_view        = None
-        self.customer_model    = customer_model
-        self.remito_model      = remito_model
-        self.sales_model       = sales_model
-        self.stock_model       = stock_model
+        self.sales_view         = None
+        self.customer_model     = customer_model
+        self.remito_model       = remito_model
+        self.sales_model        = sales_model
+        self.stock_model        = stock_model
         self.invoice_controller = invoice_controller
-        self.event_bus         = event_bus
-        self.fraction_model    = fraction_model   # puede ser None si no se inyecta
+        self.event_bus          = event_bus
+        self.fraction_model     = fraction_model
 
     def set_view(self, view):
         self.sales_view = view
@@ -47,13 +42,11 @@ class SalesController:
                             unit='UNIDAD',
                             fraction_price=None):
         """
-        Valida y agrega un producto a la venta.
-
-        Para productos fraccionados:
-          - qty_input puede ser "2.5" (acepta decimales)
-          - stock es el total disponible en unidades fraccionadas (ej. 37.5 kg)
-          - price es el precio por unidad fraccionada (con IVA)
-          - is_fractional=True hace que register_sale() use la lógica FIFO
+        Formatos de tupla que se agregan a items_in_sale:
+          Normal      : (pid, name, pack, qty, price)              — len 5
+          Honorarios  : (pid, name, pack, qty, price, obs)         — len 6
+          Fraccionado : (pid, name, pack, qty, price, label, True) — len 7
+                         label = "3 KG" (para mostrar en tabla)
         """
         try:
             if is_fractional:
@@ -78,43 +71,52 @@ class SalesController:
                     self.sales_view.show_warning(f"Solo hay {stock} unidades disponibles.")
                     return False
 
-            # ── Buscar si ya existe en la venta ──────────────────────────
-            existing_item = None
-            for i, item in enumerate(self.sales_view.items_in_sale):
-                if item[0] == product_id and (not is_fractional):
-                    existing_item = i
-                    break
-                # Los fraccionados siempre se agregan como línea nueva
-                # (distintas cantidades pueden tener distinto estado FIFO)
+            # Para productos normales: acumular si ya está en la venta
+            # IMPORTANTE: solo acumular si el ítem existente también es normal (len 5)
+            # Un ítem fraccionado (len 7) del mismo producto es una línea independiente
+            if not is_fractional:
+                for i, item in enumerate(self.sales_view.items_in_sale):
+                    if item[0] == product_id and len(item) == 5:
+                        current_qty = item[3]
+                        new_qty     = current_qty + quantity
+                        if new_qty > stock:
+                            self.sales_view.show_warning("Stock insuficiente.")
+                            return False
+                        self.sales_view.items_in_sale[i] = (
+                            product_id, name, pack, new_qty, price
+                        )
+                        return True
 
-            if existing_item is not None and not is_fractional:
-                current_item = self.sales_view.items_in_sale[existing_item]
-                current_qty  = current_item[3]
-                new_qty      = current_qty + quantity
-
-                if new_qty > stock:
-                    self.sales_view.show_warning("Stock insuficiente.")
-                    return False
-
-                self.sales_view.items_in_sale[existing_item] = (
-                    product_id, name, pack, new_qty, price
+            # Agregar nuevo item
+            if is_fractional:
+                unit_label = f"{quantity} {unit}"
+                self.sales_view.items_in_sale.append(
+                    (product_id, name, pack, quantity, price, unit_label, True)
                 )
             else:
-                if is_fractional:
-                    # Tupla de 7 elementos: el último True marca fraccionado
-                    self.sales_view.items_in_sale.append(
-                        (product_id, name, pack, quantity, price, '', True)
-                    )
-                else:
-                    self.sales_view.items_in_sale.append(
-                        (product_id, name, pack, quantity, price)
-                    )
+                self.sales_view.items_in_sale.append(
+                    (product_id, name, pack, quantity, price)
+                )
 
             return True
 
         except ValueError:
             self.sales_view.show_error("Ingrese una cantidad válida.")
             return False
+
+    # ─────────────────────────────────────────────────────────────────────
+    # HELPER CENTRALIZADO — qty y price de cualquier formato de item
+    # ─────────────────────────────────────────────────────────────────────
+
+    @staticmethod
+    def _unpack_qty_price(item):
+        """
+        qty y price siempre están en posiciones 3 y 4, sin importar el len.
+          len 5 : (pid, name, pack, qty, price)
+          len 6 : (pid, name, pack, qty, price, obs)
+          len 7 : (pid, name, pack, qty, price, unit_label, True)
+        """
+        return item[3], item[4]
 
     # ─────────────────────────────────────────────────────────────────────
     # BÚSQUEDA EN VIVO
@@ -126,12 +128,10 @@ class SalesController:
             self.sales_view.refresh_product_tree(self.sales_view.all_products)
             return
 
-        filtered = []
-        for product in self.sales_view.all_products:
-            pid, name = product[0], product[1]
-            if search_text in str(pid).lower() or search_text in str(name).lower():
-                filtered.append(product)
-
+        filtered = [
+            p for p in self.sales_view.all_products
+            if search_text in str(p[0]).lower() or search_text in str(p[1]).lower()
+        ]
         self.sales_view.refresh_product_tree(filtered)
 
     # ─────────────────────────────────────────────────────────────────────
@@ -139,24 +139,16 @@ class SalesController:
     # ─────────────────────────────────────────────────────────────────────
 
     def confirm_sale(self):
-        """Procesar venta y actualizar stock."""
         try:
             items = self.sales_view.items_in_sale
             if not items:
                 self.sales_view.show_warning("No hay productos en la venta.")
                 return
 
-            total    = Decimal('0.00')
-            last_qty = 0
+            total = Decimal('0.00')
             for item in items:
-                if len(item) == 7:    # fraccionado: (pid, name, pack, qty, price, obs, True)
-                    _, _, _, qty, price, _, _ = item
-                elif len(item) == 6:  # honorarios: (pid, name, pack, qty, price, obs)
-                    _, _, _, qty, price, _ = item
-                else:
-                    _, _, _, qty, price = item
-                total   += Decimal(str(qty)) * Decimal(str(price))
-                last_qty = qty
+                qty, price = self._unpack_qty_price(item)
+                total += Decimal(str(qty)) * Decimal(str(price))
 
             total          = norm_to_2_dec(total)
             cliente_nombre = self.sales_view.client_var.get()
@@ -194,7 +186,7 @@ class SalesController:
             self.sales_view.show_error(f"Error al procesar venta: {e}")
 
     # ─────────────────────────────────────────────────────────────────────
-    # El resto de métodos es idéntico al original
+    # RESTO DE MÉTODOS (sin cambios)
     # ─────────────────────────────────────────────────────────────────────
 
     def show_today_sales(self):
