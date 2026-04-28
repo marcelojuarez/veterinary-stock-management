@@ -144,10 +144,10 @@ class PaymentForm:
             banner = ctk.CTkFrame(W, fg_color="#E8F5E9", corner_radius=8)
             banner.grid(row=row, column=0, columnspan=2, padx=20, pady=(4, 2), sticky="ew"); row += 1
             if self._credit_applied >= self._deuda_original:
-                txt = f"✅  Saldo a favor cubre el total: $ {self._credit_applied:,.2f}"
+                txt = f"✅  Saldo a favor cubre el total: $ {self._credit_applied}"
             else:
-                txt = (f"✅  Saldo a favor aplicado: $ {self._credit_applied:,.2f}"
-                       f"  —  Resta pagar: $ {self._deuda_original - self._credit_applied:,.2f}")
+                txt = (f"✅  Saldo a favor aplicado: $ {self._credit_applied}"
+                       f"  —  Resta pagar: $ {self._deuda_original - self._credit_applied}")
             ctk.CTkLabel(banner, text=txt,
                          font=ctk.CTkFont(size=12, weight="bold"),
                          text_color="#2E7D32").pack(side="left", padx=10, pady=6)
@@ -405,7 +405,7 @@ class PaymentForm:
         resumen = f"Proveedor (CUIT): {self.supplier_cuit_var.get()}\n"
 
         if self._credit_applied > Decimal("0"):
-            resumen += f"Saldo a favor aplicado: $ {self._credit_applied:,.2f}\n"
+            resumen += f"Saldo a favor aplicado: $ {self._credit_applied}\n"
 
         if not credito_cubre_todo:
             resumen += (

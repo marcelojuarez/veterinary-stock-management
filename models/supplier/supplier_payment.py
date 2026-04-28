@@ -132,13 +132,7 @@ class SupplierPayment():
             return None
 
     ## -- Transaccion que registra un pago -- ##
-    def register_payment_and_set_relation(self, pay_data, purchase_id=None):
-        try:
-            conn = self.db.get_connection()
-
-            # Iniciar transacción
-            conn.execute("BEGIN")
-
+    def register_payment_and_set_relation(self, pay_data, conn=None, purchase_id=None):
             payment_id = self.add_payment(pay_data, conn=conn, commit=False)
             total_amount = pay_data['Amount']
 
@@ -233,17 +227,6 @@ class SupplierPayment():
                     self.add_purchase_payment_relation(params, conn=conn, commit=False)
 
             self.purchase.update_last_debt_update(pay_data['Supplier_id'], conn=conn, commit=False)
-
-            conn.commit()
-
-        except Exception as e:
-            conn.rollback()
-            print(f'Hubo un error {e}')
-            return False
-        
-        finally:
-            conn.close() 
-            return True    
         
     ## -- Obtiene los pagos a un proveedor vinculados con un cheque -- ##
     def get_supplier_payments_by_check(self, check_id, conn=None):

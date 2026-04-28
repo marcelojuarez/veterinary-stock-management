@@ -16,11 +16,11 @@ class SupplierCore():
             print(f'Error getting suppliers: {e}')
             return []
     
-    def find_supplier_by_id(self, supplier_id):
+    def find_supplier_by_id(self, supplier_id, conn=None):
         # Obtener proveedor a traves de id
         try:
             query = "SELECT * FROM supplier where id = ?"
-            return self.db.fetch_one(query, (supplier_id, ))
+            return self.db.fetch_one(query, (supplier_id, ), conn=conn)
         except ValueError as e:
             print(f'Error getting supplier by ID: {e}')
             return None

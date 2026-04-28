@@ -610,12 +610,12 @@ class CustomersView:
 
         self.debt_table.pack(padx=10, pady=10, fill="x")
 
-        for s_id, date, total, pay, balance, state in debts:
+        for s_id, date, total_sale, pay, balance, state in debts:
             self.debt_table.insert("", "end", 
                                    values=(
                                     s_id,
                                     date,
-                                    format_currency(total),       
+                                    format_currency(total_sale),       
                                     format_currency(pay),
                                     format_currency(balance),
                                     state
