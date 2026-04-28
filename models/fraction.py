@@ -208,12 +208,7 @@ class FractionModel:
         open_remaining = self.total_available_in_open(product_id)
         total = Decimal(str(closed)) * cfg["qty_per_package"] + open_remaining
 
-        display = (
-            f"{total} {cfg['unit']} "
-            f"({closed} {'bolsa' if closed == 1 else 'bolsas'} cerradas"
-            + (f" + {open_remaining} {cfg['unit']} abiertos" if open_remaining > 0 else "")
-            + ")"
-        )
+        display = f"{total} {cfg['unit']} " + f"{closed} u."
 
         return {
             "closed_packages": closed,
