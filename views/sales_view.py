@@ -279,7 +279,7 @@ class SalesView:
         ctk.CTkLabel(
             card,
             text="¿Cómo querés vender este producto?",
-            font=ctk.CTkFont(size=13)
+            font=ctk.CTkFont(size=13, weight="bold")
         ).pack(pady=(0, 12))
     
         # Info rápida de stock
@@ -348,10 +348,9 @@ class SalesView:
             card,
             text="Cancelar",
             width=120, height=30,
-            font=ctk.CTkFont(size=11),
-            fg_color="transparent",
-            text_color="#757575",
-            hover_color="#f0f0f0",
+            font=ctk.CTkFont(size=11, weight="bold"),
+            fg_color="#757575",
+            hover_color="#616161",
             command=mode_win.destroy
         ).pack(pady=(12, 4))
     
@@ -448,7 +447,7 @@ class SalesView:
 
             if len(item) == 7 and item[6] is True:
                 # Fraccionado: (pid, name, pack, qty, price, unit_label, True)
-                unit_label   = item[5]          # ej. "3 KG"
+                unit_label   = item[5].replace("FRAC:", "")          # ej. "3 KG"
                 display_name = f"⚖️ {name}"
                 display_qty  = unit_label        # columna Cant. muestra "3 KG"
                 display_pack = pack

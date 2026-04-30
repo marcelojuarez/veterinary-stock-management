@@ -93,7 +93,7 @@ class SalesController:
             if is_fractional:
                 unit_label = f"{quantity} {unit}"
                 self.sales_view.items_in_sale.append(
-                    (product_id, name, pack, quantity, price, unit_label, True)
+                    (product_id, name, pack, quantity, price, f"FRAC:{unit_label}", True)
                 )
             else:
                 self.sales_view.items_in_sale.append(

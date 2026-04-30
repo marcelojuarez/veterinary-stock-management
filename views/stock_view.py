@@ -314,19 +314,19 @@ class StockView():
         self.stock_tree['displaycolumns'] = self.stock_tree['columns']
 
         # Definición de columnas
-        self.stock_tree.column("Id", anchor=tk.W, width=40, stretch=False)
+        self.stock_tree.column("Id", anchor=tk.W, width=40, stretch=True)
         self.stock_tree.column("Name", anchor=tk.W, width=250, stretch=True)
         self.stock_tree.column("Package", anchor=tk.W, width=120, stretch=True)
         self.stock_tree.column("ListPrice", anchor=tk.E, width=100, stretch=True)
         self.stock_tree.column("Discount", anchor=tk.E, width=60, stretch=True)
         self.stock_tree.column("CostPrice", anchor=tk.E, width=70, stretch=True)
-        self.stock_tree.column("Profit", anchor=tk.CENTER, width=70, stretch=False)
+        self.stock_tree.column("Profit", anchor=tk.CENTER, width=70, stretch=True)
         self.stock_tree.column("SalePrice", anchor=tk.E, width=70, stretch=True)
-        self.stock_tree.column("Iva", anchor=tk.CENTER, width=60, stretch=False)
+        self.stock_tree.column("Iva", anchor=tk.CENTER, width=60, stretch=True)
         self.stock_tree.column("SalePriceWithIva", anchor=tk.E, width=90, stretch=True)
         self.stock_tree.column("ValidityDate", anchor=tk.CENTER, width=100, stretch=True)
         self.stock_tree.column("LastPriceUpdate", anchor=tk.CENTER, width=100, stretch=True)
-        self.stock_tree.column("Stock", anchor=tk.CENTER, width=70, stretch=False)
+        self.stock_tree.column("Stock", anchor=tk.CENTER, width=70, stretch=True)
 
         # Encabezados
         self.stock_tree.heading("Id", text="Cód.", anchor=tk.W,

@@ -2,14 +2,16 @@ from datetime import datetime
 import sqlite3
 from db.database import db
 from datetime import datetime
+from tkinter import messagebox
 
 from decimal import Decimal
 from utils.utils import norm_to_2_dec, iso_to_traditional
 class CustomerModel:
-    def __init__(self, pay_model, customer_credit, db_connection=None):
+    def __init__(self, pay_model, customer_credit, sales_model, db_connection=None):
         self.db = db_connection or db 
         self.pay_model = pay_model
         self.customer_credit = customer_credit
+        self.sales_model = sales_model
 
     def get_all_customers(self): 
         # Obtener todos los clientes
@@ -301,7 +303,7 @@ class CustomerModel:
         }
         self.add_row_in_customer_ledger(data, conn=conn, commit=commit)
 
-    ## -- Obtiene la deuda total de un cliente -- ##
+    ## -- Obtiene la deuda total de un cliente en detalle -- ##
     def get_customer_debts(self, cliente_id):
         query = """
         SELECT 
@@ -327,7 +329,6 @@ class CustomerModel:
             pagado = self.pay_model.get_total_amount_of_pay_for_a_sale(sale_id)
             estado_es = state_map.get(estado, estado)
             saldo = Decimal(total) - Decimal(pagado)
-            print(f'saldo : {saldo}')
 
             fecha_formateada = iso_to_traditional(date.split()[0]) if date else ""
 
@@ -377,7 +378,6 @@ class CustomerModel:
         for sale_id, total in rows:
             paid = self.pay_model.get_total_amount_of_pay_for_a_sale(sale_id, conn=conn)
             saldo = Decimal(total) - paid
-            print(f'saldo: {saldo}')
             if saldo > Decimal('0.00'):
                 total_pending += saldo
 
@@ -411,43 +411,64 @@ class CustomerModel:
         for m in movements:
             print(m)
 
+        # Ledger vacío = cuenta reseteada, tarjetas en cero excepto credit y total_debt
+        if not movements:
+            credit     = self.customer_credit.get_customer_credit(client_id)
+            summary = {
+                'total_purchased': Decimal('0.00'),
+                'total_paid':      Decimal('0.00'),
+                'credit':          credit,
+                'total_debt':      Decimal('0.00'),
+                'sales_paid':      0,
+                'total_sales':     0,
+                'sales_balance':   "0/0 pagadas"
+            }
+            return movements, summary
+
         ## Generar resumen
         # Monto total en compras
-        total_purchased = sum((Decimal(m[5]) for m in movements), Decimal('0.00'))
+        data_total_p = self.sales_model.get_total_of_all_sales(client_id)
+        total_purchased = sum((Decimal(m[1]) for m in data_total_p), Decimal('0.00'))
 
         # Monto total en pagos reales — excluye aplicaciones de saldo a favor
         # (tipo CRÉDITO = plata interna, no dinero nuevo recibido)
         total_paid = self.pay_model.get_total_paid_by_client(client_id)
-        print(f'total_paid: {total_paid}')
 
         # Deuda total
         total_debt = self.get_total_debt(client_id)
         
         # Contar ventas pagadas
-        total_sales = 0
-        sales_paid = 0
-        for m in movements:
-            if m[3] == "VENTA":
-                total_sales += 1
-                sale_id = m[8]
-                check = "SELECT estado FROM sales WHERE id = ?"
-                result = self.db.fetch_one(check, (sale_id,))
-                if result and result[0] == 'paid':
-                    sales_paid += 1
+        total_sales, sales_paid = self.count_sales_paid(movements)
 
+        # saldo a favor
         credit = self.customer_credit.get_customer_credit(client_id)
 
         summary = {
             'total_purchased': total_purchased,
             'total_paid': total_paid,
-            'credit': credit,        # ← crédito calculado del historial
-            'total_debt': total_debt,        # ← nunca baja de 0
+            'credit': credit,        
+            'total_debt': total_debt,  
             'sales_paid': sales_paid,
             'total_sales': total_sales,
             'sales_balance': f"{sales_paid}/{total_sales} pagadas"
         }
 
         return movements, summary
+    
+    ## -- count total sales and sales paid -- ##
+    def count_sales_paid(self, movements):
+        try:
+            total_sales, sales_paid = 0, 0
+            for m in movements:
+                if m[3] == "VENTA":
+                    total_sales += 1
+                    result = self.db.fetch_one("SELECT estado FROM sales WHERE id = ?", (m[8],))
+                    if result and result[0] == 'paid':
+                        sales_paid += 1
+            return total_sales, sales_paid
+        except Exception as e:
+            print(f'Error contando ventas: {e}')
+            return 0, 0
 
     def get_customers_with_debt(self):
         query = """
