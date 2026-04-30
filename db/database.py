@@ -492,6 +492,34 @@ class Database:
                 )
             """)
 
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS stock_fraction_config (
+                    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+                    product_id      INTEGER NOT NULL UNIQUE,
+                    unit            TEXT    NOT NULL DEFAULT 'KG',   -- KG | GR | LITRO | ML
+                    qty_per_package REAL    NOT NULL,                 -- cuánto tiene cada unidad cerrada (ej. 15 para bolsa 15kg)
+                    fraction_price  TEXT    NOT NULL,                 -- precio de venta por unidad fraccionada (sin IVA)
+                    created_at      TEXT    DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (product_id) REFERENCES stock(id) ON DELETE CASCADE
+                )
+            """)
+
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS open_fractions (
+                    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+                    product_id  INTEGER NOT NULL,
+                    remaining   REAL    NOT NULL,   -- cantidad restante en la unidad abierta
+                    opened_at   TEXT    DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (product_id) REFERENCES stock(id) ON DELETE CASCADE
+                )
+            """)
+
+            # Índice para búsquedas rápidas por producto
+            cursor.execute("""
+                CREATE INDEX IF NOT EXISTS idx_open_fractions_product
+                ON open_fractions (product_id)
+            """)
+
             conn.commit()
 
     def execute_query(self, query, params=None, conn=None, commit=True):

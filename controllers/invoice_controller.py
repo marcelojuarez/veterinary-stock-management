@@ -39,10 +39,21 @@ class InvoiceController:
         enriched_items = []
 
         for item in items:
+            # Formato unificado: qty en [3], price en [4], siempre
+            # len 5: normal       (pid, name, pack, qty, price)
+            # len 6: honorarios   (pid, name, pack, qty, price, obs)
+            # len 7: fraccionado  (pid, name, pack, qty, price, unit_label, True)
+            product_id = item[0]
+            name       = item[1]
+            pack       = item[2]
+            quantity   = item[3]
+            price      = item[4]
+
             if len(item) == 6:
-                product_id, name, pack, quantity, price, observations = item
+                observations = item[5]   # honorarios
+            elif len(item) == 7 and item[6] is True:
+                observations = item[5]   # fraccionado: unit_label como obs (ej. "3 KG")
             else:
-                product_id, name, pack, quantity, price = item
                 observations = None
 
             price    = flex_dec(price)  # precio con IVA incluido
@@ -83,13 +94,9 @@ class InvoiceController:
         )
 
         for item in items:
-            if len(item) == 6:
-                product_id, _, _, quantity, price, _ = item
-            else:
-                product_id, _, _, quantity, price = item
-
-            quantity   = flex_dec(quantity)
-            price      = flex_dec(price)
+            product_id = item[0]
+            quantity   = flex_dec(item[3])
+            price      = flex_dec(item[4])
             line_total = norm_to_2_dec(quantity * price)
 
             self.invoice_model.add_invoice_item(

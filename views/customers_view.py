@@ -797,20 +797,26 @@ class CustomersView:
             for item in items:
                 _, name, pack, quantity, price, subtotal, observations = item
                 if name.strip() == 'HONORARIOS':
-                    ## HONORARIOS
-                    # Si tiene observaciones, mostrarlas
                     if observations and observations.strip():
                         display_name = f"{name}\n  → {observations[:50]}..." if len(observations) > 50 else f"{name}\n  → {observations}"
                     else:
                         display_name = name
+                    display_qty = quantity
+
+                elif observations and observations.startswith("FRAC:"):
+                    unit_label   = observations.replace("FRAC:", "")
+                    display_name = f"⚖️ {name}"
+                    display_qty  = unit_label
+
                 else:
-                    ## PRODUCTOS COMUNES
                     display_name = name
+                    display_qty  = quantity
+
                 # Insertar en la tabla
                 self.debt_items_table.insert("", "end", values=(
                     display_name,
                     pack,
-                    quantity,
+                    display_qty,   # ← antes era quantity fijo, ahora usa display_qty
                     f"${format_currency(price)}",
                     f"${format_currency(subtotal)}"
                 ))

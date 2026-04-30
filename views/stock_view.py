@@ -10,16 +10,18 @@ from utils.view_helpers import center_window, close_win, show_error
 from utils.utils import iso_to_traditional, format_currency, string_to_2_dec, string_to_flex_dec, norm_to_2_dec, flex_dec
 from views.stock_movement_view import StockMovementView
 from models.stock_movement import StockMovementModel
+from views.fraction_config_dialog import FractionConfigDialog
 
 # Configurar tema y colores
 ctk.set_appearance_mode("light")  # "light" o "dark"
 ctk.set_default_color_theme("blue")  # "blue", "green", "dark-blue"
 
 class StockView():
-    def __init__(self, parent, controller, stock_model):
+    def __init__(self, parent, controller, stock_model, fraction_model=None):
         self.controller = controller
         self.frame = ctk.CTkFrame(parent, fg_color="#f0f0f0")
         self.stock_model = stock_model
+        self.fraction_model = fraction_model
         self.movement_view = StockMovementView(StockMovementModel(), stock_model=self.stock_model, controller=self.controller)
         self._stat_total    = tk.StringVar(value="—")
         self._stat_low      = tk.StringVar(value="—")
@@ -92,6 +94,15 @@ class StockView():
             command=self.open_edit_product_window
         )
 
+        fraction_btn = ctk.CTkButton(
+            manage_frame,
+            text="⚖️ Fraccionamiento",
+            width=W, height=H,
+            font=ctk.CTkFont(size=12, weight="bold"),
+            fg_color="#7B1FA2", hover_color="#6A1B9A",
+            command=self.open_fraction_config
+        )
+
         export_btn = ctk.CTkButton(
             manage_frame,
             text="📤 Exportar CSV",
@@ -105,7 +116,8 @@ class StockView():
         update_btn.grid(row=1, column=1, padx=10, pady=10)
         bulk_update_btn.grid(row=1, column=2, padx=10, pady=10)
         edit_btn.grid(row=1, column=3, padx=10, pady=10)
-        export_btn.grid(row=1, column=4, padx=10, pady=10)
+        fraction_btn.grid(row=1, column=4, padx=10, pady=10)   # ajustar columna según layout
+        export_btn.grid(row=1, column=5, padx=10, pady=10)
 
     
     def create_find_frame(self):
@@ -302,19 +314,19 @@ class StockView():
         self.stock_tree['displaycolumns'] = self.stock_tree['columns']
 
         # Definición de columnas
-        self.stock_tree.column("Id", anchor=tk.W, width=40, stretch=False)
+        self.stock_tree.column("Id", anchor=tk.W, width=40, stretch=True)
         self.stock_tree.column("Name", anchor=tk.W, width=250, stretch=True)
         self.stock_tree.column("Package", anchor=tk.W, width=120, stretch=True)
         self.stock_tree.column("ListPrice", anchor=tk.E, width=100, stretch=True)
         self.stock_tree.column("Discount", anchor=tk.E, width=60, stretch=True)
         self.stock_tree.column("CostPrice", anchor=tk.E, width=70, stretch=True)
-        self.stock_tree.column("Profit", anchor=tk.CENTER, width=70, stretch=False)
+        self.stock_tree.column("Profit", anchor=tk.CENTER, width=70, stretch=True)
         self.stock_tree.column("SalePrice", anchor=tk.E, width=70, stretch=True)
-        self.stock_tree.column("Iva", anchor=tk.CENTER, width=60, stretch=False)
+        self.stock_tree.column("Iva", anchor=tk.CENTER, width=60, stretch=True)
         self.stock_tree.column("SalePriceWithIva", anchor=tk.E, width=90, stretch=True)
         self.stock_tree.column("ValidityDate", anchor=tk.CENTER, width=100, stretch=True)
         self.stock_tree.column("LastPriceUpdate", anchor=tk.CENTER, width=100, stretch=True)
-        self.stock_tree.column("Stock", anchor=tk.CENTER, width=70, stretch=False)
+        self.stock_tree.column("Stock", anchor=tk.CENTER, width=70, stretch=True)
 
         # Encabezados
         self.stock_tree.heading("Id", text="Cód.", anchor=tk.W,
@@ -884,12 +896,18 @@ class StockView():
             else:
                 tag = ""
 
+            if self.fraction_model and self.fraction_model.is_fractional(product[0]):
+                info = self.fraction_model.get_available_stock_info(product[0])
+                qty_display = info.get('display', product[12])
+            else:
+                qty_display = product[12]
+
             self.stock_tree.insert(
                 "", "end",
                 values=(
                     id, name, pack, format_currency(list_price), discount, format_currency(cost_price),
                     profit, format_currency(price), iva, format_currency(price_with_iva),
-                    iso_to_traditional(created_at), iso_to_traditional(last_price_update), quantity),
+                    iso_to_traditional(created_at), iso_to_traditional(last_price_update), qty_display),
                 tags=(tag,)
             )
 
@@ -1174,3 +1192,19 @@ class StockView():
         product = self.stock_model.get_product_by_id(product_id)
         name = product[1] if product else None
         self.movement_view.open(self.frame, product_id=product_id, product_name=name)
+
+    def open_fraction_config(self):
+        selected_id = self.get_selected_product()
+        if not selected_id:
+            messagebox.showwarning("Advertencia", "Seleccione un producto.")
+            return
+        if not self.fraction_model:
+            messagebox.showerror("Error", "FractionModel no está disponible.")
+            return
+        product = self.stock_model.get_product_by_id(selected_id)
+        FractionConfigDialog(
+            parent         = self.frame,
+            product        = product,
+            fraction_model = self.fraction_model,
+            on_save        = lambda: self.refresh_stock_table(self.stock_model.get_all_products())
+        )
