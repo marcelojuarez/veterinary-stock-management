@@ -35,6 +35,7 @@ class ChecksController:
         except Exception as e:
             self.view.show_error(f"Error al cargar cheques: {e}")
 
+    ## -- Marcar cheque como cobrado -- ##
     def mark_cobrado(self, check_id):
         try:
             self.model.mark_cobrado(check_id)
@@ -42,7 +43,8 @@ class ChecksController:
             self.load_checks(self.view.filter_var.get())
         except Exception as e:
             self.view.show_error(f"Error: {e}")
-
+    
+    ## -- Marcar cheque como rechazado -- ##
     def manage_check_rechazado(self, check_id, check_state):
         result = self.mark_rechazado(check_id, check_state)
 
@@ -77,8 +79,9 @@ class ChecksController:
                 self._recalculate_credits_after_bounce(check_id, conn=conn, commit=False)
 
             elif check_state == 'ENDOSADO':
+                # Cancelar cheque asociado al proveedor y saldo a favor de la veterinaria
                 self.payment_model.cancel_check_supplier_payments(check_id, conn=conn, commit=False)
-                #self.supplier
+                # Cancelar cheque asociado al cliente
                 self.payment_model.cancel_check_payments(check_id, conn=conn, commit=False)
                 self.customer_credit.cancel_check_credit(check_id, conn=conn, commit=False)
                 self._recalculate_credits_after_bounce(check_id, conn=conn, commit=False)
