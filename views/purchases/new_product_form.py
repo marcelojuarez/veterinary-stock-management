@@ -212,7 +212,7 @@ class NewProductForm():
             f"Precio venta C/IVA $: {self.final_price.get()}"
         )
 
-        if ask_confirmation(data, 'Desea confirmar la carga de este producto?'):
+        if ask_confirmation(data, '¿Confirma la carga de este producto?'):
             self.controller.add_new_product(parent)
     
     ## -- Obtener los datos de un nuevo producto -- ##

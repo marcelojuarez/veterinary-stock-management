@@ -1,6 +1,10 @@
 from decimal import Decimal
 from datetime import datetime
 from models.stock import StockModel
+from tkinter import messagebox
+from services.purchase_detail import PurchaseDetail # Asegura la ruta correcta
+from utils.printing import send_to_printer
+
 from utils.view_helpers import show_error, show_warning, show_success, close_win
 
 class PurchaseController():
@@ -79,6 +83,12 @@ class PurchaseController():
                 self.supplier_model.purchase.update_last_debt_update(purchase_data[1])
                 self.event_bus.publish('refresh_supplier_table', None)
                 show_success('Compra confirmada')
+
+                if messagebox.askyesno("Imprimir", "¿Desea imprimir el comprobante de ingreso de stock?"):                    
+                    pdf_path = PurchaseDetail(self.supplier_model).generate_purchase_detail(purchase_id)
+                    print(pdf_path)
+                    send_to_printer(pdf_path)
+                    
                 return True
 
             else:

@@ -92,7 +92,7 @@ def generate_receipts_for_payment(
 
     for fmt_type, p in paths:
         if auto_print:
-            print_file(p)
+            _print_file(p)
         else:
             _open_file(p)
 

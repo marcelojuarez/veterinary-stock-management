@@ -68,6 +68,7 @@ class CashModel:
         
         # FIX: Usar saldo_final en lugar de saldo
         expected_closing = summary['saldo_final']
+        expected_closing = Decimal(str(expected_closing)) 
         difference = Decimal(closing_amount) - expected_closing
         closed_at = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         

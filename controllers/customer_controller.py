@@ -536,7 +536,8 @@ class CustomerController:
                     customer_id=customer_id,
                     result_data=result,
                     sales_with_items=sales_with_items,
-                    check_data=check_data
+                    check_data=check_data,
+                    auto_print=True
                 )
 
             except Exception as e:
@@ -851,6 +852,7 @@ class CustomerController:
                 customer_id=customer_id,
                 result_data=result_data,
                 sales_with_items=sales_with_items,
+                auto_print=True
             )
 
         except Exception as e:

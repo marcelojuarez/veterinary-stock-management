@@ -382,3 +382,4 @@ class PurchaseDetail():
         ))
 
         doc.build(elements)
+        return filename

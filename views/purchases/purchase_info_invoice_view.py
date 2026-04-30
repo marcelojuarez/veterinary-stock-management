@@ -554,7 +554,7 @@ class PurchaseInfoInvoiceView():
     def confirm_purchase(self, purchase_id):
 
         # confirmar compra
-        if ask_confirmation('Desea confirmar esta Compra', 'Este es el titulo'):
+        if ask_confirmation('¿Desea confirmar esta compra?', 'Confirmar compra'):
             result = self.controller.confirm_purchase(purchase_id)
             if result:
                 self.confirm_btn.configure(state=tk.DISABLED)

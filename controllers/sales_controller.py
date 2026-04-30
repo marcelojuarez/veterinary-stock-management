@@ -6,6 +6,8 @@ from decimal import Decimal
 from tkinter import messagebox
 from services.remito_pdf import RemitoPDF
 from utils.utils import norm_to_2_dec
+from tkinter.messagebox import askyesno
+from utils.printing import send_to_printer
 
 
 class SalesController:
@@ -159,6 +161,10 @@ class SalesController:
             sale_id = self.sales_model.register_sale(total, items, cliente_id, estado, retenciones)
 
             pdf = self.invoice_controller.generate_invoice(cliente_id, items)
+            if askyesno("Imprimir", "¿Desea imprimir el comprobante ahora?"):
+                succes = send_to_printer(pdf)
+                if not succes:
+                    self.sales_view.show_error("No se pudo enviar a la impresora. Verifique la conexión.")
             self.sales_view.show_success(f"Venta registrada.\nFactura creada: {pdf}")
 
             self.sales_view.last_sale_id = sale_id
@@ -211,6 +217,12 @@ class SalesController:
 
         pdf_path = RemitoPDF().generate_remito(number, customer, items)
         self.sales_view.last_sale_id = None
+
+        if askyesno("Imprimir Remito", f"¿Desea imprimir el remito N° {number} para entregar al cliente?"):
+            exito = send_to_printer(pdf_path)
+            if not exito:
+                self.sales_view.show_error("No se pudo enviar el remito a la impresora.")
+                
         return pdf_path
 
     def ask_remito(self, message):
