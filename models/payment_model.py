@@ -37,6 +37,7 @@ class PaymentModel:
 
         return self.db.fetch_one(query, (sale_id, ), conn=conn)
     
+    ##
     def update_sale_status(self, sale_id, conn=None, commit=True):
         row_sale = self.db.fetch_one(
             "SELECT cliente_id, estado, total FROM sales WHERE id = ?",
@@ -271,13 +272,42 @@ class PaymentModel:
         finally:
             conn.close()
 
-    ## --  Cancela pagos asociados a un cheque o echeq -- ##
+    ## -- Cancela pagos asociados a un cheque o echeq -- ##
     def cancel_check_payments(self, check_id, conn=None, commit=True):
-        query = """
-        UPDATE payments
-        SET 
-            valid = ?
-        WHERE check_id = ?
-        """
+        try:
+            query = """
+            UPDATE payments
+            SET 
+                valid = ?
+            WHERE check_id = ?
+            """
 
-        self.db.execute_query(query, (0, check_id), conn=conn, commit=commit)
+            self.db.execute_query(query, (0, check_id), conn=conn, commit=commit)
+        
+        except Exception as e:
+            print(f'Error al cancelar pagos asociados a un cheque: {e}')
+
+    ## -- Cancela Cheques endosados a un proveedor -- ##
+    ## -- Cancela Saldo a favor por cheques -- ##
+    def cancel_check_supplier_payments(self, check_id, conn=None, commit=True):
+        try:
+            query = """
+            UPDATE supplier_payment
+            SET
+                valid = ?
+            WHERE check_id = ?
+            """
+
+            self.db.execute_query(query, (0, check_id), conn=conn, commit=commit)
+
+            query = """
+            UPDATE supplier_credit_movements
+            SET
+                valid = ?
+            WHERE check_id = ?
+            """
+
+            self.db.execute_query(query, (0, check_id), conn=conn, commit=commit)
+
+        except Exception as e:
+            print(f'Error al cancelar pagos asociados a un cheque: {e}')

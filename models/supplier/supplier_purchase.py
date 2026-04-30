@@ -38,13 +38,13 @@ class SupplierPurchase():
             print(f'Error al cargar la compra: {e}')
 
     ## -- Obtener compra por ID -- ##
-    def get_purchase_by_id(self, purchase_id):
+    def get_purchase_by_id(self, purchase_id, conn=None):
         try:
             query = """
             SELECT * FROM purchase WHERE id = ?
             """
             
-            return self.db.fetch_one(query, (purchase_id, ))
+            return self.db.fetch_one(query, (purchase_id, ), conn=conn)
 
         except ValueError as e:
             print(f'Error al obtener la compra: {e}')
@@ -629,13 +629,13 @@ class SupplierPurchase():
         return self.db.execute_query(query, params, conn=conn, commit=commit)
     
     ## -- Debt -- ##
-    def get_debt_of_supplier(self, supplier_id):
+    def get_debt_of_supplier(self, supplier_id, conn=None):
         query = """
         SELECT pending
         FROM purchase
         WHERE supplier_id = ? AND state != 'BORRADOR'
         """    
-        rows = self.db.fetch_all(query, (supplier_id, ))
+        rows = self.db.fetch_all(query, (supplier_id, ), conn=conn)
 
         pending = Decimal('0.00')
 

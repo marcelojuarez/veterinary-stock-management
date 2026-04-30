@@ -73,9 +73,9 @@ class ChecksModel:
         """
         return self.db.fetch_all(query, params) or []
 
-    def get_check_by_id(self, check_id):
+    def get_check_by_id(self, check_id, conn=None):
         return self.db.fetch_one(
-            "SELECT * FROM checks WHERE id = ?", (check_id,)
+            "SELECT * FROM checks WHERE id = ?", (check_id,), conn=conn
         )
 
     def get_checks_en_cartera(self):

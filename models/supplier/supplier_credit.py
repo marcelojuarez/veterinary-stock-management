@@ -12,14 +12,14 @@ class SupplierCredit:
     Agrega un nuevo movimiento de crédito.
     amount puede ser positivo (genera crédito) o negativo (usa crédito).
     """
-    def add_movement(self, data):
+    def add_movement(self, data, conn=None, commit=True):
 
         date = datetime.now().strftime("%Y-%m-%d")
 
         query = """
             INSERT INTO supplier_credit_movements
-            (supplier_id, date, amount, type, reference_id, notes)
-            VALUES (?, ?, ?, ?, ?, ?)
+            (supplier_id, date, amount, type, purchase_id, check_id, notes)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
         """
 
         params = [
@@ -27,11 +27,13 @@ class SupplierCredit:
             date,
             data['amount'],
             data['type'],
-            data['reference_id'],
+            data['purchase_id'],
+            data['check_id'],
             data['notes'],
         ]
+        print(f'params: {params}')
 
-        return self.db.execute_query(query, params)
+        return self.db.execute_query(query, params, conn=conn, commit=commit)
 
     def get_last_movement(self, supplier_id):
         """
@@ -67,10 +69,10 @@ class SupplierCredit:
         query = """
         SELECT amount
         FROM supplier_credit_movements
-        WHERE supplier_id = ?
+        WHERE supplier_id = ? AND valid = ? 
         """
 
-        rows = self.db.fetch_all(query, (supplier_id,))
+        rows = self.db.fetch_all(query, (supplier_id, 1))
 
         total = Decimal("0.00")
 

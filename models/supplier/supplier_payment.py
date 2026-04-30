@@ -58,12 +58,13 @@ class SupplierPayment():
             supplier_payment.created_at
             FROM supplier_payment 
             JOIN supplier ON supplier_payment.supplier_id = supplier.id
-            WHERE (? IS NULL OR supplier.id = ?)
+            WHERE (? IS NULL OR supplier.id = ?) AND valid = ?
             ORDER BY supplier_payment.created_at DESC, supplier_payment.id DESC
             """
             params = [
                supplier_id,
-               supplier_id
+               supplier_id,
+               1
             ]
 
             return self.db.fetch_all(query, params)
@@ -132,13 +133,7 @@ class SupplierPayment():
             return None
 
     ## -- Transaccion que registra un pago -- ##
-    def register_payment_and_set_relation(self, pay_data, purchase_id=None):
-        try:
-            conn = self.db.get_connection()
-
-            # Iniciar transacción
-            conn.execute("BEGIN")
-
+    def register_payment_and_set_relation(self, pay_data, conn=None, purchase_id=None):
             payment_id = self.add_payment(pay_data, conn=conn, commit=False)
             total_amount = pay_data['Amount']
 
@@ -233,35 +228,24 @@ class SupplierPayment():
                     self.add_purchase_payment_relation(params, conn=conn, commit=False)
 
             self.purchase.update_last_debt_update(pay_data['Supplier_id'], conn=conn, commit=False)
-
-            conn.commit()
-
-        except Exception as e:
-            conn.rollback()
-            print(f'Hubo un error {e}')
-            return False
-        
-        finally:
-            conn.close() 
-            return True    
         
     ## -- Obtiene los pagos a un proveedor vinculados con un cheque -- ##
     def get_supplier_payments_by_check(self, check_id, conn=None):
         query = """
             SELECT id
             FROM supplier_payment
-            WHERE check_id = ? AND valid = 1
+            WHERE check_id = ? AND valid = ?
         """
-        return self.db.fetch_all(query, (check_id,), conn=conn)
+        return self.db.fetch_all(query, (check_id, 1), conn=conn)
     
     ## -- Obtiene las compras afectadas por un pago en particular -- ##
     def get_purchases_affected_by_payment(self, supplier_payment_id, conn=None):
         query = """
             SELECT purchase_id, amount_applied
             FROM purchase_payment
-            WHERE payment_id = ?
+            WHERE payment_id = ? AND valid = ?
         """
-        return self.db.fetch_all(query, (supplier_payment_id,), conn=conn)
+        return self.db.fetch_all(query, (supplier_payment_id, 1), conn=conn)
     
     def revert_purchase_pending(self, purchase_id, amount_applied, conn=None, commit=True):
         # Obtener pending actual

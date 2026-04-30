@@ -107,8 +107,10 @@ class Database:
                     date TEXT DEFAULT CURRENT_DATE,
                     amount TEXT NOT NULL,
                     type TEXT,
-                    reference_id INTEGER,
+                    purchase_id INTEGER NULL,
+                    check_id INTEGER NULL,
                     notes TEXT,
+                    valid INTEGER NOT NULL DEFAULT 1,
                     FOREIGN KEY (supplier_id) REFERENCES supplier(id)
                 );
             '''
