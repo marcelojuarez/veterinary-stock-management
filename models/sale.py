@@ -205,14 +205,22 @@ class SalesModel:
 
     def get_sale_items(self, sale_id):
         rows = self.db.fetch_all("""
-            SELECT si.product_id, s.name, s.pack, si.quantity, si.price, si.subtotal
+            SELECT si.product_id, s.name, s.pack, si.quantity, si.price, si.subtotal,
+                   si.observations
             FROM sale_items si
             JOIN stock s ON si.product_id = s.id
             WHERE si.sale_id = ?
         """, (sale_id,))
         return [
-            {"product_id": r[0], "name": r[1], "pack": r[2],
-             "quantity": r[3], "price": r[4], "subtotal": r[5]}
+            {
+                "product_id":   r[0],
+                "name":         r[1],
+                "pack":         r[2],
+                "quantity":     r[3],
+                "price":        r[4],
+                "subtotal":     r[5],
+                "observations": r[6],
+            }
             for r in rows
         ]
 

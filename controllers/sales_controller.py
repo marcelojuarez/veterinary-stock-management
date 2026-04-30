@@ -93,7 +93,7 @@ class SalesController:
             if is_fractional:
                 unit_label = f"{quantity} {unit}"
                 self.sales_view.items_in_sale.append(
-                    (product_id, name, pack, quantity, price, f"FRAC:{unit_label}", True)
+                    (product_id, name, pack, 1, price, f"FRAC. {unit_label}", True)
                 )
             else:
                 self.sales_view.items_in_sale.append(
@@ -212,10 +212,26 @@ class SalesController:
         number   = self.remito_model.get_next_number()
 
         delivery_note_id = self.remito_model.create_note(number, sale_id, customer[0])
-        for it in items:
-            self.remito_model.add_item(delivery_note_id, it['product_id'], it['quantity'])
 
-        pdf_path = RemitoPDF().generate_remito(number, customer, items)
+        remito_items = []
+
+        for it in items:
+            obs = it.get('observations') or ''
+            is_frac = obs.startswith('FRAC.')
+
+            if is_frac:
+                frac_label = obs[5:].strip()
+                display_name = f"{it['name']} FRAC. {frac_label}"
+                display_qty = 1
+                self.remito_model.add_item(delivery_note_id, it['product_id'], display_qty)
+                remito_items.append({**it, 'name': display_name, 'quantity': display_qty, 'pack': ""})
+            else:
+                display_name = it['name']
+                display_qty = it['quantity']
+                self.remito_model.add_item(delivery_note_id, it['product_id'], display_qty)
+                remito_items.append({**it, 'name': display_name, 'quantity': display_qty})
+
+        pdf_path = RemitoPDF().generate_remito(number, customer, remito_items)
         self.sales_view.last_sale_id = None
 
         if askyesno("Imprimir Remito", f"¿Desea imprimir el remito N° {number} para entregar al cliente?"):
