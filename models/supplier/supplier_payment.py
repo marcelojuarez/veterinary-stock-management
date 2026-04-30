@@ -58,12 +58,13 @@ class SupplierPayment():
             supplier_payment.created_at
             FROM supplier_payment 
             JOIN supplier ON supplier_payment.supplier_id = supplier.id
-            WHERE (? IS NULL OR supplier.id = ?)
+            WHERE (? IS NULL OR supplier.id = ?) AND valid = ?
             ORDER BY supplier_payment.created_at DESC, supplier_payment.id DESC
             """
             params = [
                supplier_id,
-               supplier_id
+               supplier_id,
+               1
             ]
 
             return self.db.fetch_all(query, params)
@@ -233,18 +234,18 @@ class SupplierPayment():
         query = """
             SELECT id
             FROM supplier_payment
-            WHERE check_id = ? AND valid = 1
+            WHERE check_id = ? AND valid = ?
         """
-        return self.db.fetch_all(query, (check_id,), conn=conn)
+        return self.db.fetch_all(query, (check_id, 1), conn=conn)
     
     ## -- Obtiene las compras afectadas por un pago en particular -- ##
     def get_purchases_affected_by_payment(self, supplier_payment_id, conn=None):
         query = """
             SELECT purchase_id, amount_applied
             FROM purchase_payment
-            WHERE payment_id = ?
+            WHERE payment_id = ? AND valid = ?
         """
-        return self.db.fetch_all(query, (supplier_payment_id,), conn=conn)
+        return self.db.fetch_all(query, (supplier_payment_id, 1), conn=conn)
     
     def revert_purchase_pending(self, purchase_id, amount_applied, conn=None, commit=True):
         # Obtener pending actual

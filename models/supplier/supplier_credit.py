@@ -69,10 +69,10 @@ class SupplierCredit:
         query = """
         SELECT amount
         FROM supplier_credit_movements
-        WHERE supplier_id = ?
+        WHERE supplier_id = ? AND valid = ? 
         """
 
-        rows = self.db.fetch_all(query, (supplier_id,))
+        rows = self.db.fetch_all(query, (supplier_id, 1))
 
         total = Decimal("0.00")
 

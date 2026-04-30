@@ -300,7 +300,6 @@ class PaymentModel:
 
             self.db.execute_query(query, (0, check_id), conn=conn, commit=commit)
 
-
             query = """
             UPDATE supplier_credit_movements
             SET

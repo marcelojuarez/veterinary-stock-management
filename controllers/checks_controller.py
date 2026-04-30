@@ -94,6 +94,8 @@ class ChecksController:
             self.view.show_success("Cheque marcado como RECHAZADO.")
             self.load_checks(self.view.filter_var.get())
 
+            raise Exception('Error')
+
             conn.commit()
             return True
 
