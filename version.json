@@ -1,8 +1,8 @@
 {
-  "version": "1.0.0",
-  "release_date": "2025-01-01",
-  "release_notes": "Versión inicial del sistema.",
-  "installer_url": "https://github.com/TU_USUARIO/TU_REPO/releases/download/v1.0.0/VeterinariaSetup_v1.0.0.exe",
-  "checksum_sha256": "HASH_SHA256_DEL_INSTALADOR_AQUI",
+  "version": "9.9.9",
+  "release_date": "2025-01-15",
+  "release_notes": "Prueba del sistema de actualización.",
+  "installer_url": "https://github.com/TU_USUARIO/TU_REPO/releases/download/v9.9.9/VeterinariaSetup_v9.9.9.exe",
+  "checksum_sha256": "",
   "mandatory": false
 }
