@@ -3,7 +3,7 @@
 
 #define MyAppName "VeterinariaApp"
 #define MyAppPublisher "Tu Empresa"
-#define MyAppURL "https://github.com/TU_USUARIO/TU_REPO"
+#define MyAppURL "https://github.com/marcelojuarez/https://github.com/marcelojuarez/veterinary-stock-management/"
 #define MyAppExeName "VeterinariaApp.exe"
 
 ; La versión se pasa desde release.py con /DMyAppVersion=X.Y.Z
