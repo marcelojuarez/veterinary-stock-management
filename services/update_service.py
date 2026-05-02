@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 # ── Configuración ──────────────────────────────────────────────────────────────
 # URL RAW del version.json en tu repositorio GitHub (rama main/master)
 VERSION_JSON_URL = (
-    "https://raw.githubusercontent.com/TU_USUARIO/TU_REPO/main/version.json"
+    "https://github.com/marcelojuarez/veterinary-stock-management/blob/feature/update-program/version.json"
 )
 
 # Archivo local que guarda la versión instalada actualmente
