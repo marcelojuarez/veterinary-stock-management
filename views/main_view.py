@@ -49,8 +49,11 @@ from controllers.iva_reports_controller import ReportsController
 from controllers.checks_controller import ChecksController
 from views.backup_manager import BackupManagerView
 import sys, os
-import ctypes 
+import ctypes
+import threading
 from ctypes import wintypes
+from services.update_service import UpdateService
+from views.update_dialog import UpdateDialog
 
 try:
     ctypes.windll.shcore.SetProcessDpiAwareness(1)
@@ -163,6 +166,33 @@ class App():
 
             self.login_win.destroy() 
             self.root.protocol("WM_DELETE_WINDOW", self.on_close)
+
+            # Chequeo de actualizaciones: corre en segundo plano 1.5s después del login
+            self.root.after(1500, self._check_updates_async)
+
+    def _check_updates_async(self):
+        update_service = UpdateService(current_version=UpdateService.get_current_version())
+
+        def _worker():
+            try:
+                update_info = update_service.check_for_updates()
+                if update_info:
+                    self.root.after(0, lambda: self._show_update_dialog(update_info, update_service))
+            except Exception as e:
+                import logging
+                logging.getLogger(__name__).warning("No se pudo verificar actualizaciones: %s", e)
+
+        threading.Thread(target=_worker, daemon=True, name="UpdateChecker").start()
+
+    def _show_update_dialog(self, update_info, service):
+        current = UpdateService.get_current_version()
+        dialog = UpdateDialog(
+            parent=self.root,
+            update_info=update_info,
+            current_version=current,
+            service=service,
+        )
+        dialog.wait_window()
 
     def create_componentes(self):
         self.notebook = ttk.Notebook(self.root)
