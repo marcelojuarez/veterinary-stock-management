@@ -181,22 +181,6 @@ class StockModel:
         query = "UPDATE stock SET quantity = quantity + ? WHERE id = ?"
         return db.execute_query(query, (quantity, product_id), conn=conn, commit=commit)
         
-    def reduce_quantity(self, product_id, quantity_to_reduce):
-        """Reducir la cantidad de un producto (para ventas)"""
-        current_product = self.get_product_by_id(product_id)
-        if not current_product:
-            raise ValueError(f"Producto {product_id} no encontrado")
-        current_quantity = current_product[-1]  # quantity está en la última posición
-        print("Current cantidad: ", current_quantity)
-        
-        if current_quantity < quantity_to_reduce:
-            raise ValueError(
-                f"Stock insuficiente. Disponible: {current_quantity}, Solicitado: {quantity_to_reduce}"
-            )
-        
-        new_quantity = current_quantity - quantity_to_reduce
-        return self.update_quantity(product_id, new_quantity)
-    
     def search_products(self, search_term):
         """Buscar productos por nombre, ID o envase"""
         query = """

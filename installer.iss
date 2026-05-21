@@ -3,7 +3,7 @@
 
 #define MyAppName "VeterinariaApp"
 #define MyAppPublisher "Tu Empresa"
-#define MyAppURL "https://github.com/marcelojuarez/https://github.com/marcelojuarez/veterinary-stock-management/"
+#define MyAppURL "https://github.com/marcelojuarez/veterinary-stock-management/"
 #define MyAppExeName "VeterinariaApp.exe"
 
 ; La versión se pasa desde release.py con /DMyAppVersion=X.Y.Z
@@ -41,9 +41,10 @@ Name: "desktopicon"; Description: "Crear acceso directo en el escritorio"; Group
 ; El .exe compilado por PyInstaller
 Source: "dist\{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion
 
-; Archivos de datos que necesita la app (ajustá según tu proyecto)
+; Archivos de datos que necesita la app
 Source: "local_version.json"; DestDir: "{app}"; Flags: ignoreversion
-Source: "db\*"; DestDir: "{app}\db"; Flags: ignoreversion recursesubdirs createallsubdirs
+; La DB se crea automáticamente por la app en LOCALAPPDATA al primer arranque.
+; NO incluir stock.db aquí para evitar sobreescribir datos reales en updates.
 
 [Icons]
 Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"
