@@ -616,4 +616,4 @@ class Database:
         return row
 
 
-db = Database('db/stock.db')
+db = Database()

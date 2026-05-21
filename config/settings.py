@@ -1,4 +1,14 @@
-# initial application configuration
+import os
+import sys
+
+def _resolve_db_path():
+    if getattr(sys, 'frozen', False):
+        base = os.path.join(os.environ['LOCALAPPDATA'], 'StockManager', 'db')
+    else:
+        base = os.path.join(os.path.dirname(__file__), '..', 'db')
+    return os.path.normpath(os.path.join(base, 'stock.db'))
+
+DB_PATH = _resolve_db_path()
 
 settings = {
     "VIEW_CONFIG" : {

@@ -351,15 +351,16 @@ class BackupService:
 # Instancia global del servicio de backup
 _backup_service = None
 
-def get_backup_service(db_path='db/stock.db'):
+def get_backup_service(db_path=None):
     """Obtener instancia global del servicio de backup"""
     global _backup_service
     if _backup_service is None:
-        _backup_service = BackupService(db_path)
+        from config.settings import DB_PATH
+        _backup_service = BackupService(db_path or DB_PATH)
     return _backup_service
 
 
-def initialize_backup_system(db_path='db/stock.db', auto_start=True):
+def initialize_backup_system(db_path=None, auto_start=True):
     """
     Inicializar el sistema de backup
     
@@ -383,7 +384,8 @@ if __name__ == "__main__":
     # Prueba del sistema de backup
     print("=== Sistema de Backup - Prueba ===")
     
-    service = BackupService('db/stock.db')
+    from config.settings import DB_PATH
+    service = BackupService(DB_PATH)
     
     # Crear backup manual
     print("\n1. Creando backup manual...")

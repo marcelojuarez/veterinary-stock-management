@@ -1,5 +1,3 @@
-from ctypes import wintypes
-import platform
 import tkinter as tk
 from tkinter import ttk
 import customtkinter as ctk
@@ -51,7 +49,6 @@ from views.backup_manager import BackupManagerView
 import sys, os
 import ctypes
 import threading
-from ctypes import wintypes
 from services.update_service import UpdateService
 from views.update_dialog import UpdateDialog
 
@@ -105,10 +102,7 @@ class App():
         
     def setup_variables(self):
         self.user_var = tk.StringVar()
-        self.user_var.set('admin')
-        
         self.pwd_var = tk.StringVar()
-        self.pwd_var.set('admin')
 
     def login_window(self):
         self.login_win = ctk.CTkToplevel(self.root)

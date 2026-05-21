@@ -28,7 +28,7 @@ from pathlib import Path
 
 # ── Configuración ──────────────────────────────────────────────────────────────
 REPO_OWNER = "marcelojuarez"
-REPO_NAME = "https://github.com/marcelojuarez/veterinary-stock-management"
+REPO_NAME = "veterinary-stock-management"
 APP_NAME = "VeterinariaApp"
 MAIN_SCRIPT = "main.py"
 INNO_SCRIPT = "installer.iss"

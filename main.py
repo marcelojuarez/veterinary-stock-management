@@ -6,6 +6,7 @@ import os
 
 from views.main_view import App
 from services.backup_service import initialize_backup_system
+from config.settings import DB_PATH
 
 # ── Logging ────────────────────────────────────────────────────────────────────
 os.makedirs("logs", exist_ok=True)
@@ -29,7 +30,7 @@ def main():
         # ── Sistema de backups ─────────────────────────────────────────────
         logger.info("Inicializando sistema de backups...")
         backup_service = initialize_backup_system(
-            db_path="db/stock.db",
+            db_path=DB_PATH,
             auto_start=True,
         )
         logger.info(
