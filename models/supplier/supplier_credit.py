@@ -1,8 +1,11 @@
 # models/supplier/supplier_credit.py
 
+import logging
 from decimal import Decimal
 from datetime import datetime
 from utils.utils import norm_to_2_dec
+
+logger = logging.getLogger(__name__)
 
 class SupplierCredit:
     def __init__(self, db):
@@ -31,8 +34,6 @@ class SupplierCredit:
             data['check_id'],
             data['notes'],
         ]
-        print(f'params: {params}')
-
         return self.db.execute_query(query, params, conn=conn, commit=commit)
 
     def get_last_movement(self, supplier_id):

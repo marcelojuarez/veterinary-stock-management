@@ -1,3 +1,4 @@
+import logging
 import tkinter as tk
 import customtkinter as ctk
 import csv
@@ -7,6 +8,8 @@ from decimal import Decimal
 from models.stock import StockModel
 from tkinter import ttk, messagebox, filedialog
 from utils.view_helpers import center_window, close_win, show_error
+
+logger = logging.getLogger(__name__)
 from utils.utils import iso_to_traditional, format_currency, string_to_2_dec, string_to_flex_dec, norm_to_2_dec, flex_dec
 from views.stock_movement_view import StockMovementView
 from models.stock_movement import StockMovementModel
@@ -1014,7 +1017,7 @@ class StockView():
             self.update_sort_indicators(column)
             
         except Exception as e:
-            print(f"Error al ordenar: {e}")
+            logger.error("Error al ordenar tabla de stock: %s", e)
 
 
     def update_sort_indicators(self, sorted_column):

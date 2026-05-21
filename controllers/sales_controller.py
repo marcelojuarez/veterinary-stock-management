@@ -2,10 +2,13 @@
 controllers/sales_controller.py
 """
 
+import logging
 from decimal import Decimal
 from tkinter import messagebox
 from services.remito_pdf import RemitoPDF
 from utils.utils import norm_to_2_dec
+
+logger = logging.getLogger(__name__)
 from tkinter.messagebox import askyesno
 from utils.printing import send_to_printer
 
@@ -249,5 +252,5 @@ class SalesController:
         try:
             return self.sales_model.get_sales_by_date_range(fecha_desde, fecha_hasta, estado=estado)
         except Exception as e:
-            print(f"Error al obtener ventas por rango de fechas: {e}")
+            logger.error("Error al obtener ventas por rango de fechas: %s", e)
             return []

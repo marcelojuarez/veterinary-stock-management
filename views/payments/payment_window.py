@@ -1,11 +1,13 @@
+import logging
 import tkinter as tk
 from tkinter import ttk
 import customtkinter as ctk
-from .payment_form import PaymentForm 
+from .payment_form import PaymentForm
 from .payment_info import PaymentInfo
 from utils.view_helpers import center_window, close_win, show_warning, show_error
 from utils.utils import iso_to_traditional, format_currency
-from utils.view_helpers import close_win, show_warning, show_error
+
+logger = logging.getLogger(__name__)
 
 # Configurar tema y colores
 ctk.set_appearance_mode("light")  # "light" o "dark"
@@ -316,7 +318,7 @@ class PaymentWindow():
             self.payment_info.show_payment_info(parent, values)
 
         except ValueError as e:
-            print(f'Error al seleccionar el registro de pago: {e}')
+            logger.error("Error al seleccionar registro de pago: %s", e)
             return
 
     ## -- Pago de una compra -- ##
@@ -390,7 +392,6 @@ class PaymentWindow():
 
         if filter:
             selected_supplier = self.supplier_id_var.get()
-            print(selected_supplier)
             if not selected_supplier:
                 show_warning("Atención", "Primero selecciona un proveedor.")
                 return
@@ -540,7 +541,6 @@ class PaymentWindow():
             self.refresh_supplier_table()
             return
         
-        print(query)
         
         # limpia el tree view
         for row in self.supplier_tree.get_children():

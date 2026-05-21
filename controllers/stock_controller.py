@@ -1,6 +1,9 @@
+import logging
 from db.database import db
 from decimal import Decimal
 from tkinter import messagebox
+
+logger = logging.getLogger(__name__)
 class StockController:
     def __init__(self, stock_model, supplier_model, payment_model, event_bus):
         self.view = None
@@ -86,7 +89,7 @@ class StockController:
             return True
             
         except Exception as e:
-            print(f"Error updating product field: {e}")
+            logger.error("Error updating product field: %s", e)
             return False
     
     def show_all_products(self):
@@ -96,7 +99,6 @@ class StockController:
     def refresh_stock_table(self):
         """Refrescar tabla de stock"""
         try:
-            print('Se Refresca la tabla')
             products = self.stock_model.get_all_products()
             self.all_products = products
             self.view.refresh_stock_table(products)

@@ -3,11 +3,14 @@ Modelo de Caja Diaria
 Maneja ingresos, egresos y gastos
 """
 
+import logging
 from datetime import datetime
 from db.database import db as default_db
 from decimal import Decimal
 from models.customer import CustomerModel
 from utils.utils import norm_to_2_dec
+
+logger = logging.getLogger(__name__)
 
 
 class CashModel:
@@ -176,7 +179,7 @@ class CashModel:
 
             return norm_to_2_dec(cash_summary)
         except Exception as e:
-            print(f"Error al obtener ventas de contado: {e}")
+            logger.error("Error al obtener ventas de contado: %s", e)
             return Decimal('0.00')
 
     def get_payment_client(self, date):
@@ -215,7 +218,7 @@ class CashModel:
             return norm_to_2_dec(cobros_summary)
             
         except Exception as e:
-            print(f"Error al obtener cobros a clientes: {e}")
+            logger.error("Error al obtener cobros a clientes: %s", e)
             return Decimal('0.00')
 
 
@@ -235,7 +238,7 @@ class CashModel:
             return norm_to_2_dec(compras_summary)
         
         except Exception as e:
-            print(f"Error al obtener pagos a proveedores: {e}")
+            logger.error("Error al obtener pagos a proveedores: %s", e)
             return Decimal('0.00')
 
     def get_cash_expenses(self, date):
@@ -254,7 +257,7 @@ class CashModel:
             return norm_to_2_dec(gastos_summary)
         
         except Exception as e:
-            print(f"Error al obtener gastos varios: {e}")
+            logger.error("Error al obtener gastos varios: %s", e)
             return Decimal('0.00')
         
 

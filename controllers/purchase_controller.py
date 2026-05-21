@@ -1,11 +1,13 @@
+import logging
 from decimal import Decimal
 from datetime import datetime
 from models.stock import StockModel
 from tkinter import messagebox
-from services.purchase_detail import PurchaseDetail # Asegura la ruta correcta
+from services.purchase_detail import PurchaseDetail
 from utils.printing import send_to_printer
-
 from utils.view_helpers import show_error, show_warning, show_success, close_win
+
+logger = logging.getLogger(__name__)
 
 class PurchaseController():
     def __init__(self, supplier_model, stock_model, event_bus):
@@ -86,7 +88,6 @@ class PurchaseController():
 
                 if messagebox.askyesno("Imprimir", "¿Desea imprimir el comprobante de ingreso de stock?"):                    
                     pdf_path = PurchaseDetail(self.supplier_model).generate_purchase_detail(purchase_id)
-                    print(pdf_path)
                     send_to_printer(pdf_path)
                     
                 return True
@@ -107,7 +108,6 @@ class PurchaseController():
 
             if doc_type == 'REMITO':
                 data = self.receipt_info_vw.get_receipt_data()
-                print(f'receipt data: {data}')
 
                 if not self.validate_doc_data(data, doc_type):
                     return False
@@ -118,7 +118,6 @@ class PurchaseController():
 
             else:
                 data = self.invoice_info_vw.get_invoice_data()
-                print(f'invoice data: {data}')
 
                 if not self.validate_doc_data(data, doc_type):
                     return                

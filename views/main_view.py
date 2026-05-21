@@ -1,3 +1,4 @@
+import logging
 import tkinter as tk
 from tkinter import ttk
 import customtkinter as ctk
@@ -5,6 +6,8 @@ from events import EventBus
 from datetime import datetime
 from config.settings import settings
 from services.cloud_backup_service import CloudBackupService
+
+logger = logging.getLogger(__name__)
 
 from views.start_view import StartView
 from views.stock_view import StockView
@@ -322,7 +325,7 @@ class App():
         except Exception as e:
             import traceback
             traceback.print_exc()
-            print(f"Error cargando datos iniciales: {e}")
+            logger.error("Error cargando datos iniciales: %s", e)
 
     def center_window(self, win, width_win, height_win):
         win.update_idletasks()
@@ -344,6 +347,6 @@ class App():
             try:
                 CloudBackupService().run()
             except Exception as e:
-                print(f'Error en backup: {e}')
+                logger.error("Error en cloud backup al cerrar: %s", e)
             finally:
                 self.root.destroy()

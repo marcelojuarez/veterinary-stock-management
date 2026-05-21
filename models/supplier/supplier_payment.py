@@ -1,8 +1,11 @@
 # models/supplier/supplier_payments.py
 
+import logging
 from datetime import datetime
 from utils.utils import norm_to_2_dec
 from decimal import Decimal
+
+logger = logging.getLogger(__name__)
 
 class SupplierPayment():
     def __init__(self, db, purchase_model):
@@ -19,7 +22,7 @@ class SupplierPayment():
             """
             return self.db.fetch_one(query, (payment_id))
         except ValueError as e:
-            print(f'Error getting supplier supplier_payment by cuit: {e}')
+            logger.error("Error getting supplier payment by cuit: %s", e)
             return None
 
     ## -- Obtiene los datos de un pago hecho por transferencia -- ##
@@ -32,7 +35,7 @@ class SupplierPayment():
             """
             return self.db.fetch_one(query, (payment_id,))
         except ValueError as e:
-            print(f'Error getting transfer data by supplier_payment id: {e}')
+            logger.error("Error getting transfer data by supplier_payment id: %s", e)
             return None
 
     ## -- Obtiene los datos de un pago hecho por cheque -- ##
@@ -45,7 +48,7 @@ class SupplierPayment():
             """
             return self.db.fetch_one(query, (payment_id,))
         except ValueError as e:
-            print(f'Error getting transfer data by payment id: {e}')
+            logger.error("Error getting transfer data by payment id: %s", e)
             return None
     
     ## -- Obtiene todos los pagos asociados o no, a un cuit-- ##
@@ -69,7 +72,7 @@ class SupplierPayment():
 
             return self.db.fetch_all(query, params)
         except ValueError as e:
-            print(f'Error getting supplier payment by id: {e}')
+            logger.error("Error getting supplier payment by id: %s", e)
             return None  
 
     def add_payment(self, pay_data, check_id=None, conn=None, commit=True):
@@ -129,7 +132,7 @@ class SupplierPayment():
 
             return self.db.fetch_all(query, (payment_id, ))
         except ValueError as e:
-            print(f'Error al obtener las compras asociadas a este pago {e}')
+            logger.error("Error al obtener compras asociadas al pago: %s", e)
             return None
 
     ## -- Transaccion que registra un pago -- ##
@@ -176,7 +179,6 @@ class SupplierPayment():
                 purchases = self.purchase.get_all_purchases_without_paying()
 
                 for p in purchases:
-                    print(f'Monto: {total_amount}')
 
                     # Si ya no queda monto para aplicar, cortar el ciclo
                     if total_amount <= Decimal('0.00'):
@@ -268,7 +270,6 @@ class SupplierPayment():
     def cancel_check_supplier_payments(self, check_id, conn=None, commit=True):
         # Pagos vinculados al cheque
         payments = self.get_supplier_payments_by_check(check_id, conn=conn)
-        print(f'payments: {len(payments)}')
 
         if not payments:
             return

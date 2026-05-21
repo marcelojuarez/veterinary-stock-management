@@ -1,6 +1,9 @@
+import logging
 import os
 import sys
 import subprocess
+
+logger = logging.getLogger(__name__)
 
 def send_to_printer(file_path):
     """
@@ -9,7 +12,7 @@ def send_to_printer(file_path):
     En Mac solo abre el archivo para previsualizar.
     """
     if not file_path or not os.path.exists(file_path):
-        print(f"Error: Archivo no encontrado en {file_path}")
+        logger.error("Archivo no encontrado en %s", file_path)
         return False
 
     # --- LÓGICA PARA WINDOWS (Producción) ---
@@ -26,7 +29,7 @@ def send_to_printer(file_path):
                 win32api.ShellExecute(0, "print", file_path, None, ".", 0)
                 return True
         except Exception as e:
-            print(f"Error de impresión en Windows: {e}")
+            logger.error("Error de impresión en Windows: %s", e)
             return False
 
     # --- LÓGICA PARA MAC (Desarrollo) ---

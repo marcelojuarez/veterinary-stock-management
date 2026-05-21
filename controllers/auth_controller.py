@@ -1,13 +1,15 @@
+import logging
 from models.user import User
 from models.security import validate_password
 from tkinter import messagebox
+
+logger = logging.getLogger(__name__)
 
 
 def validate_data(username, password):
     user_model = User()
     user = user_model.get_user_by_username(username)
-    print(f'\n{user}\n')
-    
+
     if not user:
         messagebox.showwarning('Error', 'Usuario no encontrado')
         return False 

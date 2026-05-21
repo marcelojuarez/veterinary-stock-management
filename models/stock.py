@@ -1,5 +1,8 @@
+import logging
 from decimal import Decimal
 from db.database import db
+
+logger = logging.getLogger(__name__)
 from utils.utils import norm_to_2_dec
 from models.stock_movement import StockMovementModel
 
@@ -151,7 +154,7 @@ class StockModel:
                         else:
                             self.changes.append(f"✅ Venta #{sale_id} Cambia su monto por cambio de precio")
 
-                    print(f'changes: \n{self.changes}')
+                    logger.debug("Price changes: %s", self.changes)
 
             conn.commit()
             if self.changes:
@@ -161,7 +164,7 @@ class StockModel:
 
         except Exception as e:
             conn.rollback()
-            print(f'Hubo un error {e}')
+            logger.error("Error al actualizar precio y ventas relacionadas: %s", e)
             return False
 
         finally:
@@ -203,7 +206,7 @@ class StockModel:
                 )
                 return cursor.fetchall()
         except Exception as e:
-            print(f"Error getting low stock products: {e}")
+            logger.error("Error getting low stock products: %s", e)
             return []
     
     def get_available_price_dates(self):

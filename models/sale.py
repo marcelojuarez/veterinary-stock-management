@@ -8,9 +8,12 @@ Cambios respecto a la versión original:
   - Todo lo demás permanece idéntico
 """
 
+import logging
 from db.database import db
 from datetime import datetime
 from decimal import Decimal
+
+logger = logging.getLogger(__name__)
 from utils.utils import norm_to_2_dec
 from models.stock_movement import StockMovementModel
 from models.fraction import FractionModel
@@ -144,7 +147,7 @@ class SalesModel:
 
         except Exception as e:
             conn.rollback()
-            print(f'Error al registrar venta: {e}')
+            logger.error("Error al registrar venta: %s", e)
             raise
 
         finally:

@@ -1,6 +1,9 @@
 # controllers/supplier_controller.py
+import logging
 import re
 from utils.view_helpers import show_warning, show_error, show_success, ask_confirmation
+
+logger = logging.getLogger(__name__)
 
 class SupplierController():
     def __init__(self, supplier_model, event_bus):
@@ -33,23 +36,18 @@ class SupplierController():
                 return
 
             if not self.__validate_supplier_email(data['email']):
-                print('Entro al chequeo de email del proveedor')
                 return
-            
+
             if not self.__validate_supplier_cuit(data['cuit']):
-                print('Entro al chequeo de cuit del proveedor')
                 return
-            
+
             if not self.__validate_supplier_phone(data['phone']):
-                print('Entro al chequeo de telefono del proveedor')
                 return
-            
+
             if not self.__validate_supplier_name(data['name']):
-                print('Entro al chequeo de nombre del proveedor')
                 return
-            
+
             if not self.__validate_supplier_address(data['address']):
-                print('Entro al chequeo de domicilio del proveedor')
                 return
 
             # convertir tipos
@@ -98,7 +96,7 @@ class SupplierController():
 
             self.info_view.open_info_window(supplier_data, credit_amount, debt, parent)
         except Exception as e:
-            print(f'Hubo un error: {e}')
+            logger.error("Error abriendo info de proveedor: %s", e)
     
     def __validates_supplier_data(self, form_data):
         required_files =  ['name', 'cuit', 'address', 'city', 'province', 'country', 'phone', 'email', 'iva_condition']
@@ -184,7 +182,6 @@ class SupplierController():
     def refresh_supplier_table(self):
         """Refrescar la tabla de proveedores"""
         try:    
-            print('Se refresca la tabla')
             self.view.suppliers = self.model.core.get_all_suppliers()
             self.view.refresh_supplier_table(self.view.suppliers)
         except Exception as e:
@@ -203,19 +200,15 @@ class SupplierController():
                 return False
             
             if not self.__validate_supplier_cuit(supplier_data['cuit']):
-                print('Entro al chequeo de cuit del proveedor')
                 return False
-            
+
             if not self.__validate_supplier_phone(supplier_data['phone']):
-                print('Entro al chequeo de telefono del proveedor')
                 return False
-            
+
             if not self.__validate_supplier_name(supplier_data['name']):
-                print('Entro al chequeo de nombre del proveedor')
                 return False
-            
+
             if not self.__validate_supplier_address(supplier_data['address']):
-                print('Entro al chequeo de domicilio del proveedor')
                 return False
 
             # convertir tipos
@@ -294,7 +287,7 @@ class SupplierController():
                 show_success('El proveedor fue eliminado correctamente.')
 
         except Exception as e:
-            print(e)
+            logger.error("Error al eliminar proveedor: %s", e)
             show_warning('Error al procesar la solicitud')
 
  

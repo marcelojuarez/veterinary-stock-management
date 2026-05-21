@@ -1,7 +1,10 @@
-from db.database import db 
+import logging
+from db.database import db
 from decimal import Decimal
 from datetime import datetime
 from utils.utils import norm_to_2_dec
+
+logger = logging.getLogger(__name__)
 
 class PaymentModel:
     def __init__(self, sales_model, customer_credit, checks_model, customer_model=None):
@@ -219,7 +222,6 @@ class PaymentModel:
                 remaining = remaining - pay_amount
                 updated_debts.append((sale_id, pay_amount))
 
-            print(f'remaining: {remaining}')
             surplus = Decimal('0.00')
 
             # Verifica si se genera saldo a favor al pagar con cheque
@@ -266,7 +268,7 @@ class PaymentModel:
 
         except Exception as e:
             conn.rollback()
-            print(f'Hubo un error: {e}')
+            logger.error("Error al distribuir pago con cheque: %s", e)
             return False
 
         finally:
@@ -285,7 +287,7 @@ class PaymentModel:
             self.db.execute_query(query, (0, check_id), conn=conn, commit=commit)
         
         except Exception as e:
-            print(f'Error al cancelar pagos asociados a un cheque: {e}')
+            logger.error("Error al cancelar pagos del cheque: %s", e)
 
     ## -- Cancela Cheques endosados a un proveedor -- ##
     ## -- Cancela Saldo a favor por cheques -- ##
@@ -310,4 +312,4 @@ class PaymentModel:
             self.db.execute_query(query, (0, check_id), conn=conn, commit=commit)
 
         except Exception as e:
-            print(f'Error al cancelar pagos asociados a un cheque: {e}')
+            logger.error("Error al cancelar pagos de proveedor del cheque: %s", e)

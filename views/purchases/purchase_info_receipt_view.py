@@ -1,9 +1,12 @@
+import logging
 import tkinter as tk
 from tksheet import Sheet
 import customtkinter as ctk
 from services.purchase_detail import PurchaseDetail
 from utils.utils import iso_to_traditional, format_currency, format_currency_flex
 from utils.view_helpers import center_window, close_win, ask_confirmation, show_success, show_warning, show_error
+
+logger = logging.getLogger(__name__)
 
 class PurchaseInfoReceiptView():
     def __init__(self, model, controller):
@@ -175,10 +178,10 @@ class PurchaseInfoReceiptView():
             purchase_info.grab_set()
 
         except ValueError as e:
-            print(f'Error{e}')
+            logger.error("Error en vista de remito: %s", e)
 
         except Exception as e:
-            print(f'Error{e}')
+            logger.error("Error en vista de remito: %s", e)
 
     ## -- Renderiza los campos de remito y carga sus datos-- ##
     def show_receipt_fields(self, doc_id):
@@ -335,7 +338,7 @@ class PurchaseInfoReceiptView():
             self.purchase_detail.generate_purchase_detail(self.purchase_id)
             show_success(f'Detalle de compra generado con exito')
         except ValueError as e:
-            print(f'Error: {e}')
+            logger.error("Error en vista de remito: %s", e)
 
     ## -- Manejo para eliminar un item de compra-- ##
     def handle_delete_purchase_item(self):
@@ -361,7 +364,7 @@ class PurchaseInfoReceiptView():
             self.controller.delete_purchase_item(self.purchase_id, p_id)
 
         except ValueError as e:
-            print(f'Error: {e}') 
+            logger.error("Error en vista de remito: %s", e) 
 
     # Botones de accion
     ## -- Confirmar Compra -- ##
@@ -373,7 +376,6 @@ class PurchaseInfoReceiptView():
             if result:
                 self.confirm_btn.configure(state=tk.DISABLED)
         else:
-            print('no aca')
             return
 
     ## --  Editar campos de los documentos asociados a la compra -- ##

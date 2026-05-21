@@ -1,3 +1,4 @@
+import logging
 import tkinter as tk
 import customtkinter as ctk
 from tkinter import ttk, messagebox
@@ -5,6 +6,8 @@ from tkcalendar import DateEntry
 from datetime import datetime, timedelta
 from utils.utils import traditional_to_iso, iso_to_traditional
 from utils.view_helpers import center_window
+
+logger = logging.getLogger(__name__)
 
 
 EVENT_LABELS = {
@@ -306,7 +309,6 @@ class StockMovementView:
             if not product:
                 messagebox.showerror("Error", "Producto no encontrado")
                 return
-            print(product)
             current_stock = int(product[12])  # quantity está en índice 9
             current_cost = product[6]  # cost_price
             current_price = product[7]  # price

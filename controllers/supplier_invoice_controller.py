@@ -1,7 +1,10 @@
+import logging
 from decimal import Decimal
 from datetime import datetime
 from utils.utils import string_to_flex_dec, traditional_to_iso
 from utils.view_helpers import show_success, show_error, show_warning, close_win
+
+logger = logging.getLogger(__name__)
 
 class SupplierInvoiceController():
     def __init__(self, supplier_model):
@@ -191,5 +194,4 @@ class SupplierInvoiceController():
                 }
             )
 
-        print(data)
         return data

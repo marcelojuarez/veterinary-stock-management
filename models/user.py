@@ -1,4 +1,7 @@
+import logging
 from db.database import db
+
+logger = logging.getLogger(__name__)
 
 class User():
     def __init__(self, db_connection=None):
@@ -19,7 +22,7 @@ class User():
             query = "SELECT * FROM usuarios where username = ?"
             return self.db.fetch_one(query, (username,))
         except ValueError as e:
-            print(f"Error getting user by username {e}")
+            logger.error("Error getting user by username: %s", e)
             return None
         
 

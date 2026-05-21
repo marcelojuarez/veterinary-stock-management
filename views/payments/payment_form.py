@@ -1,9 +1,12 @@
+import logging
 import tkinter as tk
 import customtkinter as ctk
 from tkinter import ttk
 from decimal import Decimal
 from utils.view_helpers import close_win, show_warning, ask_confirmation
 from utils.utils import format_currency, clean_currency_input
+
+logger = logging.getLogger(__name__)
 
 
 class PaymentForm:
@@ -43,7 +46,6 @@ class PaymentForm:
         if purchase_id is not None and amount is not None:
             self.purchase_id = tk.StringVar(value=purchase_id)
             cleaned = clean_currency_input(amount)
-            print(f"amount: {amount}, cleaned: {cleaned}, type: {type(cleaned)}")
             self.amount_var.set(cleaned)
             self._deuda_original = Decimal(str(cleaned))
         else:
@@ -90,7 +92,7 @@ class PaymentForm:
                     credit_source.get_credit_amount_of_supplier(supplier_id) or "0"
                 ))
             except Exception as e:
-                print(f"[PaymentForm] Error leyendo saldo a favor: {e}")
+                logger.error("Error leyendo saldo a favor: %s", e)
 
         # ── Aplicar crédito automáticamente ───────────────────────
         # credit_applied = min(crédito, deuda)  → puede cubrir todo o solo parte

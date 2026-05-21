@@ -1,9 +1,12 @@
+import logging
 import customtkinter as ctk
 from tkinter import ttk, messagebox
 from utils.utils import format_currency
 from utils.view_helpers import center_window
 from decimal import Decimal
 from models.customer import CustomerModel
+
+logger = logging.getLogger(__name__)
 ctk.set_appearance_mode("light")
 ctk.set_default_color_theme("blue")
 
@@ -209,7 +212,6 @@ class CustomersView:
         # Obtener el nombre del cliente (columna 1)
         values = self.table.item(selected[0])["values"]
         nombre_cliente = values[1] if len(values) > 1 else ""
-        print(nombre_cliente)
         if nombre_cliente == "CONSUMIDOR FINAL":
             # Cliente "Consumidor Final": deshabilitado
             self.btn_ver_deudas.configure(
@@ -822,7 +824,7 @@ class CustomersView:
                 ))
 
         except Exception as e:
-            print(f"Error mostrando items: {e}")
+            logger.error("Error mostrando items de venta: %s", e)
             messagebox.showerror("Error", f"No se pudieron mostrar los productos: {e}")
 
     def select_customer_in_table(self, customer_id):
@@ -990,7 +992,7 @@ class CustomersView:
                 elif tipo == "CHEQUE RECHAZADO":
                     history_table.item(item, tags=("cheque_rechazado",))    
                 else:
-                    print(f'tipo de venta: {type}')
+                    logger.warning("Tipo de movimiento desconocido: %s", tipo)
 
         history_table.tag_configure("venta", background="#FFF3CD")     # amarillo muy suave
         history_table.tag_configure("pago", background="#E8F5E9")      # verde muy claro

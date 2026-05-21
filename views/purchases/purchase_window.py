@@ -1,8 +1,11 @@
+import logging
 import tkinter as tk
 from tkinter import ttk
 import customtkinter as ctk
 
 from .purchase_form import PurchaseForm
+
+logger = logging.getLogger(__name__)
 from utils.utils import iso_to_traditional, format_currency
 from utils.view_helpers import center_window, close_win, show_warning, show_error
 from .purchase_info_invoice_view import PurchaseInfoInvoiceView
@@ -303,7 +306,7 @@ class PurchaseWindow():
             self.controller.delete_purchase(purchase_id=values[0], doc_type=values[2])
 
         except ValueError as e:
-            print(f'Error al obtener la compra: {e}')
+            logger.error("Error al obtener la compra: %s", e)
             return
 
     ## -- Ventana para agregar productos a una compra -- ##
@@ -324,7 +327,7 @@ class PurchaseWindow():
             self.purchase_form.show_actual_products(parent, values)
 
         except ValueError as e:
-            print(f'Error al obtener la compra: {e}')
+            logger.error("Error al obtener la compra: %s", e)
             return
 
     ## -- Tipo de comprobante -- ##
@@ -420,7 +423,7 @@ class PurchaseWindow():
                 self.purchase_info_invoice.show_purchase_info(parent, values) 
 
         except ValueError as e:
-            print(f'Error al obtener la compra: {e}')
+            logger.error("Error al obtener la compra: %s", e)
 
     def handle_selection(self, doc_type, parent):
 
