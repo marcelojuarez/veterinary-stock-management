@@ -472,34 +472,37 @@ class CustomerController:
                 }
 
             try:
-                # Crear cheque ANTES del pago para obtener su id
-                check_id = None
-                if check_data and self.checks_model:
-                    # Lo creamos sin client_payment_id todavía (lo linkeamos después)
-                    self.checks_model.create_check(
-                        number=check_data["number"],
-                        bank=check_data["bank"],
-                        check_type=check_data["check_type"],
-                        amount=check_data["amount"],
-                        issue_date=check_data["issue_date"],
-                        due_date=check_data["due_date"],
-                        origin="CLIENTE",
-                        client_id=customer_id,
-                        commit=True
-                    )
-                    # Obtener el id recién insertado
-                    row = self.checks_model.db.fetch_one(
-                        "SELECT id FROM checks ORDER BY id DESC LIMIT 1"
-                    )
-                    check_id = row[0] if row else None
+                conn = self.payment_model.db.get_connection()
+                conn.execute("BEGIN")
+                try:
+                    check_id = None
+                    if check_data and self.checks_model:
+                        check_id = self.checks_model.create_check(
+                            number=check_data["number"],
+                            bank=check_data["bank"],
+                            check_type=check_data["check_type"],
+                            amount=check_data["amount"],
+                            issue_date=check_data["issue_date"],
+                            due_date=check_data["due_date"],
+                            origin="CLIENTE",
+                            client_id=customer_id,
+                            conn=conn,
+                            commit=False,
+                        )
+                        
 
-                result = self.payment_model.apply_global_payment(
-                    customer_id, amount, method=method, check_id=check_id, check_data=check_data
-                )
+                    result = self.payment_model.apply_global_payment(
+                        customer_id, amount, method=method,
+                        check_id=check_id, check_data=check_data,
+                        conn=conn, commit=False,
+                    )
 
-                if not result:
-                    show_error('Ocurrió un error al registrar el pago.')
-                    return
+                    conn.commit()
+                except Exception:
+                    conn.rollback()
+                    raise
+                finally:
+                    conn.close()
 
                 if result['surplus'] > Decimal('0.00'):
                     show_success(

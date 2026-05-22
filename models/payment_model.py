@@ -155,15 +155,16 @@ class PaymentModel:
         """
         return self.db.fetch_all(query, (sale_id,), conn=conn)
 
-    def apply_global_payment(self, customer_id, amount, method="Efectivo", check_id=None, check_data=None):
+    def apply_global_payment(self, customer_id, amount, method="Efectivo", check_id=None, check_data=None, conn=None, commit=True):
         """
-        Aplica un pago global distribuido entre las deudas pendientes. 
+        Aplica un pago global distribuido entre las deudas pendientes.
         Nota: Usualmente es FIFO (ASC)
         """
+        own_conn = conn is None
         try:
-            conn = self.db.get_connection()
-
-            conn.execute("BEGIN")
+            if own_conn:
+                conn = self.db.get_connection()
+                conn.execute("BEGIN")
 
             # 1. Obtener deudas con saldo pendiente
             query = """
@@ -256,7 +257,8 @@ class PaymentModel:
                 payment_amount = self.get_total_amount_of_pay_for_a_sale(sale_id, conn=conn)
                 still_owed += Decimal(total) - payment_amount
 
-            conn.commit()
+            if own_conn and commit:
+                conn.commit()
 
             return {
                 "used": norm_to_2_dec(amount - remaining),
@@ -268,12 +270,14 @@ class PaymentModel:
             }
 
         except Exception as e:
-            conn.rollback()
+            if own_conn:
+                conn.rollback()
             logger.error("Error al distribuir pago con cheque: %s", e)
-            return False
+            raise
 
         finally:
-            conn.close()
+            if own_conn:
+                conn.close()
 
     ## -- Cancela pagos asociados a un cheque o echeq -- ##
     def cancel_check_payments(self, check_id, conn=None, commit=True):
