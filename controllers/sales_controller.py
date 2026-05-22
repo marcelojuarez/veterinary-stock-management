@@ -3,6 +3,7 @@ controllers/sales_controller.py
 """
 
 import logging
+from datetime import datetime
 from decimal import Decimal
 from tkinter import messagebox
 from tkinter.messagebox import askyesno
@@ -22,7 +23,8 @@ class SalesController:
             stock_model,
             invoice_controller,
             event_bus,
-            fraction_model=None
+            fraction_model=None,
+            cash_model=None
         ):
         self.sales_view         = None
         self.customer_model     = customer_model
@@ -32,6 +34,7 @@ class SalesController:
         self.invoice_controller = invoice_controller
         self.event_bus          = event_bus
         self.fraction_model     = fraction_model
+        self.cash_model         = cash_model
 
     def set_view(self, view):
         self.sales_view = view
@@ -144,6 +147,17 @@ class SalesController:
 
     def confirm_sale(self):
         try:
+            if self.cash_model:
+                today = datetime.now().strftime("%Y-%m-%d")
+                if not self.cash_model.is_cash_open(today):
+                    continuar = askyesno(
+                        "Caja no abierta",
+                        "La caja del día no está abierta.\n\n"
+                        "¿Desea registrar la venta de todas formas?"
+                    )
+                    if not continuar:
+                        return
+
             items = list(self.sales_view.items_in_sale)
             if not items:
                 self.sales_view.show_warning("No hay productos en la venta.")

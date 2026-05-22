@@ -242,7 +242,8 @@ class App():
         self.receipt_controller = SupplierReceiptController(supplier_model)
         self.invoice_controller = InvoiceController(invoice_model, customer_model, stock_model)
         self.sales_controller = SalesController(
-            customer_model, remito_model, sales_model, stock_model, self.invoice_controller, event_bus, fraction_model = fraction_model
+            customer_model, remito_model, sales_model, stock_model, self.invoice_controller, event_bus,
+            fraction_model=fraction_model, cash_model=cash_model
         )
 
         ## --- VIEWS --- ##
