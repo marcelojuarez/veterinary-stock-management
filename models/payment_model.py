@@ -225,6 +225,7 @@ class PaymentModel:
             surplus = Decimal('0.00')
 
             # Verifica si se genera saldo a favor al pagar con cheque
+            remaining = norm_to_2_dec(remaining)
             if remaining > Decimal('0.00') and check_id is not None:
                 self.customer_credit.add_customer_credit(
                     {

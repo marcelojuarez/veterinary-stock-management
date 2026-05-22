@@ -307,5 +307,4 @@ class PaymentController():
 
     @staticmethod
     def _is_str(value):
-        try: str(value); return True
-        except: return False
+        return isinstance(value, str) and value.strip() != ""

@@ -272,7 +272,7 @@ class CustomerModel:
             'payment': payment,
             'debt': debt,
             'reference_id': sale_id,
-            'reference': f"Precio actualizado"
+            'reference': f"Pago venta #{sale_id}"
         }
         self.add_row_in_customer_ledger(data, conn=conn, commit=commit)
 
@@ -284,9 +284,9 @@ class CustomerModel:
             'description': description,
             'amount': Decimal('0.00'),
             'payment': Decimal('0.00'),
-            'debt': self.get_total_debt(client_id, conn=conn),  
+            'debt': self.get_total_debt(client_id, conn=conn),
             'reference_id': reference_id,
-            'reference': 'Ajuste de precio'
+            'reference': 'Saldo a favor'
         }
         self.add_row_in_customer_ledger(data, conn=conn, commit=commit)
 
@@ -298,9 +298,9 @@ class CustomerModel:
             'description': f'Cheque rechazado · Monto: ${check_amount} ',
             'amount': Decimal('0.00'),
             'payment': Decimal('0.00'),
-            'debt': debt_amount,  
+            'debt': debt_amount,
             'reference_id': None,
-            'reference': 'Ajuste de precio'
+            'reference': 'Cheque rechazado'
         }
         self.add_row_in_customer_ledger(data, conn=conn, commit=commit)
 
