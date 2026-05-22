@@ -176,8 +176,7 @@ class App():
                 if update_info:
                     self.root.after(0, lambda: self._show_update_dialog(update_info, update_service))
             except Exception as e:
-                import logging
-                logging.getLogger(__name__).warning("No se pudo verificar actualizaciones: %s", e)
+                logger.warning("No se pudo verificar actualizaciones: %s", e)
 
         threading.Thread(target=_worker, daemon=True, name="UpdateChecker").start()
 

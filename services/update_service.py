@@ -26,8 +26,14 @@ VERSION_JSON_URL = (
     "https://raw.githubusercontent.com/marcelojuarez/veterinary-stock-management/main/version.json"
 )
 
-# Archivo local que guarda la versión instalada actualmente
-LOCAL_VERSION_FILE = Path(__file__).parent / "local_version.json"
+# Archivo local que guarda la versión instalada actualmente.
+# En desarrollo: root del proyecto. En frozen (PyInstaller --onefile): sys._MEIPASS root.
+import sys as _sys
+LOCAL_VERSION_FILE = (
+    Path(_sys._MEIPASS) / "local_version.json"
+    if getattr(_sys, "frozen", False)
+    else Path(__file__).parent.parent / "local_version.json"
+)
 
 # Versión del ejecutable actual (se sincroniza con local_version.json al compilar)
 CURRENT_VERSION = "1.0.0"
