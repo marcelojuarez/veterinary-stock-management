@@ -799,8 +799,8 @@ class CustomersView:
                         display_name = name
                     display_qty = quantity
 
-                elif observations and observations.startswith("FRAC:"):
-                    unit_label   = observations.replace("FRAC:", "")
+                elif observations and observations.startswith("FRAC."):
+                    unit_label   = observations.replace("FRAC. ", "")
                     display_name = f"⚖️ {name}"
                     display_qty  = unit_label
 

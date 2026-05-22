@@ -356,10 +356,15 @@ class Database:
                     iva_rate TEXT NOT NULL,
                     iva_amount TEXT NOT NULL,
                     observations TEXT,
+                    is_fractional INTEGER DEFAULT 0,
                     FOREIGN KEY(sale_id) REFERENCES sales(id) ON DELETE CASCADE,
                     FOREIGN KEY(product_id) REFERENCES stock(id)
                 );
             ''')
+            try:
+                cursor.execute("ALTER TABLE sale_items ADD COLUMN is_fractional INTEGER DEFAULT 0")
+            except Exception:
+                pass
 
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS sale_retentions (

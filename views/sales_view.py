@@ -298,7 +298,7 @@ class SalesView:
     
         whole_btn = ctk.CTkButton(
             btn_frame,
-            text=f"📦  Bolsa completa\n$ {format_currency(price)}  ·  {closed} disponibles",
+            text=f"📦  Unidad completa\n$ {format_currency(price)}  ·  {closed} disponibles",
             width=200, height=60,
             font=ctk.CTkFont(size=12, weight="bold"),
             fg_color="#1976D2" if closed > 0 else "#BDBDBD",
