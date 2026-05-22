@@ -66,8 +66,8 @@ class ChecksController:
 
         client_name = client_data[1]
 
+        check_amount = check_data[4]
         if check_state == 'ENDOSADO':
-            print('ENDOSADO')
             supplier_id = self.supplier_model.payment.get_supplier_id_by_check(check_id)
             if supplier_id:
                 supplier_data = self.supplier_model.core.find_supplier_by_id(supplier_id)
@@ -75,12 +75,18 @@ class ChecksController:
             else:
                 supplier_name = 'proveedor desconocido'
             self.view.show_warning(
-                f'La cuenta corriente de {client_name} y la cuenta de {supplier_name} fueron afectadas.'
+                f"Cheque rechazado correctamente.\n\n"
+                f"• Monto del cheque: ${check_amount}\n"
+                f"• Se revirtieron los pagos del cliente {client_name}.\n"
+                f"• Se revirtieron los pagos al proveedor {supplier_name}.\n"
+                f"• Deuda actual del cliente: ${new_debt}"
             )
         else:
-            print('EN CARTERA')
             self.view.show_warning(
-                f'La cuenta corriente de {client_name} fue afectada.'
+                f"Cheque rechazado correctamente.\n\n"
+                f"• Monto del cheque: ${check_amount}\n"
+                f"• Se revirtieron los pagos del cliente {client_name}.\n"
+                f"• Deuda actual del cliente: ${new_debt}"
             )
 
         return True, 'Operación completada.'

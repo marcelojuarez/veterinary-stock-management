@@ -159,8 +159,9 @@ class PaymentForm:
         if resto > Decimal("0"):
             ctk.CTkLabel(W, text="Monto a pagar:", font=FL).grid(
                 row=row, column=0, padx=(20,8), pady=5, sticky="e")
-            ctk.CTkEntry(W, textvariable=self.amount_var, width=EW, height=EH,
-                         font=FE).grid(row=row, column=1, padx=(0,20), pady=5, sticky="w"); row += 1
+            self.amount_entry = ctk.CTkEntry(W, textvariable=self.amount_var, width=EW, height=EH,
+                         font=FE)
+            self.amount_entry.grid(row=row, column=1, padx=(0,20), pady=5, sticky="w"); row += 1
 
         # Nro recibo
         ctk.CTkLabel(W, text="Nº de recibo:", font=FL).grid(row=row, column=0, padx=(20,8), pady=5, sticky="e")
@@ -345,6 +346,9 @@ class PaymentForm:
                                 "bank": bank, "amount": check_amount}
         self.bank_var.set(bank)
         self.check_num_var.set(str(check_number))
+        self.amount_var.set(str(check_amount))
+        if hasattr(self, 'amount_entry'):
+            self.amount_entry.configure(state='readonly')
         self._check_excedente(check_amount)
 
     def _check_excedente(self, check_amount):

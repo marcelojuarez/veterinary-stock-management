@@ -36,7 +36,7 @@ class PaymentInfo():
         info_frame.columnconfigure(0, weight=1)
         info_frame.columnconfigure(1, weight=2)
 
-        method = values[3]
+        method = values[4]
         payment_id = values[0]
 
         if method == "TRANSFERENCIA":

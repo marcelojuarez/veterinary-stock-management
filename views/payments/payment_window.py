@@ -243,13 +243,11 @@ class PaymentWindow():
         movement_frame.pack(fill='both', expand=True)
 
         self.movement_tree = ttk.Treeview(movement_frame, show="headings", height=8)
-        self.movement_tree["columns"] = ("ID", "CUIT PROVEEDOR", "MONTO", "METODO DE PAGO", "OBSERVACION", "FECHA")
+        self.movement_tree["columns"] = ("ID", "PROVEEDOR", "CUIT", "MONTO", "METODO DE PAGO", "OBSERVACION", "FECHA")
+        col_widths = {"ID": 50, "PROVEEDOR": 180, "CUIT": 130, "MONTO": 100, "METODO DE PAGO": 130, "OBSERVACION": 150, "FECHA": 100}
         for col in self.movement_tree["columns"]:
             self.movement_tree.heading(col, text=col.capitalize())
-            if col == "ID":
-                self.movement_tree.column(col, width=100, anchor="center")
-            else:
-                self.movement_tree.column(col, width=150, anchor="center")
+            self.movement_tree.column(col, width=col_widths.get(col, 120), anchor="center")
         self.movement_tree.pack(side="left", fill="both", expand=True)
 
         # scrollbar 
@@ -375,12 +373,13 @@ class PaymentWindow():
             self.movement_tree.insert(
                 parent='', index='end', iid=p[0],
                 values=(
-                   p[0], # id
-                   p[1], # cuit
-                   p[3], # monto
-                   p[4], # metodo
-                   p[5], # observation
-                   iso_to_traditional(p[11]) # fecha    
+                   p[0],  # id
+                   p[1],  # nombre proveedor
+                   p[2],  # cuit
+                   p[4],  # monto
+                   p[5],  # metodo
+                   p[6],  # observation
+                   iso_to_traditional(p[12])  # fecha
                 ),
                 tag="orow"
             )

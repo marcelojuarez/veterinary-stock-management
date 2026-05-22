@@ -55,11 +55,11 @@ class SupplierPayment():
     def get_all_payments(self, supplier_id=None):
         try:
             query = """
-            SELECT supplier_payment.id, supplier.cuit, supplier_payment.receipt_number, supplier_payment.amount,
-            supplier_payment.method, supplier_payment.observation, supplier_payment.operation_num, supplier_payment.origin, 
+            SELECT supplier_payment.id, supplier.name, supplier.cuit, supplier_payment.receipt_number, supplier_payment.amount,
+            supplier_payment.method, supplier_payment.observation, supplier_payment.operation_num, supplier_payment.origin,
             supplier_payment.destination, supplier_payment.check_number, supplier_payment.bank, supplier_payment.date,
             supplier_payment.created_at
-            FROM supplier_payment 
+            FROM supplier_payment
             JOIN supplier ON supplier_payment.supplier_id = supplier.id
             WHERE (? IS NULL OR supplier.id = ?) AND valid = ?
             ORDER BY supplier_payment.created_at DESC, supplier_payment.id DESC
