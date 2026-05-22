@@ -8,13 +8,15 @@ from utils.view_helpers import show_error
 from db.database import db
 
 class ChecksController:
-    def __init__(self, checks_model, payment_model, customer_credit, customer_model, sales_model, event_bus=None):
+    def __init__(self, checks_model, payment_model, customer_credit, customer_model, sales_model, 
+                 supplier_model, event_bus=None):
         self.model = checks_model
         self.db = db
         self.payment_model = payment_model
         self.customer_credit = customer_credit
         self.customer_model = customer_model
         self.sales_model = sales_model
+        self.supplier_model = supplier_model
         self.view = None
         if event_bus:
             event_bus.subscribe('refresh_checks', lambda _: self.load_checks(
@@ -48,22 +50,40 @@ class ChecksController:
     def manage_check_rechazado(self, check_id, check_state):
         result = self.mark_rechazado(check_id, check_state)
 
-        if result:
-            check_data = self.model.get_check_by_id(check_id)
-            client_id = check_data[9]
-            new_debt = self.customer_model.get_total_debt(client_id)
-            client_data = self.customer_model.find_customer_by_id(client_id)
-            ## Se genera fila en customer_ledger
-            self.customer_model.register_bounced_check_in_account(
-                client_id, 
-                check_amount=check_data[4], 
-                debt_amount=new_debt
+        if not result:
+            return False, 'Ocurrió un error.'
+
+        check_data = self.model.get_check_by_id(check_id)
+        client_id = check_data[9]
+        new_debt = self.customer_model.get_total_debt(client_id)
+        client_data = self.customer_model.find_customer_by_id(client_id)
+        ## Se genera fila en customer_ledger
+        self.customer_model.register_bounced_check_in_account(
+            client_id, 
+            check_amount=check_data[4], 
+            debt_amount=new_debt
+        )
+
+        client_name = client_data[1]
+
+        if check_state == 'ENDOSADO':
+            print('ENDOSADO')
+            supplier_id = self.supplier_model.payment.get_supplier_id_by_check(check_id)
+            if supplier_id:
+                supplier_data = self.supplier_model.core.find_supplier_by_id(supplier_id)
+                supplier_name = supplier_data[1]
+            else:
+                supplier_name = 'proveedor desconocido'
+            self.view.show_warning(
+                f'La cuenta corriente de {client_name} y la cuenta de {supplier_name} fueron afectadas.'
+            )
+        else:
+            print('EN CARTERA')
+            self.view.show_warning(
+                f'La cuenta corriente de {client_name} fue afectada.'
             )
 
-            return True, f'La Cuenta Corriente de: {client_data[1]} fue modificada'
-
-        else:
-            return False, 'Ocurrio un error.'
+        return True, 'Operación completada.'
 
 
     def mark_rechazado(self, check_id, check_state):
@@ -74,34 +94,40 @@ class ChecksController:
             conn.execute("BEGIN")
 
             if check_state == 'EN_CARTERA':
+                # Cancelar pagos de cliente asociados a un cheque
                 self.payment_model.cancel_check_payments(check_id, conn=conn, commit=False)
+
+                # Cancelar saldo a favor de cliente generado por cheque
                 self.customer_credit.cancel_check_credit(check_id, conn=conn, commit=False)
+
+                # Recalcular deuda de cliente luego de rechazo de cheque
                 self._recalculate_credits_after_bounce(check_id, conn=conn, commit=False)
 
             elif check_state == 'ENDOSADO':
-                # Cancelar cheque asociado al proveedor y saldo a favor de la veterinaria
-                self.payment_model.cancel_check_supplier_payments(check_id, conn=conn, commit=False)
+                # Cancelar pagos y salgo a favor de un proveedor asociados a un cheque
+                self.supplier_model.payment.cancel_check_supplier_payments(check_id, conn=conn, commit=False)
+
                 # Cancelar cheque asociado al cliente
                 self.payment_model.cancel_check_payments(check_id, conn=conn, commit=False)
                 self.customer_credit.cancel_check_credit(check_id, conn=conn, commit=False)
                 self._recalculate_credits_after_bounce(check_id, conn=conn, commit=False)
 
             else:
-                show_error('Ocurrio un error')
-                raise Exception
+                raise ValueError(f"Estado de cheque desconocido: {check_state}")
 
+
+            # Marcar cheque como cancelado
             self.model.mark_rechazado(check_id, conn=conn, commit=False)
             self.view.show_success("Cheque marcado como RECHAZADO.")
             self.load_checks(self.view.filter_var.get())
 
-            raise Exception('Error')
 
             conn.commit()
             return True
 
         except Exception as e:
             conn.rollback()
-            show_error(f"Error: {e}")
+            show_error(f"Error al marcar un cheque como rechazado: {e}")
             return False
         
         finally:

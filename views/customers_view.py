@@ -753,12 +753,12 @@ class CustomersView:
                 self.debt_table.delete(row)
 
             # Insertar nuevas deudas
-            for s_id, date, total, pay, balance, state in debts:
+            for s_id, date, sale_total, pay, balance, state in debts:
                 self.debt_table.insert("", "end", 
                         values=(
                         s_id,
                         date,
-                        format_currency(total),       
+                        format_currency(sale_total),       
                         format_currency(pay),
                         format_currency(balance),
                         state

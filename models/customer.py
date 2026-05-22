@@ -453,6 +453,8 @@ class CustomerModel:
             'sales_balance': f"{sales_paid}/{total_sales} pagadas"
         }
 
+        print(f'summary: {summary}')
+
         return movements, summary
     
     ## -- count total sales and sales paid -- ##

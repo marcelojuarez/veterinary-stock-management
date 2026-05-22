@@ -195,7 +195,7 @@ class SalesModel:
             id,
             total
         FROM sales
-        WHERE cliente_id = ? AND estado IN ('pending', 'partial')
+        WHERE cliente_id = ?
         GROUP BY id
         """
 

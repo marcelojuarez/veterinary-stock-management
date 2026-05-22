@@ -943,6 +943,59 @@ def seed_suppliers():
 
     print("✅ Carga de proveedores correcta")
 
+def set_purchase_example():
+    conn = sqlite3.connect(DB_PATH)
+    try:
+        conn.execute("BEGIN")
+        cursor = conn.cursor()
+
+        # ── 1. Insertar recibos ───────────────────────────────────────
+        cursor.execute("""
+            INSERT INTO supplier_receipt (supplier_id, receipt_id, date, expiration_date, observations, state, total)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        """, (126, '123', '2026-04-30', '2026-04-30', None, 'PENDIENTE', '850.34'))
+        receipt_id_1 = cursor.lastrowid
+
+        cursor.execute("""
+            INSERT INTO supplier_receipt (supplier_id, receipt_id, date, expiration_date, observations, state, total)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        """, (126, '123', '2026-04-30', '2026-04-30', None, 'PENDIENTE', '850.34'))
+        receipt_id_2 = cursor.lastrowid
+
+        # ── 2. Insertar compras ───────────────────────────────────────
+        cursor.execute("""
+            INSERT INTO purchase (supplier_id, document_type, invoice_id, receipt_id, date, expiration_date, state, observations, pending, total)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (126, 'REMITO', None, receipt_id_1, '2026-04-30', '2026-04-30', 'PENDIENTE', None, '850.34', '850.34'))
+        purchase_id_1 = cursor.lastrowid
+
+        cursor.execute("""
+            INSERT INTO purchase (supplier_id, document_type, invoice_id, receipt_id, date, expiration_date, state, observations, pending, total)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (126, 'REMITO', None, receipt_id_2, '2026-04-30', '2026-04-30', 'PENDIENTE', None, '850.34', '850.34'))
+        purchase_id_2 = cursor.lastrowid
+
+        # ── 3. Insertar items ─────────────────────────────────────────
+        cursor.execute("""
+            INSERT INTO purchase_item (purchase_id, product_id, product_name, pack, quantity, list_price, discount, cost_price, iva_rate, discount_amount, subtotal, iva_amount, total)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (purchase_id_1, 34, 'ACONDICIONADOR PERRO', '500ML', 1, '850.34', '0.00', '850.34', '21.00', '0.00', '850.34', '178.57', '1028.91'))
+
+        cursor.execute("""
+            INSERT INTO purchase_item (purchase_id, product_id, product_name, pack, quantity, list_price, discount, cost_price, iva_rate, discount_amount, subtotal, iva_amount, total)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (purchase_id_2, 34, 'ACONDICIONADOR PERRO', '500ML', 1, '850.34', '0.00', '850.34', '21.00', '0.00', '850.34', '178.57', '1028.91'))
+
+        conn.commit()
+        print(f"✅ Compras de ejemplo creadas — IDs: {purchase_id_1}, {purchase_id_2}")
+
+    except Exception as e:
+        conn.rollback()
+        print(f"❌ Error creando compras de ejemplo: {e}")
+    finally:
+        conn.close()
+
+
 if __name__ == "__main__":
     print("🌱 Iniciando seed de la base de datos...")
     print("-" * 50)
@@ -954,6 +1007,7 @@ if __name__ == "__main__":
     seed_stock()
     #seed_sales_with_products()
     seed_consumidor_final()
+    set_purchase_example()
     
     print("-" * 50)
     print("✅ ¡Seed completado exitosamente!")
