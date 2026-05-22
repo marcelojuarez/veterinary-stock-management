@@ -28,18 +28,18 @@ logging.basicConfig(
 class BackupService:
     """Servicio de backup automático para la base de datos"""
     
-    def __init__(self, db_path, backup_dir='backups', config_path='config/backup_config.json'):
+    def __init__(self, db_path, backup_dir=None, config_path=None):
         """
         Inicializar el servicio de backup
-        
-        Args:
-            db_path: Ruta a la base de datos principal
-            backup_dir: Directorio donde se guardarán los backups
-            config_path: Ruta al archivo de configuración
+
+        backup_dir y config_path se derivan de db_path si no se especifican,
+        garantizando que apunten a un directorio escribible tanto en dev como
+        en entorno frozen (PyInstaller → LOCALAPPDATA).
         """
         self.db_path = Path(db_path)
-        self.backup_dir = Path(backup_dir)
-        self.config_path = Path(config_path)
+        writable_root = self.db_path.parent.parent  # .../StockManager/ en prod, proyecto/ en dev
+        self.backup_dir = Path(backup_dir) if backup_dir else writable_root / 'backups'
+        self.config_path = Path(config_path) if config_path else writable_root / 'config' / 'backup_config.json'
         
         # Crear directorios necesarios
         self.backup_dir.mkdir(exist_ok=True)
