@@ -317,6 +317,9 @@ class App():
         if selected_tab == "Venta":
             self.sales_view.load_available_products()
 
+        if selected_tab == "Cheques":
+            self.checks_controller.load_checks(self.checks_view.filter_var.get())
+
     def load_initial_data(self):
         try:
             self.stock_controller.load_products()

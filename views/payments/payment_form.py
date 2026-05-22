@@ -179,7 +179,7 @@ class PaymentForm:
             ctk.CTkLabel(W, text="Método de Pago:", font=FL).grid(
                 row=row, column=0, padx=(20,8), pady=5, sticky="e")
             self.method_combo = ctk.CTkComboBox(
-                W, values=["EFECTIVO", "TRANSFERENCIA", "CHEQUE"],
+                W, values=["EFECTIVO", "TRANSFERENCIA", "CHEQUE", "ECHEQ"],
                 variable=self.method_var, width=EW, height=EH,
                 font=FE, state="readonly",
                 command=lambda value: self.render_dynamic_fields(parent, W)
@@ -269,12 +269,15 @@ class PaymentForm:
 
     def render_dynamic_fields(self, parent, card_widget):
         method = self.method_var.get()
-        if method not in ("EFECTIVO", "TRANSFERENCIA", "CHEQUE"):
+        if method not in ("EFECTIVO", "TRANSFERENCIA", "CHEQUE", "ECHEQ"):
             return
 
         self.clear_dynamic_frame()
         self._selected_check = None
         self.excedente_var.set("")
+
+        if hasattr(self, 'amount_entry'):
+            self.amount_entry.configure(state='normal')
 
         if method == "TRANSFERENCIA":
             self.op_num_lbl.grid(row=0, column=0, padx=(20,8), pady=4, sticky="e")
@@ -286,8 +289,8 @@ class PaymentForm:
             self.render_buttons(3)
             self._resize_window(self._base_h + 150)
 
-        elif method == "CHEQUE":
-            self._load_cartera()
+        elif method in ("CHEQUE", "ECHEQ"):
+            self._load_cartera(check_type=method)
             self.cartera_lbl.grid(row=0, column=0, columnspan=2, padx=20, pady=(4, 2), sticky="w")
             self.cartera_frame.grid(row=1, column=0, columnspan=2, padx=20, pady=(0, 4), sticky="ew")
             self.excedente_lbl.grid(row=2, column=0, columnspan=2, padx=20, pady=(0, 2), sticky="w")
@@ -319,12 +322,12 @@ class PaymentForm:
     # ──────────────────────────────────────────────────────────────
     # CARTERA DE CHEQUES
     # ──────────────────────────────────────────────────────────────
-    def _load_cartera(self):
+    def _load_cartera(self, check_type=None):
         for row in self.cartera_table.get_children():
             self.cartera_table.delete(row)
         if not self.checks_model:
             return
-        checks = self.checks_model.get_checks_en_cartera()
+        checks = self.checks_model.get_checks_en_cartera(check_type=check_type)
         for c in checks:
             try:
                 from datetime import datetime as _dt
@@ -346,7 +349,17 @@ class PaymentForm:
                                 "bank": bank, "amount": check_amount}
         self.bank_var.set(bank)
         self.check_num_var.set(str(check_number))
-        self.amount_var.set(str(check_amount))
+
+        # If the check is smaller than the debt, apply only what the check covers.
+        # If the check exceeds the debt, leave amount_var at the debt — the excess
+        # is registered as saldo a favor by the controller.
+        try:
+            current = Decimal(self.amount_var.get() or "0")
+        except Exception:
+            current = Decimal("0")
+        if check_amount < current:
+            self.amount_var.set(str(check_amount))
+
         if hasattr(self, 'amount_entry'):
             self.amount_entry.configure(state='readonly')
         self._check_excedente(check_amount)
@@ -399,6 +412,22 @@ class PaymentForm:
         amount = self.amount_var.get().strip()
         method = self.method_var.get()
         credito_cubre_todo = self._credit_applied >= self._deuda_original and self._deuda_original > Decimal("0")
+
+        # For non-check methods, warn and cap the amount to the remaining debt
+        if not credito_cubre_todo and method and method != "CHEQUE":
+            try:
+                entered = Decimal(amount or "0")
+                max_amount = self._deuda_original - self._credit_applied
+                if max_amount > Decimal("0") and entered > max_amount:
+                    show_warning(
+                        f"El monto ingresado (${entered}) supera la deuda a pagar (${max_amount}).\n"
+                        f"Se ajustó automáticamente al monto correcto."
+                    )
+                    self.amount_var.set(str(max_amount))
+                    amount = str(max_amount)
+                    return
+            except Exception:
+                pass
 
         if not credito_cubre_todo:
             if not method:

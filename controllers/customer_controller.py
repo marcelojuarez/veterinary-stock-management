@@ -365,6 +365,8 @@ class CustomerController:
         check_bank_var    = ctk.StringVar()
         check_due_var     = ctk.StringVar(value=datetime.now().strftime("%d/%m/%Y"))
 
+        vcmd = (win.register(lambda s: s.isdigit() or s == ""), '%P')
+
         ctk.CTkLabel(
             check_frame, text="Número de cheque:",
             font=ctk.CTkFont(weight="bold")
@@ -373,7 +375,8 @@ class CustomerController:
             check_frame, textvariable=check_number_var,
             width=260, height=40,
             placeholder_text="Ej: 00123456",
-            font=ctk.CTkFont(size=14)
+            font=ctk.CTkFont(size=14),
+            validate="key", validatecommand=vcmd
         ).pack()
 
         ctk.CTkLabel(
