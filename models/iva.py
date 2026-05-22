@@ -70,10 +70,10 @@ class IVAModel:
                 p.date as date,
                 COALESCE(s.name, 'Supplier') as supplier,
                 COALESCE(s.cuit, '') as supplier_cuit,
-                CAST(pi.iva_rate AS REAL) as aliquot_iva,
-                SUM(CAST(pi.subtotal AS REAL)) as net,
-                SUM(CAST(pi.iva_amount AS REAL)) as iva,
-                SUM(CAST(pi.total AS REAL)) as total
+                pi.iva_rate as aliquot_iva,
+                SUM(pi.subtotal) as net,
+                SUM(pi.iva_amount) as iva,
+                SUM(pi.total) as total
             FROM purchase p
             LEFT JOIN supplier s ON s.id = p.supplier_id
             JOIN purchase_item pi ON pi.purchase_id = p.id
@@ -86,10 +86,10 @@ class IVAModel:
     def get_summary_purchases_iva(self, from_date, until_date):
         query = """
             SELECT
-                CAST(pi.iva_rate AS REAL) as aliquot,
-                SUM(CAST(pi.subtotal AS REAL)) as taxable_net,
-                SUM(CAST(pi.iva_amount AS REAL)) as iva,
-                SUM(CAST(pi.total AS REAL)) as total,
+                pi.iva_rate as aliquot,
+                SUM(pi.subtotal) as taxable_net,
+                SUM(pi.iva_amount) as iva,
+                SUM(pi.total) as total,
                 COUNT(DISTINCT p.id) as transaction_count
             FROM purchase p
             JOIN purchase_item pi ON pi.purchase_id = p.id
@@ -201,73 +201,54 @@ class IVAModel:
             'status': 'PAYABLE' if net_balance > 0 else ('CREDIT BALANCE' if net_balance < 0 else 'NO BALANCE')
         }
 
-    def get_iva_position(self, from_date, until_date):
-        query_sales = """
-            SELECT COALESCE(SUM(CAST(si.iva_amount AS REAL)), 0)
-            FROM sales s
-            JOIN sale_items si ON si.sale_id = s.id
-            WHERE date(s.date) BETWEEN ? AND ?
-        """
-        iva_sales = norm_to_2_dec(Decimal(str(self.db.fetch_one(query_sales, (from_date, until_date))[0])))
-
-        query_retentions = """
-            SELECT COALESCE(SUM(CAST(sr.amount AS REAL)), 0)
-            FROM sale_retentions sr
-            JOIN sales s ON s.id = sr.sale_id
-            WHERE sr.tax_type = 'IVA'
-            AND date(s.date) BETWEEN ? AND ?
-        """
-        retentions_iva = norm_to_2_dec(Decimal(str(self.db.fetch_one(query_retentions, (from_date, until_date))[0])))
-
-        query_retentions_iibb = """
+    def _get_iibb_retentions_by_period(self, from_date, until_date):
+        query = """
             SELECT COALESCE(SUM(CAST(sr.amount AS REAL)), 0)
             FROM sale_retentions sr
             JOIN sales s ON s.id = sr.sale_id
             WHERE sr.tax_type = 'IIBB'
             AND date(s.date) BETWEEN ? AND ?
         """
-        retentions_iibb = norm_to_2_dec(Decimal(str(self.db.fetch_one(query_retentions_iibb, (from_date, until_date))[0])))
+        result = self.db.fetch_one(query, (from_date, until_date))
+        return norm_to_2_dec(Decimal(str(result[0] if result else 0)))
 
-        query_purchases = """
-            SELECT COALESCE(SUM(CAST(pi.iva_amount AS REAL)), 0)
-            FROM purchase p
-            JOIN purchase_item pi ON pi.purchase_id = p.id
-            WHERE date(p.date) BETWEEN ? AND ?
-        """
-        purchases_iva = norm_to_2_dec(Decimal(str(self.db.fetch_one(query_purchases, (from_date, until_date))[0])))
-
-        query_perceptions = """
-            SELECT COALESCE(SUM(CAST(ip.amount AS REAL)), 0)
-            FROM invoice_perceptions ip
-            JOIN supplier_invoice si ON si.id = ip.invoice_id
-            WHERE ip.tax_type = 'IVA_PER'
-            AND date(si.date) BETWEEN ? AND ?
-        """
-        perceptions_iva = norm_to_2_dec(Decimal(str(self.db.fetch_one(query_perceptions, (from_date, until_date))[0])))
-
-        query_perceptions_iibb = """
+    def _get_iibb_perceptions_by_period(self, from_date, until_date):
+        query = """
             SELECT COALESCE(SUM(CAST(ip.amount AS REAL)), 0)
             FROM invoice_perceptions ip
             JOIN supplier_invoice si ON si.id = ip.invoice_id
             WHERE ip.tax_type = 'IIBB_PER'
             AND date(si.date) BETWEEN ? AND ?
         """
-        perceptions_iibb = norm_to_2_dec(Decimal(str(self.db.fetch_one(query_perceptions_iibb, (from_date, until_date))[0])))
+        result = self.db.fetch_one(query, (from_date, until_date))
+        return norm_to_2_dec(Decimal(str(result[0] if result else 0)))
 
-        fiscal_debt   = iva_sales - retentions_iva
-        fiscal_credit = purchases_iva + perceptions_iva
-        iva_balance   = fiscal_debt - fiscal_credit
+    def get_iva_position(self, from_date, until_date):
+        sales_summary     = self.get_summary_sales_iva(from_date, until_date)
+        purchases_summary = self.get_summary_purchases_iva(from_date, until_date)
+
+        iva_sales     = norm_to_2_dec(sum((r['iva'] for r in sales_summary),     Decimal('0')))
+        purchases_iva = norm_to_2_dec(sum((r['iva'] for r in purchases_summary), Decimal('0')))
+
+        retentions_iva  = self.get_iva_retentions_by_period(from_date, until_date)
+        retentions_iibb = self._get_iibb_retentions_by_period(from_date, until_date)
+        perceptions_iva = self.get_iva_perceptions_by_period(from_date, until_date)
+        perceptions_iibb = self._get_iibb_perceptions_by_period(from_date, until_date)
+
+        fiscal_debt   = norm_to_2_dec(iva_sales - retentions_iva)
+        fiscal_credit = norm_to_2_dec(purchases_iva + perceptions_iva)
+        iva_balance   = norm_to_2_dec(fiscal_debt - fiscal_credit)
 
         return {
-            'iva_sales':        norm_to_2_dec(iva_sales),
-            'retentions_iva':   norm_to_2_dec(retentions_iva),
-            'retentions_iibb':  norm_to_2_dec(retentions_iibb),
-            'fiscal_debt':      norm_to_2_dec(fiscal_debt),
-            'purchases_iva':    norm_to_2_dec(purchases_iva),
-            'perceptions_iva':  norm_to_2_dec(perceptions_iva),
-            'perceptions_iibb': norm_to_2_dec(perceptions_iibb),
-            'fiscal_credit':    norm_to_2_dec(fiscal_credit),
-            'balance':          norm_to_2_dec(iva_balance),
+            'iva_sales':        iva_sales,
+            'retentions_iva':   retentions_iva,
+            'retentions_iibb':  retentions_iibb,
+            'fiscal_debt':      fiscal_debt,
+            'purchases_iva':    purchases_iva,
+            'perceptions_iva':  perceptions_iva,
+            'perceptions_iibb': perceptions_iibb,
+            'fiscal_credit':    fiscal_credit,
+            'balance':          iva_balance,
             'status': 'PAYABLE' if iva_balance > 0 else ('CREDIT BALANCE' if iva_balance < 0 else 'NO BALANCE')
         }
 
@@ -292,7 +273,7 @@ class IVAModel:
         """
         return self.db.fetch_all(query, (from_date, until_date))
 
-    def get_made_perceptions(self, from_date, until_date):
+    def get_made_perceptions(self, _from_date, _until_date):
         return []
 
     def get_total_perceptions(self, from_date, until_date):
@@ -322,7 +303,7 @@ class IVAModel:
         """
         return self.db.fetch_all(query, (from_date, until_date))
 
-    def get_made_retentions(self, from_date, until_date):
+    def get_made_retentions(self, _from_date, _until_date):
         return []
 
     def get_total_retentions(self, from_date, until_date):

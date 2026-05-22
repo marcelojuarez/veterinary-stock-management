@@ -20,7 +20,7 @@ class SupplierPayment():
             FROM supplier_payment 
             WHERE id = ? 
             """
-            return self.db.fetch_one(query, (payment_id))
+            return self.db.fetch_one(query, (payment_id,))
         except ValueError as e:
             logger.error("Error getting supplier payment by cuit: %s", e)
             return None
@@ -144,7 +144,7 @@ class SupplierPayment():
                 # El pago aplica a una compra 
 
                 # Datos de la compra
-                purchase_data = self.purchase.get_purchase_by_id(purchase_id.get())
+                purchase_data = self.purchase.get_purchase_by_id(purchase_id)
 
                 # Nueva Deuda
                 debt = Decimal(purchase_data[9])
@@ -155,7 +155,6 @@ class SupplierPayment():
 
                 if doc_type == 'REMITO':
                     id = purchase_data[4]
-                
                 else:
                     id = purchase_data[3]
 
@@ -163,10 +162,10 @@ class SupplierPayment():
                 new_debt = norm_to_2_dec(new_debt)
 
                 # cambios en la compra
-                self.purchase.set_new_debt_purchase(purchase_id.get(), id, doc_type, new_debt, conn=conn, commit=False)
-                
+                self.purchase.set_new_debt_purchase(purchase_id, id, doc_type, new_debt, conn=conn, commit=False)
+
                 params = {
-                    'Purchase_id': purchase_id.get(),
+                    'Purchase_id': purchase_id,
                     'Payment_id': payment_id,
                     'Amount_applied': total_amount
                 }
@@ -176,7 +175,7 @@ class SupplierPayment():
 
             else:
                 # El pago aplica a mas de una compra
-                purchases = self.purchase.get_all_purchases_without_paying()
+                purchases = self.purchase.get_all_purchases_without_paying(pay_data['Supplier_id'])
 
                 for p in purchases:
 
@@ -245,9 +244,9 @@ class SupplierPayment():
         query = """
             SELECT purchase_id, amount_applied
             FROM purchase_payment
-            WHERE payment_id = ? AND valid = ?
+            WHERE payment_id = ?
         """
-        return self.db.fetch_all(query, (supplier_payment_id, 1), conn=conn)
+        return self.db.fetch_all(query, (supplier_payment_id,), conn=conn)
     
     def revert_purchase_pending(self, purchase_id, amount_applied, conn=None, commit=True):
         # Obtener pending actual

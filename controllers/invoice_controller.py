@@ -46,26 +46,32 @@ class InvoiceController:
             product_id = item[0]
             name       = item[1]
             pack       = item[2]
-            quantity   = item[3]
-            price      = item[4]
 
             if len(item) == 6:
                 observations = item[5]   # honorarios
             elif len(item) == 7 and item[6] is True:
-                observations = item[5]   # fraccionado: unit_label como obs (ej. "3 KG")
+                observations = item[5]   # fraccionado: "FRAC. 5 KG"
             else:
                 observations = None
 
-            price    = flex_dec(price)  # precio con IVA incluido
+            price = flex_dec(item[4])  # precio con IVA incluido
+
+            if len(item) == 7 and item[6] is True:
+                # Fraccionado: mostrar 1 unidad con precio total (qty_real × precio_unit)
+                # Ej: 5 KG × $10/KG → display qty=1, display price=$50
+                actual_qty  = flex_dec(item[3])
+                quantity    = Decimal('1')
+                price       = norm_to_2_dec(actual_qty * price)
+            else:
+                quantity = flex_dec(item[3])
 
             divisor, rate = self._get_iva_rate(product_id)
 
             net_unit_exact = price / divisor
             net_unit       = norm_to_2_dec(net_unit_exact)
 
-            line_net  = norm_to_2_dec(net_unit_exact * quantity)
-
-            line_iva  = norm_to_2_dec(net_unit_exact * quantity * rate)
+            line_net = norm_to_2_dec(net_unit_exact * quantity)
+            line_iva = norm_to_2_dec(net_unit_exact * quantity * rate)
 
             total_subtotal += line_net
             total_iva      += line_iva
@@ -95,8 +101,12 @@ class InvoiceController:
 
         for item in items:
             product_id = item[0]
-            quantity   = flex_dec(item[3])
             price      = flex_dec(item[4])
+            if len(item) == 7 and item[6] is True:
+                quantity   = Decimal('1')
+                price      = norm_to_2_dec(flex_dec(item[3]) * price)
+            else:
+                quantity   = flex_dec(item[3])
             line_total = norm_to_2_dec(quantity * price)
 
             self.invoice_model.add_invoice_item(

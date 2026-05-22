@@ -170,7 +170,11 @@ class StockModel:
         finally:
             conn.close()
 
+    _VALID_FIELDS = {'name', 'pack', 'list_price', 'discount', 'cost_price', 'profit', 'price', 'iva', 'price_with_iva', 'quantity', 'last_price_update'}
+
     def update_field(self, db_field, new_value, product_id):
+        if db_field not in self._VALID_FIELDS:
+            raise ValueError(f"Campo inválido: {db_field}")
         query = f"UPDATE stock SET {db_field} = ? WHERE id = ?"
         db.execute_query(query, (new_value, product_id))
         
@@ -197,17 +201,10 @@ class StockModel:
         return db.fetch_all(query, (search_pattern, search_pattern, search_pattern))
     
     def get_low_stock_products(self, threshold):
-        """Obtener productos con stock bajo (cantidad menor que el umbral)"""
-        try: 
-            with self.db.cursor() as cursor:
-                cursor.execute(
-                    "SELECT id, name, pack, quantity FROM stock WHERE quantity < ? ORDER BY quantity", 
-                    (threshold,)
-                )
-                return cursor.fetchall()
-        except Exception as e:
-            logger.error("Error getting low stock products: %s", e)
-            return []
+        return self.db.fetch_all(
+            "SELECT id, name, pack, quantity FROM stock WHERE quantity < ? ORDER BY quantity",
+            (threshold,)
+        )
     
     def get_available_price_dates(self):
         """Obtener fechas disponibles de última modificación de precios"""

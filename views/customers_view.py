@@ -113,14 +113,8 @@ class CustomersView:
         style.map("Custom.Treeview.Heading",
                   background=[("active", "#dcdcdc")])
 
-        self.table = ttk.Treeview(
-            table_frame,
-            show="headings",
-            height=12,
-            style="Custom.Treeview"
-        )
-
-        self.table = ttk.Treeview(table_frame, show="headings", height=12)
+        self.table = ttk.Treeview(table_frame, show="headings", height=12,
+                                   style="Custom.Treeview")
         self.table["columns"] = ("Id", "Nombre", "CUIT", "Domicilio", "Teléfono", "Condición IVA", "CV", "CUIG", "RENSPA", "Establecimiento")
 
         col_specs = {

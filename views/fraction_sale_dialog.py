@@ -205,7 +205,6 @@ class FractionSaleDialog:
             qty_input     = qty,
             is_fractional = True,
             unit          = unit,
-            fraction_price= price
         )
 
         if ok:

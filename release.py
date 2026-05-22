@@ -82,6 +82,7 @@ def main():
         f"--name={APP_NAME}",
         "--add-data=local_version.json;.",
         "--add-data=db;db",
+        "--add-data=assets;assets",
         MAIN_SCRIPT,
     ])
     exe_path = DIST_DIR / f"{APP_NAME}.exe"

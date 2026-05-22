@@ -239,22 +239,50 @@ class SalesModel:
         )
 
     def update_sale_item(self, sale_id, p_id, new_price_w_iva, conn=None, commit=True):
-        sale_item_data = self.get_sale_item(sale_id, p_id)
-        qty       = Decimal(str(sale_item_data[3]))
-        iva_rate  = Decimal(sale_item_data[6])
+        own_conn = False
+        if conn is None:
+            conn = self.db.get_connection()
+            own_conn = True
+
+        rows = self.db.fetch_all(
+            "SELECT id, quantity, iva_rate FROM sale_items WHERE sale_id = ? AND product_id = ?",
+            (sale_id, p_id), conn=conn
+        )
+        if not rows:
+            if own_conn:
+                conn.close()
+            return
+
         new_price = norm_to_2_dec(new_price_w_iva)
+        try:
+            for row in rows:
+                item_id, raw_qty, raw_iva = row[0], row[1], row[2]
+                qty      = Decimal(str(raw_qty))
+                iva_rate = Decimal(str(raw_iva))
 
-        divisor              = Decimal('1') + (iva_rate / Decimal('100'))
-        price_without_iva    = norm_to_2_dec(new_price / divisor)
-        subtotal_with_iva    = norm_to_2_dec(new_price * qty)
-        subtotal_without_iva = norm_to_2_dec(price_without_iva * qty)
-        new_iva_amount       = norm_to_2_dec(subtotal_without_iva * (iva_rate / Decimal('100')))
+                divisor              = Decimal('1') + (iva_rate / Decimal('100'))
+                price_without_iva    = norm_to_2_dec(new_price / divisor)
+                subtotal_with_iva    = norm_to_2_dec(new_price * qty)
+                subtotal_without_iva = norm_to_2_dec(price_without_iva * qty)
+                new_iva_amount       = norm_to_2_dec(subtotal_without_iva * (iva_rate / Decimal('100')))
 
-        self.db.execute_query("""
-            UPDATE sale_items SET price = ?, subtotal = ?, iva_amount = ?
-            WHERE sale_id = ? AND product_id = ?
-        """, [str(new_price), str(subtotal_with_iva), str(new_iva_amount), sale_id, p_id],
-            conn=conn, commit=commit)
+                self.db.execute_query("""
+                    UPDATE sale_items SET price = ?, subtotal = ?, iva_amount = ?
+                    WHERE id = ?
+                """, [str(new_price), str(subtotal_with_iva), str(new_iva_amount), item_id],
+                    conn=conn, commit=False)
+
+            if own_conn and commit:
+                conn.commit()
+
+        except Exception:
+            if own_conn:
+                conn.rollback()
+            raise
+
+        finally:
+            if own_conn:
+                conn.close()
 
     def recalculate_sale_total(self, sale_id, conn=None, commit=True):
         new_total = self.get_total_of_sale_items(sale_id, conn=conn)

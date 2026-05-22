@@ -139,15 +139,11 @@ class SupplierController():
     
     def __validate_supplier_cuit(self, cuit_field):
         pattern = r'^\d{2}-\d{8}-\d$'
-        
+
         if not re.fullmatch(pattern, cuit_field):
             show_warning("Por favor coloque el CUIT correctamente. Formato: XX-XXXXXXXX-X")
             return False
-        
-        # if self.model.core.find_supplier_by_cuit(cuit_field) is not None:
-        #     show_error(f"Error: Ya existe un proveedor con el CUIT: {cuit_field}")
-        #     return False
-        
+
         return True
     
     def __validate_supplier_phone(self, phone_field):

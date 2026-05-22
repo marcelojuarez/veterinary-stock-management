@@ -42,7 +42,7 @@ class SupplierCredit:
         """
 
         query = """
-            SELECT id, supplier_id, date, amount, type, reference_id, notes
+            SELECT id, supplier_id, date, amount, type, purchase_id, check_id, notes
             FROM supplier_credit_movements
             WHERE supplier_id = ?
             ORDER BY id DESC
@@ -60,8 +60,9 @@ class SupplierCredit:
             "date": row[2],
             "amount": Decimal(row[3]),
             "type": row[4],
-            "reference_id": row[5],
-            "notes": row[6]
+            "purchase_id": row[5],
+            "check_id": row[6],
+            "notes": row[7]
         }
 
     ## -- Devuelve el saldo a favor actual del proveedor  -- ##

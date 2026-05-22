@@ -98,7 +98,7 @@ class PaymentController():
             }
 
             # Vincula 
-            self.supplier_model.payment.register_payment_and_set_relation(data, conn, purchase_id)
+            self.supplier_model.payment.register_payment_and_set_relation(data, conn, purchase_id_int)
 
             # ── Usar saldo a favor ────────────────────────────────
             if credit_applied > Decimal("0") and self.supplier_credit:

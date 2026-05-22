@@ -648,12 +648,8 @@ class SupplierPurchase():
         return norm_to_2_dec(pending)
     
     ## -- Calcula el pendiente de una compra
-    def calculate_pending_of_purchase(self, purchase_id, payment_id):
-        # Datos de la compra
-        purchase_data = None
-
-        # Datos de pagos asociados a la venta
-        payment_data = None
+    def calculate_pending_of_purchase(self, _purchase_id, _payment_id):
+        raise NotImplementedError("calculate_pending_of_purchase no está implementado")
 
     def update_last_debt_update(self, supplier_id, conn=None, commit=True):
         date = datetime.now().strftime("%d/%m/%Y %H:%M")
@@ -716,7 +712,7 @@ class SupplierPurchase():
             conn.commit()
             return True
         
-        except ValueError as e:
+        except Exception:
             conn.rollback()
             return False
         

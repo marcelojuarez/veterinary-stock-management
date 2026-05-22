@@ -1,7 +1,6 @@
 import logging
 from decimal import Decimal
 from datetime import datetime
-from models.stock import StockModel
 from tkinter import messagebox
 from services.purchase_detail import PurchaseDetail
 from utils.printing import send_to_printer
@@ -382,7 +381,7 @@ class PurchaseController():
             'Product_name': 'Nombre Producto',
             'Pack': 'Envase',
             'Qty': 'Stock',
-            'List_price': 'Precio de Listaaa',
+            'List_price': 'Precio de Lista',
             'Discount': 'Descuento',
             'Cost_price': 'Precio de Costo',
             'Iva_rate': 'Porcentaje de Iva',
@@ -405,11 +404,6 @@ class PurchaseController():
             show_error(f'Error. El stock debe ser mayor a Cero(0)')
             return False
 
-        for field, lbl in required_fields.items():
-            if not form_data[field]:
-                show_error(f'Por favor complete el campo "{lbl}"')
-                return False
-            
         # Validar Tipos Numéricos
         ## Precio de costo
         #- Formato correcto

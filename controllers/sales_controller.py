@@ -44,8 +44,7 @@ class SalesController:
     def add_product_to_sale(self, product_id, name, pack, price, stock,
                             qty_input,
                             is_fractional=False,
-                            unit='UNIDAD',
-                            fraction_price=None):
+                            unit='UNIDAD'):
         """
         Formatos de tupla que se agregan a items_in_sale:
           Normal      : (pid, name, pack, qty, price)              — len 5
@@ -96,7 +95,7 @@ class SalesController:
             if is_fractional:
                 unit_label = f"{quantity} {unit}"
                 self.sales_view.items_in_sale.append(
-                    (product_id, name, pack, 1, price, f"FRAC. {unit_label}", True)
+                    (product_id, name, pack, quantity, price, f"FRAC. {unit_label}", True)
                 )
             else:
                 self.sales_view.items_in_sale.append(
@@ -145,7 +144,7 @@ class SalesController:
 
     def confirm_sale(self):
         try:
-            items = self.sales_view.items_in_sale
+            items = list(self.sales_view.items_in_sale)
             if not items:
                 self.sales_view.show_warning("No hay productos en la venta.")
                 return
@@ -162,6 +161,8 @@ class SalesController:
             retenciones    = self.sales_view.get_retenciones()
 
             sale_id = self.sales_model.register_sale(total, items, cliente_id, estado, retenciones)
+            self.sales_view.last_sale_id = sale_id
+            self.sales_view.clear_sale()
 
             pdf = self.invoice_controller.generate_invoice(cliente_id, items)
             if askyesno("Imprimir", "¿Desea imprimir el comprobante ahora?"):
@@ -169,8 +170,6 @@ class SalesController:
                 if not success:
                     self.sales_view.show_error("No se pudo enviar a la impresora. Verifique la conexión.")
             self.sales_view.show_success(f"Venta registrada.\nFactura creada: {pdf}")
-
-            self.sales_view.last_sale_id = sale_id
             debt = self.customer_model.get_total_debt(cliente_id)
 
             if estado == "pending":
@@ -187,7 +186,6 @@ class SalesController:
                 self.customer_model.add_row_in_customer_ledger(data)
                 self.sales_view.generate_delivery_note()
 
-            self.sales_view.clear_sale()
             self.event_bus.publish('refresh_stock_table', None)
             self.sales_view.load_available_products()
 
