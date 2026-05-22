@@ -2,7 +2,7 @@
 ; Compilar con: ISCC.exe installer.iss /DMyAppVersion=1.0.0
 
 #define MyAppName "VeterinariaApp"
-#define MyAppPublisher "Tu Empresa"
+#define MyAppPublisher "COMPLETAR_NOMBRE_EMPRESA"
 #define MyAppURL "https://github.com/marcelojuarez/veterinary-stock-management/"
 #define MyAppExeName "VeterinariaApp.exe"
 
@@ -16,7 +16,7 @@
 #endif
 
 [Setup]
-AppId={{F1A2B3C4-D5E6-7890-ABCD-EF1234567890}}  ; Cambiá este GUID una vez y nunca más
+AppId={{ECE48ECA-CD66-41C6-9265-76A05D568B42}}  ; GUID único — NO cambiar una vez distribuido
 AppName={#MyAppName}
 AppVersion={#MyAppVersion}
 AppPublisher={#MyAppPublisher}

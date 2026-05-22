@@ -1,8 +1,8 @@
 {
-  "version": "10.9.9",
-  "release_date": "2025-01-15",
-  "release_notes": "Prueba del sistema de actualización.",
-  "installer_url": "https://github.com/marcelojuarez/veterinary-stock-management/releases/download/v9.9.9/VeterinariaSetup_v9.9.9.exe",
+  "version": "0.0.0",
+  "release_date": "",
+  "release_notes": "Pendiente de primer release oficial.",
+  "installer_url": "",
   "checksum_sha256": "",
   "mandatory": false
 }
