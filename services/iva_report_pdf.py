@@ -192,9 +192,9 @@ class IVAReportPDF:
         elements.append(self._section_header("📊  RESUMEN IVA"))
         elements.append(Spacer(1, 6))
 
-        saldo = float(posicion.get("saldo", 0) or 0)
+        saldo = float(posicion.get("balance", 0) or 0)
         saldo_color = "#C62828" if saldo > 0 else "#2E7D32"
-        saldo_tipo  = posicion.get("tipo", "")
+        saldo_tipo  = posicion.get("status", "")
 
         cards_data = [[
             Paragraph(
@@ -248,14 +248,14 @@ class IVAReportPDF:
         col_w = [USABLE_W * p for p in [0.11, 0.15, 0.14, 0.15, 0.14, 0.155, 0.155]]
 
         data = [cols]
-        for item in detalle_posicion.get("detalle", []):
+        for item in detalle_posicion.get("rows", []):
             data.append([
                 item.get("aliquot", ""),
                 _money(item.get("sales_net", 0)),
                 _money(item.get("iva_sales", 0)),
                 _money(item.get("purchases_net", 0)),
                 _money(item.get("purchases_iva", 0)),
-                _money(item.get("saldo", 0)),
+                _money(item.get("balance", 0)),
                 "—",
             ])
 
@@ -265,7 +265,7 @@ class IVAReportPDF:
             _money(detalle_posicion.get("total_iva_sales", 0)),
             "—",
             _money(detalle_posicion.get("total_purchases_iva", 0)),
-            _money(detalle_posicion.get("saldo_bruto", 0)),
+            _money(detalle_posicion.get("balance_gross", 0)),
             "—",
         ])
         subtotal_row = len(data) - 1
@@ -291,8 +291,8 @@ class IVAReportPDF:
             "—",
             _money(detalle_posicion.get("fiscal_credit",
                    detalle_posicion.get("total_purchases_iva", 0))),
-            _money(detalle_posicion.get("saldo_bruto", 0)),
-            _money(detalle_posicion.get("saldo_total", 0)),
+            _money(detalle_posicion.get("balance_gross", 0)),
+            _money(detalle_posicion.get("balance_total", 0)),
         ])
         total_row = len(data) - 1
 
