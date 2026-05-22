@@ -1,9 +1,12 @@
+import logging
 from decimal import Decimal
 from utils.utils import string_to_2_dec
 from utils.view_helpers import show_warning, show_error, close_win
 from utils.receipts.manager import generate_orden_pago_proveedor
 from tkinter import messagebox
 from db.database import db
+
+logger = logging.getLogger(__name__)
 
 
 def _get_val(var):
@@ -97,7 +100,7 @@ class PaymentController():
             check_id = payment_data.get('check_id')
 
             # Vincula 
-            self.supplier_model.payment.register_payment_and_set_relation(data, check_id, conn, purchase_id)
+            self.supplier_model.payment.register_payment_and_set_relation(data, check_id, conn, purchase_id_int)
 
             # ── Usar saldo a favor ────────────────────────────────
             if credit_applied > Decimal("0") and self.supplier_credit:
@@ -219,7 +222,7 @@ class PaymentController():
             "check_id": None,
             "notes":        nota,
         }, conn=conn, commit=commit)
-        print(f"[PaymentController] Saldo a favor usado: ${amount} para supplier {supplier_id}")
+        logger.debug("Saldo a favor usado: $%s para supplier %s", amount, supplier_id)
 
     def _registrar_saldo_favor(self, supplier_id, excedente, check_id, check_number, check_bank,
                                conn=None, commit=True):
@@ -239,7 +242,7 @@ class PaymentController():
             "check_id": check_id,
             "notes":        nota,
         }, conn=conn, commit=commit)
-        print(f"[PaymentController] Saldo a favor registrado: ${excedente} para supplier {supplier_id}")
+        logger.debug("Saldo a favor registrado: $%s para supplier %s", excedente, supplier_id)
 
     @classmethod
     def validate_data(cls, data):
@@ -306,5 +309,4 @@ class PaymentController():
 
     @staticmethod
     def _is_str(value):
-        try: str(value); return True
-        except: return False
+        return isinstance(value, str) and value.strip() != ""

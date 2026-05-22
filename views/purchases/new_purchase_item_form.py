@@ -251,7 +251,7 @@ class NewPurchaseItemForm():
             f"Total: ${self.total_item_var.get()}"
         )
 
-        if ask_confirmation(data, 'Desea confirmar la carga de este producto?'):
+        if ask_confirmation(data, '¿Confirma la carga de este producto?'):
             self.controller.add_purchase_item(win, parent)
 
     ## -- Carga los datos asociados a un producto -- ##

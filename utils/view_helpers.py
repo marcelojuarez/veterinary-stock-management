@@ -1,4 +1,7 @@
+import logging
 from tkinter import messagebox
+
+logger = logging.getLogger(__name__)
 
 def close_win( win, parent, callback=None):
     """Cierra la ventana y devuelve el foco al padre"""
@@ -10,7 +13,7 @@ def close_win( win, parent, callback=None):
         parent.after(50, lambda: parent.focus_force())
 
     except Exception as e:
-        print(f"Error al cerrar la ventana: {e}")
+        logger.error("Error al cerrar la ventana: %s", e)
         return
 
 def center_window(window, width, height):

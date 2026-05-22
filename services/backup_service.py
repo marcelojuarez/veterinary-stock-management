@@ -28,18 +28,18 @@ logging.basicConfig(
 class BackupService:
     """Servicio de backup automático para la base de datos"""
     
-    def __init__(self, db_path, backup_dir='backups', config_path='config/backup_config.json'):
+    def __init__(self, db_path, backup_dir=None, config_path=None):
         """
         Inicializar el servicio de backup
-        
-        Args:
-            db_path: Ruta a la base de datos principal
-            backup_dir: Directorio donde se guardarán los backups
-            config_path: Ruta al archivo de configuración
+
+        backup_dir y config_path se derivan de db_path si no se especifican,
+        garantizando que apunten a un directorio escribible tanto en dev como
+        en entorno frozen (PyInstaller → LOCALAPPDATA).
         """
         self.db_path = Path(db_path)
-        self.backup_dir = Path(backup_dir)
-        self.config_path = Path(config_path)
+        writable_root = self.db_path.parent.parent  # .../StockManager/ en prod, proyecto/ en dev
+        self.backup_dir = Path(backup_dir) if backup_dir else writable_root / 'backups'
+        self.config_path = Path(config_path) if config_path else writable_root / 'config' / 'backup_config.json'
         
         # Crear directorios necesarios
         self.backup_dir.mkdir(exist_ok=True)
@@ -351,15 +351,16 @@ class BackupService:
 # Instancia global del servicio de backup
 _backup_service = None
 
-def get_backup_service(db_path='db/stock.db'):
+def get_backup_service(db_path=None):
     """Obtener instancia global del servicio de backup"""
     global _backup_service
     if _backup_service is None:
-        _backup_service = BackupService(db_path)
+        from config.settings import DB_PATH
+        _backup_service = BackupService(db_path or DB_PATH)
     return _backup_service
 
 
-def initialize_backup_system(db_path='db/stock.db', auto_start=True):
+def initialize_backup_system(db_path=None, auto_start=True):
     """
     Inicializar el sistema de backup
     
@@ -383,7 +384,8 @@ if __name__ == "__main__":
     # Prueba del sistema de backup
     print("=== Sistema de Backup - Prueba ===")
     
-    service = BackupService('db/stock.db')
+    from config.settings import DB_PATH
+    service = BackupService(DB_PATH)
     
     # Crear backup manual
     print("\n1. Creando backup manual...")

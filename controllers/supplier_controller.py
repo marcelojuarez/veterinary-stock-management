@@ -1,6 +1,9 @@
 # controllers/supplier_controller.py
+import logging
 import re
 from utils.view_helpers import show_warning, show_error, show_success, ask_confirmation
+
+logger = logging.getLogger(__name__)
 
 class SupplierController():
     def __init__(self, supplier_model, event_bus):
@@ -33,23 +36,18 @@ class SupplierController():
                 return
 
             if not self.__validate_supplier_email(data['email']):
-                print('Entro al chequeo de email del proveedor')
                 return
-            
+
             if not self.__validate_supplier_cuit(data['cuit']):
-                print('Entro al chequeo de cuit del proveedor')
                 return
-            
+
             if not self.__validate_supplier_phone(data['phone']):
-                print('Entro al chequeo de telefono del proveedor')
                 return
-            
+
             if not self.__validate_supplier_name(data['name']):
-                print('Entro al chequeo de nombre del proveedor')
                 return
-            
+
             if not self.__validate_supplier_address(data['address']):
-                print('Entro al chequeo de domicilio del proveedor')
                 return
 
             # convertir tipos
@@ -98,7 +96,7 @@ class SupplierController():
 
             self.info_view.open_info_window(supplier_data, credit_amount, debt, parent)
         except Exception as e:
-            print(f'Hubo un error: {e}')
+            logger.error("Error abriendo info de proveedor: %s", e)
     
     def __validates_supplier_data(self, form_data):
         required_files =  ['name', 'cuit', 'address', 'city', 'province', 'country', 'phone', 'email', 'iva_condition']
@@ -141,15 +139,11 @@ class SupplierController():
     
     def __validate_supplier_cuit(self, cuit_field):
         pattern = r'^\d{2}-\d{8}-\d$'
-        
+
         if not re.fullmatch(pattern, cuit_field):
             show_warning("Por favor coloque el CUIT correctamente. Formato: XX-XXXXXXXX-X")
             return False
-        
-        # if self.model.core.find_supplier_by_cuit(cuit_field) is not None:
-        #     show_error(f"Error: Ya existe un proveedor con el CUIT: {cuit_field}")
-        #     return False
-        
+
         return True
     
     def __validate_supplier_phone(self, phone_field):
@@ -184,7 +178,6 @@ class SupplierController():
     def refresh_supplier_table(self):
         """Refrescar la tabla de proveedores"""
         try:    
-            print('Se refresca la tabla')
             self.view.suppliers = self.model.core.get_all_suppliers()
             self.view.refresh_supplier_table(self.view.suppliers)
         except Exception as e:
@@ -203,19 +196,15 @@ class SupplierController():
                 return False
             
             if not self.__validate_supplier_cuit(supplier_data['cuit']):
-                print('Entro al chequeo de cuit del proveedor')
                 return False
-            
+
             if not self.__validate_supplier_phone(supplier_data['phone']):
-                print('Entro al chequeo de telefono del proveedor')
                 return False
-            
+
             if not self.__validate_supplier_name(supplier_data['name']):
-                print('Entro al chequeo de nombre del proveedor')
                 return False
-            
+
             if not self.__validate_supplier_address(supplier_data['address']):
-                print('Entro al chequeo de domicilio del proveedor')
                 return False
 
             # convertir tipos
@@ -294,7 +283,7 @@ class SupplierController():
                 show_success('El proveedor fue eliminado correctamente.')
 
         except Exception as e:
-            print(e)
+            logger.error("Error al eliminar proveedor: %s", e)
             show_warning('Error al procesar la solicitud')
 
  

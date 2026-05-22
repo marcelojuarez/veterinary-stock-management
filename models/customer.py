@@ -1,11 +1,12 @@
-from datetime import datetime
+import logging
 import sqlite3
-from db.database import db
 from datetime import datetime
-from tkinter import messagebox
-
 from decimal import Decimal
+from tkinter import messagebox
+from db.database import db
 from utils.utils import norm_to_2_dec, iso_to_traditional
+
+logger = logging.getLogger(__name__)
 class CustomerModel:
     def __init__(self, pay_model, customer_credit, sales_model, db_connection=None):
         self.db = db_connection or db 
@@ -19,7 +20,7 @@ class CustomerModel:
             query = "SELECT * FROM customer ORDER BY id"
             return db.fetch_all(query)
         except ValueError as e: 
-            print(f'Error getting customers: {e}')
+            logger.error("Error getting customers: %s", e)
             return []
         
     def get_all_clients(self):
@@ -46,7 +47,7 @@ class CustomerModel:
             query = "SELECT * FROM customer WHERE id = ?"
             return db.fetch_one(query, (customer_id,))
         except Exception as e:
-            print(f'Error getting customer by ID: {e}')
+            logger.error("Error getting customer by ID: %s", e)
             return None
 
     def check_duplicate_customer(self, customer_data, exclude_id=None):
@@ -118,8 +119,8 @@ class CustomerModel:
             query = "DELETE FROM customer where id = ?"
             return db.execute_query(query, (customer_id,))
         except Exception as e: 
-            print(f'Error : {e}')
-            return None 
+            logger.error("Error deleting customer: %s", e)
+            return None
 
     def edit_customer(self, customer_id, data):
         query = """
@@ -162,7 +163,7 @@ class CustomerModel:
                 query = "SELECT * FROM customer WHERE name LIKE ?"
                 return self.db.fetch_all(query, (f"%{search_term.upper()}%",))
         except Exception as e:
-            print(f"Error searching customer: {e}")
+            logger.error("Error searching customer: %s", e)
             return []
             
     # --------------------------------------------------------------------
@@ -271,7 +272,7 @@ class CustomerModel:
             'payment': payment,
             'debt': debt,
             'reference_id': sale_id,
-            'reference': f"Precio actualizado"
+            'reference': f"Pago venta #{sale_id}"
         }
         self.add_row_in_customer_ledger(data, conn=conn, commit=commit)
 
@@ -283,9 +284,9 @@ class CustomerModel:
             'description': description,
             'amount': Decimal('0.00'),
             'payment': Decimal('0.00'),
-            'debt': self.get_total_debt(client_id, conn=conn),  
+            'debt': self.get_total_debt(client_id, conn=conn),
             'reference_id': reference_id,
-            'reference': 'Ajuste de precio'
+            'reference': 'Saldo a favor'
         }
         self.add_row_in_customer_ledger(data, conn=conn, commit=commit)
 
@@ -297,9 +298,9 @@ class CustomerModel:
             'description': f'Cheque rechazado · Monto: ${check_amount} ',
             'amount': Decimal('0.00'),
             'payment': Decimal('0.00'),
-            'debt': debt_amount,  
+            'debt': debt_amount,
             'reference_id': None,
-            'reference': 'Ajuste de precio'
+            'reference': 'Cheque rechazado'
         }
         self.add_row_in_customer_ledger(data, conn=conn, commit=commit)
 
@@ -407,10 +408,6 @@ class CustomerModel:
     def get_account_history(self, client_id):
         # Guardar y obtener los movimientos de cuenta corriente del cliente
         movements = self.get_account_history_from_client(client_id)
-        print(f"Movimientos en cuenta corriente para cliente {client_id}:")
-        for m in movements:
-            print(m)
-
         # Ledger vacío = cuenta reseteada, tarjetas en cero excepto credit y total_debt
         if not movements:
             credit     = self.customer_credit.get_customer_credit(client_id)
@@ -469,7 +466,7 @@ class CustomerModel:
                         sales_paid += 1
             return total_sales, sales_paid
         except Exception as e:
-            print(f'Error contando ventas: {e}')
+            logger.error("Error contando ventas: %s", e)
             return 0, 0
 
     def get_customers_with_debt(self):

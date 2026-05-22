@@ -54,7 +54,6 @@ class PurchaseFilterController():
                 tag = "purchase_paid"
             else:
                 tag = "purchase_pending"  # CONFIRMADA / pendiente de pago
-            print(p)
             self.treeview.insert(
                 parent="", index="end", iid=p[0],
                 values=(
@@ -85,9 +84,7 @@ class PurchaseFilterController():
 
     # Filter by invoice number
     def filter_by_invoice_number(self, invoice_number):
-        print(invoice_number)
         inv_num = ''.join(invoice_number.split())
-        print(inv_num)
 
         if (inv_num == ''):
             show_warning('Por favor ingrese un numero de factura.\n')
@@ -106,7 +103,6 @@ class PurchaseFilterController():
             )
             return
 
-        print(f'purchase: {selected_p}')
         self.search_var.set(selected_p[2])
 
         # Limpiar tabla

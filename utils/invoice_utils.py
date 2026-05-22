@@ -1,4 +1,7 @@
+import logging
 from datetime import datetime, timedelta
+
+logger = logging.getLogger(__name__)
 
 ## Calcula los dias de plazo disponibles segun condicion de pago ##
 def pay_period_control(pay_cond_var, pay_period_var, pay_period_wid):
@@ -15,7 +18,7 @@ def pay_period_control(pay_cond_var, pay_period_var, pay_period_wid):
             
 
     except ValueError as e:
-        print(f'{e}')
+        logger.error("Error en pay_period_control: %s", e)
         return
 
 def is_valid_date(date):

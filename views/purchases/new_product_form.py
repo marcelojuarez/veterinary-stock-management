@@ -1,9 +1,12 @@
+import logging
 import tkinter as tk
 import customtkinter as ctk
 
 from decimal import Decimal
 from utils.view_helpers import center_window, close_win, ask_confirmation
 from utils.utils import flex_dec, string_to_flex_dec, string_to_2_dec
+
+logger = logging.getLogger(__name__)
 
 class NewProductForm():
     def __init__(self, controller):
@@ -169,7 +172,7 @@ class NewProductForm():
                 self.final_price.set(sale_price_with_iva)
             
             except ValueError as e:
-                print(f'{e}')
+                logger.error("Error en formulario de nuevo producto: %s", e)
                 return
 
         self.list_price_var.trace_add("write", recalc)
@@ -212,7 +215,7 @@ class NewProductForm():
             f"Precio venta C/IVA $: {self.final_price.get()}"
         )
 
-        if ask_confirmation(data, 'Desea confirmar la carga de este producto?'):
+        if ask_confirmation(data, '¿Confirma la carga de este producto?'):
             self.controller.add_new_product(parent)
     
     ## -- Obtener los datos de un nuevo producto -- ##

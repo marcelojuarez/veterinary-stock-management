@@ -1,8 +1,11 @@
 # models/supplier/supplier_credit.py
 
+import logging
 from decimal import Decimal
 from datetime import datetime
 from utils.utils import norm_to_2_dec
+
+logger = logging.getLogger(__name__)
 
 class SupplierCredit:
     def __init__(self, db):
@@ -31,8 +34,6 @@ class SupplierCredit:
             data['check_id'],
             data['notes'],
         ]
-        print(f'params: {params}')
-
         return self.db.execute_query(query, params, conn=conn, commit=commit)
 
     def get_last_movement(self, supplier_id):
@@ -41,7 +42,7 @@ class SupplierCredit:
         """
 
         query = """
-            SELECT id, supplier_id, date, amount, type, reference_id, notes
+            SELECT id, supplier_id, date, amount, type, purchase_id, check_id, notes
             FROM supplier_credit_movements
             WHERE supplier_id = ?
             ORDER BY id DESC
@@ -59,8 +60,9 @@ class SupplierCredit:
             "date": row[2],
             "amount": Decimal(row[3]),
             "type": row[4],
-            "reference_id": row[5],
-            "notes": row[6]
+            "purchase_id": row[5],
+            "check_id": row[6],
+            "notes": row[7]
         }
 
     ## -- Devuelve el saldo a favor actual del proveedor  -- ##

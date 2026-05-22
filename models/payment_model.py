@@ -1,7 +1,10 @@
-from db.database import db 
+import logging
+from db.database import db
 from decimal import Decimal
 from datetime import datetime
 from utils.utils import norm_to_2_dec
+
+logger = logging.getLogger(__name__)
 
 class PaymentModel:
     def __init__(self, sales_model, customer_credit, checks_model, customer_model=None):
@@ -219,10 +222,10 @@ class PaymentModel:
                 remaining = remaining - pay_amount
                 updated_debts.append((sale_id, pay_amount))
 
-            print(f'remaining: {remaining}')
             surplus = Decimal('0.00')
 
             # Verifica si se genera saldo a favor al pagar con cheque
+            remaining = norm_to_2_dec(remaining)
             if remaining > Decimal('0.00') and check_id is not None:
                 self.customer_credit.add_customer_credit(
                     {
@@ -266,7 +269,7 @@ class PaymentModel:
 
         except Exception as e:
             conn.rollback()
-            print(f'Hubo un error: {e}')
+            logger.error("Error al distribuir pago con cheque: %s", e)
             return False
 
         finally:
@@ -286,3 +289,4 @@ class PaymentModel:
         
         except Exception as e:
             raise RuntimeError(f'Error al cancelar pagos asociados a un cheque: {e}') from e
+

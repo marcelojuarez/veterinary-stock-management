@@ -1,8 +1,11 @@
 # models/supplier/supplier_payments.py
 
+import logging
 from datetime import datetime
 from utils.utils import norm_to_2_dec
 from decimal import Decimal
+
+logger = logging.getLogger(__name__)
 
 class SupplierPayment():
     def __init__(self, db, purchase_model):
@@ -17,9 +20,9 @@ class SupplierPayment():
             FROM supplier_payment 
             WHERE id = ? 
             """
-            return self.db.fetch_one(query, (payment_id))
+            return self.db.fetch_one(query, (payment_id,))
         except ValueError as e:
-            print(f'Error getting supplier supplier_payment by cuit: {e}')
+            logger.error("Error getting supplier payment by cuit: %s", e)
             return None
 
     ## -- Obtiene los datos de un pago hecho por transferencia -- ##
@@ -32,7 +35,7 @@ class SupplierPayment():
             """
             return self.db.fetch_one(query, (payment_id,))
         except ValueError as e:
-            print(f'Error getting transfer data by supplier_payment id: {e}')
+            logger.error("Error getting transfer data by supplier_payment id: %s", e)
             return None
 
     ## -- Obtiene los datos de un pago hecho por cheque -- ##
@@ -45,7 +48,7 @@ class SupplierPayment():
             """
             return self.db.fetch_one(query, (payment_id,))
         except ValueError as e:
-            print(f'Error getting transfer data by payment id: {e}')
+            logger.error("Error getting transfer data by payment id: %s", e)
             return None
     
     ## -- Obtiene todos los pagos asociados o no, a un cuit-- ##
@@ -69,7 +72,7 @@ class SupplierPayment():
 
             return self.db.fetch_all(query, params)
         except ValueError as e:
-            print(f'Error getting supplier payment by id: {e}')
+            logger.error("Error getting supplier payment by id: %s", e)
             return None  
 
     def add_payment(self, pay_data, check_id=None, conn=None, commit=True):
@@ -129,7 +132,7 @@ class SupplierPayment():
 
             return self.db.fetch_all(query, (payment_id, ))
         except ValueError as e:
-            print(f'Error al obtener las compras asociadas a este pago {e}')
+            logger.error("Error al obtener compras asociadas al pago: %s", e)
             return None
 
     ## -- Transaccion que registra un pago -- ##
@@ -141,7 +144,7 @@ class SupplierPayment():
                 # El pago aplica a una compra 
 
                 # Datos de la compra
-                purchase_data = self.purchase.get_purchase_by_id(purchase_id.get())
+                purchase_data = self.purchase.get_purchase_by_id(purchase_id)
 
                 # Nueva Deuda
                 debt = Decimal(purchase_data[9])
@@ -152,7 +155,6 @@ class SupplierPayment():
 
                 if doc_type == 'REMITO':
                     id = purchase_data[4]
-                
                 else:
                     id = purchase_data[3]
 
@@ -160,10 +162,10 @@ class SupplierPayment():
                 new_debt = norm_to_2_dec(new_debt)
 
                 # cambios en la compra
-                self.purchase.set_new_debt_purchase(purchase_id.get(), id, doc_type, new_debt, conn=conn, commit=False)
-                
+                self.purchase.set_new_debt_purchase(purchase_id, id, doc_type, new_debt, conn=conn, commit=False)
+
                 params = {
-                    'Purchase_id': purchase_id.get(),
+                    'Purchase_id': purchase_id,
                     'Payment_id': payment_id,
                     'Amount_applied': total_amount
                 }
@@ -173,10 +175,9 @@ class SupplierPayment():
 
             else:
                 # El pago aplica a mas de una compra
-                purchases = self.purchase.get_all_purchases_without_paying()
+                purchases = self.purchase.get_all_purchases_without_paying(pay_data['Supplier_id'])
 
                 for p in purchases:
-                    print(f'Monto: {total_amount}')
 
                     # Si ya no queda monto para aplicar, cortar el ciclo
                     if total_amount <= Decimal('0.00'):
@@ -243,9 +244,9 @@ class SupplierPayment():
         query = """
             SELECT purchase_id, amount_applied
             FROM purchase_payment
-            WHERE payment_id = ? AND valid = ?
+            WHERE payment_id = ?
         """
-        return self.db.fetch_all(query, (supplier_payment_id, 1), conn=conn)
+        return self.db.fetch_all(query, (supplier_payment_id,), conn=conn)
     
     def revert_purchase_pending(self, purchase_id, amount_applied, conn=None, commit=True):
         # Obtener pending actual
@@ -268,7 +269,6 @@ class SupplierPayment():
     def cancel_check_supplier_payments(self, check_id, conn=None, commit=True):
         # Pagos vinculados al cheque
         payments = self.get_supplier_payments_by_check(check_id, conn=conn)
-        print(f'payments: {len(payments)}')
 
         if not payments:
             return

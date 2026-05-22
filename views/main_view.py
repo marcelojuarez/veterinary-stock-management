@@ -1,5 +1,4 @@
-from ctypes import wintypes
-import platform
+import logging
 import tkinter as tk
 from tkinter import ttk
 import customtkinter as ctk
@@ -7,6 +6,8 @@ from events import EventBus
 from datetime import datetime
 from config.settings import settings
 from services.cloud_backup_service import CloudBackupService
+
+logger = logging.getLogger(__name__)
 
 from views.start_view import StartView
 from views.stock_view import StockView
@@ -31,6 +32,8 @@ from models.checks_model import ChecksModel
 from models.cash_model import CashModel
 from models.supplier.supplier_credit import SupplierCredit
 from models.customer_credit import CustomerCredit
+from models.fraction import FractionModel
+ 
 #from models.user import User
 from tkinter import messagebox
 from controllers.auth_controller import validate_data
@@ -47,8 +50,10 @@ from controllers.iva_reports_controller import ReportsController
 from controllers.checks_controller import ChecksController
 from views.backup_manager import BackupManagerView
 import sys, os
-import ctypes 
-from ctypes import wintypes
+import ctypes
+import threading
+from services.update_service import UpdateService
+from views.update_dialog import UpdateDialog
 
 try:
     ctypes.windll.shcore.SetProcessDpiAwareness(1)
@@ -100,10 +105,7 @@ class App():
         
     def setup_variables(self):
         self.user_var = tk.StringVar()
-        self.user_var.set('admin')
-        
         self.pwd_var = tk.StringVar()
-        self.pwd_var.set('admin')
 
     def login_window(self):
         self.login_win = ctk.CTkToplevel(self.root)
@@ -162,6 +164,32 @@ class App():
             self.login_win.destroy() 
             self.root.protocol("WM_DELETE_WINDOW", self.on_close)
 
+            # Chequeo de actualizaciones: corre en segundo plano 1.5s después del login
+            self.root.after(1500, self._check_updates_async)
+
+    def _check_updates_async(self):
+        update_service = UpdateService(current_version=UpdateService.get_current_version())
+
+        def _worker():
+            try:
+                update_info = update_service.check_for_updates()
+                if update_info:
+                    self.root.after(0, lambda: self._show_update_dialog(update_info, update_service))
+            except Exception as e:
+                logger.warning("No se pudo verificar actualizaciones: %s", e)
+
+        threading.Thread(target=_worker, daemon=True, name="UpdateChecker").start()
+
+    def _show_update_dialog(self, update_info, service):
+        current = UpdateService.get_current_version()
+        dialog = UpdateDialog(
+            parent=self.root,
+            update_info=update_info,
+            current_version=current,
+            service=service,
+        )
+        dialog.wait_window()
+
     def create_componentes(self):
         self.notebook = ttk.Notebook(self.root)
         self.root.update_idletasks()
@@ -189,6 +217,7 @@ class App():
         supplier_model = SupplierModel(stock_model)
         cash_model = CashModel(customer_model)
         supplier_credit = SupplierCredit(supplier_model.db)
+        fraction_model = FractionModel()
 
         ## --- CONTROLLERS --- ##
         self.stock_controller = StockController(
@@ -213,7 +242,7 @@ class App():
         self.receipt_controller = SupplierReceiptController(supplier_model)
         self.invoice_controller = InvoiceController(invoice_model, customer_model, stock_model)
         self.sales_controller = SalesController(
-            customer_model, remito_model, sales_model, stock_model, self.invoice_controller, event_bus
+            customer_model, remito_model, sales_model, stock_model, self.invoice_controller, event_bus, fraction_model = fraction_model
         )
 
         ## --- VIEWS --- ##
@@ -222,14 +251,14 @@ class App():
         self.notebook.add(self.start_view.frame, text='Inicio')
 
         # --- STOCK ---
-        self.stock_view = StockView(self.notebook, self.stock_controller, stock_model)
+        self.stock_view = StockView(self.notebook, self.stock_controller, stock_model, fraction_model = fraction_model)
         self.stock_controller.set_view(self.stock_view)
 
         self.notebook.add(self.stock_view.frame, text='Inventario')
 
         # --- SALES ---
         self.sales_view = SalesView(
-            self.notebook, self.sales_controller, stock_model, customer_model
+            self.notebook, self.sales_controller, stock_model, customer_model, fraction_model = fraction_model
         )
         self.sales_controller.set_view(self.sales_view)
 
@@ -295,7 +324,7 @@ class App():
         except Exception as e:
             import traceback
             traceback.print_exc()
-            print(f"Error cargando datos iniciales: {e}")
+            logger.error("Error cargando datos iniciales: %s", e)
 
     def center_window(self, win, width_win, height_win):
         win.update_idletasks()
@@ -317,6 +346,6 @@ class App():
             try:
                 CloudBackupService().run()
             except Exception as e:
-                print(f'Error en backup: {e}')
+                logger.error("Error en cloud backup al cerrar: %s", e)
             finally:
                 self.root.destroy()

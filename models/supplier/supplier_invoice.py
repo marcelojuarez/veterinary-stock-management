@@ -1,7 +1,10 @@
+import logging
 from datetime import datetime
 from utils.utils import traditional_to_iso
 from decimal import Decimal
 from utils.utils import norm_to_2_dec
+
+logger = logging.getLogger(__name__)
 
 class SupplierInvoice():
     def __init__(self, db):
@@ -100,7 +103,7 @@ class SupplierInvoice():
             self.db.execute_query(query, params, conn=conn, commit=commit)
 
         except ValueError as e:
-            print(f'Error al cargar los datos: {e}')
+            logger.error("Error al cargar los datos de factura: %s", e)
 
     ## -- Obtiene el monto total de las percepciones -- ##
     def get_invoice_perceptions_amount(self, invoice_id):

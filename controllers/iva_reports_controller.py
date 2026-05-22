@@ -1,4 +1,5 @@
-from models.iva import IVAModel
+from tkinter import messagebox
+from utils.printing import send_to_printer
 
 class ReportsController:
     def __init__(self, iva_model):
@@ -95,15 +96,17 @@ class ReportsController:
 
             self.view.show_success(f"PDF exportado correctamente:\n{pdf_path}")
 
-            # Open the PDF automatically
-            import subprocess, sys
-            if sys.platform == "darwin":
-                subprocess.Popen(["open", pdf_path])
-            elif sys.platform == "win32":
-                import os
-                os.startfile(pdf_path)
+            if messagebox.askyesno("Imprimir Reporte", "¿Desea imprimir el reporte de IVA?"):
+                send_to_printer(pdf_path)
             else:
-                subprocess.Popen(["xdg-open", pdf_path])
+                # Si elige "No", lo abrimos en pantalla para que lo vea (Fallback)
+                import sys, subprocess, os
+                if sys.platform == "win32":
+                    os.startfile(pdf_path)
+                elif sys.platform == "darwin":
+                    subprocess.Popen(["open", pdf_path])
+                else:
+                    subprocess.Popen(["xdg-open", pdf_path])
 
         except Exception as e:
             self.view.show_error(f"Error al exportar PDF: {e}")
