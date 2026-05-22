@@ -230,69 +230,6 @@ class SupplierPayment():
 
             self.purchase.update_last_debt_update(pay_data['Supplier_id'], conn=conn, commit=False)
         
-    ## -- Obtiene los pagos a un proveedor vinculados con un cheque -- ##
-    def get_supplier_payments_by_check(self, check_id, conn=None):
-        query = """
-            SELECT id
-            FROM supplier_payment
-            WHERE check_id = ? AND valid = ?
-        """
-        return self.db.fetch_all(query, (check_id, 1), conn=conn)
-    
-    ## -- Obtiene las compras afectadas por un pago en particular -- ##
-    def get_purchases_affected_by_payment(self, supplier_payment_id, conn=None):
-        query = """
-            SELECT purchase_id, amount_applied
-            FROM purchase_payment
-            WHERE payment_id = ?
-        """
-        return self.db.fetch_all(query, (supplier_payment_id,), conn=conn)
-    
-    def revert_purchase_pending(self, purchase_id, amount_applied, conn=None, commit=True):
-        # Obtener pending actual
-        row = self.db.fetch_one(
-            "SELECT pending, document_type, invoice_id, receipt_id FROM purchase WHERE id = ?",
-            (purchase_id,), conn=conn
-        )
-        if not row:
-            return
-        
-        current_pending, doc_type, invoice_id, receipt_id = row
-        
-        new_pending = norm_to_2_dec(Decimal(current_pending) + Decimal(amount_applied))
-        
-        # reutilizar set_new_debt_purchase
-        doc_id = receipt_id if doc_type == 'REMITO' else invoice_id
-        self.purchase.set_new_debt_purchase(purchase_id, doc_id, doc_type, new_pending, conn=conn, commit=commit)
-
-    ## -- Cancela Registros de pago a un proveedor asociados a un cheque -- ##
-    def cancel_check_supplier_payments(self, check_id, conn=None, commit=True):
-        # Pagos vinculados al cheque
-        payments = self.get_supplier_payments_by_check(check_id, conn=conn)
-
-        if not payments:
-            return
-        
-        for pay_id in payments:
-            # Por cada pago se obtienen las compras afectadas
-            purchases = self.get_purchases_affected_by_payment(pay_id, conn=conn)
-
-            for purchase_id, amount_applied in purchases:
-                # Se revierte el pendiente de cada compra
-                self.revert_purchase_pending(purchase_id, amount_applied, conn=conn, commit=commit)
-
-            # Se eliminan las relacionas que involucran el pago invalido
-            self.db.execute_query(
-                "DELETE FROM purchase_payment WHERE payment_id = ?",
-                (pay_id,), conn=conn, commit=False
-            )
-
-            # Se setea el pago como invalido
-            self.db.execute_query(
-                "UPDATE supplier_payment SET valid = 0 WHERE id = ?",
-                (pay_id,), conn=conn, commit=False
-            )
-
     def get_supplier_id_by_check(self, check_id):
         query = """
             SELECT supplier_id FROM supplier_payment 
