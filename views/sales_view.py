@@ -88,7 +88,7 @@ class SalesView:
             font=ctk.CTkFont(size=12, weight="bold"),
             command=lambda: self.controller.show_today_sales()
         )
-        today_btn.grid(row=0, column=2, padx=10)
+        today_btn.grid(row=0, column=3, padx=10)
 
     # --------------------------------------------------------------------
     # PANEL IZQUIERDO - STOCK DISPONIBLE
@@ -502,16 +502,13 @@ class SalesView:
     ## -- Elimina un producto seleccionado en la tabla de productos en la venta -- ##
     def delete_selected_product(self):
         try:
-            
             selected_item = self.sale_tree.selection()[0]
             if not self.ask_confirmation("¿Eliminar artículo?"):
                 return
-            
-            pid = self.sale_tree.item(selected_item)["values"][0]
+
+            row_index = self.sale_tree.index(selected_item)
             self.sale_tree.delete(selected_item)
-            self.items_in_sale = [
-                item for item in self.items_in_sale if item[0] != pid
-            ]
+            del self.items_in_sale[row_index]
             self.update_total()
         except IndexError:
             messagebox.showwarning("Advertencia", "Seleccione un producto para eliminar.")
@@ -1381,9 +1378,9 @@ class SalesView:
         
         try:
             return {
-                'IVA': string_to_2_dec(self.retencion_iva_var.get() or string_to_2_dec("0")),
-                'IIBB': string_to_2_dec(self.retencion_iibb_var.get() or string_to_2_dec("0")),
-                'GAN': string_to_2_dec(self.retencion_ganancias_var.get() or string_to_2_dec("0")),
+                'IVA': string_to_2_dec(self.retencion_iva_var.get() or "0"),
+                'IIBB': string_to_2_dec(self.retencion_iibb_var.get() or "0"),
+                'GAN': string_to_2_dec(self.retencion_ganancias_var.get() or "0"),
                 'certificado': self.certificado_var.get().strip()
             }
         except ValueError:

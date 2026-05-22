@@ -5,12 +5,12 @@ controllers/sales_controller.py
 import logging
 from decimal import Decimal
 from tkinter import messagebox
+from tkinter.messagebox import askyesno
 from services.remito_pdf import RemitoPDF
 from utils.utils import norm_to_2_dec
+from utils.printing import send_to_printer
 
 logger = logging.getLogger(__name__)
-from tkinter.messagebox import askyesno
-from utils.printing import send_to_printer
 
 
 class SalesController:
@@ -165,8 +165,8 @@ class SalesController:
 
             pdf = self.invoice_controller.generate_invoice(cliente_id, items)
             if askyesno("Imprimir", "¿Desea imprimir el comprobante ahora?"):
-                succes = send_to_printer(pdf)
-                if not succes:
+                success = send_to_printer(pdf)
+                if not success:
                     self.sales_view.show_error("No se pudo enviar a la impresora. Verifique la conexión.")
             self.sales_view.show_success(f"Venta registrada.\nFactura creada: {pdf}")
 
@@ -192,6 +192,7 @@ class SalesController:
             self.sales_view.load_available_products()
 
         except Exception as e:
+            logger.error("Error al procesar venta: %s", e)
             self.sales_view.show_error(f"Error al procesar venta: {e}")
 
     # ─────────────────────────────────────────────────────────────────────
