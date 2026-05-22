@@ -127,7 +127,7 @@ class BackupService:
             source_conn.close()
             
             # Comprimir si está habilitado
-            if self.config.get('compress_backups', True):
+            if self.config.get('compress_backups', False):
                 compressed_file = self.compress_backup(backup_file)
                 if compressed_file:
                     backup_file.unlink()  # Eliminar archivo sin comprimir
@@ -242,28 +242,50 @@ class BackupService:
         try:
             max_backups = self.config.get('max_backups', 50)
             retention_days = self.config.get('retention_days', 30)
-            
-            # Obtener todos los backups
+
+            # Limpiar backups regulares
             backups = sorted(
                 self.backup_dir.glob('backup_*'),
                 key=lambda p: p.stat().st_mtime,
                 reverse=True
             )
-            
+
             # Eliminar por cantidad
             if len(backups) > max_backups:
                 for backup in backups[max_backups:]:
-                    backup.unlink()
-                    logging.info(f"Backup eliminado (límite cantidad): {backup.name}")
-            
+                    try:
+                        backup.unlink()
+                        logging.info(f"Backup eliminado (límite cantidad): {backup.name}")
+                    except Exception:
+                        pass
+                backups = backups[:max_backups]
+
             # Eliminar por antigüedad
             cutoff_date = datetime.now() - timedelta(days=retention_days)
             for backup in backups:
+                if not backup.exists():
+                    continue
                 mod_time = datetime.fromtimestamp(backup.stat().st_mtime)
                 if mod_time < cutoff_date:
-                    backup.unlink()
-                    logging.info(f"Backup eliminado (antigüedad): {backup.name}")
-            
+                    try:
+                        backup.unlink()
+                        logging.info(f"Backup eliminado (antigüedad): {backup.name}")
+                    except Exception:
+                        pass
+
+            # Mantener solo los últimos 5 pre-restore backups
+            pre_restores = sorted(
+                self.backup_dir.glob('pre_restore_*'),
+                key=lambda p: p.stat().st_mtime,
+                reverse=True
+            )
+            for old in pre_restores[5:]:
+                try:
+                    old.unlink()
+                    logging.info(f"Pre-restore backup eliminado: {old.name}")
+                except Exception:
+                    pass
+
         except Exception as e:
             logging.error(f"Error limpiando backups: {e}")
     
@@ -304,25 +326,53 @@ class BackupService:
             self.backup_thread.join(timeout=5)
         logging.info("Backup automático detenido")
     
+    def _get_backup_type(self, now, last_daily_date, last_weekly_week):
+        """Determina el tipo de backup según hora y día actuales."""
+        try:
+            daily_time_str = self.config.get('daily_backup_time', '02:00')
+            daily_hour, daily_min = map(int, daily_time_str.split(':'))
+            weekly_day = self.config.get('weekly_backup_day', 0)
+            interval_minutes = self.config.get('backup_interval_minutes', 30)
+
+            window_start = now.replace(hour=daily_hour, minute=daily_min, second=0, microsecond=0)
+            window_end = window_start + timedelta(minutes=interval_minutes)
+
+            if window_start <= now < window_end and last_daily_date != now.date():
+                if now.weekday() == weekly_day and last_weekly_week != now.isocalendar()[1]:
+                    return "weekly"
+                return "daily"
+        except Exception:
+            pass
+        return "auto"
+
     def _auto_backup_loop(self):
         """Loop principal del backup automático"""
         interval_minutes = self.config.get('backup_interval_minutes', 30)
         interval_seconds = interval_minutes * 60
-        
+
+        last_daily_date = None
+        last_weekly_week = None
+
         while not self.stop_backup:
             try:
-                # Crear backup automático
-                self.create_backup(backup_type="auto")
-                
-                # Esperar el intervalo configurado
+                now = datetime.now()
+                backup_type = self._get_backup_type(now, last_daily_date, last_weekly_week)
+
+                self.create_backup(backup_type=backup_type)
+
+                if backup_type in ("daily", "weekly"):
+                    last_daily_date = now.date()
+                if backup_type == "weekly":
+                    last_weekly_week = now.isocalendar()[1]
+
                 for _ in range(int(interval_seconds)):
                     if self.stop_backup:
                         break
                     time.sleep(1)
-                    
+
             except Exception as e:
                 logging.error(f"Error en loop de backup automático: {e}")
-                time.sleep(60)  # Esperar 1 minuto antes de reintentar
+                time.sleep(60)
     
     def get_status(self):
         """Obtener estado actual del servicio de backup"""

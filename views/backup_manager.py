@@ -265,8 +265,11 @@ class BackupManagerView(ctk.CTkFrame):
         path = self.backup_service.backup_dir / name
 
         if messagebox.askyesno("Eliminar", f"¿Eliminar backup?\n\n{name}"):
-            path.unlink()
-            self.refresh_data()
+            try:
+                path.unlink()
+                self.refresh_data()
+            except Exception as e:
+                messagebox.showerror("Error", f"No se pudo eliminar el backup:\n{e}")
 
     def export_backup(self):
         selected = self.backups_tree.selection()
@@ -352,12 +355,40 @@ class BackupManagerView(ctk.CTkFrame):
         btn_frame.pack(pady=20)
 
         def save():
+            errors = []
+            try:
+                interval = int(interval_var.get())
+            except ValueError:
+                errors.append("• Intervalo: debe ser un número entero.")
+                interval = None
+            try:
+                max_backups = int(max_var.get())
+            except ValueError:
+                errors.append("• Máx backups: debe ser un número entero.")
+                max_backups = None
+            try:
+                retention = int(retention_var.get())
+            except ValueError:
+                errors.append("• Días retención: debe ser un número entero.")
+                retention = None
+
+            if interval is not None and interval <= 0:
+                errors.append("• Intervalo debe ser mayor a 0 minutos.")
+            if max_backups is not None and max_backups <= 0:
+                errors.append("• Máx backups debe ser mayor a 0.")
+            if retention is not None and retention <= 0:
+                errors.append("• Días de retención debe ser mayor a 0.")
+
+            if errors:
+                messagebox.showerror("Configuración inválida", "\n".join(errors))
+                return
+
             try:
                 self.backup_service.save_config({
                     "auto_backup_enabled": auto_var.get(),
-                    "backup_interval_minutes": int(interval_var.get()),
-                    "max_backups": int(max_var.get()),
-                    "retention_days": int(retention_var.get()),
+                    "backup_interval_minutes": interval,
+                    "max_backups": max_backups,
+                    "retention_days": retention,
                     "compress_backups": compress_var.get()
                 })
                 messagebox.showinfo("Éxito", "Configuración guardada")
