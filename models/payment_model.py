@@ -288,29 +288,5 @@ class PaymentModel:
             self.db.execute_query(query, (0, check_id), conn=conn, commit=commit)
         
         except Exception as e:
-            logger.error("Error al cancelar pagos del cheque: %s", e)
+            raise RuntimeError(f'Error al cancelar pagos asociados a un cheque: {e}') from e
 
-    ## -- Cancela Cheques endosados a un proveedor -- ##
-    ## -- Cancela Saldo a favor por cheques -- ##
-    def cancel_check_supplier_payments(self, check_id, conn=None, commit=True):
-        try:
-            query = """
-            UPDATE supplier_payment
-            SET
-                valid = ?
-            WHERE check_id = ?
-            """
-
-            self.db.execute_query(query, (0, check_id), conn=conn, commit=commit)
-
-            query = """
-            UPDATE supplier_credit_movements
-            SET
-                valid = ?
-            WHERE check_id = ?
-            """
-
-            self.db.execute_query(query, (0, check_id), conn=conn, commit=commit)
-
-        except Exception as e:
-            logger.error("Error al cancelar pagos de proveedor del cheque: %s", e)

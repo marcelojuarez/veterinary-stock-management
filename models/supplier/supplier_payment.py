@@ -136,8 +136,8 @@ class SupplierPayment():
             return None
 
     ## -- Transaccion que registra un pago -- ##
-    def register_payment_and_set_relation(self, pay_data, conn=None, purchase_id=None):
-            payment_id = self.add_payment(pay_data, conn=conn, commit=False)
+    def register_payment_and_set_relation(self, pay_data, check_id=None, conn=None, purchase_id=None):
+            payment_id = self.add_payment(pay_data, check_id=check_id, conn=conn, commit=False)
             total_amount = pay_data['Amount']
 
             if purchase_id is not None:
@@ -292,3 +292,82 @@ class SupplierPayment():
                 "UPDATE supplier_payment SET valid = 0 WHERE id = ?",
                 (pay_id,), conn=conn, commit=False
             )
+
+    def get_supplier_id_by_check(self, check_id):
+        query = """
+            SELECT supplier_id FROM supplier_payment 
+            WHERE check_id = ? AND valid = 0
+        """
+        result = self.db.fetch_one(query, (check_id,))
+        return result[0] if result else None
+
+    ## -- Cancela Cheques endosados a un proveedor -- ##
+    ## -- Cancela Saldo a favor por cheques -- ##
+    ## -- Restablece estados y pendiente de las compras -- ##
+    def cancel_check_supplier_payments(self, check_id, conn=None, commit=True):
+        try:
+            # Obtener el payment_id antes de invalidar
+            query = """
+            SELECT id FROM supplier_payment
+            WHERE check_id = ? AND valid = ?
+            """
+            id = self.db.fetch_one(query, ( check_id, 1), conn=conn)
+
+            if not id:
+                return
+
+            payment_id = id[0]
+            print(f'payment_id of cancel payment: {payment_id}')
+
+            # Reestablecer pendiente y estado de las compras asociadas al pago 
+            ## Obtener compras afectadas por el pago 
+            query = """
+            SELECT purchase_id, amount_applied FROM purchase_payment 
+            WHERE valid = ? AND payment_id = ?
+            """
+
+            for purchase_id, amount_applied in self.db.fetch_all(query, (1, payment_id), conn=conn):
+                purchase_pending = self.db.fetch_one("SELECT pending FROM purchase WHERE id = ?",
+                                                     (purchase_id, ), conn=conn)
+                old_pending = Decimal(purchase_pending[0])
+                new_pending = old_pending + Decimal(amount_applied)
+
+                ## Se actualiza la compra
+                query = """
+                UPDATE purchase
+                SET
+                    pending = ?,
+                    state = 'PENDIENTE'
+                WHERE id = ?
+                """
+                self.db.execute_query(query, (str(new_pending), purchase_id), conn=conn, commit=commit)
+
+            # Invalidar filas en purchase_payment(relacion de pago y compra)
+            query = """ 
+            UPDATE purchase_payment 
+            SET 
+                valid = 0
+            WHERE payment_id = ?
+            """                
+            self.db.execute_query(query, (payment_id,), conn=conn, commit=commit)
+
+            # Cancelar pago asociado a cheque
+            query = """
+            UPDATE supplier_payment
+            SET
+                valid = ?
+            WHERE id = ?
+            """
+            self.db.execute_query(query, (0, payment_id), conn=conn, commit=commit)
+
+            # Cancelar saldo a favor asociado al cheque
+            query = """
+            UPDATE supplier_credit_movements
+            SET
+                valid = ?
+            WHERE check_id = ?
+            """
+            self.db.execute_query(query, (0, check_id), conn=conn, commit=commit)
+
+        except Exception as e:
+            raise RuntimeError(f'Error al cancelar pagos asociados a un cheque: {e}') from e

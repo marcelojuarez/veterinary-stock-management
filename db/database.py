@@ -174,6 +174,8 @@ class Database:
                     payment_id INTEGER NOT NULL,
                     amount_applied TEXT NOT NULL,
                     applied_at TEXT DEFAULT CURRENT_DATE,
+                    valid INTEGER NOT NULL DEFAULT 1,
+                           
                     FOREIGN KEY (purchase_id) REFERENCES purchase(id),
                     FOREIGN KEY (payment_id) REFERENCES supplier_payment(id)
                 );

@@ -228,7 +228,7 @@ class App():
             customer_model, payment_model, customer_credit, event_bus, checks_model=checks_model
         )
         self.checks_controller = ChecksController(
-            checks_model, payment_model, customer_credit, customer_model, sales_model, event_bus=event_bus
+            checks_model, payment_model, customer_credit, customer_model, sales_model, supplier_model, event_bus=event_bus
         )
         self.iva_reports_controller = ReportsController(iva_model)
 

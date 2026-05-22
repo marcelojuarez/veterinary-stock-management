@@ -97,8 +97,10 @@ class PaymentController():
                 'Bank':           payment_data['bank'],
             }
 
+            check_id = payment_data.get('check_id')
+
             # Vincula 
-            self.supplier_model.payment.register_payment_and_set_relation(data, conn, purchase_id_int)
+            self.supplier_model.payment.register_payment_and_set_relation(data, check_id, conn, purchase_id_int)
 
             # ── Usar saldo a favor ────────────────────────────────
             if credit_applied > Decimal("0") and self.supplier_credit:
@@ -111,7 +113,7 @@ class PaymentController():
                 )
 
             # ── Endosar cheque + excedente ────────────────────────
-            check_id = payment_data.get('check_id')
+
             if check_id and self.checks_model:
                 check = self.checks_model.get_check_by_id(check_id, conn=conn)
                 if check:
