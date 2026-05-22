@@ -322,6 +322,16 @@ class App():
 
     def load_initial_data(self):
         try:
+            from db.database import db
+            from tkinter import messagebox
+            if not db.integrity_ok:
+                messagebox.showwarning(
+                    "Advertencia — Base de datos",
+                    "Se detectaron problemas de integridad en la base de datos.\n\n"
+                    "Se recomienda restaurar un backup reciente.\n"
+                    "Consulte el log en logs/app.log para más detalles."
+                )
+
             self.stock_controller.load_products()
             self.supplier_controller.refresh_supplier_table()
             self.customer_controller.refresh_customer_data()

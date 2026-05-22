@@ -1,6 +1,9 @@
 import sqlite3
 import os
 import sys
+import logging
+
+logger = logging.getLogger(__name__)
 
 class Database:
     def __init__(self, db_path=None):
@@ -9,8 +12,10 @@ class Database:
             db_path = os.path.join(base_dir, 'stock.db')
 
         self.db_path = db_path
+        self.integrity_ok = True
         self.ensure_db_exists()
         self.create_tables()
+        self._check_integrity_on_startup()
 
     def get_writable_data_dir(self):
         """Obtener una ruta donde se pueda escribir, según plataforma"""
@@ -29,8 +34,24 @@ class Database:
     def get_connection(self):
         """Obtener conexión a la base de datos"""
         conn = sqlite3.connect(self.db_path)
-        conn.execute("PRAGMA foreign_keys = ON;") 
+        conn.execute("PRAGMA foreign_keys = ON;")
+        conn.execute("PRAGMA journal_mode=WAL;")
         return conn
+
+    def _check_integrity_on_startup(self):
+        """Verifica la integridad de la DB al iniciar. Guarda el resultado en self.integrity_ok."""
+        try:
+            conn = sqlite3.connect(self.db_path)
+            result = conn.execute("PRAGMA integrity_check").fetchone()
+            conn.close()
+            if result and result[0] == "ok":
+                logger.info("Database integrity check passed.")
+            else:
+                self.integrity_ok = False
+                logger.error("Database integrity check FAILED: %s", result)
+        except Exception as e:
+            self.integrity_ok = False
+            logger.error("Database integrity check error: %s", e)
     
     def create_tables(self):
         """Crear todas las tablas necesarias"""
