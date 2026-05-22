@@ -284,6 +284,49 @@ class SalesModel:
             if own_conn:
                 conn.close()
 
+    def update_sale_amount(self, sale_id, conn=None, commit=True):
+        data_tuples = self.update_sales_items_and_get_new_sales_amount(sale_id, conn=conn, commit=commit)
+        new_amount = sum(Decimal(row[0]) for row in data_tuples)
+        self.db.execute_query(
+            "UPDATE sales SET total = ? WHERE id = ?",
+            (str(new_amount), sale_id), conn=conn, commit=commit
+        )
+
+    def update_sales_items_and_get_new_sales_amount(self, sale_id, conn=None, commit=True):
+        try:
+            sale_items = self.db.fetch_all(
+                "SELECT * FROM sale_items WHERE sale_id = ?", (sale_id,), conn=conn
+            )
+            for item in sale_items:
+                s_item_id = item[0]
+                p_id      = item[2]
+                quantity  = item[3]
+
+                product_data = self.db.fetch_one(
+                    "SELECT iva, price_with_iva FROM stock WHERE id = ?", (p_id,), conn=conn
+                )
+                iva_rate       = Decimal(product_data[0])
+                price_with_iva = Decimal(product_data[1])
+
+                divisor              = Decimal('1') + (iva_rate / Decimal('100'))
+                price_without_iva    = norm_to_2_dec(price_with_iva / divisor)
+                subtotal_with_iva    = norm_to_2_dec(price_with_iva * quantity)
+                subtotal_without_iva = norm_to_2_dec(price_without_iva * quantity)
+                iva_amount           = norm_to_2_dec(subtotal_without_iva * (iva_rate / Decimal('100')))
+
+                self.db.execute_query("""
+                    UPDATE sale_items SET price = ?, subtotal = ?, iva_rate = ?, iva_amount = ?
+                    WHERE id = ?
+                """, [str(price_with_iva), str(subtotal_with_iva), str(iva_rate), str(iva_amount), s_item_id],
+                    conn=conn, commit=commit)
+
+            return self.db.fetch_all(
+                "SELECT subtotal FROM sale_items WHERE sale_id = ?", (sale_id,), conn=conn
+            )
+        except Exception as e:
+            logger.error("Error en update_sales_items_and_get_new_sales_amount: %s", e)
+            return []
+
     def recalculate_sale_total(self, sale_id, conn=None, commit=True):
         new_total = self.get_total_of_sale_items(sale_id, conn=conn)
         self.db.execute_query(
