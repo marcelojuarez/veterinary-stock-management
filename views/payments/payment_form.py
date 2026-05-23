@@ -116,11 +116,10 @@ class PaymentForm:
         self._screen_h = self.add_pay_win.winfo_screenheight()
         self._win_w    = 580
 
-        main_container = ctk.CTkFrame(self.add_pay_win, fg_color="#f0f0f0", width=self._win_w)
-        main_container.pack(fill="x")
-        main_container.pack_propagate(True)
+        scroll_frame = ctk.CTkScrollableFrame(self.add_pay_win, fg_color="#f0f0f0", width=self._win_w)
+        scroll_frame.pack(fill="both", expand=True)
 
-        card = ctk.CTkFrame(main_container, fg_color="white", corner_radius=15, width=self._win_w - 40)
+        card = ctk.CTkFrame(scroll_frame, fg_color="white", corner_radius=15, width=self._win_w - 40)
         card.pack(fill="x", padx=20, pady=20)
         card.pack_propagate(True)
 
@@ -319,13 +318,13 @@ class PaymentForm:
     def _resize_window(self, new_height):
         self.add_pay_win.update_idletasks()
         req_h = self.add_pay_win.winfo_reqheight()
-        h  = max(new_height, req_h)
-        sh = getattr(self, '_screen_h', self.add_pay_win.winfo_screenheight())
-        h  = min(h, sh - 20)
-        w  = getattr(self, '_win_w', 580)
-        sw = getattr(self, '_screen_w', self.add_pay_win.winfo_screenwidth())
-        x  = sw // 2 - w // 2
-        y  = sh // 2 - h // 2
+        sh    = getattr(self, '_screen_h', self.add_pay_win.winfo_screenheight())
+        max_h = int(sh * 0.85)
+        h     = min(max(new_height, req_h), max_h)
+        w     = getattr(self, '_win_w', 580)
+        sw    = getattr(self, '_screen_w', self.add_pay_win.winfo_screenwidth())
+        x     = sw // 2 - w // 2
+        y     = sh // 2 - h // 2
         self.add_pay_win.geometry(f"{w}x{h}+{x}+{y}")
 
     # ──────────────────────────────────────────────────────────────

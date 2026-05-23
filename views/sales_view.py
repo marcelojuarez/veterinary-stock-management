@@ -6,7 +6,7 @@ from tkinter import ttk, messagebox
 from datetime import datetime, timedelta
 from views.client_selector import ClientSelectorDialog
 from services.daily_sales_report import DailySalesReportService
-from utils.view_helpers import center_window, show_error
+from utils.view_helpers import center_window, show_error, add_treeview_tooltip
 from utils.utils import iso_to_traditional, norm_to_2_dec, format_currency, string_to_2_dec, traditional_to_iso
 from views.fraction_sale_dialog import FractionSaleDialog
 
@@ -164,6 +164,7 @@ class SalesView:
         for col, w in zip(self.sale_tree["columns"], [60, 300, 80, 60, 100, 120]):
             self.sale_tree.column(col, width=w, anchor="center")
             self.sale_tree.heading(col, text=col)
+        add_treeview_tooltip(self.sale_tree, col_index=1)  # "Nombre"
 
         scroll_y = ttk.Scrollbar(table_frame, orient="vertical", command=self.sale_tree.yview)
         scroll_x = ttk.Scrollbar(table_frame, orient="horizontal", command=self.sale_tree.xview)
@@ -454,7 +455,7 @@ class SalesView:
             elif len(item) == 6:
                 # Honorarios: (pid, name, pack, qty, price, observations)
                 observations = item[5]
-                display_name = f"{name} - {observations[:40]}..." if len(observations) > 40 else f"{name} - {observations}"
+                display_name = f"{name} - {observations}"
                 display_qty  = qty
                 display_pack = pack
             else:
@@ -659,6 +660,7 @@ class SalesView:
         for col, w in zip(preview_tree["columns"], widths):
             preview_tree.column(col, width=w, anchor="center")
             preview_tree.heading(col, text=col)
+        add_treeview_tooltip(preview_tree, col_index=1)  # "Producto"
         
         # Agregar productos (dentro del método show_sale_confirmation)
         total = 0
@@ -677,7 +679,7 @@ class SalesView:
             elif len(item) == 6:
                 # Honorarios
                 observations = item[5]
-                product_name = f"{name}\n({observations[:50]}...)" if len(observations) > 50 else f"{name}\n({observations})"
+                product_name = f"{name} - {observations}"
                 qty_display  = qty
             else:
                 product_name = name

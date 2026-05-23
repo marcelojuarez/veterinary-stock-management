@@ -1,3 +1,4 @@
+import tkinter as tk
 import logging
 from tkinter import messagebox
 
@@ -41,3 +42,53 @@ def ask_confirmation( message, title):
     )
 
     return respuesta
+
+
+def add_treeview_tooltip(tree, col_index: int):
+    """
+    Muestra un tooltip con el texto completo de la celda indicada al hacer hover.
+    col_index: índice de la columna (0-based) sobre la que se activa el tooltip.
+    """
+    _tip: list = [None]
+
+    def _show(event):
+        item = tree.identify_row(event.y)
+        col  = tree.identify_column(event.x)
+        if not item or not col:
+            _hide()
+            return
+        if int(col.lstrip("#")) - 1 != col_index:
+            _hide()
+            return
+        values = tree.item(item, "values")
+        if not values or col_index >= len(values):
+            _hide()
+            return
+        text = str(values[col_index])
+        if not text:
+            _hide()
+            return
+        _hide()
+        tip = tk.Toplevel(tree)
+        tip.wm_overrideredirect(True)
+        tip.wm_geometry(f"+{event.x_root + 14}+{event.y_root + 14}")
+        lbl = tk.Label(
+            tip, text=text, justify="left", wraplength=420,
+            background="#fffde7", foreground="#333",
+            relief="solid", borderwidth=1,
+            font=("Segoe UI", 9),
+            padx=6, pady=4,
+        )
+        lbl.pack()
+        _tip[0] = tip
+
+    def _hide(*_):
+        if _tip[0]:
+            try:
+                _tip[0].destroy()
+            except Exception:
+                pass
+            _tip[0] = None
+
+    tree.bind("<Motion>", _show)
+    tree.bind("<Leave>",  _hide)

@@ -2,7 +2,7 @@ import logging
 import customtkinter as ctk
 from tkinter import ttk, messagebox
 from utils.utils import format_currency
-from utils.view_helpers import center_window
+from utils.view_helpers import center_window, add_treeview_tooltip
 from decimal import Decimal
 from models.customer import CustomerModel
 
@@ -631,6 +631,7 @@ class CustomersView:
         for col, w in zip(cols_items, [250, 100, 100, 100, 100]):
             self.debt_items_table.column(col, width=w, anchor="center")
             self.debt_items_table.heading(col, text=col, anchor="center")
+        add_treeview_tooltip(self.debt_items_table, col_index=0)  # "Producto"
         self.debt_items_table.pack(padx=10, pady=5, fill="x")
 
         # ----------------------------------------------------------------
@@ -794,7 +795,7 @@ class CustomersView:
                 _, name, pack, quantity, price, subtotal, observations = item
                 if name.strip() == 'HONORARIOS':
                     if observations and observations.strip():
-                        display_name = f"{name}\n  → {observations[:50]}..." if len(observations) > 50 else f"{name}\n  → {observations}"
+                        display_name = f"{name} - {observations}"
                     else:
                         display_name = name
                     display_qty = quantity
