@@ -53,12 +53,12 @@ def import_proveedores(conn, csv_path, dry_run):
         direccion = (row.get('direccion') or row.get('address') or '').strip()
         telefono = (row.get('telefono') or row.get('phone') or '').strip()
         email = (row.get('email') or '').strip()
-        iva_cond = (row.get('condicion_iva') or row.get('iva_condition') or 'RESP. INS').strip()
-        
+        iva_cond = (row.get('condicion_iva') or row.get('iva_condition') or 'RESP. INSCRIPTO').strip()
+
         if not nombre:
             skipped += 1
             continue
-        
+
         if dry_run:
             log(f"[DRY] {nombre} | CUIT: {cuit or '(sin CUIT)'}", 2)
             inserted += 1
@@ -119,12 +119,12 @@ def import_clientes(conn, csv_path, dry_run):
         cuit = (row.get('cuit') or '').strip() or None
         domicilio = (row.get('domicilio') or row.get('home') or '').strip()
         telefono = (row.get('telefono') or row.get('phone') or '').strip() or None
-        iva_cond = (row.get('condicion_iva') or row.get('iva_condition') or 'RESP. INS').strip()
-        
+        iva_cond = (row.get('condicion_iva') or row.get('iva_condition') or 'Consumidor Final').strip()
+
         if not nombre:
             skipped += 1
             continue
-        
+
         if dry_run:
             log(f"[DRY] {nombre}", 2)
             inserted += 1

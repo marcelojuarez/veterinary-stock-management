@@ -286,7 +286,7 @@ class SupplierView():
                     )
         )
 
-        self.iva_condition.set('RESP. INS')
+        self.iva_condition.set('RESP. INSCRIPTO')
 
         btn_frame = ctk.CTkFrame(card_frame, fg_color="white")
         btn_frame.pack(pady=20)

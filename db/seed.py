@@ -874,7 +874,7 @@ def seed_suppliers():
         "Río Cuarto"
     ]
 
-    condicion_iva = ["RESP. INS", "MONOTRIBUTISTA", "EXENTO", "NO RESPONSABLE"]
+    condicion_iva = ["RESP. INSCRIPTO", "MONOTRIBUTISTA", "EXENTO", "NO RESPONSABLE"]
     
     suppliers = []
     
