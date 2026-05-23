@@ -1,8 +1,8 @@
 {
-  "version": "1.0.2",
-  "release_date": "2026-05-22",
-  "release_notes": "Fix log directory permission error and add app icon",
-  "installer_url": "https://github.com/marcelojuarez/veterinary-stock-management/releases/download/v1.0.2/StockManagerSetup_v1.0.2.exe",
-  "checksum_sha256": "f511ca90d41b53ed589107d4be4d0d4fef6b3f5d9467d7205b5bc1c27e25314f",
+  "version": "1.0.3",
+  "release_date": "2026-05-23",
+  "release_notes": "Fix iva condition inconsistencies",
+  "installer_url": "https://github.com/marcelojuarez/veterinary-stock-management/releases/download/v1.0.3/StockManagerSetup_v1.0.3.exe",
+  "checksum_sha256": "99fc2b205e396e741690eb160dfb91695f7ae02c2486af96b4581d64d538694e",
   "mandatory": false
 }
