@@ -1,9 +1,12 @@
+import logging
 import customtkinter as ctk
 from tkinter import ttk, messagebox
 from utils.utils import format_currency
 from utils.view_helpers import center_window
 from decimal import Decimal
 from models.customer import CustomerModel
+
+logger = logging.getLogger(__name__)
 ctk.set_appearance_mode("light")
 ctk.set_default_color_theme("blue")
 
@@ -110,14 +113,8 @@ class CustomersView:
         style.map("Custom.Treeview.Heading",
                   background=[("active", "#dcdcdc")])
 
-        self.table = ttk.Treeview(
-            table_frame,
-            show="headings",
-            height=12,
-            style="Custom.Treeview"
-        )
-
-        self.table = ttk.Treeview(table_frame, show="headings", height=12)
+        self.table = ttk.Treeview(table_frame, show="headings", height=12,
+                                   style="Custom.Treeview")
         self.table["columns"] = ("Id", "Nombre", "CUIT", "Domicilio", "Teléfono", "Condición IVA", "CV", "CUIG", "RENSPA", "Establecimiento")
 
         col_specs = {
@@ -209,7 +206,6 @@ class CustomersView:
         # Obtener el nombre del cliente (columna 1)
         values = self.table.item(selected[0])["values"]
         nombre_cliente = values[1] if len(values) > 1 else ""
-        print(nombre_cliente)
         if nombre_cliente == "CONSUMIDOR FINAL":
             # Cliente "Consumidor Final": deshabilitado
             self.btn_ver_deudas.configure(
@@ -610,8 +606,17 @@ class CustomersView:
 
         self.debt_table.pack(padx=10, pady=10, fill="x")
 
-        for d in debts:
-            self.debt_table.insert("", "end", values=d)
+        for s_id, date, total_sale, pay, balance, state in debts:
+            self.debt_table.insert("", "end", 
+                                   values=(
+                                    s_id,
+                                    date,
+                                    format_currency(total_sale),       
+                                    format_currency(pay),
+                                    format_currency(balance),
+                                    state
+                                   )
+                                )
 
         # ----------------------------------------------------------------
         # Detalle de productos (vacío al inicio)
@@ -744,8 +749,17 @@ class CustomersView:
                 self.debt_table.delete(row)
 
             # Insertar nuevas deudas
-            for d in debts:
-                self.debt_table.insert("", "end", values=d)
+            for s_id, date, sale_total, pay, balance, state in debts:
+                self.debt_table.insert("", "end", 
+                        values=(
+                        s_id,
+                        date,
+                        format_currency(sale_total),       
+                        format_currency(pay),
+                        format_currency(balance),
+                        state
+                        )
+                    )
 
             # Actualizar label de total
             if hasattr(self, "debt_total_label") and self.debt_total_label.winfo_exists():
@@ -779,26 +793,32 @@ class CustomersView:
             for item in items:
                 _, name, pack, quantity, price, subtotal, observations = item
                 if name.strip() == 'HONORARIOS':
-                    ## HONORARIOS
-                    # Si tiene observaciones, mostrarlas
                     if observations and observations.strip():
                         display_name = f"{name}\n  → {observations[:50]}..." if len(observations) > 50 else f"{name}\n  → {observations}"
                     else:
                         display_name = name
+                    display_qty = quantity
+
+                elif observations and observations.startswith("FRAC."):
+                    unit_label   = observations.replace("FRAC. ", "")
+                    display_name = f"⚖️ {name}"
+                    display_qty  = unit_label
+
                 else:
-                    ## PRODUCTOS COMUNES
                     display_name = name
+                    display_qty  = quantity
+
                 # Insertar en la tabla
                 self.debt_items_table.insert("", "end", values=(
                     display_name,
                     pack,
-                    quantity,
+                    display_qty,   # ← antes era quantity fijo, ahora usa display_qty
                     f"${format_currency(price)}",
                     f"${format_currency(subtotal)}"
                 ))
 
         except Exception as e:
-            print(f"Error mostrando items: {e}")
+            logger.error("Error mostrando items de venta: %s", e)
             messagebox.showerror("Error", f"No se pudieron mostrar los productos: {e}")
 
     def select_customer_in_table(self, customer_id):
@@ -966,7 +986,7 @@ class CustomersView:
                 elif tipo == "CHEQUE RECHAZADO":
                     history_table.item(item, tags=("cheque_rechazado",))    
                 else:
-                    print(f'tipo de venta: {type}')
+                    logger.warning("Tipo de movimiento desconocido: %s", tipo)
 
         history_table.tag_configure("venta", background="#FFF3CD")     # amarillo muy suave
         history_table.tag_configure("pago", background="#E8F5E9")      # verde muy claro

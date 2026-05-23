@@ -1,7 +1,12 @@
+import logging
 from decimal import Decimal
 from datetime import datetime
-from models.stock import StockModel
+from tkinter import messagebox
+from services.purchase_detail import PurchaseDetail
+from utils.printing import send_to_printer
 from utils.view_helpers import show_error, show_warning, show_success, close_win
+
+logger = logging.getLogger(__name__)
 
 class PurchaseController():
     def __init__(self, supplier_model, stock_model, event_bus):
@@ -79,6 +84,12 @@ class PurchaseController():
                 self.supplier_model.purchase.update_last_debt_update(purchase_data[1])
                 self.event_bus.publish('refresh_supplier_table', None)
                 show_success('Compra confirmada')
+
+                if messagebox.askyesno("Imprimir", "¿Desea imprimir el comprobante de ingreso de stock?"):
+                    pdf_path = PurchaseDetail(self.supplier_model).generate_purchase_detail(purchase_id)
+                    if not send_to_printer(pdf_path):
+                        show_error("No se pudo enviar a la impresora. Verifique la conexión.")
+                    
                 return True
 
             else:
@@ -97,7 +108,6 @@ class PurchaseController():
 
             if doc_type == 'REMITO':
                 data = self.receipt_info_vw.get_receipt_data()
-                print(f'receipt data: {data}')
 
                 if not self.validate_doc_data(data, doc_type):
                     return False
@@ -108,7 +118,6 @@ class PurchaseController():
 
             else:
                 data = self.invoice_info_vw.get_invoice_data()
-                print(f'invoice data: {data}')
 
                 if not self.validate_doc_data(data, doc_type):
                     return                
@@ -373,7 +382,7 @@ class PurchaseController():
             'Product_name': 'Nombre Producto',
             'Pack': 'Envase',
             'Qty': 'Stock',
-            'List_price': 'Precio de Listaaa',
+            'List_price': 'Precio de Lista',
             'Discount': 'Descuento',
             'Cost_price': 'Precio de Costo',
             'Iva_rate': 'Porcentaje de Iva',
@@ -396,11 +405,6 @@ class PurchaseController():
             show_error(f'Error. El stock debe ser mayor a Cero(0)')
             return False
 
-        for field, lbl in required_fields.items():
-            if not form_data[field]:
-                show_error(f'Por favor complete el campo "{lbl}"')
-                return False
-            
         # Validar Tipos Numéricos
         ## Precio de costo
         #- Formato correcto

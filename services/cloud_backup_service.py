@@ -1,6 +1,8 @@
 import os
-import shutil
+import sys
+import sqlite3
 from datetime import datetime
+from pathlib import Path
 
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
@@ -8,14 +10,21 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
 
+from config.settings import DB_PATH
+
 SCOPES = ['https://www.googleapis.com/auth/drive.file']
 
-# Ajustá estas rutas según tu proyecto
-BASE_DIR        = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-DB_PATH         = os.path.join(BASE_DIR, 'db', 'stock.db')
-CREDENTIALS_PATH = os.path.join(BASE_DIR, 'credentials.json')
-TOKEN_PATH      = os.path.join(BASE_DIR, 'token.json')
-BACKUP_DIR      = os.path.join(BASE_DIR, 'backups')
+# En producción (frozen) los archivos de auth van en LOCALAPPDATA junto a la DB.
+# En desarrollo van en el root del proyecto.
+def _get_data_dir() -> Path:
+    if getattr(sys, 'frozen', False):
+        return Path(os.environ['LOCALAPPDATA']) / 'StockManager'
+    return Path(__file__).parent.parent
+
+_DATA_DIR        = _get_data_dir()
+CREDENTIALS_PATH = str(_DATA_DIR / 'credentials.json')
+TOKEN_PATH       = str(_DATA_DIR / 'token.json')
+BACKUP_DIR       = str(_DATA_DIR / 'backups')
 
 # Nombre de la carpeta que se crea en tu Google Drive
 DRIVE_FOLDER_NAME = 'StockManager-Backups'
@@ -85,11 +94,15 @@ class CloudBackupService:
         # 1. Crear carpeta local de backups si no existe
         os.makedirs(BACKUP_DIR, exist_ok=True)
 
-        # 2. Copiar la DB con timestamp
+        # 2. Copiar la DB con timestamp usando sqlite3.backup() (seguro con DB abierta)
         timestamp   = datetime.now().strftime("%Y%m%d_%H%M%S")
         backup_name = f"stock_backup_{timestamp}.db"
         backup_path = os.path.join(BACKUP_DIR, backup_name)
-        shutil.copy2(DB_PATH, backup_path)
+        src = sqlite3.connect(str(DB_PATH))
+        dst = sqlite3.connect(backup_path)
+        src.backup(dst)
+        dst.close()
+        src.close()
 
         # 3. Subir a Drive
         service   = self._get_service()

@@ -39,22 +39,39 @@ class InvoiceController:
         enriched_items = []
 
         for item in items:
+            # Formato unificado: qty en [3], price en [4], siempre
+            # len 5: normal       (pid, name, pack, qty, price)
+            # len 6: honorarios   (pid, name, pack, qty, price, obs)
+            # len 7: fraccionado  (pid, name, pack, qty, price, unit_label, True)
+            product_id = item[0]
+            name       = item[1]
+            pack       = item[2]
+
             if len(item) == 6:
-                product_id, name, pack, quantity, price, observations = item
+                observations = item[5]   # honorarios
+            elif len(item) == 7 and item[6] is True:
+                observations = item[5]   # fraccionado: "FRAC. 5 KG"
             else:
-                product_id, name, pack, quantity, price = item
                 observations = None
 
-            price    = flex_dec(price)  # precio con IVA incluido
+            price = flex_dec(item[4])  # precio con IVA incluido
+
+            if len(item) == 7 and item[6] is True:
+                # Fraccionado: mostrar 1 unidad con precio total (qty_real × precio_unit)
+                # Ej: 5 KG × $10/KG → display qty=1, display price=$50
+                actual_qty  = flex_dec(item[3])
+                quantity    = Decimal('1')
+                price       = norm_to_2_dec(actual_qty * price)
+            else:
+                quantity = flex_dec(item[3])
 
             divisor, rate = self._get_iva_rate(product_id)
 
             net_unit_exact = price / divisor
             net_unit       = norm_to_2_dec(net_unit_exact)
 
-            line_net  = norm_to_2_dec(net_unit_exact * quantity)
-
-            line_iva  = norm_to_2_dec(net_unit_exact * quantity * rate)
+            line_net = norm_to_2_dec(net_unit_exact * quantity)
+            line_iva = norm_to_2_dec(net_unit_exact * quantity * rate)
 
             total_subtotal += line_net
             total_iva      += line_iva
@@ -83,13 +100,13 @@ class InvoiceController:
         )
 
         for item in items:
-            if len(item) == 6:
-                product_id, _, _, quantity, price, _ = item
+            product_id = item[0]
+            price      = flex_dec(item[4])
+            if len(item) == 7 and item[6] is True:
+                quantity   = Decimal('1')
+                price      = norm_to_2_dec(flex_dec(item[3]) * price)
             else:
-                product_id, _, _, quantity, price = item
-
-            quantity   = flex_dec(quantity)
-            price      = flex_dec(price)
+                quantity   = flex_dec(item[3])
             line_total = norm_to_2_dec(quantity * price)
 
             self.invoice_model.add_invoice_item(

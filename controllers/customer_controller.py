@@ -251,7 +251,10 @@ class CustomerController:
         try:
             self.current_client_id = cliente_id
 
+            # Detalle de compras (deudas)
             debts = self.model.get_customer_debts(cliente_id)
+
+            # Monto de deuda
             total = self.model.get_total_debt(cliente_id)
             credit = norm_to_2_dec(self.customer_credit.get_customer_credit(cliente_id))
 
@@ -362,6 +365,8 @@ class CustomerController:
         check_bank_var    = ctk.StringVar()
         check_due_var     = ctk.StringVar(value=datetime.now().strftime("%d/%m/%Y"))
 
+        vcmd = (win.register(lambda s: s.isdigit() or s == ""), '%P')
+
         ctk.CTkLabel(
             check_frame, text="Número de cheque:",
             font=ctk.CTkFont(weight="bold")
@@ -370,7 +375,8 @@ class CustomerController:
             check_frame, textvariable=check_number_var,
             width=260, height=40,
             placeholder_text="Ej: 00123456",
-            font=ctk.CTkFont(size=14)
+            font=ctk.CTkFont(size=14),
+            validate="key", validatecommand=vcmd
         ).pack()
 
         ctk.CTkLabel(
@@ -466,34 +472,37 @@ class CustomerController:
                 }
 
             try:
-                # Crear cheque ANTES del pago para obtener su id
-                check_id = None
-                if check_data and self.checks_model:
-                    # Lo creamos sin client_payment_id todavía (lo linkeamos después)
-                    self.checks_model.create_check(
-                        number=check_data["number"],
-                        bank=check_data["bank"],
-                        check_type=check_data["check_type"],
-                        amount=check_data["amount"],
-                        issue_date=check_data["issue_date"],
-                        due_date=check_data["due_date"],
-                        origin="CLIENTE",
-                        client_id=customer_id,
-                        commit=True
-                    )
-                    # Obtener el id recién insertado
-                    row = self.checks_model.db.fetch_one(
-                        "SELECT id FROM checks ORDER BY id DESC LIMIT 1"
-                    )
-                    check_id = row[0] if row else None
+                conn = self.payment_model.db.get_connection()
+                conn.execute("BEGIN")
+                try:
+                    check_id = None
+                    if check_data and self.checks_model:
+                        check_id = self.checks_model.create_check(
+                            number=check_data["number"],
+                            bank=check_data["bank"],
+                            check_type=check_data["check_type"],
+                            amount=check_data["amount"],
+                            issue_date=check_data["issue_date"],
+                            due_date=check_data["due_date"],
+                            origin="CLIENTE",
+                            client_id=customer_id,
+                            conn=conn,
+                            commit=False,
+                        )
+                        
 
-                result = self.payment_model.apply_global_payment(
-                    customer_id, amount, method=method, check_id=check_id, check_data=check_data
-                )
+                    result = self.payment_model.apply_global_payment(
+                        customer_id, amount, method=method,
+                        check_id=check_id, check_data=check_data,
+                        conn=conn, commit=False,
+                    )
 
-                if not result:
-                    show_error('Ocurrió un error al registrar el pago.')
-                    return
+                    conn.commit()
+                except Exception:
+                    conn.rollback()
+                    raise
+                finally:
+                    conn.close()
 
                 if result['surplus'] > Decimal('0.00'):
                     show_success(
@@ -536,7 +545,8 @@ class CustomerController:
                     customer_id=customer_id,
                     result_data=result,
                     sales_with_items=sales_with_items,
-                    check_data=check_data
+                    check_data=check_data,
+                    auto_print=True
                 )
 
             except Exception as e:
@@ -851,12 +861,12 @@ class CustomerController:
                 customer_id=customer_id,
                 result_data=result_data,
                 sales_with_items=sales_with_items,
+                auto_print=True
             )
 
         except Exception as e:
             self.view.show_error(f"Error al aplicar saldo a favor: {e}")
         
-
     def reset_customer_account(self, cliente_id, cliente_nombre, history_window=None):
         """
         Resetea la cuenta corriente del cliente:
@@ -879,20 +889,18 @@ class CustomerController:
                 )
                 return
             
-            # Confirmar acción
+            # Confirmar acción            
             confirm = messagebox.askyesno(
                 "⚠️ Advertencia",
-                f"¿Está seguro que desea RESETEAR la cuenta de {cliente_nombre}?\n\n"
+                f"¿Está seguro que desea RESETEAR el historial de {cliente_nombre}?\n\n"
                 f"Esta acción:\n"
                 f"- Generará un PDF de respaldo automáticamente\n"
-                f"- Eliminará TODAS las ventas pagadas\n"
-                f"- Eliminará TODOS los pagos registrados\n"
-                f"- Eliminará el saldo a favor (si existe)\n"
-                f"- Dejará la cuenta en CERO\n\n"
+                f"- Limpiará el historial de movimientos\n"
+                f"- Las ventas y pagos se conservan\n\n"
                 f"⚠️ Esta operación NO se puede deshacer.\n\n"
                 f"¿Continuar?"
             )
-            
+
             if not confirm:
                 return
             
@@ -938,54 +946,16 @@ class CustomerController:
                 error_msg = f"Error al generar PDF de respaldo: {e}\n\n¿Desea continuar con el reset de todos modos?"
                 if not messagebox.askyesno("Error en PDF", error_msg):
                     return
-            
-            # ================================================================
-            # PASO 2: ELIMINAR VENTAS PAGADAS Y SUS ITEMS
-            # ================================================================
-            # Primero obtener IDs de ventas a eliminar
-            query_get_sales = """
-                SELECT id FROM sales 
-                WHERE cliente_id = ? 
-                AND estado = 'paid'
+
+            query_clean = """
+            DELETE FROM customer_ledger
+            WHERE client_id = ?
             """
-            sales_to_delete = self.model.db.fetch_all(query_get_sales, (cliente_id,))
-            
-            # Eliminar sale_items de esas ventas
-            for (sale_id,) in sales_to_delete:
-                query_delete_items = "DELETE FROM sale_items WHERE sale_id = ?"
-                self.model.db.execute_query(query_delete_items, (sale_id,))
-            
-            # Eliminar las ventas
-            query_delete_sales = """
-                DELETE FROM sales 
-                WHERE cliente_id = ? 
-                AND estado = 'paid'
-            """
-            self.model.db.execute_query(query_delete_sales, (cliente_id,))
-            
+
+            self.payment_model.db.execute_query(query_clean, (cliente_id, ))
+
             # ================================================================
-            # PASO 3: ELIMINAR PAGOS
-            # ================================================================
-            query_delete_payments = """
-                DELETE FROM payments 
-                WHERE client_id = ?
-            """
-            self.payment_model.db.execute_query(query_delete_payments, (cliente_id,))
-            
-            # ================================================================
-            # PASO 4: ELIMINAR CRÉDITOS (si existe la tabla)
-            # ================================================================
-            try:
-                query_delete_credits = """
-                    DELETE FROM customer_credit 
-                    WHERE client_id = ?
-                """
-                self.payment_model.db.execute_query(query_delete_credits, (cliente_id,))
-            except Exception as e:
-                print(f"Tabla customer_credit no existe o error: {e}")
-            
-            # ================================================================
-            # PASO 5: ACTUALIZAR UI
+            # PASO 6: ACTUALIZAR UI
             # ================================================================
             
             # Cerrar ventana de historial
@@ -1002,12 +972,10 @@ class CustomerController:
             # Mostrar mensaje de éxito
             try:
                 self.view.show_success(
-                    f"✅ Cuenta reseteada exitosamente\n\n"
+                    f"✅ Historial de {cliente_nombre} reseteado correctamente.\n\n"
                     f"• PDF de respaldo generado\n"
-                    f"• Ventas pagadas eliminadas\n"
-                    f"• Pagos eliminados\n"
-                    f"• Cuenta de {cliente_nombre} limpia\n\n"
-                    f"Archivo guardado como:\n{os.path.basename(new_filepath)}"
+                    f"• Historial de movimientos limpio\n"
+                    f"• Ventas y pagos conservados"
                 )
             except:
                 self.view.show_success(

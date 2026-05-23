@@ -1,11 +1,13 @@
+import logging
 import tkinter as tk
 from tkinter import ttk
 import customtkinter as ctk
-from .payment_form import PaymentForm 
+from .payment_form import PaymentForm
 from .payment_info import PaymentInfo
 from utils.view_helpers import center_window, close_win, show_warning, show_error
 from utils.utils import iso_to_traditional, format_currency
-from utils.view_helpers import close_win, show_warning, show_error
+
+logger = logging.getLogger(__name__)
 
 # Configurar tema y colores
 ctk.set_appearance_mode("light")  # "light" o "dark"
@@ -241,13 +243,11 @@ class PaymentWindow():
         movement_frame.pack(fill='both', expand=True)
 
         self.movement_tree = ttk.Treeview(movement_frame, show="headings", height=8)
-        self.movement_tree["columns"] = ("ID", "CUIT PROVEEDOR", "MONTO", "METODO DE PAGO", "OBSERVACION", "FECHA")
+        self.movement_tree["columns"] = ("ID", "PROVEEDOR", "CUIT", "MONTO", "METODO DE PAGO", "OBSERVACION", "FECHA")
+        col_widths = {"ID": 50, "PROVEEDOR": 180, "CUIT": 130, "MONTO": 100, "METODO DE PAGO": 130, "OBSERVACION": 150, "FECHA": 100}
         for col in self.movement_tree["columns"]:
             self.movement_tree.heading(col, text=col.capitalize())
-            if col == "ID":
-                self.movement_tree.column(col, width=100, anchor="center")
-            else:
-                self.movement_tree.column(col, width=150, anchor="center")
+            self.movement_tree.column(col, width=col_widths.get(col, 120), anchor="center")
         self.movement_tree.pack(side="left", fill="both", expand=True)
 
         # scrollbar 
@@ -316,7 +316,7 @@ class PaymentWindow():
             self.payment_info.show_payment_info(parent, values)
 
         except ValueError as e:
-            print(f'Error al seleccionar el registro de pago: {e}')
+            logger.error("Error al seleccionar registro de pago: %s", e)
             return
 
     ## -- Pago de una compra -- ##
@@ -373,12 +373,13 @@ class PaymentWindow():
             self.movement_tree.insert(
                 parent='', index='end', iid=p[0],
                 values=(
-                   p[0], # id
-                   p[1], # cuit
-                   p[3], # monto
-                   p[4], # metodo
-                   p[5], # observation
-                   iso_to_traditional(p[11]) # fecha    
+                   p[0],  # id
+                   p[1],  # nombre proveedor
+                   p[2],  # cuit
+                   p[4],  # monto
+                   p[5],  # metodo
+                   p[6],  # observation
+                   iso_to_traditional(p[12])  # fecha
                 ),
                 tag="orow"
             )
@@ -390,7 +391,6 @@ class PaymentWindow():
 
         if filter:
             selected_supplier = self.supplier_id_var.get()
-            print(selected_supplier)
             if not selected_supplier:
                 show_warning("Atención", "Primero selecciona un proveedor.")
                 return
@@ -419,6 +419,7 @@ class PaymentWindow():
             self.supplier_credit_var.set('')
             self.formatted_s_credit_var.set('')
             purchases = self.model.purchase.get_all_confirmed_purchases()
+            self.load_payment_movement()
 
         # Limpiar tabla
         for item in self.purchase_tree.get_children():
@@ -540,7 +541,6 @@ class PaymentWindow():
             self.refresh_supplier_table()
             return
         
-        print(query)
         
         # limpia el tree view
         for row in self.supplier_tree.get_children():

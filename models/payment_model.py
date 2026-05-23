@@ -1,7 +1,10 @@
-from db.database import db 
+import logging
+from db.database import db
 from decimal import Decimal
 from datetime import datetime
 from utils.utils import norm_to_2_dec
+
+logger = logging.getLogger(__name__)
 
 class PaymentModel:
     def __init__(self, sales_model, customer_credit, checks_model, customer_model=None):
@@ -37,6 +40,7 @@ class PaymentModel:
 
         return self.db.fetch_one(query, (sale_id, ), conn=conn)
     
+    ##
     def update_sale_status(self, sale_id, conn=None, commit=True):
         row_sale = self.db.fetch_one(
             "SELECT cliente_id, estado, total FROM sales WHERE id = ?",
@@ -151,15 +155,16 @@ class PaymentModel:
         """
         return self.db.fetch_all(query, (sale_id,), conn=conn)
 
-    def apply_global_payment(self, customer_id, amount, method="Efectivo", check_id=None, check_data=None):
+    def apply_global_payment(self, customer_id, amount, method="Efectivo", check_id=None, check_data=None, conn=None, commit=True):
         """
-        Aplica un pago global distribuido entre las deudas pendientes. 
+        Aplica un pago global distribuido entre las deudas pendientes.
         Nota: Usualmente es FIFO (ASC)
         """
+        own_conn = conn is None
         try:
-            conn = self.db.get_connection()
-
-            conn.execute("BEGIN")
+            if own_conn:
+                conn = self.db.get_connection()
+                conn.execute("BEGIN")
 
             # 1. Obtener deudas con saldo pendiente
             query = """
@@ -218,10 +223,10 @@ class PaymentModel:
                 remaining = remaining - pay_amount
                 updated_debts.append((sale_id, pay_amount))
 
-            print(f'remaining: {remaining}')
             surplus = Decimal('0.00')
 
             # Verifica si se genera saldo a favor al pagar con cheque
+            remaining = norm_to_2_dec(remaining)
             if remaining > Decimal('0.00') and check_id is not None:
                 self.customer_credit.add_customer_credit(
                     {
@@ -252,7 +257,8 @@ class PaymentModel:
                 payment_amount = self.get_total_amount_of_pay_for_a_sale(sale_id, conn=conn)
                 still_owed += Decimal(total) - payment_amount
 
-            conn.commit()
+            if own_conn and commit:
+                conn.commit()
 
             return {
                 "used": norm_to_2_dec(amount - remaining),
@@ -264,20 +270,27 @@ class PaymentModel:
             }
 
         except Exception as e:
-            conn.rollback()
-            print(f'Hubo un error: {e}')
-            return False
+            if own_conn:
+                conn.rollback()
+            logger.error("Error al distribuir pago con cheque: %s", e)
+            raise
 
         finally:
-            conn.close()
+            if own_conn:
+                conn.close()
 
-    ## --  Cancela pagos asociados a un cheque o echeq -- ##
+    ## -- Cancela pagos asociados a un cheque o echeq -- ##
     def cancel_check_payments(self, check_id, conn=None, commit=True):
-        query = """
-        UPDATE payments
-        SET 
-            valid = ?
-        WHERE check_id = ?
-        """
+        try:
+            query = """
+            UPDATE payments
+            SET 
+                valid = ?
+            WHERE check_id = ?
+            """
 
-        self.db.execute_query(query, (0, check_id), conn=conn, commit=commit)
+            self.db.execute_query(query, (0, check_id), conn=conn, commit=commit)
+        
+        except Exception as e:
+            raise RuntimeError(f'Error al cancelar pagos asociados a un cheque: {e}') from e
+

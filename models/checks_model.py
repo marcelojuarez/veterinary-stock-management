@@ -46,8 +46,8 @@ class ChecksModel:
     # ----------------------------------------------------------------
     # CONSULTAS
     # ----------------------------------------------------------------
-    def get_all_checks(self, status=None, origin=None):
-        """Devuelve cheques filtrados opcionalmente por status y/u origin."""
+    def get_all_checks(self, status=None, origin=None, check_type=None):
+        """Devuelve cheques filtrados opcionalmente por status, origin y/o type."""
         params = []
         where_clauses = []
 
@@ -57,6 +57,9 @@ class ChecksModel:
         if origin:
             where_clauses.append("origin = ?")
             params.append(origin)
+        if check_type:
+            where_clauses.append("type = ?")
+            params.append(check_type)
 
         where = ("WHERE " + " AND ".join(where_clauses)) if where_clauses else ""
 
@@ -73,13 +76,13 @@ class ChecksModel:
         """
         return self.db.fetch_all(query, params) or []
 
-    def get_check_by_id(self, check_id):
+    def get_check_by_id(self, check_id, conn=None):
         return self.db.fetch_one(
-            "SELECT * FROM checks WHERE id = ?", (check_id,)
+            "SELECT * FROM checks WHERE id = ?", (check_id,), conn=conn
         )
 
-    def get_checks_en_cartera(self):
-        return self.get_all_checks(status="EN_CARTERA")
+    def get_checks_en_cartera(self, check_type=None):
+        return self.get_all_checks(status="EN_CARTERA", check_type=check_type)
 
     # ----------------------------------------------------------------
     # CAMBIOS DE ESTADO

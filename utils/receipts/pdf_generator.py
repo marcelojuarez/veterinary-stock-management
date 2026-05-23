@@ -4,9 +4,12 @@ Con detalle de productos vendidos
 Ubicación: utils/receipts/pdf_generator.py
 """
 
+import logging
 import os
 from datetime import datetime
 from decimal import Decimal
+
+logger = logging.getLogger(__name__)
 from reportlab.lib import colors
 from reportlab.pdfgen import canvas
 from reportlab.lib.units import mm
@@ -249,7 +252,6 @@ def generate_global_payment_receipt(*,
                  bold_l=True, bold_r=True, extra_spacing=4)
     
     # Saldo a favor si aplica
-    print(result_data)
     if result_data.get('credit_added', 0) > Decimal('0.00'):
         draw_line_lr("Saldo a Favor Generado:", 
                     f"${result_data['credit_added']}", 10, 

@@ -1,6 +1,9 @@
 import sqlite3
 import os
 import sys
+import logging
+
+logger = logging.getLogger(__name__)
 
 class Database:
     def __init__(self, db_path=None):
@@ -9,8 +12,10 @@ class Database:
             db_path = os.path.join(base_dir, 'stock.db')
 
         self.db_path = db_path
+        self.integrity_ok = True
         self.ensure_db_exists()
         self.create_tables()
+        self._check_integrity_on_startup()
 
     def get_writable_data_dir(self):
         """Obtener una ruta donde se pueda escribir, según plataforma"""
@@ -29,8 +34,24 @@ class Database:
     def get_connection(self):
         """Obtener conexión a la base de datos"""
         conn = sqlite3.connect(self.db_path)
-        conn.execute("PRAGMA foreign_keys = ON;") 
+        conn.execute("PRAGMA foreign_keys = ON;")
+        conn.execute("PRAGMA journal_mode=WAL;")
         return conn
+
+    def _check_integrity_on_startup(self):
+        """Verifica la integridad de la DB al iniciar. Guarda el resultado en self.integrity_ok."""
+        try:
+            conn = sqlite3.connect(self.db_path)
+            result = conn.execute("PRAGMA integrity_check").fetchone()
+            conn.close()
+            if result and result[0] == "ok":
+                logger.info("Database integrity check passed.")
+            else:
+                self.integrity_ok = False
+                logger.error("Database integrity check FAILED: %s", result)
+        except Exception as e:
+            self.integrity_ok = False
+            logger.error("Database integrity check error: %s", e)
     
     def create_tables(self):
         """Crear todas las tablas necesarias"""
@@ -107,8 +128,10 @@ class Database:
                     date TEXT DEFAULT CURRENT_DATE,
                     amount TEXT NOT NULL,
                     type TEXT,
-                    reference_id INTEGER,
+                    purchase_id INTEGER NULL,
+                    check_id INTEGER NULL,
                     notes TEXT,
+                    valid INTEGER NOT NULL DEFAULT 1,
                     FOREIGN KEY (supplier_id) REFERENCES supplier(id)
                 );
             '''
@@ -172,6 +195,8 @@ class Database:
                     payment_id INTEGER NOT NULL,
                     amount_applied TEXT NOT NULL,
                     applied_at TEXT DEFAULT CURRENT_DATE,
+                    valid INTEGER NOT NULL DEFAULT 1,
+                           
                     FOREIGN KEY (purchase_id) REFERENCES purchase(id),
                     FOREIGN KEY (payment_id) REFERENCES supplier_payment(id)
                 );
@@ -227,7 +252,7 @@ class Database:
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     supplier_id INTEGER,
                            
-                    invoice_id TEXT,
+                    invoice_id TEXT UNIQUE,
                     invoice_type TEXT,
                     
                     date TEXT CURRENT_DATE,
@@ -331,10 +356,15 @@ class Database:
                     iva_rate TEXT NOT NULL,
                     iva_amount TEXT NOT NULL,
                     observations TEXT,
+                    is_fractional INTEGER DEFAULT 0,
                     FOREIGN KEY(sale_id) REFERENCES sales(id) ON DELETE CASCADE,
                     FOREIGN KEY(product_id) REFERENCES stock(id)
                 );
             ''')
+            try:
+                cursor.execute("ALTER TABLE sale_items ADD COLUMN is_fractional INTEGER DEFAULT 0")
+            except Exception:
+                pass
 
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS sale_retentions (
@@ -492,6 +522,34 @@ class Database:
                 )
             """)
 
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS stock_fraction_config (
+                    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+                    product_id      INTEGER NOT NULL UNIQUE,
+                    unit            TEXT    NOT NULL DEFAULT 'KG',   -- KG | GR | LITRO | ML
+                    qty_per_package REAL    NOT NULL,                 -- cuánto tiene cada unidad cerrada (ej. 15 para bolsa 15kg)
+                    fraction_price  TEXT    NOT NULL,                 -- precio de venta por unidad fraccionada (sin IVA)
+                    created_at      TEXT    DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (product_id) REFERENCES stock(id) ON DELETE CASCADE
+                )
+            """)
+
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS open_fractions (
+                    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+                    product_id  INTEGER NOT NULL,
+                    remaining   REAL    NOT NULL,   -- cantidad restante en la unidad abierta
+                    opened_at   TEXT    DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (product_id) REFERENCES stock(id) ON DELETE CASCADE
+                )
+            """)
+
+            # Índice para búsquedas rápidas por producto
+            cursor.execute("""
+                CREATE INDEX IF NOT EXISTS idx_open_fractions_product
+                ON open_fractions (product_id)
+            """)
+
             conn.commit()
 
     def execute_query(self, query, params=None, conn=None, commit=True):
@@ -586,4 +644,4 @@ class Database:
         return row
 
 
-db = Database('db/stock.db')
+db = Database()

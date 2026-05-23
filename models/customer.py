@@ -1,15 +1,18 @@
-from datetime import datetime
+import logging
 import sqlite3
-from db.database import db
 from datetime import datetime
-
 from decimal import Decimal
+from tkinter import messagebox
+from db.database import db
 from utils.utils import norm_to_2_dec, iso_to_traditional
+
+logger = logging.getLogger(__name__)
 class CustomerModel:
-    def __init__(self, pay_model, customer_credit, db_connection=None):
+    def __init__(self, pay_model, customer_credit, sales_model, db_connection=None):
         self.db = db_connection or db 
         self.pay_model = pay_model
         self.customer_credit = customer_credit
+        self.sales_model = sales_model
 
     def get_all_customers(self): 
         # Obtener todos los clientes
@@ -17,7 +20,7 @@ class CustomerModel:
             query = "SELECT * FROM customer ORDER BY id"
             return db.fetch_all(query)
         except ValueError as e: 
-            print(f'Error getting customers: {e}')
+            logger.error("Error getting customers: %s", e)
             return []
         
     def get_all_clients(self):
@@ -44,7 +47,7 @@ class CustomerModel:
             query = "SELECT * FROM customer WHERE id = ?"
             return db.fetch_one(query, (customer_id,))
         except Exception as e:
-            print(f'Error getting customer by ID: {e}')
+            logger.error("Error getting customer by ID: %s", e)
             return None
 
     def check_duplicate_customer(self, customer_data, exclude_id=None):
@@ -116,8 +119,8 @@ class CustomerModel:
             query = "DELETE FROM customer where id = ?"
             return db.execute_query(query, (customer_id,))
         except Exception as e: 
-            print(f'Error : {e}')
-            return None 
+            logger.error("Error deleting customer: %s", e)
+            return None
 
     def edit_customer(self, customer_id, data):
         query = """
@@ -160,7 +163,7 @@ class CustomerModel:
                 query = "SELECT * FROM customer WHERE name LIKE ?"
                 return self.db.fetch_all(query, (f"%{search_term.upper()}%",))
         except Exception as e:
-            print(f"Error searching customer: {e}")
+            logger.error("Error searching customer: %s", e)
             return []
             
     # --------------------------------------------------------------------
@@ -269,7 +272,7 @@ class CustomerModel:
             'payment': payment,
             'debt': debt,
             'reference_id': sale_id,
-            'reference': f"Precio actualizado"
+            'reference': f"Pago venta #{sale_id}"
         }
         self.add_row_in_customer_ledger(data, conn=conn, commit=commit)
 
@@ -281,9 +284,9 @@ class CustomerModel:
             'description': description,
             'amount': Decimal('0.00'),
             'payment': Decimal('0.00'),
-            'debt': self.get_total_debt(client_id, conn=conn),  
+            'debt': self.get_total_debt(client_id, conn=conn),
             'reference_id': reference_id,
-            'reference': 'Ajuste de precio'
+            'reference': 'Saldo a favor'
         }
         self.add_row_in_customer_ledger(data, conn=conn, commit=commit)
 
@@ -295,13 +298,13 @@ class CustomerModel:
             'description': f'Cheque rechazado · Monto: ${check_amount} ',
             'amount': Decimal('0.00'),
             'payment': Decimal('0.00'),
-            'debt': debt_amount,  
+            'debt': debt_amount,
             'reference_id': None,
-            'reference': 'Ajuste de precio'
+            'reference': 'Cheque rechazado'
         }
         self.add_row_in_customer_ledger(data, conn=conn, commit=commit)
 
-    ## -- Obtiene la deuda total de un cliente -- ##
+    ## -- Obtiene la deuda total de un cliente en detalle -- ##
     def get_customer_debts(self, cliente_id):
         query = """
         SELECT 
@@ -327,7 +330,6 @@ class CustomerModel:
             pagado = self.pay_model.get_total_amount_of_pay_for_a_sale(sale_id)
             estado_es = state_map.get(estado, estado)
             saldo = Decimal(total) - Decimal(pagado)
-            print(f'saldo : {saldo}')
 
             fecha_formateada = iso_to_traditional(date.split()[0]) if date else ""
 
@@ -377,7 +379,6 @@ class CustomerModel:
         for sale_id, total in rows:
             paid = self.pay_model.get_total_amount_of_pay_for_a_sale(sale_id, conn=conn)
             saldo = Decimal(total) - paid
-            print(f'saldo: {saldo}')
             if saldo > Decimal('0.00'):
                 total_pending += saldo
 
@@ -407,47 +408,66 @@ class CustomerModel:
     def get_account_history(self, client_id):
         # Guardar y obtener los movimientos de cuenta corriente del cliente
         movements = self.get_account_history_from_client(client_id)
-        print(f"Movimientos en cuenta corriente para cliente {client_id}:")
-        for m in movements:
-            print(m)
+        # Ledger vacío = cuenta reseteada, tarjetas en cero excepto credit y total_debt
+        if not movements:
+            credit     = self.customer_credit.get_customer_credit(client_id)
+            summary = {
+                'total_purchased': Decimal('0.00'),
+                'total_paid':      Decimal('0.00'),
+                'credit':          credit,
+                'total_debt':      Decimal('0.00'),
+                'sales_paid':      0,
+                'total_sales':     0,
+                'sales_balance':   "0/0 pagadas"
+            }
+            return movements, summary
 
         ## Generar resumen
         # Monto total en compras
-        total_purchased = sum((Decimal(m[5]) for m in movements), Decimal('0.00'))
+        data_total_p = self.sales_model.get_total_of_all_sales(client_id)
+        total_purchased = sum((Decimal(m[1]) for m in data_total_p), Decimal('0.00'))
 
         # Monto total en pagos reales — excluye aplicaciones de saldo a favor
         # (tipo CRÉDITO = plata interna, no dinero nuevo recibido)
         total_paid = self.pay_model.get_total_paid_by_client(client_id)
-        print(f'total_paid: {total_paid}')
 
         # Deuda total
         total_debt = self.get_total_debt(client_id)
         
         # Contar ventas pagadas
-        total_sales = 0
-        sales_paid = 0
-        for m in movements:
-            if m[3] == "VENTA":
-                total_sales += 1
-                sale_id = m[8]
-                check = "SELECT estado FROM sales WHERE id = ?"
-                result = self.db.fetch_one(check, (sale_id,))
-                if result and result[0] == 'paid':
-                    sales_paid += 1
+        total_sales, sales_paid = self.count_sales_paid(movements)
 
+        # saldo a favor
         credit = self.customer_credit.get_customer_credit(client_id)
 
         summary = {
             'total_purchased': total_purchased,
             'total_paid': total_paid,
-            'credit': credit,        # ← crédito calculado del historial
-            'total_debt': total_debt,        # ← nunca baja de 0
+            'credit': credit,        
+            'total_debt': total_debt,  
             'sales_paid': sales_paid,
             'total_sales': total_sales,
             'sales_balance': f"{sales_paid}/{total_sales} pagadas"
         }
 
+        print(f'summary: {summary}')
+
         return movements, summary
+    
+    ## -- count total sales and sales paid -- ##
+    def count_sales_paid(self, movements):
+        try:
+            total_sales, sales_paid = 0, 0
+            for m in movements:
+                if m[3] == "VENTA":
+                    total_sales += 1
+                    result = self.db.fetch_one("SELECT estado FROM sales WHERE id = ?", (m[8],))
+                    if result and result[0] == 'paid':
+                        sales_paid += 1
+            return total_sales, sales_paid
+        except Exception as e:
+            logger.error("Error contando ventas: %s", e)
+            return 0, 0
 
     def get_customers_with_debt(self):
         query = """

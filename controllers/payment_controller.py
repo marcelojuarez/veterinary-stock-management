@@ -1,8 +1,12 @@
+import logging
 from decimal import Decimal
 from utils.utils import string_to_2_dec
 from utils.view_helpers import show_warning, show_error, close_win
 from utils.receipts.manager import generate_orden_pago_proveedor
 from tkinter import messagebox
+from db.database import db
+
+logger = logging.getLogger(__name__)
 
 
 def _get_val(var):
@@ -28,8 +32,20 @@ class PaymentController():
         self.pay_view = pay_view
 
     def register_payment(self, supplier_var, win, parent, purchase_id):
+        conn = None
+        purchase_id_int = None
+        payment_data = None
+        supplier_data = None
+        credit_applied = Decimal("0")
+        amount = Decimal("0")
 
         try:
+            conn = db.get_connection()
+
+            conn.execute("BEGIN")
+
+            # -- Datos y Validaciones -- #
+            # Datos de pago
             payment_data = self.form_view.get_payment_data()
             selected = _get_val(supplier_var)
 
@@ -37,7 +53,8 @@ class PaymentController():
                 show_warning("Seleccione un proveedor")
                 return
 
-            supplier_data = self.supplier_model.core.find_supplier_by_id(int(selected))
+            # Datos del proveedor
+            supplier_data = self.supplier_model.core.find_supplier_by_id(int(selected), conn=conn)
 
             credit_applied = payment_data.get('credit_applied', Decimal("0"))
             amount_str     = payment_data['amount'].strip()
@@ -54,13 +71,15 @@ class PaymentController():
             purchase_id_int = int(purchase_id_val) if purchase_id_val else None
 
             if purchase_id_int is not None:
-                purchase = self.supplier_model.purchase.get_purchase_by_id(purchase_id_int)
+                # Se paga una sola compra
+                purchase = self.supplier_model.purchase.get_purchase_by_id(purchase_id_int, conn=conn)
                 debt = Decimal(purchase[9])
                 if total_pagado > debt:
                     show_warning(f'El total a abonar (${total_pagado}) supera la deuda (${debt})')
                     return
             else:
-                total_debt = self.supplier_model.purchase.get_debt_of_supplier(selected)
+                # El pago aplica a multiples compras
+                total_debt = self.supplier_model.purchase.get_debt_of_supplier(selected, conn=conn)
                 if total_pagado > Decimal(str(total_debt)):
                     show_warning(f'El total a abonar (${total_pagado}) supera la deuda total (${total_debt})')
                     return
@@ -78,141 +97,152 @@ class PaymentController():
                 'Bank':           payment_data['bank'],
             }
 
-            result = self.supplier_model.payment.register_payment_and_set_relation(data, purchase_id)
+            check_id = payment_data.get('check_id')
 
-            if result:
-                # ── Usar saldo a favor ────────────────────────────────
-                if credit_applied > Decimal("0") and self.supplier_credit:
-                    self._usar_saldo_favor(
-                        supplier_id  = supplier_data[0],
-                        amount       = credit_applied,
-                        purchase_id  = purchase_id_int,
+            # Vincula 
+            self.supplier_model.payment.register_payment_and_set_relation(data, check_id, conn, purchase_id_int)
+
+            # ── Usar saldo a favor ────────────────────────────────
+            if credit_applied > Decimal("0") and self.supplier_credit:
+                self._usar_saldo_favor(
+                    supplier_id  = supplier_data[0],
+                    amount       = credit_applied,
+                    purchase_id  = purchase_id_int,
+                    conn=conn,
+                    commit=False
+                )
+
+            # ── Endosar cheque + excedente ────────────────────────
+
+            if check_id and self.checks_model:
+                check = self.checks_model.get_check_by_id(check_id, conn=conn)
+                if check:
+                    check_amount = Decimal(str(check[4]))
+                    excedente    = check_amount - amount
+
+                    self.checks_model.update_status(
+                        check_id, "ENDOSADO", purchase_id=purchase_id_int, conn=conn, commit=False
                     )
 
-                # ── Endosar cheque + excedente ────────────────────────
-                check_id = payment_data.get('check_id')
-                if check_id and self.checks_model:
-                    try:
-                        check = self.checks_model.get_check_by_id(check_id)
-                        if check:
-                            check_amount = Decimal(str(check[4]))
-                            excedente    = check_amount - amount
+                    if excedente > Decimal("0") and self.supplier_credit:
+                        self._registrar_saldo_favor(
+                            supplier_id  = supplier_data[0],
+                            excedente    = excedente,
+                            check_id     = check_id,
+                            check_number = payment_data.get('check_number', ''),
+                            check_bank   = payment_data.get('bank', ''),
+                            conn=conn,
+                            commit=False
+                        )
 
-                            self.checks_model.update_status(
-                                check_id, "ENDOSADO", purchase_id=purchase_id_int
-                            )
-                            self.event_bus.publish('refresh_checks', None)
+            conn.commit()
 
-                            if excedente > Decimal("0") and self.supplier_credit:
-                                self._registrar_saldo_favor(
-                                    supplier_id  = supplier_data[0],
-                                    excedente    = excedente,
-                                    check_id     = check_id,
-                                    check_number = payment_data.get('check_number', ''),
-                                    check_bank   = payment_data.get('bank', ''),
-                                )
-                    except Exception as e:
-                        print(f"[PaymentController] No se pudo endosar el cheque: {e}")
+            self.event_bus.publish('refresh_checks', None)
+            self.pay_view.load_payment_movement(selected)
+            self.pay_view.load_purchase_history(True)
+            self.event_bus.publish('refresh_supplier_table', None)
 
-                self.pay_view.load_payment_movement(selected)
-                self.pay_view.load_purchase_history(True)
-                self.event_bus.publish('refresh_supplier_table', None)
+        except Exception as e:
+            if conn:
+                conn.rollback()
+            show_error(f"Error al registrar pago: {e}")
+            return  # salimos, no generamos orden de pago
 
-                # ── Orden de pago ─────────────────────────────────────
-                try:
-                    purchase_total   = ""
-                    purchase_pending = ""
-                    if purchase_id_int:
-                        p = self.supplier_model.purchase.get_purchase_by_id(purchase_id_int)
-                        if p:
-                            purchase_total   = str(p[10])
-                            purchase_pending = str(p[9])
+        finally:
+            if conn:
+                conn.close()
 
-                    # Armar lista de medios para la OP
-                    payments_list = []
-                    if credit_applied > Decimal("0"):
-                        payments_list.append({
-                            "method": "SALDO_A_FAVOR",
-                            "amount": credit_applied,
-                        })
-                    if amount > Decimal("0"):
-                        met = payment_data['method'].upper()
-                        pago_entry = {"method": met, "amount": amount}
-                        if met in ("CHEQUE", "ECHEQ"):
-                            pago_entry.update(
-                                check_number = payment_data.get('check_number', ''),
-                                check_bank   = payment_data.get('bank', ''),
-                            )
-                        elif met == "TRANSFERENCIA":
-                            pago_entry.update(
-                                operation_num = payment_data.get('operation_num', ''),
-                                origin        = payment_data.get('origin', ''),
-                                destination   = payment_data.get('destination', ''),
-                            )
-                        payments_list.append(pago_entry)
+        # ── Orden de pago ─────────────────────────────────────
+        try:
+            purchase_total   = ""
+            purchase_pending = ""
+            if purchase_id_int:
+                p = self.supplier_model.purchase.get_purchase_by_id(purchase_id_int)
+                if p:
+                    purchase_total   = str(p[10])
+                    purchase_pending = str(p[9])
 
-                    parent_win = win if hasattr(win, 'winfo_exists') else None
-                    imprimir = messagebox.askyesno(
-                        "Orden de pago",
-                        "¿Desea imprimir la orden de pago?",
-                        parent=parent_win
+            # Armar lista de medios para la OP
+            payments_list = []
+            if credit_applied > Decimal("0"):
+                payments_list.append({
+                    "method": "SALDO_A_FAVOR",
+                    "amount": credit_applied,
+                })
+            if amount > Decimal("0"):
+                met = payment_data['method'].upper()
+                pago_entry = {"method": met, "amount": amount}
+                if met in ("CHEQUE", "ECHEQ"):
+                    pago_entry.update(
+                        check_number = payment_data.get('check_number', ''),
+                        check_bank   = payment_data.get('bank', ''),
                     )
-                    generate_orden_pago_proveedor(
-                        supplier_name      = supplier_data[2],
-                        supplier_cuit      = supplier_data[1] or "",
-                        payments           = payments_list,
-                        receipt_number     = payment_data['receipt_number'],
-                        observation        = payment_data['observation'],
-                        purchase_id        = purchase_id_int,
-                        purchase_total     = purchase_total,
-                        purchase_remaining = purchase_pending,
-                        auto_print         = imprimir,
+                elif met == "TRANSFERENCIA":
+                    pago_entry.update(
+                        operation_num = payment_data.get('operation_num', ''),
+                        origin        = payment_data.get('origin', ''),
+                        destination   = payment_data.get('destination', ''),
                     )
-                except Exception as e:
-                    print(f"[PaymentController] Error generando orden de pago: {e}")
+                payments_list.append(pago_entry)
+
+            parent_win = win if hasattr(win, 'winfo_exists') else None
+            imprimir = messagebox.askyesno(
+                "Orden de pago",
+                "¿Desea imprimir la orden de pago?",
+                parent=parent_win
+            )
+            generate_orden_pago_proveedor(
+                supplier_name      = supplier_data[2],
+                supplier_cuit      = supplier_data[1] or "",
+                payments           = payments_list,
+                receipt_number     = payment_data['receipt_number'],
+                observation        = payment_data['observation'],
+                purchase_id        = purchase_id_int,
+                purchase_total     = purchase_total,
+                purchase_remaining = purchase_pending,
+                auto_print         = imprimir,
+            )
 
             close_win(win, parent)
 
         except Exception as e:
-            show_error(f"Error al registrar pago: {e}")
+                show_warning(f"El pago se registró correctamente pero no se pudo generar la orden de pago: {e}")
 
-    def _usar_saldo_favor(self, supplier_id, amount, purchase_id):
+    def _usar_saldo_favor(self, supplier_id, amount, purchase_id, conn=None, commit=True):
         """
         Registra el uso del saldo a favor como movimiento negativo
         en supplier_credit_movements.
         """
-        try:
-            nota = f"Aplicado a compra #{purchase_id}" if purchase_id else "Aplicado a pago de deuda"
-            self.supplier_credit.add_movement({
-                "supplier_id":  supplier_id,
-                "amount":       str(-amount),   # negativo = se consume saldo
-                "type":         "USO_SALDO",
-                "reference_id": purchase_id,
-                "notes":        nota,
-            })
-            print(f"[PaymentController] Saldo a favor usado: ${amount} para supplier {supplier_id}")
-        except Exception as e:
-            print(f"[PaymentController] Error usando saldo a favor: {e}")
+        nota = f"Aplicado a compra #{purchase_id}" if purchase_id else "Aplicado a pago de deuda"
+        self.supplier_credit.add_movement({
+            "supplier_id":  supplier_id,
+            "amount":       str(-amount),   # negativo = se consume saldo
+            "type":         "USO_SALDO",
+            "purchase_id": purchase_id,
+            "check_id": None,
+            "notes":        nota,
+        }, conn=conn, commit=commit)
+        logger.debug("Saldo a favor usado: $%s para supplier %s", amount, supplier_id)
 
-    def _registrar_saldo_favor(self, supplier_id, excedente, check_id, check_number, check_bank):
+    def _registrar_saldo_favor(self, supplier_id, excedente, check_id, check_number, check_bank,
+                               conn=None, commit=True):
         """
         Registra el excedente del cheque como saldo a favor del proveedor
         en supplier_credit_movements.
         amount positivo = crédito a favor de la veterinaria
         (el proveedor nos "debe" ese excedente).
         """
-        try:
-            nota = f"Excedente cheque N°{check_number} ({check_bank})" if check_number else "Excedente de cheque"
-            self.supplier_credit.add_movement({
-                "supplier_id":  supplier_id,
-                "amount":       str(excedente),
-                "type":         "EXCEDENTE_CHEQUE",
-                "reference_id": check_id,
-                "notes":        nota,
-            })
-            print(f"[PaymentController] Saldo a favor registrado: ${excedente} para supplier {supplier_id}")
-        except Exception as e:
-            print(f"[PaymentController] Error registrando saldo a favor: {e}")
+
+        nota = f"Excedente cheque N°{check_number} ({check_bank})" if check_number else "Excedente de cheque"
+        self.supplier_credit.add_movement({
+            "supplier_id":  supplier_id,
+            "amount":       str(excedente),
+            "type":         "EXCEDENTE_CHEQUE",
+            "purchase_id": None,
+            "check_id": check_id,
+            "notes":        nota,
+        }, conn=conn, commit=commit)
+        logger.debug("Saldo a favor registrado: $%s para supplier %s", excedente, supplier_id)
 
     @classmethod
     def validate_data(cls, data):
@@ -279,5 +309,4 @@ class PaymentController():
 
     @staticmethod
     def _is_str(value):
-        try: str(value); return True
-        except: return False
+        return isinstance(value, str) and value.strip() != ""

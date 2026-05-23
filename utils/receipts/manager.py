@@ -14,11 +14,25 @@ from utils.receipts.paths import (
 )
 
 
-COMMERCE = {
+_COMMERCE_FALLBACK = {
     "name": "Agroveterinaria El Fortín",
     "address": "Ruta Nacional N° 8, Km 681 – Chaján, Córdoba",
     "cuit": "20-14221046-1",
 }
+
+def _get_commerce() -> dict:
+    try:
+        from models.company import CompanyModel
+        data = CompanyModel().get_company_data()
+        if data:
+            return {
+                "name": data[1] or _COMMERCE_FALLBACK["name"],
+                "address": data[5] or _COMMERCE_FALLBACK["address"],
+                "cuit": data[2] or _COMMERCE_FALLBACK["cuit"],
+            }
+    except Exception:
+        pass
+    return _COMMERCE_FALLBACK
 
 
 def _open_file(path: str):
@@ -57,14 +71,15 @@ def generate_receipts_for_payment(
     auto_print: bool = False,
 ):
     paths = []
+    commerce = _get_commerce()
 
     if format in ("ticket", "both"):
         ticket_path = ticket_pago_global(client_name)
         generate_global_payment_ticket(
             file_path=ticket_path,
-            commerce_name=COMMERCE["name"],
-            commerce_address=COMMERCE["address"],
-            commerce_cuit=COMMERCE["cuit"],
+            commerce_name=commerce["name"],
+            commerce_address=commerce["address"],
+            commerce_cuit=commerce["cuit"],
             client_name=client_name,
             amount=amount,
             method=method,
@@ -78,9 +93,9 @@ def generate_receipts_for_payment(
         a4_path = a4_pago_global(client_name)
         generate_global_payment_receipt(
             file_path=a4_path,
-            commerce_name=COMMERCE["name"],
-            commerce_address=COMMERCE["address"],
-            commerce_cuit=COMMERCE["cuit"],
+            commerce_name=commerce["name"],
+            commerce_address=commerce["address"],
+            commerce_cuit=commerce["cuit"],
             client_name=client_name,
             payment_amount=amount,
             method=method,
@@ -92,7 +107,7 @@ def generate_receipts_for_payment(
 
     for fmt_type, p in paths:
         if auto_print:
-            print_file(p)
+            _print_file(p)
         else:
             _open_file(p)
 
@@ -124,13 +139,14 @@ def generate_orden_pago_proveedor(
 ) -> str:
     """Genera e imprime una orden de pago a proveedor."""
     path = orden_pago_path(supplier_name)
+    commerce = _get_commerce()
 
     generate_orden_pago(
         file_path=path,
         # op_number=None → se auto-genera con correlativo
-        commerce_name=COMMERCE["name"],
-        commerce_address=COMMERCE["address"],
-        commerce_cuit=COMMERCE["cuit"],
+        commerce_name=commerce["name"],
+        commerce_address=commerce["address"],
+        commerce_cuit=commerce["cuit"],
         supplier_name=supplier_name,
         supplier_cuit=supplier_cuit,
         payments=payments,          # multi-medio (None = usar legacy)
@@ -157,15 +173,9 @@ def generate_orden_pago_proveedor(
     return path
 
 
+
 def _print_file(path: str):
-    """Intenta imprimir directamente con SumatraPDF, fallback a ShellExecute."""
-    sumatra = r"C:\Program Files\SumatraPDF\SumatraPDF.exe"
-    try:
-        if os.path.exists(sumatra):
-            import subprocess
-            subprocess.Popen([sumatra, "-print-to-default", "-silent", path])
-            return
-    except Exception:
-        pass
-    # Fallback: abrir con programa predeterminado
-    _open_file(path)
+    """Imprime el archivo usando el motor unificado; abre si falla."""
+    from utils.printing import send_to_printer
+    if not send_to_printer(path):
+        _open_file(path)

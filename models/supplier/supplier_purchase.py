@@ -1,6 +1,9 @@
 # models/supplier/supplier_purchase.py
 
+import logging
 from datetime import datetime
+
+logger = logging.getLogger(__name__)
 from .supplier_invoice import SupplierInvoice
 from .supplier_receipt import SupplierReceipt
 from decimal import Decimal
@@ -35,19 +38,43 @@ class SupplierPurchase():
 
             return self.db.execute_query(query, params, conn=conn, commit=commit)
         except ValueError as e:
-            print(f'Error al cargar la compra: {e}')
+            logger.error("Error al cargar la compra: %s", e)
 
     ## -- Obtener compra por ID -- ##
-    def get_purchase_by_id(self, purchase_id):
+    def get_purchase_by_id(self, purchase_id, conn=None):
         try:
             query = """
             SELECT * FROM purchase WHERE id = ?
             """
             
-            return self.db.fetch_one(query, (purchase_id, ))
+            return self.db.fetch_one(query, (purchase_id, ), conn=conn)
 
         except ValueError as e:
-            print(f'Error al obtener la compra: {e}')
+            logger.error("Error al obtener la compra: %s", e)
+            return None
+
+    ## -- Obtener compra por Numero de factura -- ##
+    def get_purchase_by_invoice_number(self, invoice_number):
+        try:
+            query = """
+                SELECT 
+                    purchase.id,
+                    supplier.cuit,
+                    supplier.name,
+                    purchase.document_type,
+                    purchase.date,
+                    purchase.expiration_date,
+                    purchase.state,
+                    purchase.pending,
+                    purchase.total
+                FROM purchase
+                JOIN supplier_invoice ON purchase.invoice_id = supplier_invoice.id
+                JOIN supplier ON purchase.supplier_id = supplier.id
+                WHERE supplier_invoice.invoice_id = ?
+            """
+            return self.db.fetch_one(query, (invoice_number,))
+        except Exception as e:
+            logger.error("Error al obtener compra por numero de factura: %s", e)
             return None
 
     ## -- Obtener saldo pendiente de una compra --##
@@ -60,7 +87,7 @@ class SupplierPurchase():
             return self.db.fetch_one(query, (purchase_id, ))[0]
 
         except ValueError as e:
-            print(f'Error al obtener saldo pendiente: {e}')
+            logger.error("Error al obtener saldo pendiente: %s", e)
             return None            
 
     ## Obtener compra por fecha ##
@@ -88,7 +115,7 @@ class SupplierPurchase():
             return self.db.fetch_all(query, params)
 
         except ValueError as e:
-            print(f'Error al obtener las compras: {e}')
+            logger.error("Error al obtener las compras: %s", e)
             return None
 
     ## -- Devuelve todas las compras asociadas a un CUIT -- ##
@@ -114,7 +141,7 @@ class SupplierPurchase():
             return self.db.fetch_all(query, params)
         
         except ValueError as e:
-            print(f'Error al obtener las compras: {e}')
+            logger.error("Error al obtener las compras: %s", e)
             return None
         
     ## -- Devuelve todas las compras confirmadas asociadas a un CUIT -- ##
@@ -140,7 +167,7 @@ class SupplierPurchase():
             return self.db.fetch_all(query, params)
         
         except ValueError as e:
-            print(f'Error al obtener las compras: {e}')
+            logger.error("Error al obtener las compras: %s", e)
             return None
     
     ## -- Busca un producto en una determinada compra -- ##
@@ -155,7 +182,7 @@ class SupplierPurchase():
             return self.db.fetch_one(query, params)
         
         except ValueError as e:
-            print(f'Error al obtener producto: {e}')
+            logger.error("Error al obtener producto: %s", e)
             return None
 
     ## -- Agregar nuevo Producto -- ##
@@ -198,7 +225,7 @@ class SupplierPurchase():
 
         except Exception as e:
             conn.rollback()
-            print(f'Hubo un errorr {e}')
+            logger.error("Error al agregar item de compra: %s", e)
             return False
         
         finally:
@@ -209,7 +236,7 @@ class SupplierPurchase():
             query = "SELECT * FROM stock WHERE UPPER(name) = ? AND UPPER(pack) = ? LIMIT 1"
             return self.db.fetch_one(query, (name, pack))
         except Exception as e:
-            print(f'Error finding product: {e}')
+            logger.error("Error finding product: %s", e)
             return None
 
     ## -- Agrega un  nuevo Item de compra -- ##
@@ -294,7 +321,7 @@ class SupplierPurchase():
             ## Remito ## sin iva
             total = self.get_subtotal_of_items(purchase_id, conn=conn)
 
-            print(f'Total: {total}')
+
 
             query = """ UPDATE supplier_receipt SET total = ? WHERE id = ? """
 
@@ -492,7 +519,7 @@ class SupplierPurchase():
 
         except Exception as e:
             conn.rollback()
-            print(f'Ocurrio un error: {e}')
+            logger.error("Error al confirmar compra: %s", e)
             return False
 
         finally:
@@ -605,13 +632,13 @@ class SupplierPurchase():
         return self.db.execute_query(query, params, conn=conn, commit=commit)
     
     ## -- Debt -- ##
-    def get_debt_of_supplier(self, supplier_id):
+    def get_debt_of_supplier(self, supplier_id, conn=None):
         query = """
         SELECT pending
         FROM purchase
         WHERE supplier_id = ? AND state != 'BORRADOR'
         """    
-        rows = self.db.fetch_all(query, (supplier_id, ))
+        rows = self.db.fetch_all(query, (supplier_id, ), conn=conn)
 
         pending = Decimal('0.00')
 
@@ -621,12 +648,8 @@ class SupplierPurchase():
         return norm_to_2_dec(pending)
     
     ## -- Calcula el pendiente de una compra
-    def calculate_pending_of_purchase(self, purchase_id, payment_id):
-        # Datos de la compra
-        purchase_data = None
-
-        # Datos de pagos asociados a la venta
-        payment_data = None
+    def calculate_pending_of_purchase(self, _purchase_id, _payment_id):
+        raise NotImplementedError("calculate_pending_of_purchase no está implementado")
 
     def update_last_debt_update(self, supplier_id, conn=None, commit=True):
         date = datetime.now().strftime("%d/%m/%Y %H:%M")
@@ -670,7 +693,7 @@ class SupplierPurchase():
         
         except Exception as e:
             conn.rollback()
-            print(f'Hubo un error {e}')
+            logger.error("Error en operación de compra: %s", e)
             return False
         
         finally:
@@ -689,7 +712,7 @@ class SupplierPurchase():
             conn.commit()
             return True
         
-        except ValueError as e:
+        except Exception:
             conn.rollback()
             return False
         
@@ -745,7 +768,7 @@ class SupplierPurchase():
             conn.rollback()
             import traceback
             traceback.print_exc()
-            print(f'Hubo un error {e}')
+            logger.error("Error en operación de compra: %s", e)
             return False
         
         finally:
@@ -769,7 +792,7 @@ class SupplierPurchase():
         
         except Exception as e:
             conn.rollback()
-            print(f'Hubo un error {e}')
+            logger.error("Error en operación de compra: %s", e)
             return False
         
         finally:
@@ -795,7 +818,7 @@ class SupplierPurchase():
         
         except Exception as e:
             conn.rollback()
-            print(f'Hubo un error {e}')
+            logger.error("Error en operación de compra: %s", e)
             return False
         
         finally:

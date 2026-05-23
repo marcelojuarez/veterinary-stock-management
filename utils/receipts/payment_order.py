@@ -6,8 +6,11 @@ Soporta múltiples medios de pago en una misma OP.
 El número correlativo se gestiona con un archivo contador local.
 """
 
+import logging
 import os
 import json
+
+logger = logging.getLogger(__name__)
 from datetime import datetime
 from decimal import Decimal
 from reportlab.lib import colors
@@ -45,7 +48,7 @@ def get_next_op_number() -> int:
         with open(path, "w") as f:
             json.dump({"last": next_num}, f)
     except Exception as e:
-        print(f"[orden_pago_pdf] No se pudo guardar contador: {e}")
+        logger.error("No se pudo guardar contador de orden de pago: %s", e)
 
     return next_num
 

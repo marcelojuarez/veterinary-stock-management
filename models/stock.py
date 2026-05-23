@@ -1,5 +1,8 @@
+import logging
 from decimal import Decimal
 from db.database import db
+
+logger = logging.getLogger(__name__)
 from utils.utils import norm_to_2_dec
 from models.stock_movement import StockMovementModel
 
@@ -151,7 +154,7 @@ class StockModel:
                         else:
                             self.changes.append(f"✅ Venta #{sale_id} Cambia su monto por cambio de precio")
 
-                    print(f'changes: \n{self.changes}')
+                    logger.debug("Price changes: %s", self.changes)
 
             conn.commit()
             if self.changes:
@@ -161,13 +164,17 @@ class StockModel:
 
         except Exception as e:
             conn.rollback()
-            print(f'Hubo un error {e}')
+            logger.error("Error al actualizar precio y ventas relacionadas: %s", e)
             return False
 
         finally:
             conn.close()
 
+    _VALID_FIELDS = {'name', 'pack', 'list_price', 'discount', 'cost_price', 'profit', 'price', 'iva', 'price_with_iva', 'quantity', 'last_price_update'}
+
     def update_field(self, db_field, new_value, product_id):
+        if db_field not in self._VALID_FIELDS:
+            raise ValueError(f"Campo inválido: {db_field}")
         query = f"UPDATE stock SET {db_field} = ? WHERE id = ?"
         db.execute_query(query, (new_value, product_id))
         
@@ -181,22 +188,6 @@ class StockModel:
         query = "UPDATE stock SET quantity = quantity + ? WHERE id = ?"
         return db.execute_query(query, (quantity, product_id), conn=conn, commit=commit)
         
-    def reduce_quantity(self, product_id, quantity_to_reduce):
-        """Reducir la cantidad de un producto (para ventas)"""
-        current_product = self.get_product_by_id(product_id)
-        if not current_product:
-            raise ValueError(f"Producto {product_id} no encontrado")
-        current_quantity = current_product[-1]  # quantity está en la última posición
-        print("Current cantidad: ", current_quantity)
-        
-        if current_quantity < quantity_to_reduce:
-            raise ValueError(
-                f"Stock insuficiente. Disponible: {current_quantity}, Solicitado: {quantity_to_reduce}"
-            )
-        
-        new_quantity = current_quantity - quantity_to_reduce
-        return self.update_quantity(product_id, new_quantity)
-    
     def search_products(self, search_term):
         """Buscar productos por nombre, ID o envase"""
         query = """
@@ -210,17 +201,10 @@ class StockModel:
         return db.fetch_all(query, (search_pattern, search_pattern, search_pattern))
     
     def get_low_stock_products(self, threshold):
-        """Obtener productos con stock bajo (cantidad menor que el umbral)"""
-        try: 
-            with self.db.cursor() as cursor:
-                cursor.execute(
-                    "SELECT id, name, pack, quantity FROM stock WHERE quantity < ? ORDER BY quantity", 
-                    (threshold,)
-                )
-                return cursor.fetchall()
-        except Exception as e:
-            print(f"Error getting low stock products: {e}")
-            return []
+        return self.db.fetch_all(
+            "SELECT id, name, pack, quantity FROM stock WHERE quantity < ? ORDER BY quantity",
+            (threshold,)
+        )
     
     def get_available_price_dates(self):
         """Obtener fechas disponibles de última modificación de precios"""

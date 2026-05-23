@@ -1,4 +1,7 @@
+import logging
 from db.database import db
+
+logger = logging.getLogger(__name__)
 
 class CompanyModel:
     def __init__(self, db_connection=None):
@@ -27,7 +30,7 @@ class CompanyModel:
 
             return self.db.execute_query(query, params)
         except ValueError as e:
-            print(f'Error al cargar datos de la empresa: {e}')
+            logger.error("Error al cargar datos de la empresa: %s", e)
 
     def get_company_data(self):
         try:
@@ -41,7 +44,7 @@ class CompanyModel:
             return self.db.fetch_one(query, params)
 
         except ValueError as e:
-            print(f'Error al obtener los datos de la empresa: {e}')
+            logger.error("Error al obtener los datos de la empresa: %s", e)
             return None
 
     def edit_company_data(self, data):
@@ -74,5 +77,5 @@ class CompanyModel:
             ]
             return self.db.execute_query(query, params)
         except Exception as e:
-            print(f"Error al editar datos de la empresa: {e}")
+            logger.error("Error al editar datos de la empresa: %s", e)
             return None

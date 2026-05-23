@@ -8,16 +8,18 @@ from views.client_selector import ClientSelectorDialog
 from services.daily_sales_report import DailySalesReportService
 from utils.view_helpers import center_window, show_error
 from utils.utils import iso_to_traditional, norm_to_2_dec, format_currency, string_to_2_dec, traditional_to_iso
+from views.fraction_sale_dialog import FractionSaleDialog
 
 ctk.set_appearance_mode("light")
 ctk.set_default_color_theme("blue")
 
 class SalesView:
-    def __init__(self, parent, controller, stock_model, customer_model):
+    def __init__(self, parent, controller, stock_model, customer_model, fraction_model=None):
         self.controller = controller
         self.frame = ctk.CTkFrame(parent, fg_color="#f0f0f0")
         self.stock_model = stock_model
         self.customer_model = customer_model
+        self.fraction_model = fraction_model
         self.setup_variables()
         self.create_layout()
 
@@ -86,7 +88,7 @@ class SalesView:
             font=ctk.CTkFont(size=12, weight="bold"),
             command=lambda: self.controller.show_today_sales()
         )
-        today_btn.grid(row=0, column=2, padx=10)
+        today_btn.grid(row=0, column=3, padx=10)
 
     # --------------------------------------------------------------------
     # PANEL IZQUIERDO - STOCK DISPONIBLE
@@ -216,53 +218,201 @@ class SalesView:
             if not selected:
                 messagebox.showwarning("Advertencia", "Seleccione un producto.")
                 return
-
-            item = self.product_tree.item(selected[0])["values"]
+    
+            item   = self.product_tree.item(selected[0])["values"]
             p_data = self.stock_model.get_product_by_id(item[0])
-
-            product_id, name, pack, _, _, _ ,_ , _, _, \
-            price_with_iva, _, _, stock = p_data
+            product_id, name, pack, _, _, _, _, _, iva_rate, price_with_iva, _, _, stock = p_data
             price = norm_to_2_dec(price_with_iva)
-
-            # Ventana emergente para cantidad
-            qty_win = ctk.CTkToplevel(self.frame)
-            card_frame = ctk.CTkFrame(qty_win, fg_color="white", corner_radius=20)
-            card_frame.pack(fill="both", expand=True, padx=20, pady=20)
-            qty_win.title(f"Agregar Producto")
-            qty_win.transient(self.frame)
-            qty_win.grab_set()
-            center_window(qty_win, 420, 270)
-
-            ctk.CTkLabel(
-                card_frame, 
-                text=f"AGREGAR: \n {name} {pack}", 
-                font=ctk.CTkFont(size=12, weight="bold")).pack(pady=(15, 5))
-            ctk.CTkLabel(card_frame, text=f"Stock disponible: {stock}", font=ctk.CTkFont(size=13)).pack()
-
-            qty_var = tk.StringVar()
-            qty_entry = ctk.CTkEntry(card_frame, textvariable=qty_var, width=80, height=35, justify="center")
-            qty_entry.pack(pady=10)
-            qty_var.set("1")
-            qty_entry.focus()
-            qty_entry.icursor("end")
-
-            def confirm_add():
-                self.controller.add_product_to_sale(product_id, name, pack, price, stock, qty_var.get())
-                self.refresh_sale_table()
-                self.update_total()
-                qty_win.destroy()
-
-            confirm_btn = ctk.CTkButton(card_frame, text="Agregar", width=120, height=35,
-                          fg_color="#4CAF50", hover_color="#45a049", command=confirm_add)
-            confirm_btn.pack(pady=(10, 5))
-
-            qty_win.bind("<Return>", lambda event: confirm_btn.invoke())
-
-            ctk.CTkButton(card_frame, text="Cancelar", width=120, height=35,
-                          fg_color="#757575", hover_color="#616161", command=qty_win.destroy).pack(pady=(0, 10))
-
+    
+            # ── ¿Es fraccionable? ─────────────────────────────────────────────
+            if self.fraction_model and self.fraction_model.is_fractional(product_id):
+                self._show_sell_mode_dialog(
+                    product_id = product_id,
+                    name       = name,
+                    pack       = pack,
+                    price      = price,
+                    stock      = stock,
+                    iva_rate   = iva_rate
+                )
+                return
+    
+            # ── Flujo normal (sin cambios) ────────────────────────────────────
+            self._open_qty_dialog(product_id, name, pack, price, stock)
+    
         except Exception as e:
             messagebox.showerror("Error", f"No se pudo agregar el producto: {e}")
+    
+    
+    def _show_sell_mode_dialog(self, product_id, name, pack, price, stock, iva_rate):
+        """
+        Diálogo de selección de modo de venta para productos fraccionables.
+        Aparece ANTES de pedir cantidad.
+        """
+        from views.fraction_sale_dialog import FractionSaleDialog
+    
+        mode_win = ctk.CTkToplevel(self.frame)
+        mode_win.title("Modo de venta")
+        mode_win.transient(self.frame)
+        mode_win.grab_set()
+        mode_win.resizable(False, False)
+        center_window(mode_win, 470, 310)
+    
+        card = ctk.CTkFrame(mode_win, fg_color="white", corner_radius=16)
+        card.pack(fill="both", expand=True, padx=16, pady=16)
+    
+        # Título
+        ctk.CTkLabel(
+            card,
+            text=f"{name}",
+            font=ctk.CTkFont(size=14, weight="bold")
+        ).pack(pady=(16, 2))
+    
+        ctk.CTkLabel(
+            card,
+            text=pack,
+            font=ctk.CTkFont(size=12),
+            text_color="#555"
+        ).pack(pady=(0, 4))
+    
+        ctk.CTkFrame(card, fg_color="#e0e0e0", height=2).pack(fill="x", padx=20, pady=(4, 14))
+    
+        ctk.CTkLabel(
+            card,
+            text="¿Cómo querés vender este producto?",
+            font=ctk.CTkFont(size=13, weight="bold")
+        ).pack(pady=(0, 12))
+    
+        # Info rápida de stock
+        info = self.fraction_model.get_available_stock_info(product_id)
+        total_frac  = info.get("total_units", 0)
+        unit        = info.get("unit", "KG")
+        closed      = info.get("closed_packages", 0)
+    
+        btn_frame = ctk.CTkFrame(card, fg_color="transparent")
+        btn_frame.pack(pady=4)
+    
+        # ── Botón: Bolsa completa ─────────────────────────────────────────────
+        def sell_whole():
+            mode_win.destroy()
+            self._open_qty_dialog(product_id, name, pack, price, stock)
+    
+        whole_btn = ctk.CTkButton(
+            btn_frame,
+            text=f"📦  Unidad completa\n$ {format_currency(price)}  ·  {closed} disponibles",
+            width=200, height=60,
+            font=ctk.CTkFont(size=12, weight="bold"),
+            fg_color="#1976D2" if closed > 0 else "#BDBDBD",
+            hover_color="#1565C0" if closed > 0 else "#BDBDBD",
+            state="normal" if closed > 0 else "disabled",
+            command=sell_whole
+        )
+        whole_btn.grid(row=0, column=0, padx=10)
+    
+        # ── Botón: Por fracción ───────────────────────────────────────────────
+        def sell_fraction():
+            mode_win.destroy()
+            FractionSaleDialog(
+                parent         = self.frame,
+                controller     = self.controller,
+                fraction_model = self.fraction_model,
+                product_id     = product_id,
+                name           = name,
+                pack           = pack,
+                iva_rate       = iva_rate,
+                on_confirm     = lambda: (self.refresh_sale_table(), self.update_total())
+            )
+    
+        frac_btn = ctk.CTkButton(
+            btn_frame,
+            text=f"⚖️  Por fracción\n{total_frac} {unit} disponibles",
+            width=200, height=60,
+            font=ctk.CTkFont(size=12, weight="bold"),
+            fg_color="#388E3C" if total_frac > 0 else "#BDBDBD",
+            hover_color="#2E7D32" if total_frac > 0 else "#BDBDBD",
+            state="normal" if total_frac > 0 else "disabled",
+            command=sell_fraction
+        )
+        frac_btn.grid(row=0, column=1, padx=10)
+    
+        # Hint si no hay bolsas cerradas
+        if closed == 0:
+            ctk.CTkLabel(
+                card,
+                text="⚠️ No hay bolsas cerradas disponibles",
+                font=ctk.CTkFont(size=11),
+                text_color="#E65100"
+            ).pack(pady=(10, 0))
+    
+        # Cancelar
+        ctk.CTkButton(
+            card,
+            text="Cancelar",
+            width=120, height=30,
+            font=ctk.CTkFont(size=11, weight="bold"),
+            fg_color="#757575",
+            hover_color="#616161",
+            command=mode_win.destroy
+        ).pack(pady=(12, 4))
+    
+        # Atajos de teclado: 1 = bolsa, 2 = fracción
+        if closed > 0:
+            mode_win.bind("1", lambda e: whole_btn.invoke())
+        if total_frac > 0:
+            mode_win.bind("2", lambda e: frac_btn.invoke())
+        mode_win.bind("<Escape>", lambda e: mode_win.destroy())
+    
+    
+    def _open_qty_dialog(self, product_id, name, pack, price, stock):
+        """
+        Ventana de cantidad para venta normal (bolsa completa o producto no fraccionado).
+        Extraída a método propio para poder ser llamada desde dos lugares.
+        """
+        qty_win    = ctk.CTkToplevel(self.frame)
+        card_frame = ctk.CTkFrame(qty_win, fg_color="white", corner_radius=20)
+        card_frame.pack(fill="both", expand=True, padx=20, pady=20)
+        qty_win.title("Agregar Producto")
+        qty_win.transient(self.frame)
+        qty_win.grab_set()
+        center_window(qty_win, 420, 270)
+    
+        ctk.CTkLabel(
+            card_frame,
+            text=f"AGREGAR: \n {name} {pack}",
+            font=ctk.CTkFont(size=12, weight="bold")
+        ).pack(pady=(15, 5))
+    
+        ctk.CTkLabel(
+            card_frame,
+            text=f"Stock disponible: {stock}",
+            font=ctk.CTkFont(size=13)
+        ).pack()
+    
+        qty_var   = tk.StringVar(value="1")
+        qty_entry = ctk.CTkEntry(card_frame, textvariable=qty_var,
+                                width=80, height=35, justify="center")
+        qty_entry.pack(pady=10)
+        qty_entry.focus()
+        qty_entry.icursor("end")
+    
+        def confirm_add():
+            self.controller.add_product_to_sale(product_id, name, pack, price, stock, qty_var.get())
+            self.refresh_sale_table()
+            self.update_total()
+            qty_win.destroy()
+    
+        confirm_btn = ctk.CTkButton(
+            card_frame, text="Agregar", width=120, height=35,
+            fg_color="#4CAF50", hover_color="#45a049",
+            command=confirm_add
+        )
+        confirm_btn.pack(pady=(10, 5))
+        qty_win.bind("<Return>", lambda e: confirm_btn.invoke())
+    
+        ctk.CTkButton(
+            card_frame, text="Cancelar", width=120, height=35,
+            fg_color="#757575", hover_color="#616161",
+            command=qty_win.destroy
+        ).pack(pady=(0, 10))
 
     def export_sales_day(self, rows, fecha_desde, fecha_hasta):
         pdf = DailySalesReportService().generate(
@@ -291,19 +441,33 @@ class SalesView:
     ## -- Refresca la tabla de productos en la venta -- ##
     def refresh_sale_table(self):
         self.sale_tree.delete(*self.sale_tree.get_children())
-        
+
         for item in self.items_in_sale:
-            # Puede tener 4 o 5 elementos (con o sin observaciones)
-            if len(item) == 6:
-                pid, name, pack, qty, price, observations = item
-                # Mostrar nombre con preview de observaciones
+            pid, name, pack, qty, price = item[0], item[1], item[2], item[3], item[4]
+
+            if len(item) == 7 and item[6] is True:
+                # Fraccionado: (pid, name, pack, qty, price, unit_label, True)
+                unit_label   = item[5].replace("FRAC:", "")          # ej. "3 KG"
+                display_name = f"⚖️ {name}"
+                display_qty  = unit_label        # columna Cant. muestra "3 KG"
+                display_pack = pack
+            elif len(item) == 6:
+                # Honorarios: (pid, name, pack, qty, price, observations)
+                observations = item[5]
                 display_name = f"{name} - {observations[:40]}..." if len(observations) > 40 else f"{name} - {observations}"
+                display_qty  = qty
+                display_pack = pack
             else:
-                pid, name, pack, qty, price = item
+                # Normal
                 display_name = name if name else self._get_product_name(pid)
-            
+                display_qty  = qty
+                display_pack = pack
+
             subtotal = norm_to_2_dec(price * qty)
-            self.sale_tree.insert("", "end", values=(pid, display_name, pack, qty, format_currency(price), format_currency(subtotal)))
+            self.sale_tree.insert("", "end", values=(
+                pid, display_name, display_pack,
+                display_qty, format_currency(price), format_currency(subtotal)
+            ))
 
     def _get_product_name(self, pid):
         """Helper para obtener nombre del producto por ID"""
@@ -315,16 +479,13 @@ class SalesView:
 
     ## -- Actualiza el monto total en la tabla de productos en la venta -- ##
     def update_total(self):
-        """Calcular total manejando items con y sin observaciones"""
+        """qty y price siempre están en posiciones 3 y 4 en todos los formatos."""
         total = Decimal('0.00')
         for item in self.items_in_sale:
-            if len(item) == 6:  # Tiene observaciones (honorarios)
-                _, _, _, qty, price, _ = item
-            else:  # Producto normal
-                _, _, _, qty, price = item
+            qty   = item[3]
+            price = item[4]
+            total += Decimal(str(qty)) * Decimal(str(price))
 
-            total += qty * price
-        
         total = norm_to_2_dec(total)
         self.total_var.set(f"TOTAL: ${format_currency(total)}")
 
@@ -341,16 +502,13 @@ class SalesView:
     ## -- Elimina un producto seleccionado en la tabla de productos en la venta -- ##
     def delete_selected_product(self):
         try:
-            
             selected_item = self.sale_tree.selection()[0]
             if not self.ask_confirmation("¿Eliminar artículo?"):
                 return
-            
-            pid = self.sale_tree.item(selected_item)["values"][0]
+
+            row_index = self.sale_tree.index(selected_item)
             self.sale_tree.delete(selected_item)
-            self.items_in_sale = [
-                item for item in self.items_in_sale if item[0] != pid
-            ]
+            del self.items_in_sale[row_index]
             self.update_total()
         except IndexError:
             messagebox.showwarning("Advertencia", "Seleccione un producto para eliminar.")
@@ -359,7 +517,13 @@ class SalesView:
         """Cargar productos disponibles y guardar en caché"""
         try:
             products = self.stock_model.get_all_products()
-            self.all_products = [p for p in products if p[12] > 0]  # Solo productos con stock
+            def has_stock(p):
+                if self.fraction_model and self.fraction_model.is_fractional(p[0]):
+                    info = self.fraction_model.get_available_stock_info(p[0])
+                    return info.get('total_units', 0) > 0
+                return p[12] > 0
+    
+            self.all_products = [p for p in products if has_stock(p)]
             
             # Mostrar todos los productos inicialmente
             self.refresh_product_tree(self.all_products)
@@ -370,17 +534,30 @@ class SalesView:
     def refresh_product_tree(self, products):
         """Actualizar la tabla de productos con la lista proporcionada"""
         self.product_tree.delete(*self.product_tree.get_children())
-        
+
         for p in products:
-            (pid, name, pack, _, _, _, _, _, 
+            (pid, name, pack, _, _, _, _, _,
             _, price_with_iva, _, _, qty) = p
-            
-            if qty > 0:  # Solo mostrar productos con stock
-                self.product_tree.insert(
-                    "", 
-                    "end", 
-                    values=(pid, name, pack, format_currency(price_with_iva), qty)
-                )
+
+            is_frac = self.fraction_model and self.fraction_model.is_fractional(pid)
+
+            if is_frac:
+                info = self.fraction_model.get_available_stock_info(pid)
+                total_units = info.get('total_units', 0)
+                if total_units <= 0:
+                    continue   # sin stock fraccionado ni cerrado → no mostrar
+                stock_display = f"{total_units} {info.get('unit', '')}"
+                name_display  = f"⚖️ {name}"
+            else:
+                if qty <= 0:
+                    continue   # sin stock → no mostrar
+                stock_display = qty
+                name_display  = name
+
+            self.product_tree.insert(
+                "", "end",
+                values=(pid, name_display, pack, format_currency(price_with_iva), stock_display)
+            )
 
     def show_sale_confirmation(self):
         """Mostrar ventana de confirmación con preview de la venta"""
@@ -486,25 +663,37 @@ class SalesView:
         # Agregar productos (dentro del método show_sale_confirmation)
         total = 0
         for item in self.items_in_sale:
-            # Manejar items con y sin observaciones
-            if len(item) == 6:
-                pid, name, pack, qty, price, observations = item
+            pid   = item[0]
+            name  = item[1]
+            pack  = item[2]
+            qty   = item[3]
+            price = item[4]
+
+            if len(item) == 7 and item[6] is True:
+                # Fraccionado
+                unit_label   = item[5]
+                product_name = f"⚖️ {name}  ({unit_label})"
+                qty_display  = unit_label
+            elif len(item) == 6:
+                # Honorarios
+                observations = item[5]
                 product_name = f"{name}\n({observations[:50]}...)" if len(observations) > 50 else f"{name}\n({observations})"
+                qty_display  = qty
             else:
-                pid, name, pack, qty, price = item
                 product_name = name
+                qty_display  = qty
                 if not product_name:
                     for tree_item in self.product_tree.get_children():
                         values = self.product_tree.item(tree_item)["values"]
                         if values[0] == pid:
                             product_name = values[1]
                             break
-            
+
             subtotal = norm_to_2_dec(price * qty)
             total += subtotal
-            
+
             preview_tree.insert("", "end", values=(
-                qty,
+                qty_display,
                 product_name,
                 pack,
                 f"${format_currency(price)}",
@@ -519,8 +708,11 @@ class SalesView:
         totals_frame = ctk.CTkFrame(scroll_frame, fg_color="#e8f5e9")
         totals_frame.pack(padx=15, pady=5, fill="x")
 
-        # Cantidad total de items
-        total_items = sum(item[3] for item in self.items_in_sale)
+        # Cantidad total de items (fraccionados cuentan como 1 bolsa c/u)
+        total_items = sum(
+            1 if (len(item) == 7 and item[6] is True) else item[3]
+            for item in self.items_in_sale
+        )
 
         ctk.CTkLabel(
             totals_frame,
@@ -533,10 +725,9 @@ class SalesView:
         iva_breakdown = {}  # { "21.0": Decimal, ... }
 
         for item in self.items_in_sale:
-            if len(item) == 6:
-                pid, _, _, qty, price, _ = item
-            else:
-                pid, _, _, qty, price = item
+            pid   = item[0]
+            qty   = item[3]
+            price = item[4]
 
             qty_d   = Decimal(str(qty))
             price_d = Decimal(str(price))
@@ -1187,9 +1378,9 @@ class SalesView:
         
         try:
             return {
-                'IVA': string_to_2_dec(self.retencion_iva_var.get() or string_to_2_dec("0")),
-                'IIBB': string_to_2_dec(self.retencion_iibb_var.get() or string_to_2_dec("0")),
-                'GAN': string_to_2_dec(self.retencion_ganancias_var.get() or string_to_2_dec("0")),
+                'IVA': string_to_2_dec(self.retencion_iva_var.get() or "0"),
+                'IIBB': string_to_2_dec(self.retencion_iibb_var.get() or "0"),
+                'GAN': string_to_2_dec(self.retencion_ganancias_var.get() or "0"),
                 'certificado': self.certificado_var.get().strip()
             }
         except ValueError:

@@ -1,9 +1,12 @@
+import logging
 import tkinter as tk
 import customtkinter as ctk
 from tkinter import ttk
 from decimal import Decimal
 from utils.view_helpers import close_win, show_warning, ask_confirmation
 from utils.utils import format_currency, clean_currency_input
+
+logger = logging.getLogger(__name__)
 
 
 class PaymentForm:
@@ -35,6 +38,7 @@ class PaymentForm:
         self.destinatation_var = tk.StringVar()
         self.bank_var         = tk.StringVar()
         self.check_num_var    = tk.StringVar()
+        self.check_amnt_var   = tk.StringVar()
 
         self._credit_applied  = Decimal("0")
         self._credit_amount   = Decimal("0")
@@ -43,7 +47,6 @@ class PaymentForm:
         if purchase_id is not None and amount is not None:
             self.purchase_id = tk.StringVar(value=purchase_id)
             cleaned = clean_currency_input(amount)
-            print(f"amount: {amount}, cleaned: {cleaned}, type: {type(cleaned)}")
             self.amount_var.set(cleaned)
             self._deuda_original = Decimal(str(cleaned))
         else:
@@ -90,7 +93,7 @@ class PaymentForm:
                     credit_source.get_credit_amount_of_supplier(supplier_id) or "0"
                 ))
             except Exception as e:
-                print(f"[PaymentForm] Error leyendo saldo a favor: {e}")
+                logger.error("Error leyendo saldo a favor: %s", e)
 
         # ── Aplicar crédito automáticamente ───────────────────────
         # credit_applied = min(crédito, deuda)  → puede cubrir todo o solo parte
@@ -144,10 +147,10 @@ class PaymentForm:
             banner = ctk.CTkFrame(W, fg_color="#E8F5E9", corner_radius=8)
             banner.grid(row=row, column=0, columnspan=2, padx=20, pady=(4, 2), sticky="ew"); row += 1
             if self._credit_applied >= self._deuda_original:
-                txt = f"✅  Saldo a favor cubre el total: $ {self._credit_applied:,.2f}"
+                txt = f"✅  Saldo a favor cubre el total: $ {self._credit_applied}"
             else:
-                txt = (f"✅  Saldo a favor aplicado: $ {self._credit_applied:,.2f}"
-                       f"  —  Resta pagar: $ {self._deuda_original - self._credit_applied:,.2f}")
+                txt = (f"✅  Saldo a favor aplicado: $ {self._credit_applied}"
+                       f"  —  Resta pagar: $ {self._deuda_original - self._credit_applied}")
             ctk.CTkLabel(banner, text=txt,
                          font=ctk.CTkFont(size=12, weight="bold"),
                          text_color="#2E7D32").pack(side="left", padx=10, pady=6)
@@ -157,8 +160,9 @@ class PaymentForm:
         if resto > Decimal("0"):
             ctk.CTkLabel(W, text="Monto a pagar:", font=FL).grid(
                 row=row, column=0, padx=(20,8), pady=5, sticky="e")
-            ctk.CTkEntry(W, textvariable=self.amount_var, width=EW, height=EH,
-                         font=FE).grid(row=row, column=1, padx=(0,20), pady=5, sticky="w"); row += 1
+            self.amount_entry = ctk.CTkEntry(W, textvariable=self.amount_var, width=EW, height=EH,
+                         font=FE)
+            self.amount_entry.grid(row=row, column=1, padx=(0,20), pady=5, sticky="w"); row += 1
 
         # Nro recibo
         ctk.CTkLabel(W, text="Nº de recibo:", font=FL).grid(row=row, column=0, padx=(20,8), pady=5, sticky="e")
@@ -176,7 +180,7 @@ class PaymentForm:
             ctk.CTkLabel(W, text="Método de Pago:", font=FL).grid(
                 row=row, column=0, padx=(20,8), pady=5, sticky="e")
             self.method_combo = ctk.CTkComboBox(
-                W, values=["EFECTIVO", "TRANSFERENCIA", "CHEQUE"],
+                W, values=["EFECTIVO", "TRANSFERENCIA", "CHEQUE", "ECHEQ"],
                 variable=self.method_var, width=EW, height=EH,
                 font=FE, state="readonly",
                 command=lambda value: self.render_dynamic_fields(parent, W)
@@ -263,15 +267,24 @@ class PaymentForm:
         self.check_num_lbl    = ctk.CTkLabel(self.dynamic_frame, text="Nº de cheque:", font=ctk.CTkFont(size=12, weight="bold"))
         self.check_num_entry  = ctk.CTkEntry(self.dynamic_frame, textvariable=self.check_num_var, width=280, height=32,
                                               state="readonly", font=ctk.CTkFont(size=12))
+        self.check_amnt_lbl    = ctk.CTkLabel(self.dynamic_frame, text="Monto a entregar:", font=ctk.CTkFont(size=12, weight="bold"))
+        self.check_amnt_entry  = ctk.CTkEntry(self.dynamic_frame, textvariable=self.check_amnt_var, width=280, height=32,
+                                              state="readonly", font=ctk.CTkFont(size=12))
 
     def render_dynamic_fields(self, parent, card_widget):
         method = self.method_var.get()
-        if method not in ("EFECTIVO", "TRANSFERENCIA", "CHEQUE"):
+        if method not in ("EFECTIVO", "TRANSFERENCIA", "CHEQUE", "ECHEQ"):
             return
 
         self.clear_dynamic_frame()
         self._selected_check = None
         self.excedente_var.set("")
+
+        if hasattr(self, 'amount_entry'):
+            self.amount_entry.configure(state='normal')
+            remaining = self._deuda_original - self._credit_applied
+            if remaining > Decimal("0"):
+                self.amount_var.set(str(remaining))
 
         if method == "TRANSFERENCIA":
             self.op_num_lbl.grid(row=0, column=0, padx=(20,8), pady=4, sticky="e")
@@ -283,8 +296,8 @@ class PaymentForm:
             self.render_buttons(3)
             self._resize_window(self._base_h + 150)
 
-        elif method == "CHEQUE":
-            self._load_cartera()
+        elif method in ("CHEQUE", "ECHEQ"):
+            self._load_cartera(check_type=method)
             self.cartera_lbl.grid(row=0, column=0, columnspan=2, padx=20, pady=(4, 2), sticky="w")
             self.cartera_frame.grid(row=1, column=0, columnspan=2, padx=20, pady=(0, 4), sticky="ew")
             self.excedente_lbl.grid(row=2, column=0, columnspan=2, padx=20, pady=(0, 2), sticky="w")
@@ -292,7 +305,9 @@ class PaymentForm:
             self.check_bank_entry.grid(row=3, column=1, padx=(0,20), pady=4, sticky="w")
             self.check_num_lbl.grid(row=4, column=0, padx=(20,8), pady=4, sticky="e")
             self.check_num_entry.grid(row=4, column=1, padx=(0,20), pady=4, sticky="w")
-            self.render_buttons(5)
+            self.check_amnt_lbl.grid(row=5, column=0, padx=(20,8), pady=4, sticky="e")
+            self.check_amnt_entry.grid(row=5, column=1, padx=(0,20), pady=4, sticky="w")
+            self.render_buttons(6)
             self._resize_window(self._base_h + 300)
 
         elif method == "EFECTIVO":
@@ -316,12 +331,12 @@ class PaymentForm:
     # ──────────────────────────────────────────────────────────────
     # CARTERA DE CHEQUES
     # ──────────────────────────────────────────────────────────────
-    def _load_cartera(self):
+    def _load_cartera(self, check_type=None):
         for row in self.cartera_table.get_children():
             self.cartera_table.delete(row)
         if not self.checks_model:
             return
-        checks = self.checks_model.get_checks_en_cartera()
+        checks = self.checks_model.get_checks_en_cartera(check_type=check_type)
         for c in checks:
             try:
                 from datetime import datetime as _dt
@@ -343,6 +358,17 @@ class PaymentForm:
                                 "bank": bank, "amount": check_amount}
         self.bank_var.set(bank)
         self.check_num_var.set(str(check_number))
+        self.check_amnt_var.set(check_amount)
+
+        # If the check is smaller than the debt, apply only what the check covers.
+        # If the check exceeds the debt, leave amount_var at the debt — the excess
+        # is registered as saldo a favor by the controller.
+
+        to_set = min(check_amount, self._deuda_original)
+        self.amount_var.set(str(to_set))
+
+        if hasattr(self, 'amount_entry'):
+            self.amount_entry.configure(state='readonly')
         self._check_excedente(check_amount)
 
     def _check_excedente(self, check_amount):
@@ -394,6 +420,22 @@ class PaymentForm:
         method = self.method_var.get()
         credito_cubre_todo = self._credit_applied >= self._deuda_original and self._deuda_original > Decimal("0")
 
+        # For non-check methods, warn and cap the amount to the remaining debt
+        if not credito_cubre_todo and method and method not in ("CHEQUE", "ECHEQ"):
+            try:
+                entered = Decimal(amount or "0")
+                max_amount = self._deuda_original - self._credit_applied
+                if max_amount > Decimal("0") and entered > max_amount:
+                    show_warning(
+                        f"El monto ingresado (${entered}) supera la deuda a pagar (${max_amount}).\n"
+                        f"Se ajustó automáticamente al monto correcto."
+                    )
+                    self.amount_var.set(str(max_amount))
+                    amount = str(max_amount)
+                    return
+            except Exception:
+                pass
+
         if not credito_cubre_todo:
             if not method:
                 show_warning("Por favor seleccioná un método de pago.")
@@ -405,7 +447,7 @@ class PaymentForm:
         resumen = f"Proveedor (CUIT): {self.supplier_cuit_var.get()}\n"
 
         if self._credit_applied > Decimal("0"):
-            resumen += f"Saldo a favor aplicado: $ {self._credit_applied:,.2f}\n"
+            resumen += f"Saldo a favor aplicado: $ {self._credit_applied}\n"
 
         if not credito_cubre_todo:
             resumen += (
@@ -419,7 +461,7 @@ class PaymentForm:
                     f"CBU/Alias origen:  {self.origin_var.get() or '—'}\n"
                     f"CBU/Alias destino: {self.destinatation_var.get() or '—'}\n"
                 )
-            elif method == "CHEQUE":
+            elif method in ("CHEQUE", "ECHEQ"):
                 resumen += (
                     f"Banco:             {self.bank_var.get() or '—'}\n"
                     f"N° Cheque:         {self.check_num_var.get() or '—'}\n"
