@@ -1,8 +1,8 @@
 {
-  "version": "1.0.3",
+  "version": "1.0.4",
   "release_date": "2026-05-23",
-  "release_notes": "Fix iva condition inconsistencies",
-  "installer_url": "https://github.com/marcelojuarez/veterinary-stock-management/releases/download/v1.0.3/StockManagerSetup_v1.0.3.exe",
-  "checksum_sha256": "99fc2b205e396e741690eb160dfb91695f7ae02c2486af96b4581d64d538694e",
+  "release_notes": "Fix problems when downloading and installing new updates",
+  "installer_url": "https://github.com/marcelojuarez/veterinary-stock-management/releases/download/v1.0.4/StockManagerSetup_v1.0.4.exe",
+  "checksum_sha256": "882c315b24d095a641da2c4377c443cd7d1fad3068de475663cd0a873a3fddd0",
   "mandatory": false
 }
