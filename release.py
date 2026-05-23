@@ -76,7 +76,7 @@ def main():
 
     # ── 2. Compilar con PyInstaller ───────────────────────────────────────────
     run([
-        "pyinstaller",
+        sys.executable, "-m", "PyInstaller",
         "--onefile",
         "--windowed",
         f"--name={APP_NAME}",
