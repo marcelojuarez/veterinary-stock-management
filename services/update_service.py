@@ -5,7 +5,6 @@ y gestiona la descarga e instalación silenciosa.
 """
 
 import os
-import sys
 import json
 import logging
 import hashlib
@@ -188,35 +187,37 @@ class UpdateService:
 
     def install_update(self, installer_path: Path):
         """
-        Lanza un .bat intermediario que espera a que este proceso muera
-        y luego ejecuta el instalador. Necesario porque Windows mantiene
-        el file lock del .exe hasta que el proceso termina completamente;
-        lanzar el instalador directamente causa Access Denied (código 5).
-        Esta función NO retorna: el proceso actual termina.
+        Lanza un VBScript con wscript.exe que espera 5 s a que este proceso
+        libere el file lock del .exe y luego ejecuta el instalador en silencio.
+        /NOCLOSEAPPLICATIONS evita el diálogo de Inno Setup (CloseApplications=yes
+        es el default en IS6). os._exit(0) mata el proceso instantáneamente,
+        sin esperar el cleanup de tkinter.
+        Esta función NO retorna.
         """
         if not installer_path.exists():
             logger.error("No se encontró el instalador en %s", installer_path)
             return
 
-        logger.info("Preparando actualización silenciosa desde %s", installer_path)
+        logger.info("Preparando actualización desde %s", installer_path)
 
-        bat_content = (
-            "@echo off\n"
-            "timeout /t 4 /nobreak > NUL\n"
-            f'"{installer_path}" /SILENT /RESTARTAPPLICATIONS\n'
-            'del "%~f0"\n'
+        # Chr(34) = comilla doble en VBScript
+        vbs_content = (
+            'Set sh = CreateObject("WScript.Shell")\n'
+            "WScript.Sleep 5000\n"
+            f'sh.Run Chr(34) & "{installer_path}" & Chr(34)'
+            ' & " /SILENT /NOCLOSEAPPLICATIONS /RESTARTAPPLICATIONS", 0, False\n'
         )
-        bat_path = Path(tempfile.gettempdir()) / "stockmanager_update.bat"
-        bat_path.write_text(bat_content, encoding="ascii")
+        vbs_path = Path(tempfile.gettempdir()) / "stockmanager_update.vbs"
+        vbs_path.write_text(vbs_content, encoding="ascii")
 
         subprocess.Popen(
-            ["cmd", "/c", str(bat_path)],
+            ["wscript.exe", str(vbs_path)],
             creationflags=subprocess.DETACHED_PROCESS
             | subprocess.CREATE_NEW_PROCESS_GROUP,
         )
 
         logger.info("Cerrando aplicación para completar la instalación...")
-        sys.exit(0)
+        os._exit(0)
 
     # ── Helpers ────────────────────────────────────────────────────────────────
 
