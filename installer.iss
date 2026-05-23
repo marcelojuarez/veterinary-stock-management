@@ -28,8 +28,6 @@ OutputBaseFilename={#OutputBaseFilename}
 Compression=lzma2
 SolidCompression=yes
 WizardStyle=modern
-CloseApplications=yes          ; Cierra la app si está corriendo
-RestartApplications=yes        ; La reactiva luego de instalar
 
 [Languages]
 Name: "spanish"; MessagesFile: "compiler:Languages\Spanish.isl"
