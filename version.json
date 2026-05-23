@@ -1,8 +1,8 @@
 {
-  "version": "0.0.0",
-  "release_date": "",
-  "release_notes": "Pendiente de primer release oficial.",
-  "installer_url": "",
-  "checksum_sha256": "",
+  "version": "1.0.0",
+  "release_date": "2026-05-22",
+  "release_notes": "Primer release oficial",
+  "installer_url": "https://github.com/marcelojuarez/veterinary-stock-management/releases/download/v1.0.0/VeterinariaAppSetup_v1.0.0.exe",
+  "checksum_sha256": "ba161383397a471e245d123847b3b0617269bc69e7e49de80365e7043cec15a9",
   "mandatory": false
 }
