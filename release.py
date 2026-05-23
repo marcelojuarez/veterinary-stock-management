@@ -135,6 +135,18 @@ def main():
     # ── 6. Git commit + push + GitHub Release ─────────────────────────────────
     run(["git", "add", "version.json", "local_version.json"])
     run(["git", "commit", "-m", f"release: v{new_version}"])
+
+    # Si el tag ya existe (re-release), borrarlo local y remotamente
+    tag_exists = subprocess.run(
+        ["git", "tag", "-l", tag], capture_output=True, text=True
+    ).stdout.strip() == tag
+
+    if tag_exists:
+        print(f"⚠️  Tag {tag} ya existe — sobreescribiendo release...")
+        subprocess.run(["gh", "release", "delete", tag, "--yes"], check=False)
+        subprocess.run(["git", "tag", "-d", tag], check=False)
+        subprocess.run(["git", "push", "origin", f":refs/tags/{tag}"], check=False)
+
     run(["git", "tag", tag])
     run(["git", "push", "origin", "main"])
     run(["git", "push", "origin", tag])
