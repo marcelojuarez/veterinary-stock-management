@@ -17,17 +17,19 @@ def send_to_printer(file_path):
 
     # --- LÓGICA PARA WINDOWS (Producción) ---
     if sys.platform == "win32":
-        sumatra = r"C:\Program Files\SumatraPDF\SumatraPDF.exe"
+        sumatra_candidates = [
+            r"C:\Program Files\SumatraPDF\SumatraPDF.exe",
+            r"C:\Program Files (x86)\SumatraPDF\SumatraPDF.exe",
+            os.path.join(os.environ.get("LOCALAPPDATA", ""), "SumatraPDF", "SumatraPDF.exe"),
+        ]
+        sumatra = next((p for p in sumatra_candidates if os.path.exists(p)), None)
         try:
-            if os.path.exists(sumatra):
-                # Impresión silenciosa y rápida
+            if sumatra:
                 subprocess.Popen([sumatra, "-print-to-default", "-silent", file_path])
-                return True
             else:
-                # Fallback si no instalaron Sumatra
-                import win32api
-                win32api.ShellExecute(0, "print", file_path, None, ".", 0)
-                return True
+                # Fallback nativo — no requiere dependencias externas
+                os.startfile(file_path, "print")
+            return True
         except Exception as e:
             logger.error("Error de impresión en Windows: %s", e)
             return False
