@@ -1,8 +1,8 @@
 {
-  "version": "1.0.4",
+  "version": "1.0.5",
   "release_date": "2026-05-23",
-  "release_notes": "Fix problems when downloading and installing new updates",
-  "installer_url": "https://github.com/marcelojuarez/veterinary-stock-management/releases/download/v1.0.4/StockManagerSetup_v1.0.4.exe",
-  "checksum_sha256": "882c315b24d095a641da2c4377c443cd7d1fad3068de475663cd0a873a3fddd0",
+  "release_notes": "Fix problems when downloading and installing new updates in Windows",
+  "installer_url": "https://github.com/marcelojuarez/veterinary-stock-management/releases/download/v1.0.5/StockManagerSetup_v1.0.5.exe",
+  "checksum_sha256": "8c6a1ddf6ea98dd0e9f42ef00c4901d0e3a941092f087d3691aa95336e9dcc46",
   "mandatory": false
 }
