@@ -29,7 +29,7 @@ from pathlib import Path
 # ── Configuración ──────────────────────────────────────────────────────────────
 REPO_OWNER = "marcelojuarez"
 REPO_NAME = "veterinary-stock-management"
-APP_NAME = "VeterinariaApp"
+APP_NAME = "StockManager"
 MAIN_SCRIPT = "main.py"
 INNO_SCRIPT = "installer.iss"
 ISCC_PATH = r"C:\Program Files (x86)\Inno Setup 6\ISCC.exe"

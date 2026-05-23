@@ -329,7 +329,7 @@ class App():
                     "Advertencia — Base de datos",
                     "Se detectaron problemas de integridad en la base de datos.\n\n"
                     "Se recomienda restaurar un backup reciente.\n"
-                    "Consulte el log en logs/app.log para más detalles."
+                    "Consulte el archivo de log para más detalles."
                 )
 
             self.stock_controller.load_products()

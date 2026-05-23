@@ -1,10 +1,10 @@
-; installer.iss — Script de Inno Setup para VeterinariaApp
+; installer.iss — Script de Inno Setup para StockManager
 ; Compilar con: ISCC.exe installer.iss /DMyAppVersion=1.0.0
 
-#define MyAppName "VeterinariaApp"
+#define MyAppName "StockManager"
 #define MyAppPublisher "Assemblers"
 #define MyAppURL "https://github.com/marcelojuarez/veterinary-stock-management/"
-#define MyAppExeName "VeterinariaApp.exe"
+#define MyAppExeName "StockManager.exe"
 
 ; La versión se pasa desde release.py con /DMyAppVersion=X.Y.Z
 #ifndef MyAppVersion
@@ -12,7 +12,7 @@
 #endif
 
 #ifndef OutputBaseFilename
-  #define OutputBaseFilename "VeterinariaAppSetup_v{#MyAppVersion}"
+  #define OutputBaseFilename "StockManagerSetup_v{#MyAppVersion}"
 #endif
 
 [Setup]

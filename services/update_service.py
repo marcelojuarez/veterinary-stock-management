@@ -88,7 +88,7 @@ class UpdateService:
         try:
             req = urllib.request.Request(
                 VERSION_JSON_URL,
-                headers={"Cache-Control": "no-cache", "User-Agent": "VetApp-Updater/1.0"},
+                headers={"Cache-Control": "no-cache", "User-Agent": "StockManager-Updater/1.0"},
             )
             with urllib.request.urlopen(req, timeout=self.TIMEOUT_SECONDS) as resp:
                 data = json.loads(resp.read().decode("utf-8"))
@@ -127,13 +127,13 @@ class UpdateService:
         Retorna la ruta al archivo descargado o None si falló/canceló.
         """
         self._cancel_download.clear()
-        dest = Path(tempfile.gettempdir()) / f"VetSetup_{update_info.latest_version}.exe"
+        dest = Path(tempfile.gettempdir()) / f"StockManagerSetup_{update_info.latest_version}.exe"
 
         logger.info("Descargando instalador desde %s", update_info.installer_url)
         try:
             req = urllib.request.Request(
                 update_info.installer_url,
-                headers={"User-Agent": "VetApp-Updater/1.0"},
+                headers={"User-Agent": "StockManager-Updater/1.0"},
             )
             with urllib.request.urlopen(req, timeout=60) as resp:
                 total = int(resp.headers.get("Content-Length", 0))
