@@ -15,11 +15,18 @@ from pathlib import Path
 import zipfile
 import logging
 
-Path("logs").mkdir(exist_ok=True)
+def _get_writable_logs_dir() -> Path:
+    import sys as _sys
+    if getattr(_sys, 'frozen', False):
+        return Path(os.environ.get('LOCALAPPDATA', '.')) / 'StockManager' / 'logs'
+    return Path(__file__).parent.parent / 'logs'
 
-# Configurar logging
+_logs_dir = _get_writable_logs_dir()
+_logs_dir.mkdir(parents=True, exist_ok=True)
+
+# Configurar logging (no-op si main.py ya lo configuró primero)
 logging.basicConfig(
-    filename='logs/backup.log',
+    filename=str(_logs_dir / 'backup.log'),
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s'
 )

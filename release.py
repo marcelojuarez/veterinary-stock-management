@@ -80,6 +80,7 @@ def main():
         "--onefile",
         "--windowed",
         f"--name={APP_NAME}",
+        "--icon=assets/logo.ico",
         "--add-data=local_version.json;.",
         "--add-data=db;db",
         "--add-data=assets;assets",

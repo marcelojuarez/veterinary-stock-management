@@ -3,23 +3,30 @@ Sistema de Gestión Veterinaria - Punto de entrada principal
 """
 import logging
 import os
+import sys
 
-from views.main_view import App
-from services.backup_service import initialize_backup_system
-from config.settings import DB_PATH
+# ── Logging (must run before any import that uses logging) ────────────────────
+def _get_writable_logs_dir():
+    if getattr(sys, 'frozen', False):
+        return os.path.join(os.environ.get('LOCALAPPDATA', '.'), 'StockManager', 'logs')
+    return os.path.join(os.path.dirname(os.path.abspath(__file__)), 'logs')
 
-# ── Logging ────────────────────────────────────────────────────────────────────
-os.makedirs("logs", exist_ok=True)
+_logs_dir = _get_writable_logs_dir()
+os.makedirs(_logs_dir, exist_ok=True)
 
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     handlers=[
-        logging.FileHandler("logs/app.log", encoding="utf-8"),
+        logging.FileHandler(os.path.join(_logs_dir, "app.log"), encoding="utf-8"),
         logging.StreamHandler(),
     ],
 )
 logger = logging.getLogger(__name__)
+
+from views.main_view import App
+from services.backup_service import initialize_backup_system
+from config.settings import DB_PATH
 
 
 def main():
