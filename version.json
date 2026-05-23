@@ -1,8 +1,8 @@
 {
   "version": "1.0.6",
   "release_date": "2026-05-23",
-  "release_notes": "Fix automatic reopen at downloading new updates",
+  "release_notes": "Fix actualizacion automatica",
   "installer_url": "https://github.com/marcelojuarez/veterinary-stock-management/releases/download/v1.0.6/StockManagerSetup_v1.0.6.exe",
-  "checksum_sha256": "c37ea4b73eae90171ad598197fde965d4ca75d79a2684c45aefe7810dee8422f",
+  "checksum_sha256": "975ea0eeaae4be74d28661f6d595559b567ca2bb27a86b7d56ba49bdce0d3c27",
   "mandatory": false
 }
