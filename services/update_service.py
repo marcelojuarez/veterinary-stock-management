@@ -212,7 +212,7 @@ class UpdateService:
             'Next\n'
             'WScript.Sleep 1000\n'
             f'sh.Run Chr(34) & "{installer_path}" & Chr(34)'
-            ' & " /SILENT /NOCLOSEAPPLICATIONS /RESTARTAPPLICATIONS", 0, False\n'
+            ' & " /SILENT /NOCLOSEAPPLICATIONS", 0, False\n'
         )
         vbs_path = Path(tempfile.gettempdir()) / "stockmanager_update.vbs"
         vbs_path.write_text(vbs_content, encoding="ascii")
