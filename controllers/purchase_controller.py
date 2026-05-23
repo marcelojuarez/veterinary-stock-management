@@ -85,9 +85,10 @@ class PurchaseController():
                 self.event_bus.publish('refresh_supplier_table', None)
                 show_success('Compra confirmada')
 
-                if messagebox.askyesno("Imprimir", "¿Desea imprimir el comprobante de ingreso de stock?"):                    
+                if messagebox.askyesno("Imprimir", "¿Desea imprimir el comprobante de ingreso de stock?"):
                     pdf_path = PurchaseDetail(self.supplier_model).generate_purchase_detail(purchase_id)
-                    send_to_printer(pdf_path)
+                    if not send_to_printer(pdf_path):
+                        show_error("No se pudo enviar a la impresora. Verifique la conexión.")
                     
                 return True
 

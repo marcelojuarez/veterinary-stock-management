@@ -38,6 +38,7 @@ class PaymentForm:
         self.destinatation_var = tk.StringVar()
         self.bank_var         = tk.StringVar()
         self.check_num_var    = tk.StringVar()
+        self.check_amnt_var   = tk.StringVar()
 
         self._credit_applied  = Decimal("0")
         self._credit_amount   = Decimal("0")
@@ -266,6 +267,9 @@ class PaymentForm:
         self.check_num_lbl    = ctk.CTkLabel(self.dynamic_frame, text="Nº de cheque:", font=ctk.CTkFont(size=12, weight="bold"))
         self.check_num_entry  = ctk.CTkEntry(self.dynamic_frame, textvariable=self.check_num_var, width=280, height=32,
                                               state="readonly", font=ctk.CTkFont(size=12))
+        self.check_amnt_lbl    = ctk.CTkLabel(self.dynamic_frame, text="Monto a entregar:", font=ctk.CTkFont(size=12, weight="bold"))
+        self.check_amnt_entry  = ctk.CTkEntry(self.dynamic_frame, textvariable=self.check_amnt_var, width=280, height=32,
+                                              state="readonly", font=ctk.CTkFont(size=12))
 
     def render_dynamic_fields(self, parent, card_widget):
         method = self.method_var.get()
@@ -278,6 +282,9 @@ class PaymentForm:
 
         if hasattr(self, 'amount_entry'):
             self.amount_entry.configure(state='normal')
+            remaining = self._deuda_original - self._credit_applied
+            if remaining > Decimal("0"):
+                self.amount_var.set(str(remaining))
 
         if method == "TRANSFERENCIA":
             self.op_num_lbl.grid(row=0, column=0, padx=(20,8), pady=4, sticky="e")
@@ -298,7 +305,9 @@ class PaymentForm:
             self.check_bank_entry.grid(row=3, column=1, padx=(0,20), pady=4, sticky="w")
             self.check_num_lbl.grid(row=4, column=0, padx=(20,8), pady=4, sticky="e")
             self.check_num_entry.grid(row=4, column=1, padx=(0,20), pady=4, sticky="w")
-            self.render_buttons(5)
+            self.check_amnt_lbl.grid(row=5, column=0, padx=(20,8), pady=4, sticky="e")
+            self.check_amnt_entry.grid(row=5, column=1, padx=(0,20), pady=4, sticky="w")
+            self.render_buttons(6)
             self._resize_window(self._base_h + 300)
 
         elif method == "EFECTIVO":
@@ -349,16 +358,14 @@ class PaymentForm:
                                 "bank": bank, "amount": check_amount}
         self.bank_var.set(bank)
         self.check_num_var.set(str(check_number))
+        self.check_amnt_var.set(check_amount)
 
         # If the check is smaller than the debt, apply only what the check covers.
         # If the check exceeds the debt, leave amount_var at the debt — the excess
         # is registered as saldo a favor by the controller.
-        try:
-            current = Decimal(self.amount_var.get() or "0")
-        except Exception:
-            current = Decimal("0")
-        if check_amount < current:
-            self.amount_var.set(str(check_amount))
+
+        to_set = min(check_amount, self._deuda_original)
+        self.amount_var.set(str(to_set))
 
         if hasattr(self, 'amount_entry'):
             self.amount_entry.configure(state='readonly')
@@ -414,7 +421,7 @@ class PaymentForm:
         credito_cubre_todo = self._credit_applied >= self._deuda_original and self._deuda_original > Decimal("0")
 
         # For non-check methods, warn and cap the amount to the remaining debt
-        if not credito_cubre_todo and method and method != "CHEQUE":
+        if not credito_cubre_todo and method and method not in ("CHEQUE", "ECHEQ"):
             try:
                 entered = Decimal(amount or "0")
                 max_amount = self._deuda_original - self._credit_applied
@@ -454,7 +461,7 @@ class PaymentForm:
                     f"CBU/Alias origen:  {self.origin_var.get() or '—'}\n"
                     f"CBU/Alias destino: {self.destinatation_var.get() or '—'}\n"
                 )
-            elif method == "CHEQUE":
+            elif method in ("CHEQUE", "ECHEQ"):
                 resumen += (
                     f"Banco:             {self.bank_var.get() or '—'}\n"
                     f"N° Cheque:         {self.check_num_var.get() or '—'}\n"

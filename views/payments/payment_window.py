@@ -419,6 +419,7 @@ class PaymentWindow():
             self.supplier_credit_var.set('')
             self.formatted_s_credit_var.set('')
             purchases = self.model.purchase.get_all_confirmed_purchases()
+            self.load_payment_movement()
 
         # Limpiar tabla
         for item in self.purchase_tree.get_children():

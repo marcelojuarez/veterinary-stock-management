@@ -97,7 +97,8 @@ class ReportsController:
             self.view.show_success(f"PDF exportado correctamente:\n{pdf_path}")
 
             if messagebox.askyesno("Imprimir Reporte", "¿Desea imprimir el reporte de IVA?"):
-                send_to_printer(pdf_path)
+                if not send_to_printer(pdf_path):
+                    self.view.show_error("No se pudo enviar a la impresora. Verifique la conexión.")
             else:
                 # Si elige "No", lo abrimos en pantalla para que lo vea (Fallback)
                 import sys, subprocess, os

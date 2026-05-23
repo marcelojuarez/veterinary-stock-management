@@ -173,29 +173,9 @@ def generate_orden_pago_proveedor(
     return path
 
 
-def _find_sumatra() -> str | None:
-    """Devuelve la ruta a SumatraPDF.exe o None si no está instalado."""
-    import shutil
-    candidates = [
-        r"C:\Program Files\SumatraPDF\SumatraPDF.exe",
-        r"C:\Program Files (x86)\SumatraPDF\SumatraPDF.exe",
-        os.path.join(os.environ.get("LOCALAPPDATA", ""), "SumatraPDF", "SumatraPDF.exe"),
-    ]
-    for path in candidates:
-        if path and os.path.exists(path):
-            return path
-    return shutil.which("SumatraPDF")
-
 
 def _print_file(path: str):
-    """Intenta imprimir directamente con SumatraPDF, fallback a ShellExecute."""
-    sumatra = _find_sumatra()
-    try:
-        if sumatra:
-            import subprocess
-            subprocess.Popen([sumatra, "-print-to-default", "-silent", path])
-            return
-    except Exception:
-        pass
-    # Fallback: abrir con programa predeterminado
-    _open_file(path)
+    """Imprime el archivo usando el motor unificado; abre si falla."""
+    from utils.printing import send_to_printer
+    if not send_to_printer(path):
+        _open_file(path)
