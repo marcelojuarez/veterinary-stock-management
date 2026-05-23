@@ -187,11 +187,10 @@ class UpdateService:
 
     def install_update(self, installer_path: Path):
         """
-        Lanza un VBScript con wscript.exe que espera 5 s a que este proceso
-        libere el file lock del .exe y luego ejecuta el instalador en silencio.
-        /NOCLOSEAPPLICATIONS evita el diálogo de Inno Setup (CloseApplications=yes
-        es el default en IS6). os._exit(0) mata el proceso instantáneamente,
-        sin esperar el cleanup de tkinter.
+        Lanza un VBScript con wscript.exe que espera activamente a que el
+        proceso StockManager.exe desaparezca del sistema antes de correr el
+        instalador. Más robusto que un sleep fijo porque PyInstaller --onefile
+        tiene un proceso bootstrap que puede demorar unos segundos en morir.
         Esta función NO retorna.
         """
         if not installer_path.exists():
@@ -200,10 +199,18 @@ class UpdateService:
 
         logger.info("Preparando actualización desde %s", installer_path)
 
+        exe_name = "StockManager.exe"
         # Chr(34) = comilla doble en VBScript
         vbs_content = (
-            'Set sh = CreateObject("WScript.Shell")\n'
-            "WScript.Sleep 5000\n"
+            'Set sh  = CreateObject("WScript.Shell")\n'
+            'Set wmi = GetObject("winmgmts:{impersonationLevel=impersonate}!\\\\.\\root\\cimv2")\n'
+            'Dim i\n'
+            'For i = 0 To 60\n'
+            '    WScript.Sleep 1000\n'
+            f'    Set procs = wmi.ExecQuery("SELECT * FROM Win32_Process WHERE Name=\'{exe_name}\'")\n'
+            '    If procs.Count = 0 Then Exit For\n'
+            'Next\n'
+            'WScript.Sleep 1000\n'
             f'sh.Run Chr(34) & "{installer_path}" & Chr(34)'
             ' & " /SILENT /NOCLOSEAPPLICATIONS /RESTARTAPPLICATIONS", 0, False\n'
         )
