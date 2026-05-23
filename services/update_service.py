@@ -188,31 +188,33 @@ class UpdateService:
 
     def install_update(self, installer_path: Path):
         """
-        Ejecuta el instalador de Inno Setup en modo silencioso.
-        El instalador cierra la app vieja y la reemplaza.
+        Lanza un .bat intermediario que espera a que este proceso muera
+        y luego ejecuta el instalador. Necesario porque Windows mantiene
+        el file lock del .exe hasta que el proceso termina completamente;
+        lanzar el instalador directamente causa Access Denied (código 5).
         Esta función NO retorna: el proceso actual termina.
         """
         if not installer_path.exists():
             logger.error("No se encontró el instalador en %s", installer_path)
             return
 
-        logger.info("Iniciando instalación silenciosa desde %s", installer_path)
+        logger.info("Preparando actualización silenciosa desde %s", installer_path)
 
-        # /SILENT        → sin ventanas
-        # /CLOSEAPPLICATIONS → cierra la app si está corriendo
-        # /RESTARTAPPLICATIONS → la reabre luego de instalar
+        bat_content = (
+            "@echo off\n"
+            "timeout /t 4 /nobreak > NUL\n"
+            f'"{installer_path}" /SILENT /RESTARTAPPLICATIONS\n'
+            'del "%~f0"\n'
+        )
+        bat_path = Path(tempfile.gettempdir()) / "stockmanager_update.bat"
+        bat_path.write_text(bat_content, encoding="ascii")
+
         subprocess.Popen(
-            [
-                str(installer_path),
-                "/SILENT",
-                "/CLOSEAPPLICATIONS",
-                "/RESTARTAPPLICATIONS",
-            ],
+            ["cmd", "/c", str(bat_path)],
             creationflags=subprocess.DETACHED_PROCESS
             | subprocess.CREATE_NEW_PROCESS_GROUP,
         )
 
-        # Cerrar la app actual para que el instalador pueda reemplazar los archivos
         logger.info("Cerrando aplicación para completar la instalación...")
         sys.exit(0)
 
