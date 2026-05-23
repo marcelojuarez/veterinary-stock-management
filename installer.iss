@@ -2,7 +2,7 @@
 ; Compilar con: ISCC.exe installer.iss /DMyAppVersion=1.0.0
 
 #define MyAppName "VeterinariaApp"
-#define MyAppPublisher "COMPLETAR_NOMBRE_EMPRESA"
+#define MyAppPublisher "Assemblers"
 #define MyAppURL "https://github.com/marcelojuarez/veterinary-stock-management/"
 #define MyAppExeName "VeterinariaApp.exe"
 
