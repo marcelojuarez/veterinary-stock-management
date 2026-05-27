@@ -469,6 +469,55 @@ class CustomerModel:
             logger.error("Error contando ventas: %s", e)
             return 0, 0
 
+    def get_full_sales_history(self, client_id, from_date=None, to_date=None):
+        """
+        Returns every sale ever made to a client (paid or pending) with per-item detail.
+
+        Each row: (sale_id, date, sale_total, estado, paid, sale_balance,
+                   item_id, product_name, pack, quantity, price, subtotal,
+                   iva_amount, observations, is_fractional, fraction_unit, cost_price)
+        """
+        params = [client_id]
+        date_filter = ""
+        if from_date:
+            date_filter += " AND DATE(s.date) >= ?"
+            params.append(from_date)
+        if to_date:
+            date_filter += " AND DATE(s.date) <= ?"
+            params.append(to_date)
+
+        query = f"""
+            SELECT
+                s.id                                                          AS sale_id,
+                s.date,
+                s.total                                                       AS sale_total,
+                s.estado,
+                COALESCE(SUM(CASE WHEN p.valid = 1
+                             THEN CAST(p.amount AS REAL) ELSE 0 END), 0)     AS paid,
+                CAST(s.total AS REAL)
+                  - COALESCE(SUM(CASE WHEN p.valid = 1
+                                 THEN CAST(p.amount AS REAL) ELSE 0 END), 0) AS sale_balance,
+                si.id                                                         AS item_id,
+                st.name                                                       AS product_name,
+                st.pack,
+                si.quantity,
+                si.price,
+                si.subtotal,
+                si.iva_amount,
+                si.observations,
+                si.is_fractional,
+                COALESCE(si.fraction_unit, '')                                AS fraction_unit,
+                COALESCE(si.cost_price,    '')                                AS cost_price
+            FROM sales s
+            JOIN sale_items si ON si.sale_id = s.id
+            JOIN stock st      ON st.id = si.product_id
+            LEFT JOIN payments p ON p.sale_id = s.id AND p.valid = 1
+            WHERE s.cliente_id = ?{date_filter}
+            GROUP BY si.id
+            ORDER BY s.date DESC, s.id DESC, si.id ASC
+        """
+        return self.db.fetch_all(query, tuple(params))
+
     def get_customers_with_debt(self):
         query = """
             SELECT DISTINCT c.id, c.name, c.cuit, c.home, c.phone,

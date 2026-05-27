@@ -536,6 +536,7 @@ class CustomerController:
                     sid: self.model.get_sale_items(sid)
                     for sid, _ in result['updated_debts']
                 }
+                imprimir = messagebox.askyesno("Imprimir", "¿Desea imprimir el comprobante?")
                 generate_receipts_for_payment(
                     mode="global",
                     format=fmt,
@@ -546,7 +547,7 @@ class CustomerController:
                     result_data=result,
                     sales_with_items=sales_with_items,
                     check_data=check_data,
-                    auto_print=True
+                    auto_print=imprimir
                 )
 
             except Exception as e:
@@ -646,6 +647,18 @@ class CustomerController:
             self.view.open_account_history_window(cliente_id, cliente_nombre, movements, summary)
         except Exception as e:
             self.view.show_error(f"Error al obtener historial: {e}")
+
+    def show_sales_history(self, cliente_id, cliente_nombre):
+        """Abre el resumen histórico de ventas del cliente (todas, pagadas y pendientes)."""
+        try:
+            rows = self.model.get_full_sales_history(cliente_id)
+            self.view.open_sales_history_window(cliente_id, cliente_nombre, rows)
+        except Exception as e:
+            self.view.show_error(f"Error al obtener historial de ventas: {e}")
+
+    def load_sales_history_rows(self, client_id, from_date=None, to_date=None):
+        """Reload history rows with optional date filter."""
+        return self.model.get_full_sales_history(client_id, from_date=from_date, to_date=to_date)
 
     def export_account_history_pdf(self, cliente_id, cliente_nombre):
         """Exporta el historial de cuenta a PDF"""
@@ -852,6 +865,7 @@ class CustomerController:
                 "credit_added": Decimal("0.00"), 
             }
 
+            imprimir = messagebox.askyesno("Imprimir", "¿Desea imprimir el comprobante?")
             generate_receipts_for_payment(
                 mode="global",
                 format=fmt,
@@ -861,7 +875,7 @@ class CustomerController:
                 customer_id=customer_id,
                 result_data=result_data,
                 sales_with_items=sales_with_items,
-                auto_print=True
+                auto_print=imprimir
             )
 
         except Exception as e:
@@ -947,12 +961,17 @@ class CustomerController:
                 if not messagebox.askyesno("Error en PDF", error_msg):
                     return
 
-            query_clean = """
-            DELETE FROM customer_ledger
-            WHERE client_id = ?
+            # Insert a closing entry rather than deleting history — preserves full audit trail
+            query_close = """
+                INSERT INTO customer_ledger
+                    (client_id, date, type, description, amount, payment, debt, reference_id, reference)
+                VALUES (?, ?, 'CIERRE', ?, '0.00', '0.00', '0.00', NULL, 'CIERRE')
             """
-
-            self.payment_model.db.execute_query(query_clean, (cliente_id, ))
+            self.payment_model.db.execute_query(query_close, (
+                cliente_id,
+                datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                f"Cierre de cuenta — historial archivado",
+            ))
 
             # ================================================================
             # PASO 6: ACTUALIZAR UI
