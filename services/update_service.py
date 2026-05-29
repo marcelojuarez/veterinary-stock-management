@@ -25,11 +25,17 @@ VERSION_JSON_URL = (
     "https://raw.githubusercontent.com/marcelojuarez/veterinary-stock-management/main/version.json"
 )
 
-# Fine-grained PAT with Contents: Read-only permission on this repo.
-# Safe to embed: worst case an attacker can only read public-release metadata.
+# Fine-grained PAT — loaded from update_secrets.py (gitignored, never committed).
+# Before building with PyInstaller, create services/update_secrets.py containing:
+#   GITHUB_TOKEN = "github_pat_..."
+# PyInstaller will bundle it into the executable automatically.
 # Generate at: GitHub → Settings → Developer settings → Fine-grained tokens
-# Required permission: Repository "veterinary-stock-management" → Contents → Read-only
-GITHUB_TOKEN: str = ""   # ← paste token here before building
+# Required permission: repo "veterinary-stock-management" → Contents → Read-only
+try:
+    from services.update_secrets import GITHUB_TOKEN as _gh_token
+except ImportError:
+    _gh_token = ""
+GITHUB_TOKEN: str = _gh_token
 
 # Archivo local que guarda la versión instalada actualmente.
 # En desarrollo: root del proyecto. En frozen (PyInstaller --onefile): sys._MEIPASS root.
