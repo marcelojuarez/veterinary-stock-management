@@ -515,43 +515,43 @@ class SalesView:
             messagebox.showwarning("Advertencia", "Seleccione un producto para eliminar.")
 
     def load_available_products(self):
-        """Cargar productos disponibles y guardar en caché"""
+        """Load available products using a single batch query for fractional stock."""
         try:
-            products = self.stock_model.get_all_products()
-            def has_stock(p):
-                if self.fraction_model and self.fraction_model.is_fractional(p[0]):
-                    info = self.fraction_model.get_available_stock_info(p[0])
-                    return info.get('total_units', 0) > 0
-                return p[12] > 0
-    
-            self.all_products = [p for p in products if has_stock(p)]
-            
-            # Mostrar todos los productos inicialmente
-            self.refresh_product_tree(self.all_products)
-            
+            products  = self.stock_model.get_all_products()
+            frac_map  = (self.fraction_model.get_all_fractional_stock()
+                         if self.fraction_model else {})
+
+            self.all_products = [
+                p for p in products
+                if (frac_map[p[0]]['total_units'] > 0 if p[0] in frac_map else p[12] > 0)
+            ]
+            self.refresh_product_tree(self.all_products, frac_map)
+
         except Exception as e:
             messagebox.showerror("Error", f"No se pudieron cargar los productos: {e}")
 
-    def refresh_product_tree(self, products):
-        """Actualizar la tabla de productos con la lista proporcionada"""
+    def refresh_product_tree(self, products, frac_map=None):
+        """Repopulate the product treeview. frac_map avoids repeated DB calls."""
+        if frac_map is None:
+            frac_map = (self.fraction_model.get_all_fractional_stock()
+                        if self.fraction_model else {})
+
         self.product_tree.delete(*self.product_tree.get_children())
 
         for p in products:
             (pid, name, pack, _, _, _, _, _,
-            _, price_with_iva, _, _, qty) = p
+             _, price_with_iva, _, _, qty) = p
 
-            is_frac = self.fraction_model and self.fraction_model.is_fractional(pid)
-
-            if is_frac:
-                info = self.fraction_model.get_available_stock_info(pid)
-                total_units = info.get('total_units', 0)
+            if pid in frac_map:
+                info        = frac_map[pid]
+                total_units = info['total_units']
                 if total_units <= 0:
-                    continue   # sin stock fraccionado ni cerrado → no mostrar
-                stock_display = f"{total_units} {info.get('unit', '')}"
+                    continue
+                stock_display = f"{total_units} {info['unit']}"
                 name_display  = f"⚖️ {name}"
             else:
                 if qty <= 0:
-                    continue   # sin stock → no mostrar
+                    continue
                 stock_display = qty
                 name_display  = name
 

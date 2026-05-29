@@ -103,7 +103,11 @@ class UpdateService:
 
             req = urllib.request.Request(VERSION_JSON_URL, headers=headers)
             with urllib.request.urlopen(req, timeout=self.TIMEOUT_SECONDS) as resp:
-                data = json.loads(resp.read().decode("utf-8"))
+                raw = resp.read()
+                try:
+                    data = json.loads(raw.decode("utf-8"))
+                except UnicodeDecodeError:
+                    data = json.loads(raw.decode("latin-1"))
 
             info = UpdateInfo(data)
             logger.info(
