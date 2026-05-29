@@ -175,38 +175,12 @@ def generate_global_payment_ticket(
     L = 5 * mm
     R = W - 5 * mm
 
-    # Page fits two copies stacked
-    c = canvas.Canvas(file_path, pagesize=(W, 2 * H))
+    c = canvas.Canvas(file_path, pagesize=(W, H))
 
-    # Top copy: ORIGINAL
-    _draw_ticket_copy(
-        c, y_start=2 * H - 10,
-        W=W, L=L, R=R,
-        label="ORIGINAL",
-        commerce_name=commerce_name,
-        commerce_address=commerce_address,
-        commerce_cuit=commerce_cuit,
-        client_name=client_name,
-        amount=amount,
-        method=method,
-        result_data=result_data,
-        sales_with_items=sales_with_items,
-        check_data=check_data,
-    )
-
-    # Dashed separator
-    c.saveState()
-    c.setLineWidth(0.5)
-    c.setDash(3, 3)
-    c.line(2 * mm, H, W - 2 * mm, H)
-    c.setDash()
-    c.restoreState()
-
-    # Bottom copy: DUPLICADO
     _draw_ticket_copy(
         c, y_start=H - 10,
         W=W, L=L, R=R,
-        label="DUPLICADO",
+        label="ORIGINAL",
         commerce_name=commerce_name,
         commerce_address=commerce_address,
         commerce_cuit=commerce_cuit,
