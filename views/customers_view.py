@@ -71,6 +71,17 @@ class CustomersView:
 
         self.filter_debts_btn.grid(row=0, column=2, padx=10, pady=15)
 
+        self.btn_historial_ventas = ctk.CTkButton(
+            header,
+            text="📋 Historial de ventas",
+            width=120, height=35,
+            font=ctk.CTkFont(size=13, weight="bold"),
+            fg_color="#7B1FA2", hover_color="#6A1B9A",
+            state="disabled",
+            command=self.open_selected_customer_history
+        )
+        self.btn_historial_ventas.grid(row=0, column=3, columnspan=2, padx=10, pady=15)
+
 
 
     # --------------------------------------------------------------------
@@ -151,16 +162,15 @@ class CustomersView:
         footer.grid_columnconfigure((0, 1, 2, 3), weight=1)
         W, H = 250, 40
 
-        # Guardar referencia al botón de deudas
-        self.btn_ver_deudas = ctk.CTkButton(
+        # ── Fila 0: acciones generales ──────────────────────────────────
+        ctk.CTkButton(
             footer,
-            text="💳 Ver deudas",
+            text="➕ Agregar cliente",
             width=W, height=H,
             font=ctk.CTkFont(size=13, weight="bold"),
             fg_color="#009688", hover_color="#00796B",
-            command=self.open_selected_customer_debts
-        )
-        self.btn_ver_deudas.grid(row=0, column=3, padx=20, pady=10)
+            command=self.open_add_customer_window
+        ).grid(row=0, column=0, padx=20, pady=10)
 
         ctk.CTkButton(
             footer,
@@ -173,15 +183,6 @@ class CustomersView:
 
         ctk.CTkButton(
             footer,
-            text="➕ Agregar cliente",
-            width=W, height=H,
-            font=ctk.CTkFont(size=13, weight="bold"),
-            fg_color="#009688", hover_color="#00796B",
-            command=self.open_add_customer_window
-        ).grid(row=0, column=0, padx=20, pady=10)
-
-        ctk.CTkButton(
-            footer,
             text="✏️ Editar cliente",
             width=W, height=H,
             font=ctk.CTkFont(size=13, weight="bold"),
@@ -189,37 +190,48 @@ class CustomersView:
             command=self.open_edit_customer_window
         ).grid(row=0, column=2, padx=20, pady=10)
 
+        # Guardar referencia al botón de deudas
+        self.btn_ver_deudas = ctk.CTkButton(
+            footer,
+            text="💳 Ver deudas",
+            width=W, height=H,
+            font=ctk.CTkFont(size=13, weight="bold"),
+            fg_color="#009688", hover_color="#00796B",
+            command=self.open_selected_customer_debts
+        )
+        self.btn_ver_deudas.grid(row=0, column=3, padx=20, pady=10)
+
 
     def update_debts_button_state(self):
-        """Actualiza el estado del botón Ver Deudas según el cliente seleccionado"""
+        """Actualiza el estado de los botones de acción según el cliente seleccionado."""
         selected = self.table.selection()
-        
+
         if not selected:
-            # Sin selección: deshabilitado
-            self.btn_ver_deudas.configure(
-                state="disabled",
-                fg_color="#CCCCCC",
-                text_color="#888888"
-            )
+            self.btn_ver_deudas.configure(state="disabled", fg_color="#CCCCCC", text_color="#888888")
+            self.btn_historial_ventas.configure(state="disabled", fg_color="#CCCCCC", text_color="#888888")
             return
-        
-        # Obtener el nombre del cliente (columna 1)
+
         values = self.table.item(selected[0])["values"]
         nombre_cliente = values[1] if len(values) > 1 else ""
-        if nombre_cliente == "CONSUMIDOR FINAL":
-            # Cliente "Consumidor Final": deshabilitado
-            self.btn_ver_deudas.configure(
-                state="disabled",
-                fg_color="#CCCCCC",
-                text_color="#888888"
-            )
+        is_consumidor  = nombre_cliente == "CONSUMIDOR FINAL"
+
+        if is_consumidor:
+            self.btn_ver_deudas.configure(state="disabled", fg_color="#CCCCCC", text_color="#888888")
+            self.btn_historial_ventas.configure(state="disabled", fg_color="#CCCCCC", text_color="#888888")
         else:
-            # Otros clientes: habilitado
-            self.btn_ver_deudas.configure(
-                state="normal",
-                fg_color="#009688",
-                text_color="white"
-            )
+            self.btn_ver_deudas.configure(state="normal", fg_color="#009688", text_color="white")
+            self.btn_historial_ventas.configure(state="normal", fg_color="#7B1FA2", text_color="white")
+
+    def open_selected_customer_history(self):
+        """Abre el historial de ventas del cliente seleccionado en la tabla."""
+        selected = self.table.selection()
+        if not selected:
+            self.show_warning("Seleccione un cliente para ver su historial de ventas.")
+            return
+        values = self.table.item(selected[0])["values"]
+        cliente_id, cliente_nombre = values[0], values[1]
+        if self.controller:
+            self.controller.show_sales_history(cliente_id, cliente_nombre)
 
     # --------------------------------------------------------------------
     # MODAL PARA AGREGAR CLIENTE
@@ -843,6 +855,210 @@ class CustomersView:
             self.showing_debtors = False
             self.filter_debts_btn.configure(text="Ver deudores")
     
+    def open_sales_history_window(self, cliente_id, cliente_nombre, rows):
+        """Ventana de resumen histórico de TODAS las ventas del cliente."""
+        from datetime import datetime as _dt
+
+        win = ctk.CTkToplevel(self.frame)
+        win.title(f"📋 Historial de Ventas — {cliente_nombre}")
+        win.transient(self.frame)
+        win.grab_set()
+        center_window(win, 1020, 720)
+        win.minsize(900, 560)
+
+        # ── Encabezado ───────────────────────────────────────────────────
+        hdr = ctk.CTkFrame(win, fg_color="#7B1FA2", height=55, corner_radius=0)
+        hdr.pack(fill="x")
+        hdr.pack_propagate(False)
+        ctk.CTkLabel(hdr, text=f"📋 Historial de Ventas — {cliente_nombre}",
+                     font=ctk.CTkFont(size=17, weight="bold"),
+                     text_color="white").pack(pady=12)
+
+        # ── Date filters ─────────────────────────────────────────────────
+        filter_bar = ctk.CTkFrame(win, fg_color="#f0f0f0")
+        filter_bar.pack(fill="x", padx=10, pady=(8, 0))
+
+        from_var = ctk.StringVar()
+        to_var   = ctk.StringVar()
+
+        ctk.CTkLabel(filter_bar, text="Desde:", font=ctk.CTkFont(size=12)).pack(side="left", padx=(15, 4))
+        ctk.CTkEntry(filter_bar, textvariable=from_var, width=110,
+                     placeholder_text="DD/MM/AAAA").pack(side="left", padx=(0, 8))
+        ctk.CTkLabel(filter_bar, text="Hasta:", font=ctk.CTkFont(size=12)).pack(side="left", padx=(0, 4))
+        ctk.CTkEntry(filter_bar, textvariable=to_var, width=110,
+                     placeholder_text="DD/MM/AAAA").pack(side="left", padx=(0, 12))
+
+        def _parse_date(s):
+            s = s.strip()
+            try:
+                return _dt.strptime(s, "%d/%m/%Y").strftime("%Y-%m-%d") if s else None
+            except ValueError:
+                return None
+
+        ctk.CTkButton(filter_bar, text="Filtrar", width=90, height=30,
+                      fg_color="#7B1FA2", hover_color="#6A1B9A",
+                      command=lambda: _populate(
+                          self.controller.load_sales_history_rows(
+                              cliente_id, _parse_date(from_var.get()), _parse_date(to_var.get())
+                          )
+                      )).pack(side="left")
+
+        ctk.CTkButton(filter_bar, text="Ver todo", width=90, height=30,
+                      fg_color="#555", hover_color="#333",
+                      command=lambda: _populate(
+                          self.controller.load_sales_history_rows(cliente_id)
+                      )).pack(side="left", padx=8)
+
+        # ── Sales treeview ───────────────────────────────────────────────
+        sales_frame = ctk.CTkFrame(win, fg_color="white")
+        sales_frame.pack(fill="x", padx=10, pady=(8, 0))
+        ctk.CTkLabel(sales_frame, text="Ventas",
+                     font=ctk.CTkFont(size=12, weight="bold")).pack(anchor="w", padx=10, pady=(6, 2))
+
+        sale_cols = ("N° Venta", "Fecha", "Total", "Pagado", "Saldo", "Estado", "Ítems")
+        sales_tree = ttk.Treeview(sales_frame, columns=sale_cols, show="headings",
+                                   height=8, style="Custom.Treeview")
+        for col, w in zip(sale_cols, [80, 130, 110, 110, 110, 120, 55]):
+            sales_tree.column(col, width=w, anchor="center")
+            sales_tree.heading(col, text=col, anchor="center")
+        sales_tree.tag_configure("paid",    background="#E8F5E9")
+        sales_tree.tag_configure("partial", background="#FFF9C4")
+        sales_tree.tag_configure("pending", background="#FFEBEE")
+
+        sy1 = ttk.Scrollbar(sales_frame, orient="vertical", command=sales_tree.yview)
+        sales_tree.configure(yscrollcommand=sy1.set)
+        sy1.pack(side="right", fill="y", padx=(0, 10))
+        sales_tree.pack(fill="x", padx=10, pady=(0, 8))
+
+        # ── Items treeview ───────────────────────────────────────────────
+        items_frame = ctk.CTkFrame(win, fg_color="white")
+        items_frame.pack(fill="both", expand=True, padx=10, pady=(6, 0))
+        ctk.CTkLabel(items_frame, text="Detalle de la venta seleccionada",
+                     font=ctk.CTkFont(size=12, weight="bold")).pack(anchor="w", padx=10, pady=(6, 2))
+
+        item_cols = ("Producto", "Envase", "Cantidad", "Precio c/IVA", "Subtotal", "IVA", "Costo al vender")
+        items_tree = ttk.Treeview(items_frame, columns=item_cols, show="headings",
+                                   height=6, style="Custom.Treeview")
+        for col, w in zip(item_cols, [240, 100, 90, 110, 110, 80, 120]):
+            items_tree.column(col, width=w, anchor="center")
+            items_tree.heading(col, text=col, anchor="center")
+
+        sy2 = ttk.Scrollbar(items_frame, orient="vertical", command=items_tree.yview)
+        items_tree.configure(yscrollcommand=sy2.set)
+        sy2.pack(side="right", fill="y", padx=(0, 10))
+        items_tree.pack(fill="both", expand=True, padx=10, pady=(0, 8))
+
+        # ── Summary bar ──────────────────────────────────────────────────
+        summary_bar = ctk.CTkFrame(win, fg_color="#e8e8e8", height=48)
+        summary_bar.pack(fill="x", padx=10, pady=(6, 10))
+        summary_bar.pack_propagate(False)
+        summary_lbl = ctk.CTkLabel(summary_bar, text="", font=ctk.CTkFont(size=11))
+        summary_lbl.pack(side="left", padx=15)
+        ctk.CTkButton(summary_bar, text="Cerrar", width=100, height=32,
+                      fg_color="#757575", hover_color="#616161",
+                      command=win.destroy).pack(side="right", padx=15)
+
+        # ── Data logic ───────────────────────────────────────────────────
+        _sales_data = {}
+
+        status_label = {"paid": "Pagada", "partial": "Pago parcial", "pending": "Pendiente"}
+
+        def _populate(data_rows):
+            nonlocal _sales_data
+            _sales_data = {}
+            for tree in (sales_tree, items_tree):
+                for ch in tree.get_children():
+                    tree.delete(ch)
+
+            sales_by_id = {}
+            for row in data_rows:
+                (sale_id, date, sale_total, status, paid, balance,
+                 item_id, product_name, pack, quantity, price, subtotal,
+                 iva_amount, observations, is_fractional, fraction_unit, cost_price) = row
+                if sale_id not in sales_by_id:
+                    sales_by_id[sale_id] = {"date": date, "total": sale_total, "status": status,
+                                            "paid": paid, "items": []}
+                sales_by_id[sale_id]["items"].append((
+                    product_name, pack, quantity, price, subtotal,
+                    iva_amount, observations, is_fractional, fraction_unit, cost_price
+                ))
+            _sales_data = sales_by_id
+
+            total_purchased = Decimal("0")
+            total_paid      = Decimal("0")
+            total_pending   = Decimal("0")
+
+            for sale_id, info in sales_by_id.items():
+                display_date = info["date"].split()[0] if info["date"] else ""
+                try:
+                    display_date = _dt.strptime(display_date, "%Y-%m-%d").strftime("%d/%m/%Y")
+                except Exception:
+                    pass
+
+                sale_total_d = Decimal(str(info["total"]))
+                paid_d       = Decimal(str(info["paid"]))
+
+                # Cash sales: paid at point of sale with no payment records
+                if info["status"] == "paid" and paid_d == Decimal("0"):
+                    paid_d = sale_total_d
+
+                balance_d = max(Decimal("0"), sale_total_d - paid_d)
+                total_purchased += sale_total_d
+                total_paid      += paid_d
+                if info["status"] in ("pending", "partial"):
+                    total_pending += balance_d
+
+                sales_tree.insert("", "end", iid=str(sale_id),
+                                  tags=(info["status"],),
+                                  values=(
+                                      f"#{sale_id}", display_date,
+                                      f"${format_currency(str(sale_total_d))}",
+                                      f"${format_currency(str(paid_d))}",
+                                      f"${format_currency(str(balance_d))}",
+                                      status_label.get(info["status"], info["status"]),
+                                      len(info["items"]),
+                                  ))
+
+            summary_lbl.configure(
+                text=(f"Total comprado: ${format_currency(str(total_purchased))}     "
+                      f"Total pagado: ${format_currency(str(total_paid))}     "
+                      f"Saldo pendiente: ${format_currency(str(total_pending))}")
+            )
+
+        def _on_sale_select(event):
+            sel = sales_tree.selection()
+            if not sel:
+                return
+            info = _sales_data.get(int(sel[0]))
+            if not info:
+                return
+            for ch in items_tree.get_children():
+                items_tree.delete(ch)
+            for (p_name, pack, qty, price, subtotal,
+                 iva_amount, obs, is_frac, frac_unit, cost_price) in info["items"]:
+                if p_name.strip() == "HONORARIOS":
+                    display_name = f"{p_name} — {obs}" if obs else p_name
+                    display_qty  = qty
+                elif is_frac and frac_unit:
+                    display_name = f"⚖️ {p_name}"
+                    display_qty  = f"{qty} {frac_unit}"
+                elif obs and obs.startswith("FRAC."):
+                    display_name = f"⚖️ {p_name}"
+                    display_qty  = obs.replace("FRAC. ", "")
+                else:
+                    display_name = p_name
+                    display_qty  = qty
+                items_tree.insert("", "end", values=(
+                    display_name, pack or "", display_qty,
+                    f"${format_currency(price)}",
+                    f"${format_currency(subtotal)}",
+                    f"${format_currency(iva_amount)}",
+                    f"${format_currency(cost_price)}" if cost_price else "—",
+                ))
+
+        sales_tree.bind("<<TreeviewSelect>>", _on_sale_select)
+        _populate(rows)
+
     def open_account_history_window(self, cliente_id, cliente_nombre, movements, summary):
         """Ventana de historial de cuenta completo"""
         width_win = 950

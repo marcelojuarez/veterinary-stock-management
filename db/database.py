@@ -365,6 +365,14 @@ class Database:
                 cursor.execute("ALTER TABLE sale_items ADD COLUMN is_fractional INTEGER DEFAULT 0")
             except Exception:
                 pass
+            try:
+                cursor.execute("ALTER TABLE sale_items ADD COLUMN cost_price TEXT")
+            except Exception:
+                pass
+            try:
+                cursor.execute("ALTER TABLE sale_items ADD COLUMN fraction_unit TEXT")
+            except Exception:
+                pass
 
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS sale_retentions (

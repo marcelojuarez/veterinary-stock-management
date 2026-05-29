@@ -233,3 +233,5 @@ backups
 logs
 credentials.json
 token.json
+drive_account.txt
+services/update_secrets.py

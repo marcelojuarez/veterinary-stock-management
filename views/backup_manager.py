@@ -34,7 +34,7 @@ class BackupManagerView(ctk.CTkFrame):
     # ======================================================
 
     def create_widgets(self):
-        self.frame.grid_rowconfigure(2, weight=1)
+        self.frame.grid_rowconfigure(3, weight=1)  # backups table is now row 3
         self.frame.grid_columnconfigure(0, weight=1)
 
         self.create_header()
@@ -67,7 +67,7 @@ class BackupManagerView(ctk.CTkFrame):
 
     def create_status_panel(self):
         status_frame = ctk.CTkFrame(self.frame)
-        status_frame.grid(row=1, column=0, sticky="w", padx=10, pady=5)
+        status_frame.grid(row=1, column=0, sticky="ew", padx=10, pady=5)
 
         self.status_vars = {
             'auto_backup': tk.StringVar(value="Estado: -"),
@@ -96,9 +96,44 @@ class BackupManagerView(ctk.CTkFrame):
                 font=ctk.CTkFont(size=13)
             ).grid(row=0, column=i * 2 + 1, padx=5, pady=10, sticky="w")
 
+        # ── Google Drive status row ──────────────────────────────────────
+        drive_frame = ctk.CTkFrame(self.frame, fg_color="#f5f5f5", corner_radius=8)
+        drive_frame.grid(row=2, column=0, sticky="ew", padx=10, pady=(0, 8))
+
+        ctk.CTkLabel(
+            drive_frame, text="☁️ Google Drive:",
+            font=ctk.CTkFont(size=13, weight="bold")
+        ).grid(row=0, column=0, padx=(12, 6), pady=8, sticky="w")
+
+        self.drive_status_lbl = ctk.CTkLabel(
+            drive_frame, text="Verificando...",
+            font=ctk.CTkFont(size=13), text_color="#888"
+        )
+        self.drive_status_lbl.grid(row=0, column=1, padx=4, pady=8, sticky="w")
+
+        self.drive_btn = ctk.CTkButton(
+            drive_frame, text="Configurar cuenta",
+            width=160, height=32,
+            fg_color="#1565C0", hover_color="#0D47A1",
+            font=ctk.CTkFont(size=12, weight="bold"),
+            command=self.configure_google_drive
+        )
+        self.drive_btn.grid(row=0, column=2, padx=10, pady=6)
+
+        self.drive_disconnect_btn = ctk.CTkButton(
+            drive_frame, text="Desconectar",
+            width=110, height=32,
+            fg_color="#757575", hover_color="#616161",
+            font=ctk.CTkFont(size=12),
+            command=self.disconnect_google_drive
+        )
+        self.drive_disconnect_btn.grid(row=0, column=3, padx=(0, 10), pady=6)
+
+        self._refresh_drive_status()
+
     def create_backups_table(self):
         table_frame = ctk.CTkFrame(self.frame)
-        table_frame.grid(row=2, column=0, sticky="nsew", padx=10, pady=10)
+        table_frame.grid(row=3, column=0, sticky="nsew", padx=10, pady=10)
         table_frame.grid_rowconfigure(1, weight=1)
         table_frame.grid_columnconfigure(0, weight=1)
 
@@ -148,7 +183,7 @@ class BackupManagerView(ctk.CTkFrame):
 
     def create_actions_panel(self):
         actions = ctk.CTkFrame(self.frame)
-        actions.grid(row=3, column=0, sticky="ew", padx=10, pady=15)
+        actions.grid(row=4, column=0, sticky="ew", padx=10, pady=15)
 
         for i in range(13):
             actions.grid_columnconfigure(i, weight=1 if i % 2 == 0 else 0)
@@ -416,11 +451,14 @@ class BackupManagerView(ctk.CTkFrame):
         self.frame.after(30000, self.auto_refresh)
 
     def upload_to_drive(self):
-        if not messagebox.askyesno(
-            "Subir a Drive",
-            "¿Subir un backup a Google Drive?\n\n"
-            "La primera vez abrirá el navegador para autorizar el acceso."
-        ):
+        if not self.cloud_service.is_authenticated():
+            messagebox.showwarning(
+                "Sin conexión",
+                "No hay una cuenta de Google conectada.\n\n"
+                "Usá el botón 'Configurar cuenta' en el panel de Google Drive."
+            )
+            return
+        if not messagebox.askyesno("Subir a Drive", "¿Subir un backup a Google Drive?"):
             return
         try:
             name = self.cloud_service.run()
@@ -428,3 +466,86 @@ class BackupManagerView(ctk.CTkFrame):
             self.refresh_data()
         except Exception as e:
             messagebox.showerror("Error", f"No se pudo subir el backup:\n{e}")
+
+    # ------------------------------------------------------------------ #
+    # GOOGLE DRIVE SETUP                                                   #
+    # ------------------------------------------------------------------ #
+
+    def _refresh_drive_status(self):
+        """Updates the Drive status label and button states."""
+        if not self.cloud_service.is_configured():
+            self.drive_status_lbl.configure(
+                text="Sin configurar — falta credentials.json",
+                text_color="#D32F2F"
+            )
+            self.drive_btn.configure(text="Importar credentials.json")
+            self.drive_disconnect_btn.configure(state="disabled", fg_color="#CCCCCC")
+        elif not self.cloud_service.is_authenticated():
+            self.drive_status_lbl.configure(
+                text="No conectado",
+                text_color="#E65100"
+            )
+            self.drive_btn.configure(text="Conectar cuenta Google")
+            self.drive_disconnect_btn.configure(state="disabled", fg_color="#CCCCCC")
+        else:
+            account = self.cloud_service.get_connected_account() or "cuenta conectada"
+            self.drive_status_lbl.configure(
+                text=f"✅ Conectado como: {account}",
+                text_color="#2E7D32"
+            )
+            self.drive_btn.configure(text="Reconectar (cambiar cuenta)")
+            self.drive_disconnect_btn.configure(state="normal", fg_color="#757575")
+
+    def configure_google_drive(self):
+        """
+        Single button that handles all setup states:
+        - No credentials.json → open file dialog to import it
+        - Credentials OK but no token → trigger OAuth browser flow
+        - Already authenticated → trigger OAuth again to switch account
+        """
+        if not self.cloud_service.is_configured():
+            path = filedialog.askopenfilename(
+                title="Seleccionar credentials.json",
+                filetypes=[("JSON", "*.json"), ("Todos", "*.*")]
+            )
+            if not path:
+                return
+            try:
+                self.cloud_service.import_credentials(path)
+                messagebox.showinfo(
+                    "Credenciales importadas",
+                    "credentials.json importado correctamente.\n\n"
+                    "Ahora hacé clic en 'Conectar cuenta Google'."
+                )
+                self._refresh_drive_status()
+                return
+            except Exception as e:
+                messagebox.showerror("Error", f"No se pudo importar el archivo:\n{e}")
+                return
+
+        # Credentials exist — trigger OAuth
+        try:
+            messagebox.showinfo(
+                "Autorizar acceso",
+                "Se abrirá el navegador para que autorices el acceso a Google Drive.\n\n"
+                "Iniciá sesión con la cuenta que desées usar para los backups."
+            )
+            email = self.cloud_service.authenticate()
+            messagebox.showinfo(
+                "Conectado",
+                f"✅ Google Drive conectado correctamente.\n\nCuenta: {email}"
+            )
+            self._refresh_drive_status()
+        except Exception as e:
+            messagebox.showerror("Error", f"No se pudo conectar:\n{e}")
+
+    def disconnect_google_drive(self):
+        if not messagebox.askyesno(
+            "Desconectar",
+            "¿Desconectar la cuenta de Google Drive?\n\n"
+            "Los backups locales no se verán afectados."
+        ):
+            return
+        self.cloud_service.disconnect()
+        self._refresh_drive_status()
+        messagebox.showinfo("Desconectado", "Cuenta de Google Drive desconectada.")

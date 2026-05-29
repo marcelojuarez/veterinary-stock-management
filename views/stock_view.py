@@ -1066,8 +1066,7 @@ class StockView():
             window = ctk.CTkToplevel(self.frame)
             window.title(f"Editar Producto - {name}")
             window.grab_set()
-            window.resizable(False, False)
-            center_window(window, 480, 320)
+            center_window(window, 600, 280)
 
             # Card blanca
             card = ctk.CTkFrame(window, fg_color="white", corner_radius=20)
@@ -1100,7 +1099,8 @@ class StockView():
                 ctk.CTkEntry(
                     form_frame,
                     textvariable=name_var,
-                    width=250,
+                    font=ctk.CTkFont(size=11),
+                    width=420,
                     height=35
                 )
             )
@@ -1130,6 +1130,7 @@ class StockView():
                         "40 DS",
                     ],
                     variable=pack_var,
+                    font=ctk.CTkFont(size=11),
                     width=200,
                     height=35
                 )
@@ -1137,7 +1138,7 @@ class StockView():
 
             # Botones
             btn_frame = ctk.CTkFrame(card, fg_color="transparent")
-            btn_frame.pack(pady=20)
+            btn_frame.pack()
 
             def save():
                 new_name = name_var.get().strip()
