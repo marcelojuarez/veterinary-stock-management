@@ -1,8 +1,8 @@
 {
-  "version": "1.10",
+  "version": "1.11",
   "release_date": "2026-05-29",
   "release_notes": "Se agregó historial de ventas para cada cliente, backup en la nube y se corrigieron algunos errores",
-  "installer_url": "https://github.com/marcelojuarez/veterinary-stock-management/releases/download/v1.10/StockManagerSetup_v1.10.exe",
-  "checksum_sha256": "09c9f03ba7cd12dae7ef754a383337e5683ccf4be54a42cd5eff7392b683dbac",
+  "installer_url": "https://github.com/marcelojuarez/veterinary-stock-management/releases/download/v1.11/StockManagerSetup_v1.11.exe",
+  "checksum_sha256": "c7aae3a78c35089e4c83bd1e14356a793ff12c14b7fb36b643aefeddba687564",
   "mandatory": false
 }
