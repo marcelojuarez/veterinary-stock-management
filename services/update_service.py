@@ -25,17 +25,6 @@ VERSION_JSON_URL = (
     "https://raw.githubusercontent.com/marcelojuarez/veterinary-stock-management/main/version.json"
 )
 
-# Fine-grained PAT — loaded from update_secrets.py (gitignored, never committed).
-# Before building with PyInstaller, create services/update_secrets.py containing:
-#   GITHUB_TOKEN = "github_pat_..."
-# PyInstaller will bundle it into the executable automatically.
-# Generate at: GitHub → Settings → Developer settings → Fine-grained tokens
-# Required permission: repo "veterinary-stock-management" → Contents → Read-only
-try:
-    from services.update_secrets import GITHUB_TOKEN as _gh_token
-except ImportError:
-    _gh_token = ""
-GITHUB_TOKEN: str = _gh_token
 
 # Archivo local que guarda la versión instalada actualmente.
 # En desarrollo: root del proyecto. En frozen (PyInstaller --onefile): sys._MEIPASS root.
@@ -97,11 +86,10 @@ class UpdateService:
         """
         logger.info("Consultando actualizaciones en %s", VERSION_JSON_URL)
         try:
-            headers = {"Cache-Control": "no-cache", "User-Agent": "StockManager-Updater/1.0"}
-            if GITHUB_TOKEN:
-                headers["Authorization"] = f"Bearer {GITHUB_TOKEN}"
-
-            req = urllib.request.Request(VERSION_JSON_URL, headers=headers)
+            req = urllib.request.Request(
+                VERSION_JSON_URL,
+                headers={"Cache-Control": "no-cache", "User-Agent": "StockManager-Updater/1.0"},
+            )
             with urllib.request.urlopen(req, timeout=self.TIMEOUT_SECONDS) as resp:
                 raw = resp.read()
                 try:
