@@ -33,7 +33,7 @@ BACKUP_DIR       = str(_DATA_DIR / 'backups')
 DRIVE_FOLDER_NAME = 'StockManager-Backups'
 
 # Times (HH:MM, 24 h) at which the automatic cloud backup runs each day.
-CLOUD_BACKUP_TIMES = ["09:00", "20:15"]
+CLOUD_BACKUP_TIMES = ["09:00", "18:00"]
 
 
 class CloudBackupService:
