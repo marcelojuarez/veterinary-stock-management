@@ -48,7 +48,7 @@ class PurchaseController():
 
     def refresh_products_on_p_win(self):
         products = self.stock_model.get_all_products()
-        self.products = [(p[0], p[1], p[2], p[10]) for p in products]
+        self.products = [(p[0], p[1], p[2], p[12]) for p in products]
 
     ## -- Confirmar Compra -- ##
     def confirm_purchase(self, purchase_id):

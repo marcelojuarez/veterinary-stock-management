@@ -64,7 +64,8 @@ ctk.set_appearance_mode("light")
 ctk.set_default_color_theme("blue")
 
 class App():
-    def __init__(self):
+    def __init__(self, cloud_service=None):
+        self.cloud_service = cloud_service
         self.root = ctk.CTk()
 
         screen_width = self.root.winfo_screenwidth()
@@ -299,7 +300,11 @@ class App():
         self.notebook.add(self.reports_view.frame, text='Reportes')
 
         # --- BACKUPS ---
-        self.backup_view = BackupManagerView(self.notebook, controller=self.stock_controller)
+        self.backup_view = BackupManagerView(
+            self.notebook,
+            controller=self.stock_controller,
+            cloud_service=self.cloud_service,
+        )
         self.notebook.add(self.backup_view.frame, text='Backups')
 
         # Cargar mes actual automáticamente

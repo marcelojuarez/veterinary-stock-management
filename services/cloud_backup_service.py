@@ -1,8 +1,11 @@
 import json
+import logging
 import os
 import shutil
 import sys
 import sqlite3
+import threading
+import time
 from datetime import datetime
 from pathlib import Path
 
@@ -29,8 +32,15 @@ BACKUP_DIR       = str(_DATA_DIR / 'backups')
 
 DRIVE_FOLDER_NAME = 'StockManager-Backups'
 
+# Times (HH:MM, 24 h) at which the automatic cloud backup runs each day.
+CLOUD_BACKUP_TIMES = ["09:00", "20:15"]
+
 
 class CloudBackupService:
+
+    def __init__(self):
+        self._cloud_thread: threading.Thread | None = None
+        self._stop_cloud = False
 
     # ------------------------------------------------------------------ #
     # SETUP / CREDENTIAL MANAGEMENT                                        #
@@ -218,3 +228,58 @@ class CloudBackupService:
         ])
         for old in files[:-keep]:
             os.remove(old)
+
+    # ------------------------------------------------------------------ #
+    # AUTOMATIC CLOUD BACKUP                                               #
+    # ------------------------------------------------------------------ #
+
+    def start_auto_cloud_backup(self):
+        """Start the background thread that uploads to Drive at CLOUD_BACKUP_TIMES."""
+        if self._cloud_thread and self._cloud_thread.is_alive():
+            return
+        self._stop_cloud = False
+        self._cloud_thread = threading.Thread(
+            target=self._cloud_backup_loop, daemon=True, name="CloudAutoBackup"
+        )
+        self._cloud_thread.start()
+        logging.info("Auto cloud backup started — scheduled at %s", CLOUD_BACKUP_TIMES)
+
+    def stop_auto_cloud_backup(self):
+        """Signal the auto-backup thread to stop."""
+        self._stop_cloud = True
+        logging.info("Auto cloud backup stopped")
+
+    def is_auto_running(self) -> bool:
+        return bool(self._cloud_thread and self._cloud_thread.is_alive())
+
+    def _cloud_backup_loop(self):
+        """Check every minute whether it is time to run a scheduled cloud backup."""
+        done_today: set[str] = set()
+
+        while not self._stop_cloud:
+            try:
+                now   = datetime.now()
+                today = now.date()
+
+                # Reset tracking at midnight
+                if now.hour == 0 and now.minute == 0:
+                    done_today.clear()
+
+                current_hhmm = now.strftime("%H:%M")
+                for slot in CLOUD_BACKUP_TIMES:
+                    key = f"{today}_{slot}"
+                    if current_hhmm == slot and key not in done_today:
+                        done_today.add(key)  # mark before running to avoid duplicate attempts
+                        if self.is_authenticated():
+                            try:
+                                name = self.run()
+                                logging.info("Scheduled cloud backup completed: %s", name)
+                            except Exception as e:
+                                logging.error("Scheduled cloud backup failed: %s", e)
+                        else:
+                            logging.info("Scheduled cloud backup skipped — no account connected")
+
+            except Exception as e:
+                logging.error("Error in cloud backup loop: %s", e)
+
+            time.sleep(60)

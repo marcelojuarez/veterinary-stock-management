@@ -18,10 +18,10 @@ from services.cloud_backup_service import CloudBackupService
 class BackupManagerView(ctk.CTkFrame):
     """Vista para gestionar backups de la base de datos"""
 
-    def __init__(self, parent, controller):
+    def __init__(self, parent, controller, cloud_service=None):
         self.frame = ctk.CTkFrame(parent)
         self.backup_service = get_backup_service()
-        self.cloud_service = CloudBackupService()
+        self.cloud_service = cloud_service or CloudBackupService()
         super().__init__(parent)
         self.controller = controller
 
@@ -473,6 +473,7 @@ class BackupManagerView(ctk.CTkFrame):
 
     def _refresh_drive_status(self):
         """Updates the Drive status label and button states."""
+        from services.cloud_backup_service import CLOUD_BACKUP_TIMES
         if not self.cloud_service.is_configured():
             self.drive_status_lbl.configure(
                 text="Sin configurar — falta credentials.json",
@@ -488,9 +489,11 @@ class BackupManagerView(ctk.CTkFrame):
             self.drive_btn.configure(text="Conectar cuenta Google")
             self.drive_disconnect_btn.configure(state="disabled", fg_color="#CCCCCC")
         else:
-            account = self.cloud_service.get_connected_account() or "cuenta conectada"
+            account   = self.cloud_service.get_connected_account() or "cuenta conectada"
+            times_str = " y ".join(CLOUD_BACKUP_TIMES)
+            auto_txt  = f"  —  Auto: {times_str}" if self.cloud_service.is_auto_running() else "  —  Auto: inactivo"
             self.drive_status_lbl.configure(
-                text=f"✅ Conectado como: {account}",
+                text=f"Conectado: {account}{auto_txt}",
                 text_color="#2E7D32"
             )
             self.drive_btn.configure(text="Reconectar (cambiar cuenta)")
@@ -531,9 +534,10 @@ class BackupManagerView(ctk.CTkFrame):
                 "Iniciá sesión con la cuenta que desées usar para los backups."
             )
             email = self.cloud_service.authenticate()
+            self.cloud_service.start_auto_cloud_backup()
             messagebox.showinfo(
                 "Conectado",
-                f"✅ Google Drive conectado correctamente.\n\nCuenta: {email}"
+                f"Google Drive conectado correctamente.\n\nCuenta: {email}"
             )
             self._refresh_drive_status()
         except Exception as e:
@@ -546,6 +550,7 @@ class BackupManagerView(ctk.CTkFrame):
             "Los backups locales no se verán afectados."
         ):
             return
+        self.cloud_service.stop_auto_cloud_backup()
         self.cloud_service.disconnect()
         self._refresh_drive_status()
         messagebox.showinfo("Desconectado", "Cuenta de Google Drive desconectada.")
