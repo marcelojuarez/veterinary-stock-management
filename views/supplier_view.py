@@ -94,6 +94,17 @@ class SupplierView():
         self.find_entry.bind("<KeyRelease>", self.on_key_release)
         self.search_after_id = None
 
+        self.showing_active_debts = False
+
+        self.filter_debts_btn = ctk.CTkButton(
+            find_frame, text="Filtrar Por Deuda Activa",
+            fg_color="#009688", hover_color="#00796B",
+            width=190,
+            font=ctk.CTkFont(size=12, weight="bold"),
+            command=lambda: self.manage_filter_debts_btn()
+        )
+        self.filter_debts_btn.grid(row=0, column=2, padx=10, pady=15)
+
     def create_tree_frame(self):
         """ Crea el frame para la tabla de Proveedores"""
         tree_frame = ctk.CTkFrame(self.frame)
@@ -563,3 +574,17 @@ class SupplierView():
 
         arrow = " ↓" if self.sort_reverse else " ↑"
         self.supplier_tree.heading(col, text=col + arrow)
+
+    def manage_filter_debts_btn(self):
+        if not self.showing_active_debts:
+            # mostrar los proveedores con los cuales se posee una deuda activa
+            s_with_act_debts = self.controller.filter_suppliers_w_act_debts()
+            self.refresh_supplier_table(s_with_act_debts)
+            self.showing_active_debts = True
+            self.filter_debts_btn.configure(text ="Ver todos")
+
+        else: 
+            # mostrar todos los proveedores
+            self.controller.refresh_supplier_table()
+            self.showing_active_debts = False
+            self.filter_debts_btn.configure(text = "Filtrar Por Deuda Activa")

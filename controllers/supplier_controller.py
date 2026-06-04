@@ -286,4 +286,13 @@ class SupplierController():
             logger.error("Error al eliminar proveedor: %s", e)
             show_warning('Error al procesar la solicitud')
 
- 
+    ## --  Obtiene proveedores cuya deuda esta activa -- ##
+    def filter_suppliers_w_act_debts(self):
+        try:
+            suppliers = self.model.core.get_s_with_act_debts()
+
+            return suppliers
+
+        except Exception as e:
+            show_error(f'Ocurrio un error: {e}')
+            return []
