@@ -129,4 +129,18 @@ class SupplierCore():
             logger.error("Error deleting supplier: %s", e)
             return None
 
-
+    def get_s_with_act_debts(self):
+        """Filtra proveedores en los cuales se mantiene una deuda activa"""
+        try:
+            query = """
+                SELECT DISTINCT s.*
+                FROM supplier s
+                JOIN purchase p ON p.supplier_id = s.id
+                WHERE p.state IN ('PENDIENTE', 'PARCIAL')
+                AND s.active = 1
+                ORDER BY s.name
+            """
+            return self.db.fetch_all(query)
+        except Exception as e:
+            logger.error("Error obteniendo proveedores con deudas activas: %s", e)
+            return []
