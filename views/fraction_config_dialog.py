@@ -39,7 +39,7 @@ class FractionConfigDialog:
         on_save        : callback sin argumentos que se llama al guardar
     """
 
-    UNITS = ["KG", "GR", "LITRO", "ML", "UNIDAD"]
+    UNITS = ["KG", "GR", "LITRO", "ML", "UNIDAD", "DS", "COMP"]
 
     # Mapeo sufijos textuales → unidad canónica (orden importa: más largo primero)
     _UNIT_ALIASES = [
@@ -98,6 +98,10 @@ class FractionConfigDialog:
         # Cargar config existente si la hay
         self.existing_cfg = fraction_model.get_config(self.product_id)
 
+        # Fracción abierta actual (para pre-rellenar el campo)
+        current_open = fraction_model.total_available_in_open(self.product_id)
+        self._current_open = float(current_open) if current_open else 0.0
+
         # Parsear qty y unidad desde el campo pack (usado si no hay config guardada)
         self._parsed_qty, self._parsed_unit = self._parse_pack(self.product_pack)
 
@@ -109,7 +113,7 @@ class FractionConfigDialog:
         win.transient(parent)
         win.grab_set()
         win.resizable(False, False)
-        center_window(win, 480, 500)
+        center_window(win, 480, 600)
 
         card = ctk.CTkFrame(win, fg_color="white", corner_radius=16)
         card.pack(fill="both", expand=True, padx=16, pady=16)
@@ -243,6 +247,49 @@ class FractionConfigDialog:
         self.frac_price_var.trace_add("write", recalc_iva)
         recalc_iva()
 
+        # Fracción abierta
+        ctk.CTkFrame(card, fg_color="#e0e0e0", height=1).pack(fill="x", padx=16, pady=(4, 0))
+
+        open_frame = self._open_frame = ctk.CTkFrame(card, fg_color="#f0f7f4", corner_radius=8)
+        open_frame.pack(padx=16, pady=(6, 0), fill="x")
+        open_frame.columnconfigure(1, weight=1)
+
+        ctk.CTkLabel(
+            open_frame,
+            text="Fracción abierta:",
+            font=ctk.CTkFont(size=13, weight="bold")
+        ).grid(row=0, column=0, sticky="e", padx=(12, 12), pady=8)
+
+        open_frac_default = str(self._current_open) if self._current_open > 0 else ""
+        self.open_frac_var = tk.StringVar(value=open_frac_default)
+
+        ctk.CTkEntry(
+            open_frame, textvariable=self.open_frac_var,
+            width=110, height=34, placeholder_text="ej. 100"
+        ).grid(row=0, column=1, sticky="w", pady=8)
+
+        self.open_frac_unit_lbl = ctk.CTkLabel(
+            open_frame,
+            text=self.unit_var.get(),
+            font=ctk.CTkFont(size=12),
+            text_color="#009688"
+        )
+        self.open_frac_unit_lbl.grid(row=0, column=2, sticky="w", padx=(6, 12), pady=8)
+
+        hint = "(opcional — deja en blanco para no modificar)" if self._current_open == 0 \
+               else f"(actual: {self._current_open} {self.unit_var.get()})"
+        ctk.CTkLabel(
+            open_frame,
+            text=hint,
+            font=ctk.CTkFont(size=10),
+            text_color="#888"
+        ).grid(row=1, column=0, columnspan=3, sticky="w", padx=12, pady=(0, 8))
+
+        # Actualizar etiqueta de unidad al cambiar el combo
+        def on_unit_change(*_):
+            self.open_frac_unit_lbl.configure(text=self.unit_var.get())
+        self.unit_var.trace_add("write", on_unit_change)
+
         # ── Botones ───────────────────────────────────────────────────────
         btn_frame = ctk.CTkFrame(card, fg_color="transparent")
         btn_frame.pack(pady=16)
@@ -269,11 +316,14 @@ class FractionConfigDialog:
     def _toggle_fields(self):
         """Habilitar/deshabilitar campos según el switch."""
         state = "normal" if self.active_var.get() else "disabled"
-        for child in self.form_frame.winfo_children():
-            try:
-                child.configure(state=state)
-            except Exception:
-                pass
+        for frame in (self.form_frame, getattr(self, '_open_frame', None)):
+            if frame is None:
+                continue
+            for child in frame.winfo_children():
+                try:
+                    child.configure(state=state)
+                except Exception:
+                    pass
 
     def _save(self, win):
         from tkinter import messagebox
@@ -327,13 +377,32 @@ class FractionConfigDialog:
             fraction_price  = str(frac_price)
         )
 
-        messagebox.showinfo(
-            "Guardado",
-            f"Fraccionamiento configurado:\n"
+        # Fracción abierta (opcional)
+        open_frac_str = self.open_frac_var.get().strip().replace(',', '.')
+        open_frac_saved = False
+        if open_frac_str:
+            try:
+                open_frac_val = float(open_frac_str)
+                if open_frac_val < 0:
+                    raise ValueError
+                self.fraction_model.set_open_fraction(self.product_id, open_frac_val)
+                open_frac_saved = True
+            except (ValueError, Exception):
+                messagebox.showwarning(
+                    "Advertencia",
+                    "El valor de fracción abierta no es válido y no se guardó.\n"
+                    "El resto de la configuración sí fue guardado."
+                )
+
+        detail = (
             f"  • Unidad: {unit}\n"
             f"  • Cantidad / envase: {qty_pkg} {unit}\n"
             f"  • Precio / {unit} (sin IVA): ${frac_price}"
         )
+        if open_frac_saved:
+            detail += f"\n  • Fracción abierta: {open_frac_val} {unit}"
+
+        messagebox.showinfo("Guardado", f"Fraccionamiento configurado:\n{detail}")
 
         if self.on_save:
             self.on_save()

@@ -87,6 +87,22 @@ class FractionModel:
     # ENVASES ABIERTOS
     # ─────────────────────────────────────────────────────────────────────
 
+    def set_open_fraction(self, product_id: int, remaining: float) -> None:
+        """
+        Reemplaza la fracción abierta actual de un producto con el valor indicado.
+        Elimina todos los registros anteriores e inserta uno nuevo si remaining > 0.
+        Usado para ajuste manual de stock inicial o correcciones.
+        """
+        self.db.execute_query(
+            "DELETE FROM open_fractions WHERE product_id = ?",
+            (product_id,)
+        )
+        if remaining > 0:
+            self.db.execute_query(
+                "INSERT INTO open_fractions (product_id, remaining) VALUES (?, ?)",
+                (product_id, remaining)
+            )
+
     def get_open_fractions(self, product_id: int, conn=None) -> list[dict]:
         """
         Devuelve todos los envases abiertos de un producto con saldo > 0,
