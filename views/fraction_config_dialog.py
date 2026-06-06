@@ -85,10 +85,11 @@ class FractionConfigDialog:
 
         return "", "KG"
 
-    def __init__(self, parent, product, fraction_model, on_save=None):
-        self.product        = product
-        self.fraction_model = fraction_model
-        self.on_save        = on_save
+    def __init__(self, parent, product, fraction_model, on_save=None, on_fraction_price_change=None):
+        self.product                   = product
+        self.fraction_model            = fraction_model
+        self.on_save                   = on_save
+        self.on_fraction_price_change  = on_fraction_price_change
 
         self.product_id   = product[0]
         self.product_name = product[1]
@@ -97,6 +98,9 @@ class FractionConfigDialog:
 
         # Cargar config existente si la hay
         self.existing_cfg = fraction_model.get_config(self.product_id)
+
+        # Precio fraccionado anterior (para detectar si cambió al guardar)
+        self._prev_fraction_price = str(self.existing_cfg["fraction_price"]) if self.existing_cfg else None
 
         # Fracción abierta actual (para pre-rellenar el campo)
         current_open = fraction_model.total_available_in_open(self.product_id)
@@ -376,6 +380,12 @@ class FractionConfigDialog:
             qty_per_package = qty_pkg,
             fraction_price  = str(frac_price)
         )
+
+        # Si cambió el precio fraccionado, recalcular deudas pendientes
+        price_changed = self._prev_fraction_price is None or \
+                        str(frac_price) != self._prev_fraction_price
+        if price_changed and self.on_fraction_price_change:
+            self.on_fraction_price_change(self.product_id)
 
         # Fracción abierta (opcional)
         open_frac_str = self.open_frac_var.get().strip().replace(',', '.')

@@ -170,6 +170,79 @@ class StockModel:
         finally:
             conn.close()
 
+    def recalculate_pending_sales_for_product(self, product_id: int) -> None:
+        """
+        Recalcula todas las ventas pendientes/parciales que contienen este producto,
+        ajustando el libro de cuenta corriente si el total cambió.
+        Se usa cuando cambia el precio fraccionado de un producto.
+        """
+        try:
+            conn = self.db.get_connection()
+            conn.execute("BEGIN")
+
+            affected_sales = db.fetch_all("""
+                SELECT DISTINCT s.id, s.cliente_id, c.name
+                FROM sales s
+                JOIN sale_items si ON si.sale_id = s.id
+                LEFT JOIN customer c ON c.id = s.cliente_id
+                WHERE si.product_id = ? AND s.estado IN ('pending', 'partial')
+            """, (product_id,), conn=conn)
+
+            # Fetch current stock price once — used as fallback for non-fractional items
+            # (fractional items ignore this value and read fraction_price from config instead)
+            price_row = db.fetch_one("SELECT price_with_iva FROM stock WHERE id = ?", (product_id,), conn=conn)
+            current_stock_price = price_row[0] if price_row else '0'
+
+            for sale_id, client_id, client in affected_sales:
+                old_total_row = db.fetch_one("SELECT total FROM sales WHERE id = ?", (sale_id,), conn=conn)
+                old_total = Decimal(old_total_row[0]) if old_total_row else Decimal('0.00')
+
+                self.sales_model.update_sale_item(sale_id, product_id, current_stock_price, conn=conn, commit=False)
+                self.sales_model.recalculate_sale_total(sale_id, conn=conn, commit=False)
+
+                new_total_row = db.fetch_one("SELECT total FROM sales WHERE id = ?", (sale_id,), conn=conn)
+                new_total = Decimal(new_total_row[0]) if new_total_row else Decimal('0.00')
+
+                if client and old_total != new_total:
+                    self.payment_model.customer_model.register_price_adjustment_in_account(
+                        sale_id=sale_id,
+                        client_id=client_id,
+                        old_total=old_total,
+                        new_total=new_total,
+                        conn=conn,
+                        commit=False
+                    )
+
+                if old_total != new_total:
+                    new_status = self.payment_model.update_sale_status(sale_id, conn=conn, commit=False)
+                    if new_status == 'paid':
+                        payments = self.payment_model.get_payments_for_sale(sale_id, conn=conn)
+                        paid = norm_to_2_dec(sum(Decimal(p[1]) for p in payments))
+                        self.payment_model.generate_overpay_credit(
+                            sale_id=sale_id,
+                            client_id=client_id,
+                            total=new_total,
+                            payments=payments,
+                            conn=conn,
+                            commit=False
+                        )
+                        overpayment = norm_to_2_dec(paid - new_total)
+                        msg = f"✅ Venta #{sale_id} PAGADA - Saldo a favor: ${overpayment}" \
+                              if overpayment > Decimal('0.00') else f"✅ Venta #{sale_id} quedó PAGADA por cambio de precio"
+                        self.changes.append(msg)
+                    else:
+                        self.changes.append(f"✅ Venta #{sale_id} actualizada por cambio de precio fraccionado")
+
+            conn.commit()
+            if self.changes:
+                self.event_bus.publish("price_changes", self.changes)
+
+        except Exception as e:
+            conn.rollback()
+            logger.error("Error recalculando ventas por cambio de precio fraccionado: %s", e)
+        finally:
+            conn.close()
+
     _VALID_FIELDS = {'name', 'pack', 'list_price', 'discount', 'cost_price', 'profit', 'price', 'iva', 'price_with_iva', 'quantity', 'last_price_update'}
 
     def update_field(self, db_field, new_value, product_id):

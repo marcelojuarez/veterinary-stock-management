@@ -226,7 +226,7 @@ class StockView():
         self._stat_value     = tk.StringVar(value="—")
 
         make_card(0, "📦", "Total productos",    self._stat_total,    "#1565C0")
-        make_card(1, "⚠️",  "Stock bajo (< 3)",  self._stat_low,     "#E65100")
+        make_card(1, "⚠️",  "Stock bajo (≤ 3)",  self._stat_low,     "#E65100")
         make_card(2, "❌", "Sin stock",           self._stat_no_stock, "#C62828")
         make_card(3, "💰", "Valor inventario",   self._stat_value,    "#2E7D32")
 
@@ -240,7 +240,7 @@ class StockView():
             return
 
         total     = len(products)
-        low       = sum(1 for p in products if 0 < float(p[12] or 0) < 3)
+        low       = sum(1 for p in products if 0 < float(p[12] or 0) <= 3)
         no_stock  = sum(1 for p in products if float(p[12] or 0) == 0)
         try:
             valor = sum(
@@ -366,9 +366,11 @@ class StockView():
         self.stock_tree.bind('<Escape>', self.cancel_edit)
 
         # Tags para colores de filas
-        self.stock_tree.tag_configure('orow', background="#FFFFFF")
-        self.stock_tree.tag_configure("low_stock", background="#ffebee")   # rojo muy suave
-        self.stock_tree.tag_configure("medium_stock", background="#fff3e0") # naranja muy suave
+        self.stock_tree.tag_configure('orow',         background="#FFFFFF")
+        self.stock_tree.tag_configure("no_stock",     background="#ffcdd2")  # rojo atenuado   (qty == 0)
+        self.stock_tree.tag_configure("low_stock",    background="#ffe0b2")  # naranja atenuado (qty == 1)
+        self.stock_tree.tag_configure("medium_stock", background="#fff9c4")  # amarillo atenuado (qty 2-3)
+        self.stock_tree.tag_configure("ok_stock",     background="#e4f4ce")  # verde atenuado  (qty > 3)
 
         self.stock_tree.grid(row=0, column=0, sticky="nsew")
 
@@ -892,12 +894,14 @@ class StockView():
             (id, name, pack, list_price, discount, cost_price, profit, price,
             iva, price_with_iva, created_at, last_price_update, quantity) = product
 
-            if quantity < 3:
+            if quantity == 0:
+                tag = "no_stock"
+            elif quantity == 1:
                 tag = "low_stock"
-            elif quantity <= 5:
+            elif quantity <= 3:
                 tag = "medium_stock"
             else:
-                tag = ""
+                tag = "ok_stock"
 
             if self.fraction_model and self.fraction_model.is_fractional(product[0]):
                 info = self.fraction_model.get_available_stock_info(product[0])
@@ -1207,8 +1211,9 @@ class StockView():
             return
         product = self.stock_model.get_product_by_id(selected_id)
         FractionConfigDialog(
-            parent         = self.frame,
-            product        = product,
-            fraction_model = self.fraction_model,
-            on_save        = lambda: self.refresh_stock_table(self.stock_model.get_all_products())
+            parent                    = self.frame,
+            product                   = product,
+            fraction_model            = self.fraction_model,
+            on_save                   = lambda: self.refresh_stock_table(self.stock_model.get_all_products()),
+            on_fraction_price_change  = self.stock_model.recalculate_pending_sales_for_product,
         )
