@@ -38,20 +38,7 @@ class NewProductForm():
         # Hacer que la ventana sea modal
         add_win.transient(parent)
         add_win.grab_set()
-    
-        # Centrar la ventana
-        width_win = 560
-        height_win = 480
-
-        x_parent = parent.winfo_x() 
-        y_parent = parent.winfo_y()
-        width_parent = parent.winfo_width()
-        height_parent = parent.winfo_height()
-
-        x = x_parent + (width_parent // 2) - (width_win // 2)
-        y = y_parent + (height_parent // 2) - (height_win // 2)
-
-        add_win.geometry(f"{width_win}x{height_win}+{x}+{y}")
+        add_win.withdraw()
         
         card_frame = ctk.CTkFrame(
             add_win,
@@ -75,8 +62,8 @@ class NewProductForm():
         # contenedor del formulario — 2 columnas
         form_frame = ctk.CTkFrame(card_frame, fg_color="white")
         form_frame.pack(pady=5, padx=10, fill="x")
-        form_frame.grid_columnconfigure(1, weight=1)
-        form_frame.grid_columnconfigure(3, weight=1)
+        form_frame.grid_columnconfigure(1, weight=0)
+        form_frame.grid_columnconfigure(3, weight=0)
         
         def add_field(row, col, label, widget):
             field_lbl = ctk.CTkLabel(
@@ -87,10 +74,12 @@ class NewProductForm():
             )
             field_lbl.grid(row=row, column=col*2, sticky="e", padx=(15, 8), pady=6)
             widget.grid(row=row, column=col*2+1, sticky="w", padx=(0, 15), pady=6)
+        
+        name_lbl = ctk.CTkLabel(form_frame, text="Nombre: ", font=ctk.CTkFont(size=13, weight="bold"))
+        name_lbl.grid(row=0, column=0, sticky="e", padx=(15, 8), pady=6)
 
-        # Columna izquierda
-        add_field(0, 0, "Nombre:", 
-                ctk.CTkEntry(form_frame, textvariable=self.name_var, width=180))
+        name_entry = ctk.CTkEntry(form_frame, textvariable=self.name_var)
+        name_entry.grid(row=0, column=1, columnspan=3, sticky="ew", padx=(0, 15), pady=6)
         
         add_field(1, 0, "Envase:",
             ctk.CTkComboBox(
@@ -113,17 +102,17 @@ class NewProductForm():
         self.iva_var.set("21.00")
 
         # Columna derecha — precios
-        add_field(0, 1, "Precio Lista:",
+        add_field(1, 1, "Precio Lista:",
                 ctk.CTkEntry(form_frame, textvariable=self.list_price_var, width=180))
         
-        add_field(1, 1, "% Rentabilidad:",
+        add_field(2, 1, "% Rentabilidad:",
                 ctk.CTkEntry(form_frame, textvariable=self.profit_var, width=180))
 
-        add_field(2, 1, "Precio Venta:",
+        add_field(3, 1, "Precio Venta:",
                 ctk.CTkEntry(form_frame, textvariable=self.sale_price_var, width=180))
         self.sale_price_var.set('0.0')
 
-        add_field(3, 1, "Monto IVA:",
+        add_field(4, 1, "Monto IVA:",
                   ctk.CTkEntry(form_frame, textvariable=self.iva_amount, width=180))
         self.iva_amount.set('0.0')
 
@@ -192,6 +181,21 @@ class NewProductForm():
         cancel_button = ctk.CTkButton(button_frame, text="Cancelar", width=120, height=35, font=ctk.CTkFont(size=12, weight="bold"),
             fg_color="#757575", hover_color="#616161", command=lambda: close_win(add_win, parent))
         cancel_button.grid(row=0, column=1, padx=10)
+
+        x_parent = parent.winfo_x() 
+        y_parent = parent.winfo_y()
+        width_parent = parent.winfo_width()
+        height_parent = parent.winfo_height()
+
+        add_win.update_idletasks()
+        width_win = add_win.winfo_reqwidth()
+        height_win = add_win.winfo_reqheight()
+
+        x = x_parent + (width_parent // 2) - (width_win // 2)
+        y = y_parent + (height_parent // 2) - (height_win // 2)
+
+        add_win.geometry(f"{width_win}x{height_win}+{x}+{y}")
+        add_win.deiconify()
 
     def confirm_new_product(self, parent):
         if self.list_price is not None:

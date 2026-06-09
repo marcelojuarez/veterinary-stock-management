@@ -25,6 +25,7 @@ VERSION_JSON_URL = (
     "https://raw.githubusercontent.com/marcelojuarez/veterinary-stock-management/main/version.json"
 )
 
+
 # Archivo local que guarda la versión instalada actualmente.
 # En desarrollo: root del proyecto. En frozen (PyInstaller --onefile): sys._MEIPASS root.
 import sys as _sys
@@ -90,7 +91,11 @@ class UpdateService:
                 headers={"Cache-Control": "no-cache", "User-Agent": "StockManager-Updater/1.0"},
             )
             with urllib.request.urlopen(req, timeout=self.TIMEOUT_SECONDS) as resp:
-                data = json.loads(resp.read().decode("utf-8"))
+                raw = resp.read()
+                try:
+                    data = json.loads(raw.decode("utf-8"))
+                except UnicodeDecodeError:
+                    data = json.loads(raw.decode("latin-1"))
 
             info = UpdateInfo(data)
             logger.info(

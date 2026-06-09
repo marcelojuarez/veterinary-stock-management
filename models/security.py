@@ -6,7 +6,7 @@ def gen_password(password):
     # genera el hash de la contraseña
     return ph.hash(password)
 
-def validate_password(hash_pwd, pwd):
+def validate_password(pwd, hash_pwd):
     # verifica la contraseña ingresada con el hash
     try:
         ph.verify(hash_pwd, pwd)

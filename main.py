@@ -26,6 +26,7 @@ logger = logging.getLogger(__name__)
 
 from views.main_view import App
 from services.backup_service import initialize_backup_system
+from services.cloud_backup_service import CloudBackupService
 from config.settings import DB_PATH
 
 
@@ -45,11 +46,17 @@ def main():
             backup_service.config.get("auto_backup_enabled"),
         )
 
+        # ── Backup en la nube ──────────────────────────────────────────────
+        cloud_service = CloudBackupService()
+        if cloud_service.is_authenticated():
+            cloud_service.start_auto_cloud_backup()
+            logger.info("Auto cloud backup iniciado.")
+        else:
+            logger.info("Cloud backup no configurado — se omite auto backup en Drive.")
+
         # ── Interfaz gráfica ───────────────────────────────────────────────
-        # El chequeo de actualizaciones se dispara dentro de App.load_system(),
-        # después del login, cuando la ventana principal ya está visible.
         logger.info("Creando interfaz gráfica...")
-        app = App()
+        app = App(cloud_service=cloud_service)
 
         logger.info("Aplicación iniciada correctamente.")
         logger.info("=" * 60)
@@ -58,6 +65,7 @@ def main():
 
         logger.info("Cerrando aplicación...")
         backup_service.stop_auto_backup()
+        cloud_service.stop_auto_cloud_backup()
         logger.info("Sistema de backups detenido.")
 
     except Exception as e:

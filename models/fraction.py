@@ -87,6 +87,22 @@ class FractionModel:
     # ENVASES ABIERTOS
     # ─────────────────────────────────────────────────────────────────────
 
+    def set_open_fraction(self, product_id: int, remaining: float) -> None:
+        """
+        Reemplaza la fracción abierta actual de un producto con el valor indicado.
+        Elimina todos los registros anteriores e inserta uno nuevo si remaining > 0.
+        Usado para ajuste manual de stock inicial o correcciones.
+        """
+        self.db.execute_query(
+            "DELETE FROM open_fractions WHERE product_id = ?",
+            (product_id,)
+        )
+        if remaining > 0:
+            self.db.execute_query(
+                "INSERT INTO open_fractions (product_id, remaining) VALUES (?, ?)",
+                (product_id, remaining)
+            )
+
     def get_open_fractions(self, product_id: int, conn=None) -> list[dict]:
         """
         Devuelve todos los envases abiertos de un producto con saldo > 0,
@@ -106,6 +122,43 @@ class FractionModel:
             {"id": r[0], "product_id": r[1], "remaining": Decimal(str(r[2])), "opened_at": r[3]}
             for r in rows
         ]
+
+    def get_all_fractional_stock(self) -> dict:
+        """
+        Returns {product_id: stock_info} for every fractional product in 2 queries.
+        Use this instead of calling is_fractional() + get_available_stock_info() per product.
+        """
+        rows = self.db.fetch_all("""
+            SELECT sfc.product_id, sfc.unit, sfc.qty_per_package, sfc.fraction_price,
+                   COALESCE(s.quantity, 0) AS closed_qty
+            FROM stock_fraction_config sfc
+            JOIN stock s ON s.id = sfc.product_id
+        """)
+        if not rows:
+            return {}
+
+        open_rows = self.db.fetch_all("""
+            SELECT product_id, SUM(remaining)
+            FROM open_fractions
+            WHERE remaining > 0
+            GROUP BY product_id
+        """)
+        open_map = {r[0]: Decimal(str(r[1])) for r in open_rows}
+
+        result = {}
+        for pid, unit, qty_per_pkg, frac_price, closed in rows:
+            qty_per_pkg    = Decimal(str(qty_per_pkg))
+            open_remaining = open_map.get(pid, Decimal("0"))
+            total          = Decimal(str(closed)) * qty_per_pkg + open_remaining
+            result[pid] = {
+                "closed_packages": closed,
+                "open_remaining":  open_remaining,
+                "total_units":     total,
+                "unit":            unit,
+                "qty_per_package": qty_per_pkg,
+                "fraction_price":  Decimal(str(frac_price)),
+            }
+        return result
 
     def total_available_in_open(self, product_id: int, conn=None) -> Decimal:
         """Suma de saldo restante en todos los envases abiertos."""

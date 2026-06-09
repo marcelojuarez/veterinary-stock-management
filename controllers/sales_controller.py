@@ -201,6 +201,7 @@ class SalesController:
                 self.sales_view.generate_delivery_note()
 
             self.event_bus.publish('refresh_stock_table', None)
+            self.event_bus.publish('refresh_products_on_p_win', None)
             self.sales_view.load_available_products()
 
         except Exception as e:

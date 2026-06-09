@@ -7,7 +7,7 @@ from utils.view_helpers import show_error, show_warning, show_success, center_wi
 
 from utils.receipts.manager import generate_receipts_for_payment
 from utils.receipts.account_statement import generate_account_statement
-from utils.utils import norm_to_2_dec, string_to_2_dec
+from utils.utils import norm_to_2_dec, string_to_2_dec, format_currency
 \
 from decimal import Decimal, InvalidOperation
 
@@ -423,6 +423,73 @@ class CustomerController:
                      font=ctk.CTkFont(size=20, weight="bold"),
                      text_color="#D32F2F").pack(pady=(0, 8))
         # ----------------------------------------------------------------
+        # Payment preview dialog
+        # ----------------------------------------------------------------
+        def _confirm_preview(amount, method, check_data):
+            """Show a simple summary and return True only if user confirms."""
+            confirmed = {"value": False}
+
+            preview = ctk.CTkToplevel(win)
+            preview.title("Confirmar Pago")
+            preview.transient(win)
+            preview.grab_set()
+            preview.resizable(False, False)
+
+            remaining = max(Decimal("0"), total_debt - amount)
+            surplus   = max(Decimal("0"), amount - total_debt)
+            h = 310 if surplus > Decimal("0") else 280
+            center_window(preview, 360, h)
+
+            card = ctk.CTkFrame(preview, fg_color="white", corner_radius=12)
+            card.pack(fill="both", expand=True, padx=14, pady=14)
+
+            ctk.CTkLabel(card, text="Confirmar Pago",
+                         font=ctk.CTkFont(size=15, weight="bold")).pack(pady=(14, 8))
+
+            def _row(label, value, color="black"):
+                f = ctk.CTkFrame(card, fg_color="transparent")
+                f.pack(fill="x", padx=16, pady=2)
+                ctk.CTkLabel(f, text=label,
+                             font=ctk.CTkFont(size=12), text_color="#555").pack(side="left")
+                ctk.CTkLabel(f, text=value,
+                             font=ctk.CTkFont(size=12, weight="bold"),
+                             text_color=color).pack(side="right")
+
+            _row("Monto a aplicar:",  f"${format_currency(str(amount))}")
+            _row("Método:",           method)
+            _row("Deuda actual:",     f"${format_currency(str(total_debt))}", "#D32F2F")
+
+            ctk.CTkFrame(card, fg_color="#e0e0e0", height=1).pack(fill="x", padx=16, pady=8)
+
+            if remaining == Decimal("0"):
+                ctk.CTkLabel(card, text="✅ Deuda saldada completamente",
+                             font=ctk.CTkFont(size=13, weight="bold"),
+                             text_color="#2E7D32").pack(pady=4)
+            else:
+                _row("Quedará adeudando:", f"${format_currency(str(remaining))}", "#D32F2F")
+
+            if surplus > Decimal("0"):
+                _row("Saldo a favor generado:", f"${format_currency(str(surplus))}", "#1565C0")
+
+            btn_row = ctk.CTkFrame(card, fg_color="transparent")
+            btn_row.pack(fill="x", padx=16, pady=(14, 16))
+
+            def _do_confirm():
+                confirmed["value"] = True
+                preview.destroy()
+
+            ctk.CTkButton(btn_row, text="Cancelar", height=36,
+                          fg_color="#757575", hover_color="#616161",
+                          command=preview.destroy).pack(side="left", expand=True, fill="x", padx=(0, 5))
+            ctk.CTkButton(btn_row, text="Confirmar", height=36,
+                          fg_color="#009688", hover_color="#00796B",
+                          font=ctk.CTkFont(weight="bold"),
+                          command=_do_confirm).pack(side="right", expand=True, fill="x", padx=(5, 0))
+
+            preview.wait_window()
+            return confirmed["value"]
+
+        # ----------------------------------------------------------------
         # Confirmar pago
         # ----------------------------------------------------------------
         def process():
@@ -470,6 +537,9 @@ class CustomerController:
                     "issue_date": datetime.now().strftime("%Y-%m-%d"),
                     "due_date":   due_iso,
                 }
+
+            if not _confirm_preview(amount, method, check_data):
+                return
 
             try:
                 conn = self.payment_model.db.get_connection()
@@ -536,6 +606,7 @@ class CustomerController:
                     sid: self.model.get_sale_items(sid)
                     for sid, _ in result['updated_debts']
                 }
+                imprimir = messagebox.askyesno("Imprimir", "¿Desea imprimir el comprobante?")
                 generate_receipts_for_payment(
                     mode="global",
                     format=fmt,
@@ -546,7 +617,7 @@ class CustomerController:
                     result_data=result,
                     sales_with_items=sales_with_items,
                     check_data=check_data,
-                    auto_print=True
+                    auto_print=imprimir
                 )
 
             except Exception as e:
@@ -646,6 +717,18 @@ class CustomerController:
             self.view.open_account_history_window(cliente_id, cliente_nombre, movements, summary)
         except Exception as e:
             self.view.show_error(f"Error al obtener historial: {e}")
+
+    def show_sales_history(self, cliente_id, cliente_nombre):
+        """Abre el resumen histórico de ventas del cliente (todas, pagadas y pendientes)."""
+        try:
+            rows = self.model.get_full_sales_history(cliente_id)
+            self.view.open_sales_history_window(cliente_id, cliente_nombre, rows)
+        except Exception as e:
+            self.view.show_error(f"Error al obtener historial de ventas: {e}")
+
+    def load_sales_history_rows(self, client_id, from_date=None, to_date=None):
+        """Reload history rows with optional date filter."""
+        return self.model.get_full_sales_history(client_id, from_date=from_date, to_date=to_date)
 
     def export_account_history_pdf(self, cliente_id, cliente_nombre):
         """Exporta el historial de cuenta a PDF"""
@@ -852,6 +935,7 @@ class CustomerController:
                 "credit_added": Decimal("0.00"), 
             }
 
+            imprimir = messagebox.askyesno("Imprimir", "¿Desea imprimir el comprobante?")
             generate_receipts_for_payment(
                 mode="global",
                 format=fmt,
@@ -861,7 +945,7 @@ class CustomerController:
                 customer_id=customer_id,
                 result_data=result_data,
                 sales_with_items=sales_with_items,
-                auto_print=True
+                auto_print=imprimir
             )
 
         except Exception as e:
@@ -947,12 +1031,17 @@ class CustomerController:
                 if not messagebox.askyesno("Error en PDF", error_msg):
                     return
 
-            query_clean = """
-            DELETE FROM customer_ledger
-            WHERE client_id = ?
+            # Insert a closing entry rather than deleting history — preserves full audit trail
+            query_close = """
+                INSERT INTO customer_ledger
+                    (client_id, date, type, description, amount, payment, debt, reference_id, reference)
+                VALUES (?, ?, 'CIERRE', ?, '0.00', '0.00', '0.00', NULL, 'CIERRE')
             """
-
-            self.payment_model.db.execute_query(query_clean, (cliente_id, ))
+            self.payment_model.db.execute_query(query_close, (
+                cliente_id,
+                datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                f"Cierre de cuenta — historial archivado",
+            ))
 
             # ================================================================
             # PASO 6: ACTUALIZAR UI

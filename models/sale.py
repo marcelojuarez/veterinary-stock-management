@@ -85,6 +85,12 @@ class SalesModel:
                 cost_before  = row[3] if row else None
                 qty_before   = row[4] if row else None
 
+                # ── Unidad de fraccionamiento (solo para ítems fraccionados) ──
+                fraction_unit = None
+                if is_fractional:
+                    frac_cfg = self.fraction.get_config(product_id)
+                    fraction_unit = frac_cfg.get('unit') if frac_cfg else None
+
                 # ── Cálculo de precios ────────────────────────────────────
                 divisor              = Decimal('1') + (iva_rate / Decimal('100'))
                 price_without_iva    = norm_to_2_dec(price_with_iva / divisor)
@@ -94,17 +100,20 @@ class SalesModel:
 
                 cursor.execute("""
                     INSERT INTO sale_items
-                        (sale_id, product_id, quantity, price, subtotal, iva_rate, iva_amount, observations, is_fractional)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        (sale_id, product_id, quantity, price, subtotal, iva_rate, iva_amount,
+                         observations, is_fractional, cost_price, fraction_unit)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """, (
                     sale_id, product_id,
-                    str(quantity),          # guardar como TEXT para soportar decimales
+                    str(quantity),
                     str(price_with_iva),
                     str(subtotal_with_iva),
                     str(iva_rate),
                     str(iva_amount),
                     observations,
-                    1 if is_fractional else 0
+                    1 if is_fractional else 0,
+                    str(cost_before) if cost_before is not None else None,
+                    fraction_unit,
                 ))
 
                 # ── Descuento de stock ────────────────────────────────────
@@ -303,14 +312,15 @@ class SalesModel:
     def update_sales_items_and_get_new_sales_amount(self, sale_id, conn=None, commit=True):
         try:
             sale_items = self.db.fetch_all(
-                "SELECT id, sale_id, product_id, quantity, is_fractional FROM sale_items WHERE sale_id = ?",
+                "SELECT id, sale_id, product_id, quantity, is_fractional, price FROM sale_items WHERE sale_id = ?",
                 (sale_id,), conn=conn
             )
             for item in sale_items:
-                s_item_id    = item[0]
-                p_id         = item[2]
-                quantity     = item[3]
-                is_frac      = item[4]
+                s_item_id      = item[0]
+                p_id           = item[2]
+                quantity       = item[3]
+                is_frac        = item[4]
+                original_price = Decimal(item[5])
 
                 product_data = self.db.fetch_one(
                     "SELECT iva, price_with_iva FROM stock WHERE id = ?", (p_id,), conn=conn
@@ -321,7 +331,10 @@ class SalesModel:
                     iva_mult       = Decimal('1') + (iva_rate / Decimal('100'))
                     price_with_iva = norm_to_2_dec(Decimal(str(frac_cfg["fraction_price"])) * iva_mult)
                 else:
-                    price_with_iva = Decimal(product_data[1])
+                    stock_price = Decimal(product_data[1])
+                    # If the stock price is 0 (e.g. HONORARIOS, custom-priced items),
+                    # keep the original sale price to avoid zeroing out the sale total.
+                    price_with_iva = stock_price if stock_price > Decimal('0') else original_price
 
                 divisor              = Decimal('1') + (iva_rate / Decimal('100'))
                 price_without_iva    = norm_to_2_dec(price_with_iva / divisor)

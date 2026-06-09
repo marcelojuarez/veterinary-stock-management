@@ -60,10 +60,23 @@ class Database:
 
             # Tabla de usuarios
             cursor.execute('''
-                CREATE TABLE IF NOT EXISTS usuarios (
+                CREATE TABLE IF NOT EXISTS user (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
                     username TEXT UNIQUE NOT NULL,
                     password_hash TEXT NOT NULL
                 )
+            ''')
+
+            # Tabla de session
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS session_log (
+                    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+                    user_id    INTEGER NOT NULL,
+                    username   TEXT NOT NULL,
+                    login_at   TEXT DEFAULT CURRENT_TIMESTAMP,
+                    logout_at  TEXT NULL,
+                    FOREIGN KEY (user_id) REFERENCES user(id)
+                )            
             ''')
 
             # Tabla de stock
@@ -363,6 +376,14 @@ class Database:
             ''')
             try:
                 cursor.execute("ALTER TABLE sale_items ADD COLUMN is_fractional INTEGER DEFAULT 0")
+            except Exception:
+                pass
+            try:
+                cursor.execute("ALTER TABLE sale_items ADD COLUMN cost_price TEXT")
+            except Exception:
+                pass
+            try:
+                cursor.execute("ALTER TABLE sale_items ADD COLUMN fraction_unit TEXT")
             except Exception:
                 pass
 

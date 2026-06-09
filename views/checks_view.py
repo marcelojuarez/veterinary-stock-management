@@ -237,7 +237,7 @@ class ChecksView:
         if messagebox.askyesno("Confirmar", "¿Marcar este cheque como RECHAZADO?"):
             result, msg = self.controller.manage_check_rechazado(check_id, status)
             if result:
-                self.show_success(f'Operación realizada con exito \n {msg}')
+                self.show_success(f'{msg}')
             else:
                 self.show_error(msg)
 

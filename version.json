@@ -1,8 +1,8 @@
 {
-  "version": "1.0.9",
-  "release_date": "2026-05-23",
-  "release_notes": "Nuevas actualizaciones: \\n- Se deshabilitó el boton de confirmar compra inmediatamente al apretar \\n- Se agregó tooltip para ver honorarios completos en treeviews \\n- Se agrego scroll bar para mostrar ventanas completas",
-  "installer_url": "https://github.com/marcelojuarez/veterinary-stock-management/releases/download/v1.0.9/StockManagerSetup_v1.0.9.exe",
-  "checksum_sha256": "eb2a9cf65d06802264260d2e826bcdbe393b842fc289c9298ae01651796cfbb9",
+  "version": "1.15",
+  "release_date": "2026-06-06",
+  "release_notes": "Ver notas en GitHub",
+  "installer_url": "https://github.com/marcelojuarez/veterinary-stock-management/releases/download/v1.15/StockManagerSetup_v1.15.exe",
+  "checksum_sha256": "a783830798911f587e5b715cfac440841728370a427048ffdd7fee6c122158e0",
   "mandatory": false
 }

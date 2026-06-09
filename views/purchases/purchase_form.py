@@ -1,6 +1,7 @@
 import tkinter as tk
 from tkinter import ttk
 import customtkinter as ctk
+import logging
 
 from .new_product_form import NewProductForm
 from utils.view_helpers import  show_error, close_win
@@ -19,8 +20,12 @@ class PurchaseForm():
 
     # Muestra los productos actuales
     def show_actual_products(self, parent, purchase_values):
+        logger = logging.getLogger(__name__)
+
         self.supplier_var = tk.StringVar()
         self.supplier_var.set(purchase_values[1])
+
+        local_find_entry = tk.StringVar()
 
         product_win = ctk.CTkToplevel(parent)
         product_win.title("Agregar Nuevo Producto")
@@ -57,7 +62,7 @@ class PurchaseForm():
 
         self.search_entry = ctk.CTkEntry(
             search_frame,
-            textvariable=self.find_entry,
+            textvariable=local_find_entry,
             width=300,
             height=35,      
         )
@@ -137,12 +142,20 @@ class PurchaseForm():
         mng_btn_frame.columnconfigure(0, weight=1)
         mng_btn_frame.rowconfigure(0, weight=1)
 
+        def on_close():
+            try:
+                local_find_entry.set("")
+                product_win.destroy()
+                parent.after(50, lambda: parent.focus_force())
+            except Exception as e:
+                logger.error("Error al cerrar la ventana: %s", e)       
+
         ctk.CTkButton(
             mng_btn_frame,
             text="Listo",
             fg_color="#4CAF50",
             font=ctk.CTkFont(size=13, weight='bold'),
-            command=lambda: close_win(product_win, parent)
+            command=on_close
         ).grid(row=0, column=0, padx=10, pady=10)
 
         # Centrar ventana
@@ -161,6 +174,7 @@ class PurchaseForm():
         product_win.geometry(f"{width_win}x{height_win}+{x}+{y}")
         product_win.deiconify()
 
+        product_win.protocol("WM_DELETE_WINDOW", on_close)       
         product_win.transient(parent)
         product_win.grab_set()
         
