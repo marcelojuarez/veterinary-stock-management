@@ -2,6 +2,7 @@ import logging
 from datetime import datetime
 from utils.view_helpers import show_warning, show_error
 from db.database import db
+from models.security import gen_password
 
 logger = logging.getLogger(__name__)
 
@@ -40,15 +41,39 @@ class User:
             logger.error("Error buscando usuario: %s", e)
             return None
 
-    def add_new_user(self, user_data: dict):
-        query = """
-            INSERT INTO user (username, password_hash)
-            VALUES (?, ?)
-        """
-        return self.db.execute_query(
-            query, (user_data["username"], user_data["password"])
-        )
+    def add_new_user(self, user_data: dict) -> tuple[bool, str]:
+        try:
+            existing = self.get_user_by_username(user_data["username"])
+            if existing:
+                return False, f"El usuario '{user_data['username']}' ya existe."
 
+            hashed = gen_password(user_data["password"])
+            query = "INSERT INTO user (username, password_hash) VALUES (?, ?)"
+            self.db.execute_query(query, (user_data["username"], hashed))
+            return True, "OK"
+
+        except Exception as e:
+            logger.error("Error al agregar usuario: %s", e)
+            return False, str(e)
+        
+    def get_all_users(self) -> list:
+        try:
+            return self.db.fetch_all("SELECT username FROM user", []) or []
+        except Exception as e:
+            logger.error("Error obteniendo usuarios: %s", e)
+            return []
+
+    def delete_user(self, username: str) -> tuple[bool, str]:
+        try:
+            existing = self.get_user_by_username(username)
+            if not existing:
+                return False, f"El usuario '{username}' no existe."
+            
+            self.db.execute_query("DELETE FROM user WHERE username = ?", (username,))
+            return True, "OK"
+        except Exception as e:
+            logger.error("Error al eliminar usuario: %s", e)
+            return False, str(e)
     ## -- Registro de sesiones -- ##
     
     def register_login(self, user_id: int, username: str) -> int | None:
@@ -90,27 +115,29 @@ class User:
         from_date: str | None = None,
         to_date: str | None = None,
         username: str | None = None,
-    ) -> list:
-        """
-        Devuelve filas de session_log según filtros opcionales.
-        Cada fila: (id, user_id, username, login_at, logout_at)
-        """
+        limit: int = 50,
+        offset: int = 0,
+    ) -> tuple[list, int]:
         try:
-            query = "SELECT id, user_id, username, login_at, logout_at FROM session_log WHERE 1=1"
+            base = "FROM session_log WHERE 1=1"
             params: list = []
 
             if from_date:
-                query += " AND DATE(login_at) >= ?"
+                base += " AND DATE(login_at) >= ?"
                 params.append(from_date)
             if to_date:
-                query += " AND DATE(login_at) <= ?"
+                base += " AND DATE(login_at) <= ?"
                 params.append(to_date)
             if username and username.strip():
-                query += " AND username LIKE ?"
+                base += " AND username LIKE ?"
                 params.append(f"%{username.strip()}%")
 
-            query += " ORDER BY login_at DESC"
-            return self.db.fetch_all(query, params) or []
+            total = self.db.fetch_one(f"SELECT COUNT(*) {base}", params)[0]
+
+            query = f"SELECT id, user_id, username, login_at, logout_at {base} ORDER BY login_at DESC LIMIT ? OFFSET ?"
+            rows = self.db.fetch_all(query, params + [limit, offset]) or []
+
+            return rows, total
         except Exception as e:
             logger.error("Error obteniendo session log: %s", e)
-            return []
+            return [], 0

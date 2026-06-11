@@ -2,6 +2,7 @@ import logging
 import tkinter as tk
 import customtkinter as ctk
 from tkinter import ttk, messagebox
+from utils.view_helpers import center_window
 from datetime import datetime, timedelta
 
 logger = logging.getLogger(__name__)
@@ -46,6 +47,9 @@ class SessionLogView:
     def _create_header(self):
         header = ctk.CTkFrame(self.frame)
         header.grid(row=0, column=0, sticky="ew", padx=10, pady=10)
+        header.grid_columnconfigure(9, weight=1)  # esta columna empuja todo hacia la derecha
+        header.grid_columnconfigure(10, weight=0)
+        header.grid_columnconfigure(11, weight=0)
 
         # Título
         ctk.CTkLabel(
@@ -107,6 +111,25 @@ class SessionLogView:
             font=ctk.CTkFont(size=12),
             text_color="#555555",
         ).grid(row=0, column=9, padx=15)
+
+        # Agregar nuevo usuario 
+        ctk.CTkButton(
+            header,
+            text="Agregar nuevo usuario",
+            width=100, height=35,
+            fg_color="#009688", hover_color="#00796B",
+            font=ctk.CTkFont(size=12, weight="bold"),
+            command=self.controller.add_user_dialog,
+        ).grid(row=0, column=10, padx=20) 
+    
+        ctk.CTkButton(
+            header,
+            text="Eliminar usuario",
+            width=140, height=35,
+            fg_color="#E74C3C", hover_color="#C0392B",
+            font=ctk.CTkFont(size=12, weight="bold"),
+            command=self.controller.delete_user_dialog,
+        ).grid(row=0, column=11, padx=(0, 20), sticky="e")
 
     # ------------------------------------------------------------------ #
     #  TABLA                                                               #
@@ -183,7 +206,7 @@ class SessionLogView:
         footer.grid(row=2, column=0, padx=10, pady=(0, 15), sticky="ew")
         footer.grid_columnconfigure((0, 1, 2), weight=1)
 
-        def make_card(col, title, var_name, bg, fg):
+        def make_card(col, title, bg, fg):
             card = ctk.CTkFrame(footer, fg_color=bg, corner_radius=10)
             card.grid(row=0, column=col, padx=10, pady=10, sticky="ew")
             ctk.CTkLabel(
@@ -199,9 +222,35 @@ class SessionLogView:
             lbl.pack(pady=(0, 8))
             return lbl
 
-        self._lbl_total    = make_card(0, "Total sesiones",     None, "#f5f5f5", "#333333")
-        self._lbl_cerradas = make_card(1, "Sesiones cerradas",  None, "#e8f5e9", "#2E7D32")
-        self._lbl_abiertas = make_card(2, "Sesiones sin cerrar",None, "#fff9c4", "#F57F17")
+        self._lbl_total    = make_card(0, "Total sesiones",      "#f5f5f5", "#333333")
+        self._lbl_cerradas = make_card(1, "Sesiones cerradas",   "#e8f5e9", "#2E7D32")
+        self._lbl_abiertas = make_card(2, "Sesiones sin cerrar", "#fff9c4", "#F57F17")
+
+        # Paginación
+        nav_frame = ctk.CTkFrame(footer, fg_color="transparent")
+        nav_frame.grid(row=1, column=0, columnspan=3, pady=(0, 10))
+
+        self._btn_prev = ctk.CTkButton(
+            nav_frame, text="← Anterior", width=120, height=30,
+            fg_color="#757575", hover_color="#616161",
+            font=ctk.CTkFont(size=12),
+            command=self.controller.prev_page,
+        )
+        self._btn_prev.grid(row=0, column=0, padx=10)
+
+        self._lbl_page = ctk.CTkLabel(
+            nav_frame, text="Página 1 de 1",
+            font=ctk.CTkFont(size=12),
+        )
+        self._lbl_page.grid(row=0, column=1, padx=20)
+
+        self._btn_next = ctk.CTkButton(
+            nav_frame, text="Siguiente →", width=120, height=30,
+            fg_color="#757575", hover_color="#616161",
+            font=ctk.CTkFont(size=12),
+            command=self.controller.next_page,
+        )
+        self._btn_next.grid(row=0, column=2, padx=10)
 
     # ------------------------------------------------------------------ #
     #  MÉTODOS PÚBLICOS (llamados desde el controlador)                   #
@@ -245,7 +294,6 @@ class SessionLogView:
             )
 
         # Actualizar contador y tarjetas
-        self.count_var.set(f"{total} registro{'s' if total != 1 else ''}")
         self._lbl_total.configure(text=str(total))
         self._lbl_cerradas.configure(text=str(cerradas))
         self._lbl_abiertas.configure(text=str(abiertas))
@@ -282,3 +330,177 @@ class SessionLogView:
             return f"{h}h {m}m" if h else f"{m}m"
         except Exception:
             return "—"
+
+    def show_add_user_dialog(self) -> dict | None:
+        width_win, height_win = 450, 340
+        win = ctk.CTkToplevel(self.frame)
+        win.configure(fg_color="#e0e0e0")
+        win.title("Agregar nuevo usuario")
+        win.transient(self.frame)
+        win.grab_set()
+        center_window(win, width_win, height_win)
+
+        username_var = ctk.StringVar()
+        password_var = ctk.StringVar()
+        result       = {}
+
+        # Card principal
+        card_frame = ctk.CTkFrame(win, fg_color="white", corner_radius=20)
+        card_frame.pack(fill="both", expand=True, padx=20, pady=20)
+
+        ctk.CTkLabel(
+            card_frame,
+            text="Registrar Nuevo Usuario",
+            font=ctk.CTkFont(size=18, weight="bold"),
+        ).pack(pady=(20, 10))
+
+        # Formulario
+        form_frame = ctk.CTkFrame(card_frame, fg_color="#f9f9f9", corner_radius=10)
+        form_frame.pack(pady=10, padx=20, fill="x")
+
+        def add_field(row, label, widget):
+            ctk.CTkLabel(
+                form_frame, text=label,
+                font=ctk.CTkFont(size=14, weight="bold"),
+                text_color="black",
+            ).grid(row=row, column=0, sticky="e", padx=(10, 10), pady=7)
+            widget.grid(row=row, column=1, sticky="w", padx=(10, 10), pady=7)
+
+        add_field(0, "Usuario:",
+                ctk.CTkEntry(form_frame, textvariable=username_var, width=200))
+        add_field(1, "Contraseña:",
+                ctk.CTkEntry(form_frame, textvariable=password_var, width=200, show="*"))
+        # Botones
+        btn_frame = ctk.CTkFrame(card_frame, fg_color="transparent")
+        btn_frame.pack(pady=15)
+
+        def save_and_close():
+            if not username_var.get().strip() or not password_var.get().strip():
+                messagebox.showwarning("Campos vacíos",
+                                    "Usuario y contraseña son obligatorios.",
+                                    parent=win)
+                return
+            result["username"] = username_var.get().strip().lower()
+            result["password"] = password_var.get().strip()
+            cleanup_and_close()
+
+        def cleanup_and_close():
+            try:
+                if win.winfo_exists():
+                    win.unbind("<Return>")
+                    win.grab_release()
+                win.destroy()
+            except Exception:
+                pass
+
+        save_btn = ctk.CTkButton(
+            btn_frame, text="Guardar",
+            width=150, height=40,
+            fg_color="#009688", hover_color="#00796B",
+            font=ctk.CTkFont(size=13, weight="bold"),
+            command=save_and_close,
+        )
+        save_btn.grid(row=0, column=0, padx=15)
+
+        ctk.CTkButton(
+            btn_frame, text="Cancelar",
+            width=150, height=40,
+            fg_color="#E74C3C", hover_color="#C0392B",
+            font=ctk.CTkFont(size=13, weight="bold"),
+            command=cleanup_and_close,
+        ).grid(row=0, column=1, padx=15)
+
+        def on_enter(event):
+            if win.winfo_exists():
+                save_btn.invoke()
+
+        win.bind("<Return>", on_enter)
+        win.protocol("WM_DELETE_WINDOW", cleanup_and_close)
+
+        self.frame.wait_window(win)
+        return result if result else None
+
+
+    def show_delete_user_dialog(self, users: list) -> str | None:
+        width_win, height_win = 450, 250
+        win = ctk.CTkToplevel(self.frame)
+        win.configure(fg_color="#e0e0e0")
+        win.title("Eliminar usuario")
+        win.transient(self.frame)
+        win.grab_set()
+        center_window(win, width_win, height_win)
+
+        usernames = [row[0] for row in users]
+        selected_var = ctk.StringVar(value=usernames[0] if usernames else "")
+        result = {}
+
+        card_frame = ctk.CTkFrame(win, fg_color="white", corner_radius=20)
+        card_frame.pack(fill="both", expand=True, padx=20, pady=20)
+
+        ctk.CTkLabel(
+            card_frame, text="Eliminar Usuario",
+            font=ctk.CTkFont(size=18, weight="bold"),
+        ).pack(pady=(20, 10))
+
+        form_frame = ctk.CTkFrame(card_frame, fg_color="#f9f9f9", corner_radius=10)
+        form_frame.pack(pady=10, padx=20, fill="x")
+
+        ctk.CTkLabel(
+            form_frame, text="Usuario:",
+            font=ctk.CTkFont(size=14, weight="bold"),
+            text_color="black",
+        ).grid(row=0, column=0, sticky="e", padx=10, pady=7)
+
+        ctk.CTkComboBox(
+            form_frame, values=usernames,
+            variable=selected_var, width=200,
+            state="readonly",
+        ).grid(row=0, column=1, sticky="w", padx=10, pady=7)
+
+        btn_frame = ctk.CTkFrame(card_frame, fg_color="transparent")
+        btn_frame.pack(pady=15)
+
+        def confirm_and_close():
+            if not selected_var.get():
+                messagebox.showwarning("Sin selección", "Seleccioná un usuario.", parent=win)
+                return
+            if not messagebox.askyesno(
+                "Confirmar", f"¿Eliminar al usuario '{selected_var.get()}'?", parent=win
+            ):
+                return
+            result["username"] = selected_var.get()
+            cleanup_and_close()
+
+        def cleanup_and_close():
+            try:
+                if win.winfo_exists():
+                    win.grab_release()
+                win.destroy()
+            except Exception:
+                pass
+
+        ctk.CTkButton(
+            btn_frame, text="Eliminar",
+            width=150, height=40,
+            fg_color="#E74C3C", hover_color="#C0392B",
+            font=ctk.CTkFont(size=13, weight="bold"),
+            command=confirm_and_close,
+        ).grid(row=0, column=0, padx=15)
+
+        ctk.CTkButton(
+            btn_frame, text="Cancelar",
+            width=150, height=40,
+            fg_color="#757575", hover_color="#616161",
+            font=ctk.CTkFont(size=13, weight="bold"),
+            command=cleanup_and_close,
+        ).grid(row=0, column=1, padx=15)
+
+        win.protocol("WM_DELETE_WINDOW", cleanup_and_close)
+        self.frame.wait_window(win)
+        return result if result else None
+
+    def update_pagination(self, page: int, total_pages: int, total: int) -> None:
+        self._lbl_page.configure(text=f"Página {page + 1} de {total_pages}")
+        self._btn_prev.configure(state="normal" if page > 0 else "disabled")
+        self._btn_next.configure(state="normal" if page < total_pages - 1 else "disabled")
+        self.count_var.set(f"{total} registro{'s' if total != 1 else ''}")

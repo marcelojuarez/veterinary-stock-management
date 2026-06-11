@@ -262,15 +262,11 @@ def seed_stock():
 def seed_client():
     users = [
         {"username": "admin", "password": "admin"},
-        {"username": "juan", "password": "juan"}
+        {"username": "juan",  "password": "juan"}
     ]
-
     user_model = User()
     for user in users:
-        encryp_pwd = gen_password(user['password'])
-        user["password"] = encryp_pwd
-        user_model.add_new_user(user)
-
+        user_model.add_new_user(user)  # el modelo hashea solo
     print("Usuarios cargados.")
 
 # Códigos de provincia reales de SENASA para RENSPA y CUIG
