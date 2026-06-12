@@ -188,8 +188,8 @@ class NewProductForm():
         height_parent = parent.winfo_height()
 
         add_win.update_idletasks()
-        width_win = add_win.winfo_reqwidth()
-        height_win = add_win.winfo_reqheight()
+        width_win  = max(add_win.winfo_reqwidth(), 750)
+        height_win = max(add_win.winfo_reqheight(), 450)
 
         x = x_parent + (width_parent // 2) - (width_win // 2)
         y = y_parent + (height_parent // 2) - (height_win // 2)
