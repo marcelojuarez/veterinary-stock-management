@@ -496,18 +496,24 @@ class SupplierPurchase():
 
                 # Actualizacion de stock
                 total_qty_to_add = i_data['qty'] + i_data['bonus_qty']
-                self.stock_model.update_quantity(i_data['id'], i_data['qty'], conn=conn, commit=False)
+                self.stock_model.update_quantity(i_data['id'], total_qty_to_add, conn=conn, commit=False)
 
                 # --- Registrar movimiento ---
                 qty_after   = (qty_before or 0) + total_qty_to_add
                 cost_after  = p_data['cost_price']
                 price_after = p_data['sale_price']
 
+                detail = (
+                    f"Compra ID {purchase_id} — {i_data['qty']} uds + {i_data['bonus_qty']} bonif."
+                    if i_data['bonus_qty'] and int(i_data['bonus_qty']) > 0
+                    else f"Compra ID {purchase_id}"
+                )
+
                 self.movement.register(
                     product_id   = i_data['id'],
                     product_name = i_data['name'],
                     event_type   = 'COMPRA',
-                    detail       = f"Compra ID {purchase_id}",
+                    detail       = detail,
                     qty_before   = qty_before,
                     qty_after    = qty_after,
                     cost_before  = cost_before,
@@ -539,11 +545,17 @@ class SupplierPurchase():
             name = item['name'] # nombre producto
             pack = item['pack'] # envase producto
             list_price = item['list_price']
-
-            discount = item['discount']
-            ## discount_amount = Decimal((item['list_price'] * discount) / Decimal('100')) # monto descuento
-
             cost_price = Decimal(item['cost_price'])# se aplica descuento
+
+            if list_price > 0:
+                effective_discount = norm_to_2_dec(
+                    (Decimal('1') - cost_price / list_price) * Decimal('100')
+                )
+            else:
+                effective_discount = Decimal('0.00')
+
+            discount = effective_discount
+
             iva = item['iva_rate'] # porcentaje de iva
             last_price_upd = date # fecha de ult. act de precio
 

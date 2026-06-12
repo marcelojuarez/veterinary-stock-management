@@ -488,7 +488,7 @@ class PaymentWindow():
             placeholder_text="Ingrese nombre del proveedor..."
         )
         self.find_entry.grid(row=0, column=1, padx=5)
-
+        self.find_entry.focus()
         self.find_entry.bind("<KeyRelease>", self.on_key_release)
         self.search_after_id = None
 

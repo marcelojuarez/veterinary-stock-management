@@ -72,9 +72,6 @@ class SupplierView():
         find_frame = ctk.CTkFrame(self.frame)
         find_frame.grid(row=0, column=0, sticky='w', padx=10, pady=10)
 
-        btn_color = "#009688"
-        btn_hover = "#00796B"
-
         search_label = ctk.CTkLabel(
             find_frame, 
             text="🔍 Buscar Proveedor", 
