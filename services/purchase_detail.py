@@ -76,7 +76,12 @@ class PurchaseDetail():
         self.load_data(purchase_id)
 
         date        = self.purchase['date']
-        compras_dir = os.path.join(get_base_folder(), "Proveedores", "Compras")
+        
+        supplier_name = self.purchase['supplier_name']
+        # Limpiar caracteres inválidos para nombre de carpeta
+        #safe_name = "".join(c for c in supplier_name if c.isalnum() or c in (' ', '-', '_')).strip()
+        compras_dir = os.path.join(get_base_folder(), "Proveedores", supplier_name, "Compras")
+        #compras_dir = os.path.join(get_base_folder(), "Proveedores", "Compras")
         os.makedirs(compras_dir, exist_ok=True)
         filename = os.path.join(
             compras_dir, f"{date}_compra_nro_{purchase_id}.pdf"

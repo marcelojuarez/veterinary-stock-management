@@ -13,6 +13,7 @@ import json
 logger = logging.getLogger(__name__)
 from datetime import datetime
 from decimal import Decimal
+from utils.utils import format_currency
 from reportlab.lib import colors
 from reportlab.pdfgen import canvas
 from reportlab.lib.units import mm
@@ -99,6 +100,7 @@ def generate_orden_pago(
     purchase_id: int | None = None,
     purchase_total: str = "",
     purchase_remaining: str = "",
+    purchase_status: str = "",
     # Cheque (legacy)
     check_number: str = "",
     check_bank: str = "",
@@ -277,9 +279,11 @@ def generate_orden_pago(
         shade = False
         shaded_row(f"Compra #{purchase_id}", "", shade=shade); shade = not shade
         if purchase_total:
-            shaded_row("  Total compra:", f"$ {purchase_total}", shade=shade); shade = not shade
+            shaded_row("  Total Compra:", f"$ {format_currency(purchase_total)}", shade=shade); shade = not shade
         if purchase_remaining:
-            shaded_row("  Saldo pendiente:", f"$ {purchase_remaining}", shade=shade)
+            shaded_row("  Saldo Pendiente:", f"$ {format_currency(purchase_remaining)}", shade=shade)
+        if purchase_status:
+            shaded_row("  Estado de Compra:", purchase_status, shade=shade); shade = not shade
 
         sep(dashed=True, gap_before=8, gap_after=14)
 
@@ -299,7 +303,7 @@ def generate_orden_pago(
         # Fila principal del medio
         shaded_row(
             f"{idx}. {_method_label(met)}",
-            f"$ {p_amt:,.2f}",
+            f"$ {format_currency(p_amt)}",
             shade=shade
         )
         shade = not shade
@@ -345,7 +349,7 @@ def generate_orden_pago(
     c.setFont("Helvetica-Bold", 11)
     c.drawString(margin + 8, y - 2, "TOTAL ABONADO")
     c.setFont("Helvetica-Bold", 14)
-    c.drawRightString(W - margin - 8, y - 2, f"$ {total_amount:,.2f}")
+    c.drawRightString(W - margin - 8, y - 2, f"$ {format_currency(total_amount)}")
     y -= box_h + 10
 
     sep(gap_before=10, gap_after=20)

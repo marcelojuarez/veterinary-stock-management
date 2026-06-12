@@ -161,6 +161,7 @@ class PaymentController():
                 if p:
                     purchase_total   = str(p[10])
                     purchase_pending = str(p[9])
+                    purchase_status = p[7]
 
             # Armar lista de medios para la OP
             payments_list = []
@@ -200,6 +201,7 @@ class PaymentController():
                 purchase_id        = purchase_id_int,
                 purchase_total     = purchase_total,
                 purchase_remaining = purchase_pending,
+                purchase_status    = purchase_status,
                 auto_print         = imprimir,
             )
 
