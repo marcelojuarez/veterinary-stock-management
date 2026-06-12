@@ -281,9 +281,6 @@ class PaymentForm:
 
         if hasattr(self, 'amount_entry'):
             self.amount_entry.configure(state='normal')
-            remaining = self._deuda_original - self._credit_applied
-            if remaining > Decimal("0"):
-                self.amount_var.set(str(remaining))
 
         if method == "TRANSFERENCIA":
             self.op_num_lbl.grid(row=0, column=0, padx=(20,8), pady=4, sticky="e")

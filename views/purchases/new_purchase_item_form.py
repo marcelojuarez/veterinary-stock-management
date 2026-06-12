@@ -189,7 +189,6 @@ class NewPurchaseItemForm():
             price_after_dto = self.list_price - unit_d_amount
 
             if self.bonus_qty > 0:
-
                 cost_price = price_after_dto * (1 - Decimal((self.bonus_qty * 10))/100)
             else:
                 cost_price = price_after_dto
@@ -244,10 +243,22 @@ class NewPurchaseItemForm():
             self.list_price_var.set(self.list_price)
 
         if self.discount is not None:
+
+            # Limpiar Ingreso de Discount (-0)
+            if self.discount == Decimal("0"):
+                self.discount = Decimal("0.00")
+
             self.discount_var.set(self.discount)
 
         if self.iva is not None:
             self.iva_rate.set(self.iva)
+
+        if self.bonus_qty is not None:
+            # Limpiar Ingreso de Bonus Qty (-0)
+            if self.bonus_qty == -0:
+                self.bonus_qty = 0
+
+            self.bonus_qty_var.set(self.bonus_qty)
 
         data = (
             f"Nombre: {self.product_name.get().upper()}\n"

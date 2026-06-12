@@ -202,6 +202,10 @@ class NewProductForm():
             self.list_price_var.set(self.list_price)
 
         if self.profit is not None:
+            # Limpiar Ingreso de Rentabilidad (-0)
+            if self.profit == Decimal("0"):
+                self.profit = Decimal("0.00")
+
             self.profit_var.set(self.profit)
 
         if self.iva is not None:

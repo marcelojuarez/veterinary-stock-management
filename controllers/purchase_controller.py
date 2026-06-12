@@ -262,7 +262,8 @@ class PurchaseController():
             'Name': 'Nombre Artículo', 
             'Package': 'Envase', 
             'ListPrice': 'Precio de Lista', 
-            'Profit': 'Rentabilidad', 
+            'Profit': 'Rentabilidad',
+            'SalePrice': 'Precio de Venta',  
             'Stock': 'Stock'
         }
         
@@ -272,17 +273,28 @@ class PurchaseController():
                 return False
         
         # Validar Tipos Numéricos
-        ## Precio de costo
+        ## Precio de Lista
         try:
             Decimal(form_data['ListPrice'])
         except Exception:
-            show_warning("Error. Formato incorrecto en precio costo")
+            show_warning("Error. Formato incorrecto en Precio de Lista")
             return False
         
         if Decimal(form_data['ListPrice']) <= Decimal('0.00'):
-            show_error('Error. El precio de costo no puede ser un valor Negativo o (0)')
+            show_error('Error. El Precio de Lista no puede ser un valor Negativo o (0)')
             return False
         
+        ## Precio de Venta
+        try:
+            Decimal(form_data['SalePrice'])
+        except Exception:
+            show_warning("Error. Formato incorrecto en Precio de Venta")
+            return False
+        
+        if Decimal(form_data['ListPrice']) <= Decimal('0.00'):
+            show_error('Error. El Precio de Venta no puede ser un valor Negativo o (0)')
+            return False
+
         ## Rentabilidad
         try:
             Decimal(form_data['Profit'])
