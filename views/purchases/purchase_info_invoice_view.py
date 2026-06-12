@@ -82,8 +82,8 @@ class PurchaseInfoInvoiceView():
             table_frame = ctk.CTkFrame(main_frame, corner_radius=10)
             table_frame.pack(fill="both", expand=True, padx=10)
 
-            headers = ["Id", "Nombre", "Envase", "Cantidad", "Precio Lista", "Dto %", 'Precio Costo', "Iva %", 
-                        "Monto Descuento", "Subtotal", "Monto Total Iva", "Total"]
+            headers = ["Id", "Nombre", "Envase", "Cantidad", "Bonif.", "Precio Lista", "Dto %", 'Precio Costo', 
+                       "Iva %", "Monto Descuento", "Subtotal", "Monto Total Iva", "Total"]
 
             self.sheet = Sheet(
                 table_frame,
@@ -501,6 +501,7 @@ class PurchaseInfoInvoiceView():
                 name, # name
                 pack, # pack
                 qty, # quantity
+                f"+{bonus_qty}" if bonus_qty and int(bonus_qty) > 0 else "—",
                 format_currency_flex(l_price), # list_price
                 discount, # discount
                 format_currency_flex(c_price), # cost_price
@@ -512,12 +513,12 @@ class PurchaseInfoInvoiceView():
             ]
 
             for id, name, pack, qty, l_price, discount, c_price, iva_rate, discount_amt, 
-            subtotal, iva_amt, total in data_raw
+            bonus_qty, subtotal, iva_amt, total in data_raw
 
         ]
 
         self.sheet.set_sheet_data(data)
-        self.sheet.set_column_widths([60, 260, 120, 80, 120, 100, 120, 100, 120, 120, 120, 120])
+        self.sheet.set_column_widths([60, 260, 120, 80, 70, 120, 100, 120, 100, 120, 120, 120, 120])
 
     ## -- Generar purchase detail como pdf -- ##
     def gen_purchase_detail_pdf(self):

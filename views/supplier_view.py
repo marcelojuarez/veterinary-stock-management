@@ -489,7 +489,6 @@ class SupplierView():
         self.supplier_tree.tag_configure('orow', background="white", foreground='black')
 
     def refresh_supplier_table(self, suppliers):
-        print(f'supplier from table: {suppliers}')
         for item in self.supplier_tree.get_children():
             self.supplier_tree.delete(item)
 

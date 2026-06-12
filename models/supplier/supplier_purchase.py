@@ -244,8 +244,8 @@ class SupplierPurchase():
 
         query = """
             INSERT INTO purchase_item (purchase_id, product_id, product_name, pack, quantity,
-            list_price, discount, cost_price, iva_rate, discount_amount, subtotal, iva_amount, total) 
-            VALUES (?, ?, ? ,?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            list_price, discount, cost_price, iva_rate, discount_amount, bonus_qty, subtotal, iva_amount, total) 
+            VALUES (?, ?, ? ,?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """
 
         self.db.execute_query(query, params, conn=conn, commit=commit)
@@ -341,7 +341,7 @@ class SupplierPurchase():
     def get_purchase_items(self, purchase_id):
         query = """
             SELECT product_id, product_name, pack, quantity, list_price, discount, 
-            cost_price, iva_rate, discount_amount, subtotal, iva_amount, total
+            cost_price, iva_rate, discount_amount, bonus_qty, subtotal, iva_amount, total
             FROM purchase_item
             WHERE purchase_id = ?
         """
@@ -462,6 +462,7 @@ class SupplierPurchase():
                     'discount':   Decimal(i[5]),
                     'cost_price': Decimal(i[6]),
                     'iva_rate':   Decimal(i[7]),
+                    'bonus_qty':  i[9]
                 }
 
                 # --- Guardar estado ANTERIOR del producto ---
@@ -492,10 +493,13 @@ class SupplierPurchase():
                 WHERE id = ?
                 """
                 self.db.execute_query(query, params, conn=conn, commit=False)
+
+                # Actualizacion de stock
+                total_qty_to_add = i_data['qty'] + i_data['bonus_qty']
                 self.stock_model.update_quantity(i_data['id'], i_data['qty'], conn=conn, commit=False)
 
                 # --- Registrar movimiento ---
-                qty_after   = (qty_before or 0) + i_data['qty']
+                qty_after   = (qty_before or 0) + total_qty_to_add
                 cost_after  = p_data['cost_price']
                 price_after = p_data['sale_price']
 
@@ -537,9 +541,9 @@ class SupplierPurchase():
             list_price = item['list_price']
 
             discount = item['discount']
-            discount_amount = Decimal((item['list_price'] * discount) / Decimal('100')) # monto descuento
+            ## discount_amount = Decimal((item['list_price'] * discount) / Decimal('100')) # monto descuento
 
-            cost_price = Decimal(item['list_price'] - discount_amount)# se aplica descuento
+            cost_price = Decimal(item['cost_price'])# se aplica descuento
             iva = item['iva_rate'] # porcentaje de iva
             last_price_upd = date # fecha de ult. act de precio
 

@@ -249,6 +249,7 @@ class Database:
                     cost_price TEXT NOT NULL,
                     iva_rate TEXT NOT NULL,
                     discount_amount TEXT NOT NULL,
+                    bonus_qty INTEGER NOT NULL DEFAULT 0,
 
                     subtotal TEXT NOT NULL,
                     iva_amount TEXT NOT NULL,
