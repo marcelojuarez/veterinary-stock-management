@@ -1,0 +1,69 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      # 1. Clonar el repo
+      - name: Checkout código
+        uses: actions/checkout@v4
+
+      # 2. Instalar Python
+      - name: Instalar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      # 3. Instalar dependencias
+      - name: Instalar dependencias
+        run: pip install -r requirements.txt pyinstaller
+
+      # 4. Crear carpeta db vacía (PyInstaller la necesita)
+      - name: Crear carpeta db
+        run: New-Item -ItemType Directory -Force -Path db
+
+      # 5. Compilar con PyInstaller
+      - name: Compilar con PyInstaller
+        run: |
+          python -m PyInstaller `
+            --onefile `
+            --windowed `
+            --name=StockManager `
+            --icon=assets/logo.ico `
+            "--add-data=local_version.json;." `
+            "--add-data=db;db" `
+            "--add-data=assets;assets" `
+            main.py
+
+      # 6. Instalar Inno Setup
+      - name: Instalar Inno Setup
+        run: choco install innosetup --yes
+
+      # 7. Extraer versión del tag (v1.2.0 → 1.2.0)
+      - name: Extraer versión
+        id: version
+        run: |
+          $tag = "${{ github.ref_name }}"
+          $version = $tag.TrimStart('v')
+          echo "VERSION=$version" >> $env:GITHUB_OUTPUT
+
+      # 8. Generar instalador con Inno Setup
+      - name: Generar instalador
+        run: |
+          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer.iss `
+            /DMyAppVersion=${{ steps.version.outputs.VERSION }} `
+            "/DOutputBaseFilename=StockManagerSetup_v${{ steps.version.outputs.VERSION }}"
+
+      # 9. Subir instalador al Release de GitHub
+      - name: Crear GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/StockManagerSetup_v${{ steps.version.outputs.VERSION }}.exe
+          name: Versión ${{ steps.version.outputs.VERSION }}
+          body: Release automático generado por GitHub Actions
