@@ -87,7 +87,7 @@ class NewProductForm():
                 values=["UNIDAD","10ML","20ML","25ML","50ML","90ML","100ML",
                         "200ML","250ML","300ML","500ML","400GR","5KG","10KG",
                         "12KG","15KG","20KG","25KG","40DS"],
-                variable=self.pack_var, width=180, height=34
+                variable=self.pack_var, state='readonly', width=180, height=34
             )
         )
         self.pack_var.set("UNIDAD")
@@ -113,7 +113,7 @@ class NewProductForm():
         self.sale_price_var.set('0.0')
 
         add_field(4, 1, "Monto IVA:",
-                  ctk.CTkEntry(form_frame, textvariable=self.iva_amount, width=180))
+                  ctk.CTkEntry(form_frame, textvariable=self.iva_amount, state='readonly', width=180))
         self.iva_amount.set('0.0')
 
         # Precio final — fila completa destacada
@@ -125,7 +125,7 @@ class NewProductForm():
         )
         final_lbl.grid(row=4, column=0, sticky="e", padx=(15, 8), pady=(10, 6))
         final_entry = ctk.CTkEntry(
-            form_frame, textvariable=self.final_price,
+            form_frame, textvariable=self.final_price, state='readonly',
             width=180, font=ctk.CTkFont(size=13, weight="bold"),
             fg_color="#E8F5E9", border_color="#4CAF50"
         )
@@ -188,8 +188,8 @@ class NewProductForm():
         height_parent = parent.winfo_height()
 
         add_win.update_idletasks()
-        width_win = add_win.winfo_reqwidth()
-        height_win = add_win.winfo_reqheight()
+        width_win  = max(add_win.winfo_reqwidth(), 750)
+        height_win = max(add_win.winfo_reqheight(), 450)
 
         x = x_parent + (width_parent // 2) - (width_win // 2)
         y = y_parent + (height_parent // 2) - (height_win // 2)
@@ -202,6 +202,10 @@ class NewProductForm():
             self.list_price_var.set(self.list_price)
 
         if self.profit is not None:
+            # Limpiar Ingreso de Rentabilidad (-0)
+            if self.profit == Decimal("0"):
+                self.profit = Decimal("0.00")
+
             self.profit_var.set(self.profit)
 
         if self.iva is not None:

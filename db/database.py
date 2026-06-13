@@ -60,10 +60,23 @@ class Database:
 
             # Tabla de usuarios
             cursor.execute('''
-                CREATE TABLE IF NOT EXISTS usuarios (
+                CREATE TABLE IF NOT EXISTS user (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
                     username TEXT UNIQUE NOT NULL,
                     password_hash TEXT NOT NULL
                 )
+            ''')
+
+            # Tabla de session
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS session_log (
+                    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+                    user_id    INTEGER NOT NULL,
+                    username   TEXT NOT NULL,
+                    login_at   TEXT DEFAULT CURRENT_TIMESTAMP,
+                    logout_at  TEXT NULL,
+                    FOREIGN KEY (user_id) REFERENCES user(id)
+                )            
             ''')
 
             # Tabla de stock
@@ -236,6 +249,7 @@ class Database:
                     cost_price TEXT NOT NULL,
                     iva_rate TEXT NOT NULL,
                     discount_amount TEXT NOT NULL,
+                    bonus_qty INTEGER NOT NULL DEFAULT 0,
 
                     subtotal TEXT NOT NULL,
                     iva_amount TEXT NOT NULL,

@@ -29,6 +29,8 @@ class NewPurchaseItemForm():
         self.discount_var = tk.StringVar()
         self.discount = None
         self.discount_amount = tk.StringVar()
+        self.bonus_qty_var = tk.StringVar()
+        self.bonus_qty = Decimal('0')
 
         self.subtotal = tk.StringVar()
         
@@ -127,10 +129,13 @@ class NewPurchaseItemForm():
         add_field(4, 0, "Stock:",
                 ctk.CTkEntry(form_frame, textvariable=self.quantity, width=200))
         
-        add_field(5, 0, "Precio Lista:",
+        add_field(5, 0, "Bonificación (UNID):",
+            ctk.CTkEntry(form_frame, textvariable=self.bonus_qty_var, width=200))
+        
+        add_field(6, 0, "Precio Lista:",
                 ctk.CTkEntry(form_frame, textvariable=self.list_price_var, width=200))
         
-        add_field(6, 0,"% Dto:",
+        add_field(7, 0,"% Dto:",
                 ctk.CTkEntry(form_frame, textvariable=self.discount_var, width=200))  
         
         add_field(0, 2, "Precio Costo:",
@@ -162,9 +167,10 @@ class NewPurchaseItemForm():
 
         def recalc(*args):
             ## stock
-            self.qty = string_to_dec(self.quantity.get())
+            self.qty = string_to_dec(self.quantity.get()) or int('0')
 
             ## precio - iva - descuento
+            self.bonus_qty  = string_to_dec(self.bonus_qty_var.get()) or int('0')
             self.list_price = string_to_flex_dec(self.list_price_var.get())
             self.discount = string_to_2_dec(self.discount_var.get())
 
@@ -178,11 +184,15 @@ class NewPurchaseItemForm():
 
             # Calculos (sin normalizar)
             base_amount = norm_to_2_dec(self.qty * self.list_price)
-
             discount_rate = self.discount / Decimal('100')
             unit_d_amount = self.list_price * discount_rate
+            price_after_dto = self.list_price - unit_d_amount
 
-            cost_price = self.list_price - unit_d_amount
+            if self.bonus_qty > 0:
+                cost_price = price_after_dto * (1 - Decimal((self.bonus_qty * 10))/100)
+            else:
+                cost_price = price_after_dto
+
             subtotal = norm_to_2_dec(self.qty * cost_price)
 
             # IVA solo se discrimina en facturas A/M
@@ -208,7 +218,8 @@ class NewPurchaseItemForm():
         self.quantity.trace_add("write", recalc)
         self.list_price_var.trace_add("write", recalc)
         self.iva_rate.trace_add("write", recalc)
-        self.discount_var.trace_add("write", recalc) 
+        self.discount_var.trace_add("write", recalc)
+        self.bonus_qty_var.trace_add("write", recalc)
 
         # Botones
         button_frame = ctk.CTkFrame(card_frame, fg_color="transparent")
@@ -232,10 +243,22 @@ class NewPurchaseItemForm():
             self.list_price_var.set(self.list_price)
 
         if self.discount is not None:
+
+            # Limpiar Ingreso de Discount (-0)
+            if self.discount == Decimal("0"):
+                self.discount = Decimal("0.00")
+
             self.discount_var.set(self.discount)
 
         if self.iva is not None:
             self.iva_rate.set(self.iva)
+
+        if self.bonus_qty is not None:
+            # Limpiar Ingreso de Bonus Qty (-0)
+            if self.bonus_qty == -0:
+                self.bonus_qty = 0
+
+            self.bonus_qty_var.set(self.bonus_qty)
 
         data = (
             f"Nombre: {self.product_name.get().upper()}\n"
@@ -246,6 +269,7 @@ class NewPurchaseItemForm():
             f"Precio costo: ${self.cost_price_var.get()}\n"
             f"IVA %:  {self.iva_rate.get()}\n"
             f"Monto Descuento: ${self.discount_amount.get()}\n"
+            f"Bonificación: {self.bonus_qty_var.get()} uds\n"
             f"Subtotal: ${self.subtotal.get()}\n"
             f"Monto IVA $: {self.iva_amount.get()}\n"
             f"Total: ${self.total_item_var.get()}"
@@ -277,6 +301,7 @@ class NewPurchaseItemForm():
             'Cost_price': self.cost_price_var.get().strip(),
             'Iva_rate': self.iva_rate.get().strip(),
             'Discount_amount': self.discount_amount.get().strip(),
+            'Bonus_qty': self.bonus_qty_var.get().strip(),
             'Subtotal': self.subtotal.get().strip(),
             'Iva_amount': self.iva_amount.get().strip(),
             'Total': self.total_item_var.get().strip()

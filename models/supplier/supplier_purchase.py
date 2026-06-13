@@ -244,8 +244,8 @@ class SupplierPurchase():
 
         query = """
             INSERT INTO purchase_item (purchase_id, product_id, product_name, pack, quantity,
-            list_price, discount, cost_price, iva_rate, discount_amount, subtotal, iva_amount, total) 
-            VALUES (?, ?, ? ,?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            list_price, discount, cost_price, iva_rate, discount_amount, bonus_qty, subtotal, iva_amount, total) 
+            VALUES (?, ?, ? ,?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """
 
         self.db.execute_query(query, params, conn=conn, commit=commit)
@@ -341,7 +341,7 @@ class SupplierPurchase():
     def get_purchase_items(self, purchase_id):
         query = """
             SELECT product_id, product_name, pack, quantity, list_price, discount, 
-            cost_price, iva_rate, discount_amount, subtotal, iva_amount, total
+            cost_price, iva_rate, discount_amount, bonus_qty, subtotal, iva_amount, total
             FROM purchase_item
             WHERE purchase_id = ?
         """
@@ -462,6 +462,7 @@ class SupplierPurchase():
                     'discount':   Decimal(i[5]),
                     'cost_price': Decimal(i[6]),
                     'iva_rate':   Decimal(i[7]),
+                    'bonus_qty':  i[9]
                 }
 
                 # --- Guardar estado ANTERIOR del producto ---
@@ -492,18 +493,27 @@ class SupplierPurchase():
                 WHERE id = ?
                 """
                 self.db.execute_query(query, params, conn=conn, commit=False)
-                self.stock_model.update_quantity(i_data['id'], i_data['qty'], conn=conn, commit=False)
+
+                # Actualizacion de stock
+                total_qty_to_add = i_data['qty'] + i_data['bonus_qty']
+                self.stock_model.update_quantity(i_data['id'], total_qty_to_add, conn=conn, commit=False)
 
                 # --- Registrar movimiento ---
-                qty_after   = (qty_before or 0) + i_data['qty']
+                qty_after   = (qty_before or 0) + total_qty_to_add
                 cost_after  = p_data['cost_price']
                 price_after = p_data['sale_price']
+
+                detail = (
+                    f"Compra ID {purchase_id} — {i_data['qty']} uds + {i_data['bonus_qty']} bonif."
+                    if i_data['bonus_qty'] and int(i_data['bonus_qty']) > 0
+                    else f"Compra ID {purchase_id}"
+                )
 
                 self.movement.register(
                     product_id   = i_data['id'],
                     product_name = i_data['name'],
                     event_type   = 'COMPRA',
-                    detail       = f"Compra ID {purchase_id}",
+                    detail       = detail,
                     qty_before   = qty_before,
                     qty_after    = qty_after,
                     cost_before  = cost_before,
@@ -535,11 +545,17 @@ class SupplierPurchase():
             name = item['name'] # nombre producto
             pack = item['pack'] # envase producto
             list_price = item['list_price']
+            cost_price = Decimal(item['cost_price'])# se aplica descuento
 
-            discount = item['discount']
-            discount_amount = Decimal((item['list_price'] * discount) / Decimal('100')) # monto descuento
+            if list_price > 0:
+                effective_discount = norm_to_2_dec(
+                    (Decimal('1') - cost_price / list_price) * Decimal('100')
+                )
+            else:
+                effective_discount = Decimal('0.00')
 
-            cost_price = Decimal(item['list_price'] - discount_amount)# se aplica descuento
+            discount = effective_discount
+
             iva = item['iva_rate'] # porcentaje de iva
             last_price_upd = date # fecha de ult. act de precio
 

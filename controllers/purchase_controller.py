@@ -85,8 +85,11 @@ class PurchaseController():
                 self.event_bus.publish('refresh_supplier_table', None)
                 show_success('Compra confirmada')
 
+                ## Generacion de pdf
+                pdf_path = PurchaseDetail(self.supplier_model).generate_purchase_detail(purchase_id)
+
+                ## Consulta sobre accion de impresion
                 if messagebox.askyesno("Imprimir", "¿Desea imprimir el comprobante de ingreso de stock?"):
-                    pdf_path = PurchaseDetail(self.supplier_model).generate_purchase_detail(purchase_id)
                     if not send_to_printer(pdf_path):
                         show_error("No se pudo enviar a la impresora. Verifique la conexión.")
                     
@@ -259,7 +262,8 @@ class PurchaseController():
             'Name': 'Nombre Artículo', 
             'Package': 'Envase', 
             'ListPrice': 'Precio de Lista', 
-            'Profit': 'Rentabilidad', 
+            'Profit': 'Rentabilidad',
+            'SalePrice': 'Precio de Venta',  
             'Stock': 'Stock'
         }
         
@@ -269,17 +273,28 @@ class PurchaseController():
                 return False
         
         # Validar Tipos Numéricos
-        ## Precio de costo
+        ## Precio de Lista
         try:
             Decimal(form_data['ListPrice'])
         except Exception:
-            show_warning("Error. Formato incorrecto en precio costo")
+            show_warning("Error. Formato incorrecto en Precio de Lista")
             return False
         
         if Decimal(form_data['ListPrice']) <= Decimal('0.00'):
-            show_error('Error. El precio de costo no puede ser un valor Negativo o (0)')
+            show_error('Error. El Precio de Lista no puede ser un valor Negativo o (0)')
             return False
         
+        ## Precio de Venta
+        try:
+            Decimal(form_data['SalePrice'])
+        except Exception:
+            show_warning("Error. Formato incorrecto en Precio de Venta")
+            return False
+        
+        if Decimal(form_data['ListPrice']) <= Decimal('0.00'):
+            show_error('Error. El Precio de Venta no puede ser un valor Negativo o (0)')
+            return False
+
         ## Rentabilidad
         try:
             Decimal(form_data['Profit'])
@@ -340,6 +355,7 @@ class PurchaseController():
                 item_data['Cost_price'],
                 item_data['Iva_rate'],
                 item_data['Discount_amount'],
+                item_data['Bonus_qty'],
                 item_data['Subtotal'],
                 item_data['Iva_amount'],
                 item_data['Total']
@@ -387,6 +403,7 @@ class PurchaseController():
             'Cost_price': 'Precio de Costo',
             'Iva_rate': 'Porcentaje de Iva',
             'Discount_amount': 'Monto Descuento',
+            'Bonus_qty': 'Bonificacion',
             'Subtotal': 'SubTotal',
             'Iva_amount': 'Monto Iva',
             'Total': 'Total'
@@ -397,15 +414,20 @@ class PurchaseController():
                 show_error(f'Por favor complete el campo: "{label}"')
                 return False
 
-        if not cls.is_int(form_data['Qty']):
-            show_error(f'Error. El stock debe ser un valor Entero')
+        # Validar Tipos Numéricos
+        ## Precio de lista
+        #- Formato correcto
+        try:
+            Decimal(form_data['List_price'])
+        except Exception:
+            show_warning("Error. Formato incorrecto en precio de lista")
             return False
         
-        if int(form_data['Qty']) <= 0:
-            show_error(f'Error. El stock debe ser mayor a Cero(0)')
+        #- Valor Positivo
+        if Decimal(form_data['List_price']) <= Decimal('0.00'):
+            show_error('Error. El precio de costo no puede ser un valor Negativo o (0)')
             return False
 
-        # Validar Tipos Numéricos
         ## Precio de costo
         #- Formato correcto
         try:
@@ -433,6 +455,24 @@ class PurchaseController():
             show_error('Error. El porcentaje de descuento debe rondar entre 0 y 99 %')
             return False
     
+        ## Stock
+        if not cls.is_int(form_data['Qty']):
+            show_error(f'Error. El stock debe ser un valor ENTERO')
+            return False
+        
+        if int(form_data['Qty']) < 0 or \
+            int(form_data['Qty']) == 0 and int(form_data['Bonus_qty'] == 0): 
+            show_error(f'Error. El stock debe ser MAYOR a CERO(0)')
+            return False
+
+        ## Bonificacion mercaderia
+        if not cls.is_int(form_data['Bonus_qty']):
+            show_error('Error. La bonificación debe ser un valor ENTERO.')
+            return False
+        if int(form_data['Bonus_qty']) < 0:
+            show_error('Error. La bonificación no puede ser un valor NEGATIVO.')
+            return False
+            
         return True
 
     ## Verifica si un valor es entero
@@ -449,8 +489,10 @@ class PurchaseController():
             return False
         
         else:
-            show_error('Error. El producto ya esta incluido en la compra. \n' \
-                       'Para cualquier modificacion Agregar nuevamente.')
+            show_error(
+                'Error. El producto ya está incluido en esta compra.\n'
+                'Si necesita modificarlo, elimínelo y vuelva a cargarlo.'
+            )
             
             close_win(win, parent)
             return True

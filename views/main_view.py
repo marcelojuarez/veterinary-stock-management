@@ -18,6 +18,7 @@ from views.customers_view import CustomersView
 from views.reports_view import ReportsView
 from views.checks_view import ChecksView
 from views.cash_view import CashView
+from views.session_log import SessionLogView
 
 from models.company import CompanyModel
 from models.customer import CustomerModel
@@ -27,6 +28,7 @@ from models.payment_model import PaymentModel
 from models.remito import RemitoModel
 from models.sale import SalesModel
 from models.supplier import SupplierModel
+from models.user import User
 from models.stock import StockModel
 from models.checks_model import ChecksModel
 from models.cash_model import CashModel
@@ -36,7 +38,6 @@ from models.fraction import FractionModel
  
 #from models.user import User
 from tkinter import messagebox
-from controllers.auth_controller import validate_data
 from controllers.invoice_controller import InvoiceController
 from controllers.stock_controller import StockController
 from controllers.sales_controller import SalesController
@@ -44,6 +45,7 @@ from controllers.supplier_controller import SupplierController
 from controllers.customer_controller import CustomerController
 from controllers.purchase_controller import PurchaseController
 from controllers.payment_controller import PaymentController
+from controllers.session_log_controller import SessionLogController
 from controllers.supplier_invoice_controller import SupplierInvoiceController
 from controllers.supplier_receipt_controller import SupplierReceiptController
 from controllers.iva_reports_controller import ReportsController
@@ -77,8 +79,9 @@ class App():
 
         self.setup_window()
         self.setup_variables()
-        self.login_window()
 
+        self.login_window()
+        
     def setup_window(self):
         view_config = settings['VIEW_CONFIG']
         self.root.title(view_config['window-title'])
@@ -107,6 +110,9 @@ class App():
     def setup_variables(self):
         self.user_var = tk.StringVar()
         self.pwd_var = tk.StringVar()
+
+        self.user_model = User()
+        self.current_session_id = None
 
     def login_window(self):
         self.login_win = ctk.CTkToplevel(self.root)
@@ -154,9 +160,15 @@ class App():
         self.login_win.focus_force()
         
     def load_system(self):
-        if (validate_data(self.user_var.get(), self.pwd_var.get())):
+        user = self.user_model.authenticate(self.user_var.get(), self.pwd_var.get())
+
+        if user:
                 
             self.create_componentes()
+
+            # se registra el inicio de sesion
+            self.current_session_id = self.user_model.register_login(user['id'], user['username'])
+
             self.root.after(100, self.load_initial_data) 
             
             self.root.deiconify() 
@@ -165,8 +177,12 @@ class App():
             self.login_win.destroy() 
             self.root.protocol("WM_DELETE_WINDOW", self.on_close)
 
+            # Recargar la vista de sesiones DESPUÉS de que todo esté listo
+            self.root.after(200, self.session_log_controller.load_last_7_days)
+
             # Chequeo de actualizaciones: corre en segundo plano 1.5s después del login
             self.root.after(1500, self._check_updates_async)
+            
 
     def _check_updates_async(self):
         update_service = UpdateService(current_version=UpdateService.get_current_version())
@@ -221,6 +237,8 @@ class App():
         fraction_model = FractionModel()
 
         ## --- CONTROLLERS --- ##
+        self.session_log_controller = SessionLogController(self.user_model)
+
         self.stock_controller = StockController(
             stock_model, supplier_model, payment_model, event_bus
         )
@@ -307,6 +325,12 @@ class App():
         )
         self.notebook.add(self.backup_view.frame, text='Backups')
 
+        ## --- SESSION ---
+        self.session_log_view = SessionLogView(self.notebook, self.session_log_controller)
+        self.session_log_controller.set_view(self.session_log_view)
+
+        self.notebook.add(self.session_log_view.frame, text='Sesiones')
+
         # Cargar mes actual automáticamente
         self.iva_reports_controller.load_period_reports(
             datetime.now().month,
@@ -367,4 +391,5 @@ class App():
             except Exception as e:
                 logger.error("Error en cloud backup al cerrar: %s", e)
             finally:
+                self.user_model.register_logout(self.current_session_id)
                 self.root.destroy()

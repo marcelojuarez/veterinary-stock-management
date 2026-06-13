@@ -92,7 +92,7 @@ class PurchaseWindow():
         select_supplier_btn = ctk.CTkButton(
             select_supplier_frame,
             width=150,
-            text="Seleccionar proveedor",
+            text="Seleccionar Proveedor",
             fg_color=btn_color,
             hover_color=btn_hover,
             font=ctk.CTkFont(size=12, weight="bold"),
@@ -481,6 +481,7 @@ class PurchaseWindow():
             placeholder_text="Ingrese nombre del proveedor..."
         )
 
+        find_entry.focus()
         find_entry.grid(row=0, column=1, padx=5, pady=10, sticky="ew")
 
         select_btn = ctk.CTkButton(

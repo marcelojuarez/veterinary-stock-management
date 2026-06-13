@@ -9,12 +9,14 @@ logger = logging.getLogger(__name__)
 def validate_data(username, password):
     user_model = User()
     user = user_model.get_user_by_username(username)
+    
+    print(f'User: {user}')
 
     if not user:
         messagebox.showwarning('Error', 'Usuario no encontrado')
         return False 
     
-    hash_pwd = user[1]
+    hash_pwd = user[2]
     
     if (validate_password(hash_pwd, password)):
         return True
