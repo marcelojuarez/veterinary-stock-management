@@ -150,18 +150,8 @@ class CustomerController:
         filtered = []
         for customer in self.all_customers:
             # customer estructura: (id, nombre, cuit, domicilio, telefono, cv, cuig, renspa, establecimiento)
-            if (query in str(customer[0]).lower() or        # ID
-                query in customer[1].lower() or             # Nombre
-                query in customer[2].lower() or             # CUIT
-                query in customer[3].lower() or             # Domicilio
-                query in customer[4].lower() or             # Teléfono
-                query in customer[5].lower() or             # Condicion IVA
-                query in customer[6].lower() or             # CV
-                query in customer[7].lower() or             # CUIG
-                query in customer[8].lower() or             # RENSPA
-                query in customer[9].lower()                # Establecimiento
-                ):              
-
+            fields = " ".join(str(f or "") for f in customer).lower()
+            if query in fields:
                 filtered.append(customer)
         
         self.view.refresh_customer_table(filtered)

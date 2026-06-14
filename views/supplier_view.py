@@ -461,7 +461,7 @@ class SupplierView():
         # # Filtrar la lista de proveedores
         filtered = [
             s for s in self.suppliers
-            if query in s[1] or query in s[2].lower()
+            if query in " ".join(str(f or "") for f in s).lower()
         ]
         
         # Insertar solo los resultados filtrados
