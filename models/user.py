@@ -68,7 +68,8 @@ class User:
             existing = self.get_user_by_username(username)
             if not existing:
                 return False, f"El usuario '{username}' no existe."
-            
+
+            self.db.execute_query("DELETE FROM session_log WHERE user_id = ?", (existing[0],))
             self.db.execute_query("DELETE FROM user WHERE username = ?", (username,))
             return True, "OK"
         except Exception as e:
