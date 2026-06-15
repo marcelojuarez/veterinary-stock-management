@@ -66,6 +66,9 @@ class SessionLogController:
             return
         data = self.view.show_delete_user_dialog(users)
         if data:
+            if data["username"] == "admin":
+                messagebox.showerror("Error", "El usuario 'admin' no puede ser eliminado.")
+                return
             success, message = self.model.delete_user(data["username"])
             if success:
                 messagebox.showinfo("Éxito", f"Usuario '{data['username']}' eliminado correctamente.")

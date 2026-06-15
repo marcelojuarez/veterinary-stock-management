@@ -19,6 +19,8 @@ from views.fraction_config_dialog import FractionConfigDialog
 ctk.set_appearance_mode("light")  # "light" o "dark"
 ctk.set_default_color_theme("blue")  # "blue", "green", "dark-blue"
 
+MAX_DISPLAY_ROWS = 300
+
 class StockView():
     def __init__(self, parent, controller, stock_model, fraction_model=None):
         self.controller = controller
@@ -38,6 +40,7 @@ class StockView():
 
         self.sort_column = None
         self.sort_reverse = False
+        self._search_after_id = None
 
     def create_widgets(self):
         """Crear todos los widgets de la vista"""
@@ -150,7 +153,11 @@ class StockView():
         )
         
         self.find_entry.grid(row=0, column=1, padx=10, pady=15)
-        self.find_entry.bind("<KeyRelease>", lambda event: self.controller.find_product_live(self.find_entry.get()))
+        def _on_search(event=None):
+            if self._search_after_id:
+                self.find_entry.after_cancel(self._search_after_id)
+            self._search_after_id = self.find_entry.after(250, lambda: self.controller.find_product_live(self.find_entry.get()))
+        self.find_entry.bind("<KeyRelease>", _on_search)
 
         history_btn = ctk.CTkButton(
             find_frame,
@@ -887,10 +894,12 @@ class StockView():
     def refresh_stock_table(self, products):
         """Refrescar tabla de stock con nuevos datos"""
         self.current_products = products
-        for item in self.stock_tree.get_children():
-            self.stock_tree.delete(item)
+        self.stock_tree.delete(*self.stock_tree.get_children())
 
-        for product in products:
+        capped = len(products) > MAX_DISPLAY_ROWS
+        display_products = products[:MAX_DISPLAY_ROWS] if capped else products
+
+        for product in display_products:
             (id, name, pack, list_price, discount, cost_price, profit, price,
             iva, price_with_iva, created_at, last_price_update, quantity) = product
 
@@ -919,6 +928,8 @@ class StockView():
             )
 
         self.update_stats(products)
+        if capped:
+            self._stat_total.set(f"{MAX_DISPLAY_ROWS} / {len(products)}")
 
         if self.sort_column:
             self.sort_tree(self.sort_column)

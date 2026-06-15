@@ -34,6 +34,7 @@ class SalesView:
         self.sale_paid_var = tk.BooleanVar(value=True)
         self.last_sale_id = None
         self.all_products = []  # Nuevo
+        self._search_after_id = None
 
     # --------------------------------------------------------------------
     # LAYOUT PRINCIPAL
@@ -70,7 +71,11 @@ class SalesView:
             font=ctk.CTkFont(size=12, weight="bold")
         )
         self.search_entry.grid(row=0, column=1, padx=10)
-        self.search_entry.bind("<KeyRelease>", lambda event: self.controller.search_products_live(self.search_entry.get()))
+        def _on_search(event=None):
+            if self._search_after_id:
+                self.search_entry.after_cancel(self._search_after_id)
+            self._search_after_id = self.search_entry.after(250, lambda: self.controller.search_products_live(self.search_entry.get()))
+        self.search_entry.bind("<KeyRelease>", _on_search)
 
         search_btn = ctk.CTkButton(
             header, text="Buscar",

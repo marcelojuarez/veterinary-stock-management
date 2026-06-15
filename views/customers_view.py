@@ -54,10 +54,12 @@ class CustomersView:
         )
         self.search_entry.grid(row=0, column=1, padx=10, pady=15)
 
-        self.search_entry.bind(
-            "<KeyRelease>",
-            lambda event: self.controller.filter_customers(self.search_entry.get())
-        )
+        self._search_after_id = None
+        def _on_search(event=None):
+            if self._search_after_id:
+                self.search_entry.after_cancel(self._search_after_id)
+            self._search_after_id = self.search_entry.after(250, lambda: self.controller.filter_customers(self.search_entry.get()))
+        self.search_entry.bind("<KeyRelease>", _on_search)
 
         self.showing_debtors = False 
 
