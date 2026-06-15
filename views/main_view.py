@@ -84,7 +84,8 @@ class App():
         
     def setup_window(self):
         view_config = settings['VIEW_CONFIG']
-        self.root.title(view_config['window-title'])
+        version = UpdateService.get_current_version()
+        self.root.title(f"{view_config['window-title']} — v{version}")
 
         screen_width = self.root.winfo_screenwidth()
         screen_height = self.root.winfo_screenheight()
