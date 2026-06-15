@@ -19,21 +19,36 @@ jobs:
       - name: Checkout código
         uses: actions/checkout@v4
 
-      # 2. Instalar Python
+      # 2. Extraer versión del tag (v1.2.0 → 1.2.0)
+      - name: Extraer versión
+        id: version
+        run: |
+          $tag = "${{ github.ref_name }}"
+          $version = $tag.TrimStart('v')
+          echo "VERSION=$version" >> $env:GITHUB_OUTPUT
+
+      # 3. Instalar Python
       - name: Instalar Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
 
-      # 3. Instalar dependencias
+      # 4. Instalar dependencias
       - name: Instalar dependencias
         run: pip install -r requirements.txt pyinstaller
 
-      # 4. Crear carpeta db vacía (PyInstaller la necesita)
+      # 5. Crear carpeta db vacía (PyInstaller la necesita)
       - name: Crear carpeta db
         run: New-Item -ItemType Directory -Force -Path db
 
-      # 5. Compilar con PyInstaller
+      # 6. Actualizar local_version.json con la versión del tag
+      - name: Actualizar local_version.json
+        run: |
+          $version = "${{ steps.version.outputs.VERSION }}"
+          $today   = (Get-Date -Format "yyyy-MM-dd")
+          @{ version = $version; build_date = $today } | ConvertTo-Json | Out-File -FilePath local_version.json -Encoding utf8NoBOM
+
+      # 7. Compilar con PyInstaller
       - name: Compilar con PyInstaller
         run: |
           python -m PyInstaller `
@@ -46,26 +61,18 @@ jobs:
             "--add-data=assets;assets" `
             main.py
 
-      # 6. Instalar Inno Setup
+      # 8. Instalar Inno Setup
       - name: Instalar Inno Setup
         run: choco install innosetup --yes
 
-      # 7. Extraer versión del tag (v1.2.0 → 1.2.0)
-      - name: Extraer versión
-        id: version
-        run: |
-          $tag = "${{ github.ref_name }}"
-          $version = $tag.TrimStart('v')
-          echo "VERSION=$version" >> $env:GITHUB_OUTPUT
-
-      # 8. Generar instalador con Inno Setup
+      # 9. Generar instalador con Inno Setup
       - name: Generar instalador
         run: |
           & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer.iss `
             /DMyAppVersion=${{ steps.version.outputs.VERSION }} `
             "/DOutputBaseFilename=StockManagerSetup_v${{ steps.version.outputs.VERSION }}"
 
-      # 9. Calcular SHA-256 del instalador y actualizar version.json
+      # 10. Calcular SHA-256 del instalador y actualizar version.json
       - name: Actualizar version.json
         run: |
           $version = "${{ steps.version.outputs.VERSION }}"
@@ -86,7 +93,7 @@ jobs:
           $json | Out-File -FilePath version.json -Encoding utf8NoBOM
           Write-Host "version.json actualizado: $version | SHA256: $hash"
 
-      # 10. Commit y push de version.json actualizado
+      # 11. Commit y push de version.json actualizado
       - name: Commit version.json
         run: |
           git config user.name  "github-actions[bot]"
@@ -97,7 +104,7 @@ jobs:
           git rebase origin/main
           git push origin HEAD:main
 
-      # 11. Subir instalador al Release de GitHub
+      # 12. Subir instalador al Release de GitHub
       - name: Crear GitHub Release
         uses: softprops/action-gh-release@v2
         with:
