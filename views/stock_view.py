@@ -1042,6 +1042,8 @@ class StockView():
             "Id": "Cód.",
             "Name": "Nombre Artículo",
             "Package": "Envase",
+            "ListPrice": "P. Lista",
+            "Discount": "% Dto.",
             "Profit": "% Rent.",
             "CostPrice": "P. Costo",
             "SalePrice": "P. Venta",
