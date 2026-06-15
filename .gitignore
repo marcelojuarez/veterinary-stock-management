@@ -235,3 +235,11 @@ credentials.json
 token.json
 drive_account.txt
 services/update_secrets.py
+
+# Scripts auxiliares de migración (locales, no para repo)
+db/convert_olddata.py
+db/import_from_csv.py
+db/migration_fractioning.py
+db/generate_manual.py
+db/stock_count_import.py
+db/price_import.py
