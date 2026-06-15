@@ -8,6 +8,7 @@ import os
 import json
 import logging
 import hashlib
+import ssl
 import tempfile
 import subprocess
 import threading
@@ -16,6 +17,7 @@ import urllib.error
 from pathlib import Path
 from typing import Optional
 from packaging import version  # pip install packaging
+import certifi
 
 logger = logging.getLogger(__name__)
 
@@ -91,7 +93,8 @@ class UpdateService:
                 VERSION_JSON_URL,
                 headers={"Cache-Control": "no-cache", "User-Agent": "StockManager-Updater/1.0"},
             )
-            with urllib.request.urlopen(req, timeout=self.TIMEOUT_SECONDS) as resp:
+            ctx = ssl.create_default_context(cafile=certifi.where())
+            with urllib.request.urlopen(req, timeout=self.TIMEOUT_SECONDS, context=ctx) as resp:
                 raw = resp.read()
                 try:
                     data = json.loads(raw.decode("utf-8"))
@@ -140,7 +143,8 @@ class UpdateService:
                 update_info.installer_url,
                 headers={"User-Agent": "StockManager-Updater/1.0"},
             )
-            with urllib.request.urlopen(req, timeout=60) as resp:
+            ctx = ssl.create_default_context(cafile=certifi.where())
+            with urllib.request.urlopen(req, timeout=60, context=ctx) as resp:
                 total = int(resp.headers.get("Content-Length", 0))
                 downloaded = 0
                 hasher = hashlib.sha256()
