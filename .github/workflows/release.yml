@@ -93,6 +93,8 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add version.json
           git commit -m "release: actualizar version.json para v${{ steps.version.outputs.VERSION }}"
+          git fetch origin main
+          git rebase origin/main
           git push origin HEAD:main
 
       # 11. Subir instalador al Release de GitHub
