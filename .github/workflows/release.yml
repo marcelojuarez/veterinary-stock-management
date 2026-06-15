@@ -5,6 +5,9 @@ on:
     tags:
       - 'v*'
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: windows-latest
@@ -62,7 +65,37 @@ jobs:
             /DMyAppVersion=${{ steps.version.outputs.VERSION }} `
             "/DOutputBaseFilename=StockManagerSetup_v${{ steps.version.outputs.VERSION }}"
 
-      # 9. Subir instalador al Release de GitHub
+      # 9. Calcular SHA-256 del instalador y actualizar version.json
+      - name: Actualizar version.json
+        run: |
+          $version = "${{ steps.version.outputs.VERSION }}"
+          $tag     = "v$version"
+          $file    = "dist\StockManagerSetup_$tag.exe"
+          $url     = "https://github.com/marcelojuarez/veterinary-stock-management/releases/download/$tag/StockManagerSetup_$tag.exe"
+          $hash    = (Get-FileHash $file -Algorithm SHA256).Hash.ToLower()
+          $today   = (Get-Date -Format "yyyy-MM-dd")
+
+          $json = [ordered]@{
+            version          = $version
+            release_date     = $today
+            release_notes    = "Ver notas en GitHub"
+            installer_url    = $url
+            checksum_sha256  = $hash
+            mandatory        = $false
+          } | ConvertTo-Json
+          $json | Out-File -FilePath version.json -Encoding utf8NoBOM
+          Write-Host "version.json actualizado: $version | SHA256: $hash"
+
+      # 10. Commit y push de version.json actualizado
+      - name: Commit version.json
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add version.json
+          git commit -m "release: actualizar version.json para v${{ steps.version.outputs.VERSION }}"
+          git push origin HEAD:main
+
+      # 11. Subir instalador al Release de GitHub
       - name: Crear GitHub Release
         uses: softprops/action-gh-release@v2
         with:

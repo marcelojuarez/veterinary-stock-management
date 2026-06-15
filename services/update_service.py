@@ -75,6 +75,7 @@ class UpdateService:
         self.current_version = current_version
         self._download_thread: Optional[threading.Thread] = None
         self._cancel_download = threading.Event()
+        self._last_error: str = ""
 
     # ── Chequeo remoto ─────────────────────────────────────────────────────────
 
@@ -183,6 +184,7 @@ class UpdateService:
         except Exception as e:
             logger.error("Error durante la descarga: %s", e)
             dest.unlink(missing_ok=True)
+            self._last_error = str(e)
             return None
 
     def cancel_download(self):

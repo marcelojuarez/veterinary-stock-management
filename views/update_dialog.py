@@ -183,10 +183,9 @@ class UpdateDialog(tk.Toplevel):
 
     def _on_download_done(self, installer_path: Optional[Path]):
         if installer_path is None:
-            self._status_label.config(
-                text="❌  Error en la descarga. Intentá de nuevo más tarde.",
-                fg=self._ERROR,
-            )
+            detail = self.service._last_error
+            msg = f"❌  Error: {detail}" if detail else "❌  Error en la descarga. Intentá de nuevo más tarde."
+            self._status_label.config(text=msg, fg=self._ERROR)
             self._update_btn.config(state="normal", text="  Reintentar  ")
             if hasattr(self, "_postpone_btn"):
                 self._postpone_btn.config(state="normal")
