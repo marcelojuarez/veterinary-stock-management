@@ -19,8 +19,6 @@ from views.fraction_config_dialog import FractionConfigDialog
 ctk.set_appearance_mode("light")  # "light" o "dark"
 ctk.set_default_color_theme("blue")  # "blue", "green", "dark-blue"
 
-MAX_DISPLAY_ROWS = 300
-
 class StockView():
     def __init__(self, parent, controller, stock_model, fraction_model=None):
         self.controller = controller
@@ -41,6 +39,7 @@ class StockView():
         self.sort_column = None
         self.sort_reverse = False
         self._search_after_id = None
+        self._insert_after_id = None
 
     def create_widgets(self):
         """Crear todos los widgets de la vista"""
@@ -893,13 +892,20 @@ class StockView():
 
     def refresh_stock_table(self, products):
         """Refrescar tabla de stock con nuevos datos"""
+        if self._insert_after_id:
+            self.stock_tree.after_cancel(self._insert_after_id)
+            self._insert_after_id = None
+
         self.current_products = products
         self.stock_tree.delete(*self.stock_tree.get_children())
+        self.update_stats(products)
 
-        capped = len(products) > MAX_DISPLAY_ROWS
-        display_products = products[:MAX_DISPLAY_ROWS] if capped else products
+        fractional_ids = self.fraction_model.get_all_fractional_ids() if self.fraction_model else set()
+        self._insert_rows(products, 0, fractional_ids)
 
-        for product in display_products:
+    def _insert_rows(self, products, start, fractional_ids, chunk=100):
+        end = min(start + chunk, len(products))
+        for product in products[start:end]:
             (id, name, pack, list_price, discount, cost_price, profit, price,
             iva, price_with_iva, created_at, last_price_update, quantity) = product
 
@@ -912,7 +918,7 @@ class StockView():
             else:
                 tag = "ok_stock"
 
-            if self.fraction_model and self.fraction_model.is_fractional(product[0]):
+            if product[0] in fractional_ids:
                 info = self.fraction_model.get_available_stock_info(product[0])
                 qty_display = info.get('display', product[12])
             else:
@@ -927,12 +933,12 @@ class StockView():
                 tags=(tag,)
             )
 
-        self.update_stats(products)
-        if capped:
-            self._stat_total.set(f"{MAX_DISPLAY_ROWS} / {len(products)}")
-
-        if self.sort_column:
-            self.sort_tree(self.sort_column)
+        if end < len(products):
+            self._insert_after_id = self.stock_tree.after(0, self._insert_rows, products, end, fractional_ids)
+        else:
+            self._insert_after_id = None
+            if self.sort_column:
+                self.sort_tree(self.sort_column)
 
     def export_to_csv(self):
         """Exportar el inventario visible a CSV"""

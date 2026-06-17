@@ -52,6 +52,11 @@ class FractionModel:
         )
         return row is not None
 
+    def get_all_fractional_ids(self) -> set:
+        """Devuelve el conjunto de product_id que tienen fraccionamiento configurado."""
+        rows = self.db.fetch_all("SELECT product_id FROM stock_fraction_config")
+        return {row[0] for row in rows} if rows else set()
+
     def set_config(self, product_id: int, unit: str,
                    qty_per_package: float, fraction_price: str) -> None:
         """
