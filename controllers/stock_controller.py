@@ -92,6 +92,17 @@ class StockController:
             logger.error("Error updating product field: %s", e)
             return False
     
+    def add_product(self, data: dict):
+        """Agregar un producto nuevo directamente al stock."""
+        try:
+            self.stock_model.add_product(data)
+            self.refresh_stock_table()
+            self.event_bus.publish('refresh_products_on_p_win', None)
+            self.view.show_success("Producto agregado correctamente")
+        except Exception as e:
+            logger.error("Error al agregar producto: %s", e)
+            self.view.show_error(f"Error al agregar producto: {str(e)}")
+
     def show_all_products(self):
         self.refresh_stock_table()
         self.view.show_success("Mostrando todos los artículos del inventario")

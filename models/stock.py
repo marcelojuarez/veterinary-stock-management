@@ -251,6 +251,31 @@ class StockModel:
         query = f"UPDATE stock SET {db_field} = ? WHERE id = ?"
         db.execute_query(query, (new_value, product_id))
         
+    def add_product(self, data: dict):
+        """Insertar un producto nuevo directamente en stock."""
+        from datetime import date
+        today = date.today().isoformat()
+        query = """
+            INSERT INTO stock
+            (name, pack, list_price, discount, cost_price, profit, price, iva, price_with_iva, quantity, created_at, last_price_update)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """
+        params = (
+            data['name'],
+            data['pack'],
+            data['list_price'],
+            data['discount'],
+            data['cost_price'],
+            data['profit'],
+            data['price'],
+            data['iva'],
+            data['price_with_iva'],
+            data['quantity'],
+            today,
+            today,
+        )
+        return db.execute_query(query, params)
+
     def delete_product(self, product_id):
         """Eliminar un producto"""
         query = "DELETE FROM stock WHERE id = ?"
