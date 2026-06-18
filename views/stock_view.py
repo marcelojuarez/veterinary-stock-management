@@ -19,8 +19,6 @@ from views.fraction_config_dialog import FractionConfigDialog
 ctk.set_appearance_mode("light")  # "light" o "dark"
 ctk.set_default_color_theme("blue")  # "blue", "green", "dark-blue"
 
-MAX_DISPLAY_ROWS = 300
-
 class StockView():
     def __init__(self, parent, controller, stock_model, fraction_model=None):
         self.controller = controller
@@ -41,6 +39,7 @@ class StockView():
         self.sort_column = None
         self.sort_reverse = False
         self._search_after_id = None
+        self._insert_after_id = None
 
     def create_widgets(self):
         """Crear todos los widgets de la vista"""
@@ -57,12 +56,21 @@ class StockView():
         """Crear frame para botones de stock"""
         manage_frame = ctk.CTkFrame(self.frame)
         manage_frame.grid(row=3, column=0, padx=10, pady=20, sticky="ew")
-        manage_frame.grid_columnconfigure((0, 1, 2, 3, 4), weight=1)
+        manage_frame.grid_columnconfigure((0, 1, 2, 3, 4, 5, 6), weight=1)
 
-        W = 250
+        W = 200
         H = 40
         btn_color = "#009688"
         btn_hover = "#00796B"
+
+        add_btn = ctk.CTkButton(
+            manage_frame,
+            text="➕ Agregar producto",
+            width=W, height=H,
+            font=ctk.CTkFont(size=12, weight="bold"),
+            fg_color=btn_color, hover_color=btn_hover,
+            command=self.open_add_product_window
+        )
 
         update_btn = ctk.CTkButton(
             manage_frame,
@@ -118,12 +126,13 @@ class StockView():
             command=self.export_to_csv
         )
 
-        delete_btn.grid(row=1, column=0, padx=10, pady=10)
-        update_btn.grid(row=1, column=1, padx=10, pady=10)
-        bulk_update_btn.grid(row=1, column=2, padx=10, pady=10)
-        edit_btn.grid(row=1, column=3, padx=10, pady=10)
-        fraction_btn.grid(row=1, column=4, padx=10, pady=10)   # ajustar columna según layout
-        export_btn.grid(row=1, column=5, padx=10, pady=10)
+        add_btn.grid(row=1, column=0, padx=10, pady=10)
+        delete_btn.grid(row=1, column=1, padx=10, pady=10)
+        update_btn.grid(row=1, column=2, padx=10, pady=10)
+        bulk_update_btn.grid(row=1, column=3, padx=10, pady=10)
+        edit_btn.grid(row=1, column=4, padx=10, pady=10)
+        fraction_btn.grid(row=1, column=5, padx=10, pady=10)
+        export_btn.grid(row=1, column=6, padx=10, pady=10)
 
     
     def create_find_frame(self):
@@ -893,13 +902,20 @@ class StockView():
 
     def refresh_stock_table(self, products):
         """Refrescar tabla de stock con nuevos datos"""
+        if self._insert_after_id:
+            self.stock_tree.after_cancel(self._insert_after_id)
+            self._insert_after_id = None
+
         self.current_products = products
         self.stock_tree.delete(*self.stock_tree.get_children())
+        self.update_stats(products)
 
-        capped = len(products) > MAX_DISPLAY_ROWS
-        display_products = products[:MAX_DISPLAY_ROWS] if capped else products
+        fractional_ids = self.fraction_model.get_all_fractional_ids() if self.fraction_model else set()
+        self._insert_rows(products, 0, fractional_ids)
 
-        for product in display_products:
+    def _insert_rows(self, products, start, fractional_ids, chunk=100):
+        end = min(start + chunk, len(products))
+        for product in products[start:end]:
             (id, name, pack, list_price, discount, cost_price, profit, price,
             iva, price_with_iva, created_at, last_price_update, quantity) = product
 
@@ -912,7 +928,7 @@ class StockView():
             else:
                 tag = "ok_stock"
 
-            if self.fraction_model and self.fraction_model.is_fractional(product[0]):
+            if product[0] in fractional_ids:
                 info = self.fraction_model.get_available_stock_info(product[0])
                 qty_display = info.get('display', product[12])
             else:
@@ -927,12 +943,12 @@ class StockView():
                 tags=(tag,)
             )
 
-        self.update_stats(products)
-        if capped:
-            self._stat_total.set(f"{MAX_DISPLAY_ROWS} / {len(products)}")
-
-        if self.sort_column:
-            self.sort_tree(self.sort_column)
+        if end < len(products):
+            self._insert_after_id = self.stock_tree.after(0, self._insert_rows, products, end, fractional_ids)
+        else:
+            self._insert_after_id = None
+            if self.sort_column:
+                self.sort_tree(self.sort_column)
 
     def export_to_csv(self):
         """Exportar el inventario visible a CSV"""
@@ -1230,3 +1246,159 @@ class StockView():
             on_save                   = lambda: self.refresh_stock_table(self.stock_model.get_all_products()),
             on_fraction_price_change  = self.stock_model.recalculate_pending_sales_for_product,
         )
+
+    def open_add_product_window(self):
+        """Ventana para agregar un producto directamente al inventario."""
+        from decimal import Decimal
+        PACK_OPTIONS = [
+            "UNIDAD", "10 ML", "20 ML", "25 ML", "50 ML", "90 ML",
+            "100 ML", "150 ML", "200 ML", "250 ML", "300 ML", "500 ML",
+            "1 L", "5 L", "100 GR", "250 GR", "400 GR", "500 GR",
+            "1 KG", "5 KG", "10 KG", "12 KG", "15 KG", "20 KG", "25 KG", "40 KG",
+            "40 DS", "50 DS", "100 DS",
+        ]
+
+        window = ctk.CTkToplevel(self.frame)
+        window.title("Agregar Producto")
+        window.grab_set()
+        center_window(window, 640, 580)
+
+        card = ctk.CTkFrame(window, fg_color="white", corner_radius=20)
+        card.pack(fill="both", expand=True, padx=20, pady=20)
+
+        ctk.CTkLabel(
+            card, text="Agregar Producto",
+            font=ctk.CTkFont(size=18, weight="bold")
+        ).pack(pady=(20, 10))
+
+        form = ctk.CTkFrame(card, fg_color="#f9f9f9", corner_radius=10)
+        form.pack(pady=10, padx=20, fill="x")
+        form.grid_columnconfigure(1, weight=1)
+
+        name_var      = tk.StringVar()
+        pack_var      = tk.StringVar(value="UNIDAD")
+        cost_var      = tk.StringVar(value="0")
+        profit_var    = tk.StringVar(value="30")
+        iva_var       = tk.StringVar(value="21.00")
+        quantity_var  = tk.StringVar(value="0")
+        price_var     = tk.StringVar(value="0.00")
+        price_iva_var = tk.StringVar(value="0.00")
+
+        def recalculate(*_):
+            cost   = string_to_flex_dec(cost_var.get())
+            profit = string_to_2_dec(profit_var.get())
+            iva    = string_to_flex_dec(iva_var.get())
+            if cost is None or profit is None or iva is None:
+                return
+            profit_amount = cost * (profit / Decimal("100"))
+            price         = flex_dec(cost + profit_amount)
+            iva_amount    = flex_dec(price * (iva / Decimal("100")))
+            p_iva         = flex_dec(price + iva_amount)
+            price_var.set(price)
+            price_iva_var.set(p_iva)
+
+        def add_field(row, label, widget):
+            ctk.CTkLabel(
+                form, text=label,
+                font=ctk.CTkFont(size=13, weight="bold"),
+                text_color="black"
+            ).grid(row=row, column=0, sticky="e", padx=(10, 10), pady=8)
+            widget.grid(row=row, column=1, sticky="w", padx=(10, 10), pady=8)
+
+        name_entry = ctk.CTkEntry(form, textvariable=name_var, font=ctk.CTkFont(size=11), width=380, height=35)
+        add_field(0, "Nombre:", name_entry)
+
+        pack_combo = ctk.CTkComboBox(form, values=PACK_OPTIONS, variable=pack_var,
+                                      font=ctk.CTkFont(size=11), width=200, height=35)
+        add_field(1, "Envase:", pack_combo)
+
+        cost_entry = ctk.CTkEntry(form, textvariable=cost_var, font=ctk.CTkFont(size=11), width=150, height=35)
+        cost_var.trace_add("write", recalculate)
+        add_field(2, "Precio costo ($):", cost_entry)
+
+        profit_entry = ctk.CTkEntry(form, textvariable=profit_var, font=ctk.CTkFont(size=11), width=100, height=35)
+        profit_var.trace_add("write", recalculate)
+        add_field(3, "Rentabilidad (%):", profit_entry)
+
+        iva_combo = ctk.CTkComboBox(form, values=["21.00", "10.50", "0.00"],
+                                     variable=iva_var, font=ctk.CTkFont(size=11), width=100, height=35)
+        iva_var.trace_add("write", recalculate)
+        add_field(4, "IVA (%):", iva_combo)
+
+        add_field(5, "Precio venta ($):",
+                  ctk.CTkLabel(form, textvariable=price_var, font=ctk.CTkFont(size=12, weight="bold"), text_color="#009688"))
+        add_field(6, "Precio c/ IVA ($):",
+                  ctk.CTkLabel(form, textvariable=price_iva_var, font=ctk.CTkFont(size=12, weight="bold"), text_color="#009688"))
+
+        qty_entry = ctk.CTkEntry(form, textvariable=quantity_var, font=ctk.CTkFont(size=11), width=100, height=35)
+        add_field(7, "Cantidad inicial:", qty_entry)
+
+        recalculate()
+
+        btn_frame = ctk.CTkFrame(card, fg_color="transparent")
+        btn_frame.pack(pady=(15, 0))
+
+        def save():
+            name = name_var.get().strip().upper()
+            pack = pack_var.get().strip().upper()
+            if not name:
+                self.show_error("El nombre no puede estar vacío")
+                return
+            if not pack:
+                self.show_error("El envase no puede estar vacío")
+                return
+            cost   = string_to_flex_dec(cost_var.get())
+            profit = string_to_2_dec(profit_var.get())
+            iva    = string_to_flex_dec(iva_var.get())
+            if cost is None or profit is None or iva is None:
+                self.show_error("Ingresá valores numéricos válidos")
+                return
+            profit_amount = cost * (profit / Decimal("100"))
+            price         = flex_dec(cost + profit_amount)
+            p_iva         = flex_dec(price + flex_dec(price * (iva / Decimal("100"))))
+            try:
+                quantity = int(quantity_var.get().strip() or 0)
+            except ValueError:
+                self.show_error("La cantidad debe ser un número entero")
+                return
+
+            existing = self.stock_model.get_all_product_by_name(name)
+            if existing:
+                for p in existing:
+                    if p[1] == pack:
+                        messagebox.showwarning(
+                            "Duplicado",
+                            f"Ya existe un producto con ese nombre y envase.\n\nCódigo: {p[0]}",
+                            parent=window
+                        )
+                        return
+
+            self.controller.add_product({
+                "name": name,
+                "pack": pack,
+                "list_price": str(cost),
+                "discount": "0.00",
+                "cost_price": str(cost),
+                "profit": str(profit),
+                "price": str(price),
+                "iva": str(iva),
+                "price_with_iva": str(p_iva),
+                "quantity": quantity,
+            })
+            window.destroy()
+
+        ctk.CTkButton(
+            btn_frame, text="Guardar", width=150, height=40,
+            fg_color="#2E7D32", hover_color="#1B5E20",
+            font=ctk.CTkFont(size=13, weight="bold"),
+            command=save
+        ).grid(row=0, column=0, padx=15)
+
+        ctk.CTkButton(
+            btn_frame, text="Cancelar", width=150, height=40,
+            fg_color="#E74C3C", hover_color="#C0392B",
+            font=ctk.CTkFont(size=13, weight="bold"),
+            command=window.destroy
+        ).grid(row=0, column=1, padx=15)
+
+        window.bind("<Return>", lambda _e: save())

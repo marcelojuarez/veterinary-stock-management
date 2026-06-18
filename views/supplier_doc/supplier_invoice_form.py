@@ -171,7 +171,7 @@ class SupplierInvoiceForm():
                         )
         
         ## Tipo de Factura segun cond IVA proveedor
-        if self.s_iva_c_var.get() == "RESP. INSCRIPTO":
+        if self.s_iva_c_var.get() == "RESP. INSCRIPTO" or self.s_iva_c_var.get() == "RESP. INS":
             invoice_type.configure(values=['A', 'M'])
             self.invoice_type_var.set('A')
         
