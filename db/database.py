@@ -149,6 +149,18 @@ class Database:
                 );
             '''
             )
+            try:
+                cursor.execute("ALTER TABLE supplier_credit_movements ADD COLUMN valid INTEGER NOT NULL DEFAULT 1")
+            except Exception:
+                pass
+            try:
+                cursor.execute("ALTER TABLE supplier_credit_movements ADD COLUMN purchase_id INTEGER NULL")
+            except Exception:
+                pass
+            try:
+                cursor.execute("ALTER TABLE supplier_credit_movements ADD COLUMN check_id INTEGER NULL")
+            except Exception:
+                pass
 
             # Tabla de empresa
             cursor.execute('''
