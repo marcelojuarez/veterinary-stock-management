@@ -1,8 +1,8 @@
 {
-  "version": "1.16.11",
-  "release_date": "2026-06-18",
+  "version": "1.16.12",
+  "release_date": "2026-06-20",
   "release_notes": "Ver notas en GitHub",
-  "installer_url": "https://github.com/marcelojuarez/veterinary-stock-management/releases/download/v1.16.11/StockManagerSetup_v1.16.11.exe",
-  "checksum_sha256": "9ab6a34df857fe3e5f6f9ad3c068f61a99906b0d8066500c4d75b3c504767db5",
+  "installer_url": "https://github.com/marcelojuarez/veterinary-stock-management/releases/download/v1.16.12/StockManagerSetup_v1.16.12.exe",
+  "checksum_sha256": "4ba827d0ca49b659714634c6d0d9db8230a572c4a54ac306afca8bc616af89c6",
   "mandatory": false
 }
