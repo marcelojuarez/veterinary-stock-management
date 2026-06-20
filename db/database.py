@@ -259,6 +259,10 @@ class Database:
                     FOREIGN KEY (product_id) REFERENCES stock(id)
                 );
             ''')
+            try:
+                cursor.execute("ALTER TABLE purchase_item ADD COLUMN bonus_qty INTEGER NOT NULL DEFAULT 0")
+            except Exception:
+                pass
 
             # Tabla facturas asociada a un proveedor
             cursor.execute(''' 
