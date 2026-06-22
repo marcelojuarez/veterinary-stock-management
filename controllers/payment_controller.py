@@ -156,6 +156,7 @@ class PaymentController():
         try:
             purchase_total   = ""
             purchase_pending = ""
+            purchase_status = ""
             if purchase_id_int:
                 p = self.supplier_model.purchase.get_purchase_by_id(purchase_id_int)
                 if p:

@@ -38,7 +38,6 @@ class SalesController:
 
     def set_view(self, view):
         self.sales_view = view
-        self.event_bus.subscribe('refresh_stock_in_sale_view', self.sales_view.load_available_products)
 
     # ─────────────────────────────────────────────────────────────────────
     # AGREGAR PRODUCTO A LA VENTA
@@ -200,8 +199,7 @@ class SalesController:
                 self.customer_model.add_row_in_customer_ledger(data)
                 self.sales_view.generate_delivery_note()
 
-            self.event_bus.publish('refresh_stock_table', None)
-            self.event_bus.publish('refresh_products_on_p_win', None)
+            self.event_bus.publish('stock_change', None)
             self.sales_view.load_available_products()
 
         except Exception as e:

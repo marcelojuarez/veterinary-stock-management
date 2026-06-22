@@ -15,7 +15,7 @@ EVENT_LABELS = {
     'VENTA':        '🧾 Venta',
     'PRECIO':       '✏️ Precio',
     'PRECIO_MASIVO':'📈 Precio masivo',
-    'AJUSTE':       '🔧 Ajuste',  # ← NUEVO
+    'AJUSTE':       '🔧 Ajuste', 
 }
 
 EVENT_COLORS = {
@@ -23,14 +23,15 @@ EVENT_COLORS = {
     'VENTA':        '#E8F5E9',
     'PRECIO':       '#FFF3E0',
     'PRECIO_MASIVO':'#F3E5F5',
-    'AJUSTE':       '#FFF9C4',  # ← NUEVO (amarillo claro)
+    'AJUSTE':       '#FFF9C4',  
 }
 
 
 class StockMovementView:
-    def __init__(self, movement_model, stock_model=None, controller=None):
+    def __init__(self, movement_model, event_bus, stock_model=None, controller=None):
         self.movement = movement_model
-        self.stock_model = stock_model  # ← NUEVO: necesario para ajustes
+        self.event_bus = event_bus
+        self.stock_model = stock_model 
         self.controller = controller
 
     # ================================================================== #
@@ -110,7 +111,7 @@ class StockMovementView:
         ctk.CTkComboBox(
             filter_frame,
             variable=event_var,
-            values=["Todos", "Compra", "Venta", "Precio", "Precio masivo", "Ajuste"],  # ← AGREGADO "Ajuste"
+            values=["Todos", "Compra", "Venta", "Precio", "Precio masivo", "Ajuste"], 
             width=130,
             state="readonly"
         ).grid(row=0, column=5, padx=5, pady=10)
@@ -495,10 +496,10 @@ class StockMovementView:
                 if not messagebox.askyesno("Confirmar Ajuste", msg):
                     return
 
-                # 1. Actualizar stock en la tabla stock
+                # Actualizar stock en la tabla stock
                 self.stock_model.update_product_quantity(product_id, new_stock)
 
-                # 2. Registrar movimiento
+                # Registrar movimiento
                 self.movement.register(
                     product_id=product_id,
                     product_name=product_name,
@@ -507,17 +508,18 @@ class StockMovementView:
                     qty_before=current_stock,
                     qty_after=new_stock,
                     cost_before=current_cost,
-                    cost_after=current_cost,  # No cambia
+                    cost_after=current_cost,  
                     price_before=current_price,
-                    price_after=current_price  # No cambia
-                )
+                    price_after=current_price 
+                )      
 
                 messagebox.showinfo("Éxito", "Stock ajustado correctamente")
                 
                 # Refrescar tabla de movimientos
                 if callback_refresh:
                     callback_refresh()
-                    self.controller.refresh_stock_table()
+                    # Actualizar tablas de stock
+                    self.event_bus.publish('stock_change', None)
                 
                 adjust_win.destroy()
 

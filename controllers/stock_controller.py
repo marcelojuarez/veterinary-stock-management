@@ -14,7 +14,7 @@ class StockController:
         self.all_products = []
         self.payment_model = payment_model
         self.event_bus = event_bus
-        self.event_bus.subscribe('refresh_stock_table', self.refresh_stock_table)
+        self.event_bus.subscribe('stock_change', self.refresh_stock_table)
 
         if self.view:
             self.load_products()
@@ -43,9 +43,8 @@ class StockController:
             # Eliminar de base de datos
             self.stock_model.delete_product(selected_product)
             
-            # Refrescar tabla
-            self.refresh_stock_table()
-            self.event_bus.publish('refresh_products_on_p_win', None)
+            # Refrescar tablas de stock
+            self.event_bus.publish('stock_change', None)
             
             self.view.show_success("Producto eliminado correctamente")
             
@@ -96,8 +95,7 @@ class StockController:
         """Agregar un producto nuevo directamente al stock."""
         try:
             self.stock_model.add_product(data)
-            self.refresh_stock_table()
-            self.event_bus.publish('refresh_products_on_p_win', None)
+            self.event_bus.publish('stock_changed', None)
             self.view.show_success("Producto agregado correctamente")
         except Exception as e:
             logger.error("Error al agregar producto: %s", e)

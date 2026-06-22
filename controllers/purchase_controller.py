@@ -21,7 +21,7 @@ class PurchaseController():
         self.event_bus = event_bus
 
         self.event_bus.subscribe(
-            'refresh_products_on_p_win',
+            'stock_change',
             self.refresh_products_on_p_win
         )
 
@@ -77,8 +77,8 @@ class PurchaseController():
                 else:
                     self.view.load_purchases(True)
 
-                self.event_bus.publish('refresh_stock_table', None)
-                self.event_bus.publish('refresh_stock_in_sale_view', None)
+                ## Actualiza tabla de productos en Inventario y Proveedores
+                self.event_bus.publish('stock_change', None)
                 
                 # Se establece la ultima actualizacion de deuda
                 self.supplier_model.purchase.update_last_debt_update(purchase_data[1])
@@ -239,12 +239,9 @@ class PurchaseController():
             if window:
                 window.destroy()
         
-            products = self.stock_model.get_all_products()
-            self.products = [(p[0], p[1], p[2], p[10]) for p in products]
-
             # Refrescar tabla
+            self.event_bus.publish('stock_change', None)
             self.form_view.load_products()
-            self.event_bus.publish('refresh_stock_table', None)
             
             show_success("Producto registrado correctamente")
             

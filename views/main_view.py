@@ -272,7 +272,7 @@ class App():
         self.notebook.add(self.start_view.frame, text='Inicio')
 
         # --- STOCK ---
-        self.stock_view = StockView(self.notebook, self.stock_controller, stock_model, fraction_model = fraction_model)
+        self.stock_view = StockView(self.notebook, self.stock_controller, stock_model, event_bus, fraction_model = fraction_model)
         self.stock_controller.set_view(self.stock_view)
 
         self.notebook.add(self.stock_view.frame, text='Inventario')
