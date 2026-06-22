@@ -154,6 +154,18 @@ class PaymentForm:
                          font=ctk.CTkFont(size=12, weight="bold"),
                          text_color="#2E7D32").pack(side="left", padx=10, pady=6)
 
+            # Botón para aplicar SOLO el saldo a favor cuando es parcial
+            # (descuenta el crédito de la deuda sin exigir un pago adicional)
+            if self._credit_applied < self._deuda_original:
+                ctk.CTkButton(
+                    W, text="Aplicar solo saldo a favor a la deuda",
+                    width=EW, height=34,
+                    font=ctk.CTkFont(size=12, weight="bold"),
+                    fg_color="#2E7D32", hover_color="#1B5E20",
+                    command=lambda: self.confirm_credit_only(parent)
+                ).grid(row=row, column=0, columnspan=2, padx=20, pady=(2, 8), sticky="ew")
+                row += 1
+
         # Monto restante a pagar (solo si queda algo)
         resto = Decimal(self.amount_var.get() or "0")
         if resto > Decimal("0"):
@@ -411,6 +423,30 @@ class PaymentForm:
     # ──────────────────────────────────────────────────────────────
     # CONFIRMACIÓN Y DATOS
     # ──────────────────────────────────────────────────────────────
+    def confirm_credit_only(self, parent):
+        """Aplica únicamente el saldo a favor a la deuda, sin pago adicional.
+
+        Sirve cuando el crédito NO cubre el total: descuenta lo disponible
+        y deja el resto pendiente. El controller ya soporta este caso
+        (monto = 0, método = SALDO_A_FAVOR).
+        """
+        remaining = self._deuda_original - self._credit_applied
+        summary = (
+            f"Proveedor (CUIT): {self.supplier_cuit_var.get()}\n"
+            f"Saldo a favor a aplicar: $ {self._credit_applied}\n"
+            f"Deuda restante luego de aplicar: $ {remaining}\n"
+        )
+        if self.observation_var.get().strip():
+            summary += f"Observaciones:     {self.observation_var.get().strip()}\n"
+
+        if ask_confirmation(summary, "¿Aplicar solo el saldo a favor a la deuda?"):
+            # Forzar modo crédito-solo: sin monto ni método de pago adicional
+            self.amount_var.set("0")
+            self.method_var.set("")
+            self.controller.register_payment(
+                self.supplier_id_var.get(), self.add_pay_win, parent, self.purchase_id
+            )
+
     def confirm_payment(self, parent):
         amount = self.amount_var.get().strip()
         method = self.method_var.get()
