@@ -192,9 +192,9 @@ class InvoiceInternalPDFService:
 
         customer_text = f"""
             <b>{customer[1]}</b><br/>
-            CUIT: {customer[2]}<br/>
-            Domicilio: {customer[3]}<br/>
-            Teléfono: {customer[4]}
+            CUIT: {customer[2] or '-'}<br/>
+            Domicilio: {customer[3] or '-'}<br/>
+            Teléfono: {customer[4] or '-'}
         """
 
         elements.append(Paragraph(customer_text, self.styles["NormalSmall"]))

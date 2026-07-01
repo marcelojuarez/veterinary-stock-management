@@ -99,9 +99,9 @@ class CustomerModel:
         """
         params = [
             customer_data['name'].upper(),
-            customer_data['cuit'],
+            customer_data['cuit'] or None,
             customer_data['home'].upper(),
-            customer_data['phone'],
+            customer_data['phone'] or None,
             customer_data['iva_condition'],
             customer_data.get('cv', ''),
             customer_data.get('cuig', ''),
