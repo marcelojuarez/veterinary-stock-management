@@ -208,7 +208,7 @@ class PurchaseForm():
         self.search_after_id = self.search_entry.after(200, self.update_tree_view_filter)
 
     def update_tree_view_filter(self):
-        query = self.find_entry.get().lower()
+        query = self.search_entry.get().lower()
 
         if query == "":
             self.load_products()

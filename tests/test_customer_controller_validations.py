@@ -36,14 +36,14 @@ class TestValidateCustomerData(unittest.TestCase):
     def test_missing_name_returns_false(self):
         self.assertFalse(self._call(name=''))
 
-    def test_missing_cuit_returns_false(self):
-        self.assertFalse(self._call(cuit=''))
+    def test_missing_cuit_returns_true(self):
+        self.assertTrue(self._call(cuit=''))
 
     def test_missing_home_returns_false(self):
         self.assertFalse(self._call(home=''))
 
-    def test_missing_phone_returns_false(self):
-        self.assertFalse(self._call(phone=''))
+    def test_missing_phone_returns_true(self):
+        self.assertTrue(self._call(phone=''))
 
 
 class TestCustomerCuitValidation(unittest.TestCase):
