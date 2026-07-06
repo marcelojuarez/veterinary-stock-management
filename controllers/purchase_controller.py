@@ -240,7 +240,7 @@ class PurchaseController():
                 window.destroy()
         
             products = self.stock_model.get_all_products()
-            self.products = [(p[0], p[1], p[2], p[10]) for p in products]
+            self.products = [(p[0], p[1], p[2], p[12]) for p in products]
 
             # Refrescar tabla
             self.form_view.load_products()

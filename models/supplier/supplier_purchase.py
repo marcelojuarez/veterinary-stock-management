@@ -321,8 +321,6 @@ class SupplierPurchase():
             ## Remito ## sin iva
             total = self.get_subtotal_of_items(purchase_id, conn=conn)
 
-
-
             query = """ UPDATE supplier_receipt SET total = ? WHERE id = ? """
 
             receipt_params = [str(total), doc_id]

@@ -201,11 +201,9 @@ class NewPurchaseItemForm():
             self.iva = string_to_flex_dec(self.iva_rate.get())
 
             if self.list_price is None or self.iva is None or self.discount is None or self.qty is None:
-                print('entra por el return')
                 return
 
             if self.bonus_discount is None:
-                print('self.bonus_discount is None')
                 self.bonus_discount = Decimal('0')
 
             # Calculos (sin normalizar)
@@ -264,12 +262,15 @@ class NewPurchaseItemForm():
         cancel_button.grid(row=0, column=1, padx=10)
 
     def confirm_new_p_item(self, win, parent):
+        # Stock
         if self.qty is not None:
             self.quantity.set(self.qty)
 
+        # Precio de lista
         if self.list_price is not None:
             self.list_price_var.set(self.list_price)
 
+        # Descuento
         if self.discount is not None:
 
             # Limpiar Ingreso de Discount (-0)
@@ -278,15 +279,25 @@ class NewPurchaseItemForm():
 
             self.discount_var.set(self.discount)
 
+        # Iva
         if self.iva is not None:
             self.iva_rate.set(self.iva)
 
+        # Bonificacion de Stock
         if self.bonus_qty is not None:
             # Limpiar Ingreso de Bonus Qty (-0)
             if self.bonus_qty == -0:
                 self.bonus_qty = 0
 
             self.bonus_qty_var.set(self.bonus_qty)
+
+        # Descuento x Bonificacion
+        if self.bonus_discount is not None:
+            # Limpiar Ingreso de Bonus Discount (-0)
+            if self.bonus_discount == -0:
+                self.bonus_discount = 0
+            
+            self.bonus_discount_var.set(self.bonus_discount)
 
         data = (
             f"Nombre: {self.product_name.get().upper()}\n"
@@ -298,7 +309,7 @@ class NewPurchaseItemForm():
             f"IVA %:  {self.iva_rate.get()}\n"
             f"Monto Descuento: ${self.discount_amount.get()}\n"
             f"Bonificación: {self.bonus_qty_var.get()} uds\n"
-            f"% Dto x Bonificacion: {self.bonus_discount_var.get()} uds\n"
+            f"% Dto x Bonificacion: {self.bonus_discount_var.get()}\n"
             f"Subtotal: ${self.subtotal.get()}\n"
             f"Monto IVA $: {self.iva_amount.get()}\n"
             f"Total: ${self.total_item_var.get()}"
