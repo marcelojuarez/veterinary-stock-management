@@ -239,6 +239,9 @@ class PurchaseController():
             if window:
                 window.destroy()
         
+            products = self.stock_model.get_all_products()
+            self.products = [(p[0], p[1], p[2], p[12]) for p in products]
+
             # Refrescar tabla
             self.event_bus.publish('stock_change', None)
             self.form_view.load_products()
@@ -353,6 +356,7 @@ class PurchaseController():
                 item_data['Iva_rate'],
                 item_data['Discount_amount'],
                 item_data['Bonus_qty'],
+                item_data['Bonus_discount'],
                 item_data['Subtotal'],
                 item_data['Iva_amount'],
                 item_data['Total']
@@ -401,6 +405,7 @@ class PurchaseController():
             'Iva_rate': 'Porcentaje de Iva',
             'Discount_amount': 'Monto Descuento',
             'Bonus_qty': 'Bonificacion',
+            'Bonus_discount': '% Dto x Bonificacion',
             'Subtotal': 'SubTotal',
             'Iva_amount': 'Monto Iva',
             'Total': 'Total'
@@ -469,7 +474,20 @@ class PurchaseController():
         if int(form_data['Bonus_qty']) < 0:
             show_error('Error. La bonificación no puede ser un valor NEGATIVO.')
             return False
-            
+        
+        ## Descuento x Bonificacion
+        try:
+            Decimal(form_data['Bonus_discount'])
+        except Exception:
+            show_warning("Error. Formato incorrecto en Descuento por Bonificacion")
+            return False    
+
+        #- Valor correcto
+        if Decimal(form_data['Bonus_discount']) < Decimal('0.00') \
+        or Decimal(form_data['Bonus_discount']) > Decimal('99.00'):
+            show_error('Error. El porcentaje de Descuento por Bonificacion debe rondar entre 0 y 99 %')
+            return False
+
         return True
 
     ## Verifica si un valor es entero

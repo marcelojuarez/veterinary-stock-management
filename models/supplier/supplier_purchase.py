@@ -243,9 +243,9 @@ class SupplierPurchase():
     def add_purchase_item(self, params, conn=None, commit=True):
 
         query = """
-            INSERT INTO purchase_item (purchase_id, product_id, product_name, pack, quantity,
-            list_price, discount, cost_price, iva_rate, discount_amount, bonus_qty, subtotal, iva_amount, total) 
-            VALUES (?, ?, ? ,?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO purchase_item (purchase_id, product_id, product_name, pack, quantity, list_price,
+            discount, cost_price, iva_rate, discount_amount, bonus_qty, bonus_discount, subtotal, iva_amount, total) 
+            VALUES (?, ?, ? ,?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """
 
         self.db.execute_query(query, params, conn=conn, commit=commit)
@@ -321,8 +321,6 @@ class SupplierPurchase():
             ## Remito ## sin iva
             total = self.get_subtotal_of_items(purchase_id, conn=conn)
 
-
-
             query = """ UPDATE supplier_receipt SET total = ? WHERE id = ? """
 
             receipt_params = [str(total), doc_id]
@@ -340,8 +338,8 @@ class SupplierPurchase():
     ## -- Obtener items de compra -- ##
     def get_purchase_items(self, purchase_id):
         query = """
-            SELECT product_id, product_name, pack, quantity, list_price, discount, 
-            cost_price, iva_rate, discount_amount, bonus_qty, subtotal, iva_amount, total
+            SELECT product_id, product_name, pack, quantity, list_price, discount, cost_price, 
+            iva_rate, discount_amount, bonus_qty, bonus_discount, subtotal, iva_amount, total
             FROM purchase_item
             WHERE purchase_id = ?
         """
@@ -462,7 +460,8 @@ class SupplierPurchase():
                     'discount':   Decimal(i[5]),
                     'cost_price': Decimal(i[6]),
                     'iva_rate':   Decimal(i[7]),
-                    'bonus_qty':  i[9]
+                    'bonus_qty':  i[9],
+                    'bonus_discount': Decimal(i[10]) if i[10] else Decimal('0')
                 }
 
                 # --- Guardar estado ANTERIOR del producto ---

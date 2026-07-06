@@ -262,6 +262,7 @@ class Database:
                     iva_rate TEXT NOT NULL,
                     discount_amount TEXT NOT NULL,
                     bonus_qty INTEGER NOT NULL DEFAULT 0,
+                    bonus_discount TEXT NOT NULL DEFAULT '0',
 
                     subtotal TEXT NOT NULL,
                     iva_amount TEXT NOT NULL,
@@ -273,6 +274,10 @@ class Database:
             ''')
             try:
                 cursor.execute("ALTER TABLE purchase_item ADD COLUMN bonus_qty INTEGER NOT NULL DEFAULT 0")
+            except Exception:
+                pass
+            try:
+                cursor.execute("ALTER TABLE purchase_item ADD COLUMN bonus_discount TEXT NOT NULL DEFAULT '0'")
             except Exception:
                 pass
 

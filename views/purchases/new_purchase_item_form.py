@@ -15,26 +15,46 @@ class NewPurchaseItemForm():
         self.purchase_id = tk.StringVar()
         self.purchase_id.set(purchase_id)
 
+        # Producto (id - nombre - pack)
         self.product_id = tk.StringVar()
         self.product_name = tk.StringVar()
         self.product_pack = tk.StringVar()
+        
+        # Stock
         self.quantity = tk.StringVar()
         self.qty = None
+        
+        # Precio Lista
         self.list_price_var = tk.StringVar()
         self.list_price = None
+        
+        # Precio Costo
         self.cost_price_var = tk.StringVar()
+        
+        # Iva 
         self.iva_rate = tk.StringVar()
         self.iva = None
         
+        # Descuento (% - monto)
         self.discount_var = tk.StringVar()
         self.discount = None
         self.discount_amount = tk.StringVar()
+
+        # Bonificacion de UNIDS
         self.bonus_qty_var = tk.StringVar()
         self.bonus_qty = Decimal('0')
 
+        # Descuento por bonificacion
+        self.bonus_discount_var = tk.StringVar()
+        self.bonus_discount = None
+
+        # Monto Subtotal
         self.subtotal = tk.StringVar()
         
+        # Monto IVA
         self.iva_amount = tk.StringVar()
+
+        # Monto total
         self.total_item_var = tk.StringVar()
 
     # Formulario para agregar items en la compra
@@ -42,9 +62,6 @@ class NewPurchaseItemForm():
 
         self.setup_purchase_items_variables(purchase_id)
         self.discrimina_iva = discrimina_iva
-
-        # self.list_price = Decimal('0.00')
-        # self.iva = Decimal('0.00')
 
         """Ventana para agregar nuevo producto con CustomTkinter"""
         add_win = ctk.CTkToplevel(parent)
@@ -132,13 +149,16 @@ class NewPurchaseItemForm():
         add_field(5, 0, "Bonificación (UNID):",
             ctk.CTkEntry(form_frame, textvariable=self.bonus_qty_var, width=200))
         
-        add_field(6, 0, "Precio Lista:",
+        add_field(6, 0, "% Dto x Bonificacion:",
+                ctk.CTkEntry(form_frame, textvariable=self.bonus_discount_var, width=200))
+
+        add_field(7, 0, "Precio Lista:",
                 ctk.CTkEntry(form_frame, textvariable=self.list_price_var, width=200))
         
-        add_field(7, 0,"% Dto:",
+        add_field(0, 2,"% Dto x Producto:",
                 ctk.CTkEntry(form_frame, textvariable=self.discount_var, width=200))  
         
-        add_field(0, 2, "Precio Costo:",
+        add_field(1, 2, "Precio Costo:",
                 ctk.CTkEntry(form_frame, textvariable=self.cost_price_var, state='readonly', width=200))
 
         iva_combo = ctk.CTkComboBox(
@@ -147,18 +167,18 @@ class NewPurchaseItemForm():
                 state='readonly' if self.discrimina_iva else 'disabled',
                 width=200
             )
-        add_field(1, 2, "Porcentaje Iva:", iva_combo)
+        add_field(2, 2, "% Iva:", iva_combo)
 
-        add_field(2, 2, "Total Descuento:",
+        add_field(3, 2, "Total Descuento:",
                 ctk.CTkEntry(form_frame, textvariable=self.discount_amount, state='readonly', width=200))
         
-        add_field(3, 2, "SubTotal:",
+        add_field(4, 2, "SubTotal:",
                 ctk.CTkEntry(form_frame, textvariable=self.subtotal, state='readonly', width=200))
         
-        add_field(4, 2, "Importe Iva:",
+        add_field(5, 2, "Importe Iva:",
                 ctk.CTkEntry(form_frame, textvariable=self.iva_amount, state='readonly', width=200))
 
-        add_field(5, 2, "Total:",
+        add_field(6, 2, "Total:",
                 ctk.CTkEntry(form_frame, textvariable=self.total_item_var, state='readonly', width=200))
 
         # Si el proveedor NO discrimina IVA (factura B/C), bloquear el campo
@@ -167,12 +187,13 @@ class NewPurchaseItemForm():
 
         def recalc(*args):
             ## stock
-            self.qty = string_to_dec(self.quantity.get()) or int('0')
+            self.qty = string_to_dec(self.quantity.get()) or Decimal('0')
 
             ## precio - iva - descuento
-            self.bonus_qty  = string_to_dec(self.bonus_qty_var.get()) or int('0')
+            self.bonus_qty  = string_to_dec(self.bonus_qty_var.get()) or Decimal('0')
             self.list_price = string_to_flex_dec(self.list_price_var.get())
             self.discount = string_to_2_dec(self.discount_var.get())
+            self.bonus_discount = string_to_2_dec(self.bonus_discount_var.get())
 
             # Si no discrimina IVA, forzar siempre a 0
             if not self.discrimina_iva:
@@ -182,18 +203,22 @@ class NewPurchaseItemForm():
             if self.list_price is None or self.iva is None or self.discount is None or self.qty is None:
                 return
 
+            if self.bonus_discount is None:
+                self.bonus_discount = Decimal('0')
+
             # Calculos (sin normalizar)
             base_amount = norm_to_2_dec(self.qty * self.list_price)
             discount_rate = self.discount / Decimal('100')
             unit_d_amount = self.list_price * discount_rate
             price_after_dto = self.list_price - unit_d_amount
 
-            if self.bonus_qty > 0:
-                cost_price = price_after_dto * (1 - Decimal((self.bonus_qty * 10))/100)
+            subtotal = norm_to_2_dec(self.qty * price_after_dto)
+
+            if self.bonus_qty and self.bonus_qty > 0 and self.bonus_discount and self.bonus_discount > 0:
+                bonus_discount_rate = self.bonus_discount / Decimal('100')
+                cost_price = price_after_dto * (1 - bonus_discount_rate)
             else:
                 cost_price = price_after_dto
-
-            subtotal = norm_to_2_dec(self.qty * cost_price)
 
             # IVA solo se discrimina en facturas A/M
             if self.discrimina_iva:
@@ -220,6 +245,7 @@ class NewPurchaseItemForm():
         self.iva_rate.trace_add("write", recalc)
         self.discount_var.trace_add("write", recalc)
         self.bonus_qty_var.trace_add("write", recalc)
+        self.bonus_discount_var.trace_add("write", recalc)
 
         # Botones
         button_frame = ctk.CTkFrame(card_frame, fg_color="transparent")
@@ -236,12 +262,15 @@ class NewPurchaseItemForm():
         cancel_button.grid(row=0, column=1, padx=10)
 
     def confirm_new_p_item(self, win, parent):
+        # Stock
         if self.qty is not None:
             self.quantity.set(self.qty)
 
+        # Precio de lista
         if self.list_price is not None:
             self.list_price_var.set(self.list_price)
 
+        # Descuento
         if self.discount is not None:
 
             # Limpiar Ingreso de Discount (-0)
@@ -250,9 +279,11 @@ class NewPurchaseItemForm():
 
             self.discount_var.set(self.discount)
 
+        # Iva
         if self.iva is not None:
             self.iva_rate.set(self.iva)
 
+        # Bonificacion de Stock
         if self.bonus_qty is not None:
             # Limpiar Ingreso de Bonus Qty (-0)
             if self.bonus_qty == -0:
@@ -260,17 +291,26 @@ class NewPurchaseItemForm():
 
             self.bonus_qty_var.set(self.bonus_qty)
 
+        # Descuento x Bonificacion
+        if self.bonus_discount is not None:
+            # Limpiar Ingreso de Bonus Discount (-0)
+            if self.bonus_discount == -0:
+                self.bonus_discount = 0
+            
+            self.bonus_discount_var.set(self.bonus_discount)
+
         data = (
             f"Nombre: {self.product_name.get().upper()}\n"
             f"Pack: {self.product_pack.get()}\n"
             f"Cantidad: {self.quantity.get()}\n"
             f"Precio lista: ${self.list_price_var.get()}\n"
             f"Descuento %: {self.discount_var.get()}\n"
-            f"Precio costo: ${self.cost_price_var.get()}\n"
-            f"IVA %:  {self.iva_rate.get()}\n"
-            f"Monto Descuento: ${self.discount_amount.get()}\n"
             f"Bonificación: {self.bonus_qty_var.get()} uds\n"
+            f"% Dto x Bonificacion: {self.bonus_discount_var.get()}\n"
+            f"Precio costo: ${self.cost_price_var.get()}\n"
+            f"Monto Descuento: ${self.discount_amount.get()}\n"
             f"Subtotal: ${self.subtotal.get()}\n"
+            f"IVA %:  {self.iva_rate.get()}\n"
             f"Monto IVA $: {self.iva_amount.get()}\n"
             f"Total: ${self.total_item_var.get()}"
         )
@@ -302,6 +342,7 @@ class NewPurchaseItemForm():
             'Iva_rate': self.iva_rate.get().strip(),
             'Discount_amount': self.discount_amount.get().strip(),
             'Bonus_qty': self.bonus_qty_var.get().strip(),
+            'Bonus_discount': self.bonus_discount_var.get().strip(),
             'Subtotal': self.subtotal.get().strip(),
             'Iva_amount': self.iva_amount.get().strip(),
             'Total': self.total_item_var.get().strip()
