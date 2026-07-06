@@ -79,7 +79,7 @@ class PurchaseInfoReceiptView():
             table_frame.pack(fill="x", padx=10, pady=5)
             table_frame.pack_propagate(False)
 
-            headers = ["Id", "Nombre", "Envase", "Cantidad", "Bonif.", "% Dto x Bonif.", "Precio Lista", "Dto %", 
+            headers = ["Id", "Nombre", "Envase", "Cantidad", "Bonif.", "Dto % x Bonif.", "Precio Lista", "Dto %", 
                        'Precio Costo', "Iva %", "Monto Descuento", "Subtotal", "Monto Total Iva", "Total"]
 
             self.sheet = Sheet(
@@ -332,7 +332,7 @@ class PurchaseInfoReceiptView():
         ]
 
         self.sheet.set_sheet_data(data)
-        self.sheet.set_column_widths([60, 260, 120, 80, 70, 70, 120, 100, 120, 100, 120, 120, 120, 120])
+        self.sheet.set_column_widths([60, 260, 120, 80, 70, 90, 120, 100, 120, 100, 120, 120, 120, 120])
 
     ## -- Generar purchase detail como pdf -- ##
     def gen_purchase_detail_pdf(self):
