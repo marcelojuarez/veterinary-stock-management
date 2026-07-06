@@ -20,12 +20,12 @@ ctk.set_appearance_mode("light")  # "light" o "dark"
 ctk.set_default_color_theme("blue")  # "blue", "green", "dark-blue"
 
 class StockView():
-    def __init__(self, parent, controller, stock_model, fraction_model=None):
+    def __init__(self, parent, controller, stock_model, event_bus, fraction_model=None):
         self.controller = controller
         self.frame = ctk.CTkFrame(parent, fg_color="#f0f0f0")
         self.stock_model = stock_model
         self.fraction_model = fraction_model
-        self.movement_view = StockMovementView(StockMovementModel(), stock_model=self.stock_model, controller=self.controller)
+        self.movement_view = StockMovementView(StockMovementModel(), event_bus, stock_model=self.stock_model, controller=self.controller)
         self._stat_total    = tk.StringVar(value="—")
         self._stat_low      = tk.StringVar(value="—")
         self._stat_no_stock = tk.StringVar(value="—")
