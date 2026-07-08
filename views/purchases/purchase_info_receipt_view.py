@@ -5,6 +5,8 @@ import customtkinter as ctk
 from services.purchase_detail import PurchaseDetail
 from utils.utils import iso_to_traditional, format_currency, format_currency_flex
 from utils.view_helpers import center_window, close_win, ask_confirmation, show_success, show_warning, show_error
+from utils.printing import send_to_printer
+from tkinter.messagebox import askyesno
 
 logger = logging.getLogger(__name__)
 
@@ -337,8 +339,14 @@ class PurchaseInfoReceiptView():
     ## -- Generar purchase detail como pdf -- ##
     def gen_purchase_detail_pdf(self):
         try:
-            self.purchase_detail.generate_purchase_detail(self.purchase_id)
-            show_success(f'Detalle de compra generado con exito')
+            path = self.purchase_detail.generate_purchase_detail(self.purchase_id)
+            show_success(f'Detalle de compra generado con exito: {path}')
+
+            if askyesno("Imprimir Detalle de Compra", f"¿Desea imprimir el Detalle de Compra?"):
+                success = send_to_printer(path)
+                if not success:
+                    show_error("No se pudo realizar la impresion")
+
         except ValueError as e:
             logger.error("Error en vista de remito: %s", e)
 
