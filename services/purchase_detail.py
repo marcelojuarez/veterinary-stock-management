@@ -2,14 +2,14 @@ import os
 from reportlab.platypus import (
     SimpleDocTemplate, Paragraph, Table, TableStyle, Spacer, HRFlowable
 )
-from reportlab.lib.pagesizes import A4
+from reportlab.lib.pagesizes import A4, landscape
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib import colors
 from reportlab.lib.units import mm
 from datetime import datetime
 from utils.receipts.paths import get_base_folder
 from utils.utils import format_currency
-
+from decimal import Decimal
 
 # ── Paleta de colores ────────────────────────────────────────────────────────
 COLOR_PRIMARY   = colors.HexColor("#1B5E20")   # verde oscuro — encabezados
@@ -89,7 +89,7 @@ class PurchaseDetail():
 
         doc = SimpleDocTemplate(
             filename,
-            pagesize=A4,
+            pagesize=landscape(A4),
             rightMargin=20 * mm,
             leftMargin=20 * mm,
             topMargin=20 * mm,
@@ -97,7 +97,7 @@ class PurchaseDetail():
         )
 
         styles  = getSampleStyleSheet()
-        W, _    = A4
+        W, _    = landscape(A4)
         usable  = W - 40 * mm
 
         # ── Estilos personalizados ─────────────────────────────────────────
@@ -265,20 +265,23 @@ class PurchaseDetail():
         elements.append(Paragraph("ARTÍCULOS", section_style))
 
         col_widths = [
-            usable * 0.35,  # Producto  — más ancho para nombres largos
-            usable * 0.09,  # Envase
-            usable * 0.06,  # Cant.
-            usable * 0.11,  # P. Costo
-            usable * 0.07,  # IVA %
-            usable * 0.11,  # Subtotal
+            usable * 0.22,  # Producto
+            usable * 0.07,  # Envase
+            usable * 0.05,  # Cant.
+            usable * 0.05,  # Bonif.
+            usable * 0.05,  # Dto %
+            usable * 0.08,  # Dto Bonif %
+            usable * 0.10,  # P. Costo
+            usable * 0.05,  # IVA %
+            usable * 0.10,  # Subtotal
             usable * 0.10,  # IVA $
-            usable * 0.11,  # Total
+            usable * 0.10,  # Total
         ]
 
         cell_style = ParagraphStyle(
             "Cell", parent=styles["Normal"],
-            fontSize=8, fontName="Helvetica",
-            textColor=COLOR_TEXT, leading=10
+            fontSize=6, fontName="Helvetica",
+            textColor=COLOR_TEXT, leading=7
         )
         cell_right = ParagraphStyle(
             "CellR", parent=cell_style, alignment=2
@@ -288,19 +291,23 @@ class PurchaseDetail():
         # [0]id  [1]nombre  [2]envase  [3]cantidad  [4]precio_lista  [5]dto%
         # [6]precio_costo  [7]iva%  [8]monto_dto  [9]subtotal  [10]monto_iva  [11]total
 
-        header_row = ["Producto", "Envase", "Cant.", "P. Costo", "IVA %", "Subtotal", "IVA $", "Total"]
+        header_row = ["Producto", "Envase", "Cant.", "Bonif.", "Dto %", 
+              "Dto Bonif %", "P. Costo", "IVA %", "Subtotal", "IVA $", "Total"]
         table_data = [header_row]
 
         for item in self.items:
             table_data.append([
-                Paragraph(str(item[1]), cell_style),   # nombre — único que necesita wrap
-                str(item[2]),                          # envase
-                str(item[3]),                          # cantidad
-                f"$ {format_currency(item[6])}",                        # precio costo
-                f"{item[7]}",                         # iva %
-                f"$ {format_currency(item[9])}",                        # subtotal neto
-                f"$ {format_currency(item[10])}",                       # monto iva
-                f"$ {format_currency(item[11])}",                       # total
+                Paragraph(str(item[1]), cell_style),                                  # nombre
+                str(item[2]),                                                         # envase
+                str(item[3]),                                                         # cantidad
+                f"+{item[9]}" if item[9] and int(item[9]) > 0 else "—",               # bonus_qty
+                f"{item[5]}%",                                                        # dto %
+                f"{item[10]}%" if item[10] and Decimal(str(item[10])) > 0 else "—",   # dto bonif %
+                f"$ {format_currency(item[6])}",                                      # precio costo
+                f"{item[7]}%",                                                        # iva %
+                f"$ {format_currency(item[11])}",                                     # subtotal
+                f"$ {format_currency(item[12])}",                                     # iva amount
+                f"$ {format_currency(item[13])}",                                     # total
             ])
 
         items_table = Table(table_data, colWidths=col_widths, repeatRows=1)
@@ -309,13 +316,13 @@ class PurchaseDetail():
             ("BACKGROUND",    (0, 0), (-1, 0),  COLOR_PRIMARY),
             ("TEXTCOLOR",     (0, 0), (-1, 0),  colors.white),
             ("FONTNAME",      (0, 0), (-1, 0),  "Helvetica-Bold"),
-            ("FONTSIZE",      (0, 0), (-1, 0),  8),
+            ("FONTSIZE",      (0, 0), (-1, 0),  7),
             ("BOTTOMPADDING", (0, 0), (-1, 0),  8),
             ("TOPPADDING",    (0, 0), (-1, 0),  8),
             ("ALIGN",         (0, 0), (-1, 0),  "CENTER"),
             # Datos
             ("FONTNAME",      (0, 1), (-1, -1), "Helvetica"),
-            ("FONTSIZE",      (0, 1), (-1, -1), 8),
+            ("FONTSIZE",      (0, 1), (-1, -1), 6),
             ("TOPPADDING",    (0, 1), (-1, -1), 5),
             ("BOTTOMPADDING", (0, 1), (-1, -1), 5),
             ("VALIGN",        (0, 1), (-1, -1), "TOP"),   # alinear arriba para celdas multi-línea
