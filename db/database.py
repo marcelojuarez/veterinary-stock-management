@@ -375,9 +375,14 @@ class Database:
                     estado TEXT DEFAULT 'paid',
                     total_cerrado TEXT,
                     fecha_cierre TEXT,
+                    invoiced INTEGER NOT NULL DEFAULT 0,
                     FOREIGN KEY(cliente_id) REFERENCES customer(id) ON DELETE CASCADE
                 );
             ''')
+            try:
+                cursor.execute("ALTER TABLE sales ADD COLUMN invoiced INTEGER NOT NULL DEFAULT 0")
+            except Exception:
+                pass
 
             # Detalle de cada producto vendido
             cursor.execute('''

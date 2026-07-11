@@ -877,17 +877,17 @@ class CustomersView:
                      text_color="white").pack(pady=12)
 
         # ── Date filters ─────────────────────────────────────────────────
-        filter_bar = ctk.CTkFrame(win, fg_color="#f0f0f0")
-        filter_bar.pack(fill="x", padx=10, pady=(8, 0))
+        main_bar = ctk.CTkFrame(win, fg_color="#f0f0f0")
+        main_bar.pack(fill="x", padx=10, pady=(8, 0))
 
         from_var = ctk.StringVar()
         to_var   = ctk.StringVar()
 
-        ctk.CTkLabel(filter_bar, text="Desde:", font=ctk.CTkFont(size=12)).pack(side="left", padx=(15, 4))
-        ctk.CTkEntry(filter_bar, textvariable=from_var, width=110,
+        ctk.CTkLabel(main_bar, text="Desde:", font=ctk.CTkFont(size=12)).pack(side="left", padx=(15, 4))
+        ctk.CTkEntry(main_bar, textvariable=from_var, width=110,
                      placeholder_text="DD/MM/AAAA").pack(side="left", padx=(0, 8))
-        ctk.CTkLabel(filter_bar, text="Hasta:", font=ctk.CTkFont(size=12)).pack(side="left", padx=(0, 4))
-        ctk.CTkEntry(filter_bar, textvariable=to_var, width=110,
+        ctk.CTkLabel(main_bar, text="Hasta:", font=ctk.CTkFont(size=12)).pack(side="left", padx=(0, 4))
+        ctk.CTkEntry(main_bar, textvariable=to_var, width=110,
                      placeholder_text="DD/MM/AAAA").pack(side="left", padx=(0, 12))
 
         def _parse_date(s):
@@ -897,7 +897,7 @@ class CustomersView:
             except ValueError:
                 return None
 
-        ctk.CTkButton(filter_bar, text="Filtrar", width=90, height=30,
+        ctk.CTkButton(main_bar, text="Filtrar", width=90, height=30,
                       fg_color="#7B1FA2", hover_color="#6A1B9A",
                       command=lambda: _populate(
                           self.controller.load_sales_history_rows(
@@ -905,11 +905,15 @@ class CustomersView:
                           )
                       )).pack(side="left")
 
-        ctk.CTkButton(filter_bar, text="Ver todo", width=90, height=30,
+        ctk.CTkButton(main_bar, text="Ver todo", width=90, height=30,
                       fg_color="#555", hover_color="#333",
                       command=lambda: _populate(
                           self.controller.load_sales_history_rows(cliente_id)
                       )).pack(side="left", padx=8)
+
+        ctk.CTkButton(main_bar, text="Marcar Compra como Facturada ✅", width=200, height=30,
+                      fg_color="#555", hover_color="#333", 
+                      command=None).pack(side="right", padx=8)
 
         # ── Sales treeview ───────────────────────────────────────────────
         sales_frame = ctk.CTkFrame(win, fg_color="white")
@@ -917,10 +921,10 @@ class CustomersView:
         ctk.CTkLabel(sales_frame, text="Ventas",
                      font=ctk.CTkFont(size=12, weight="bold")).pack(anchor="w", padx=10, pady=(6, 2))
 
-        sale_cols = ("N° Venta", "Fecha", "Total", "Pagado", "Saldo", "Estado", "Ítems")
+        sale_cols = ("N° Venta", "Fecha", "Total", "Pagado", "Saldo", "Estado", "Ítems", "Facturada")
         sales_tree = ttk.Treeview(sales_frame, columns=sale_cols, show="headings",
                                    height=8, style="Custom.Treeview")
-        for col, w in zip(sale_cols, [80, 130, 110, 110, 110, 120, 55]):
+        for col, w in zip(sale_cols, [80, 130, 110, 110, 110, 120, 55, 80]):
             sales_tree.column(col, width=w, anchor="center")
             sales_tree.heading(col, text=col, anchor="center")
         sales_tree.tag_configure("paid",    background="#E8F5E9")
@@ -938,10 +942,10 @@ class CustomersView:
         ctk.CTkLabel(items_frame, text="Detalle de la venta seleccionada",
                      font=ctk.CTkFont(size=12, weight="bold")).pack(anchor="w", padx=10, pady=(6, 2))
 
-        item_cols = ("Producto", "Envase", "Cantidad", "Precio c/IVA", "Subtotal", "IVA", "Costo al vender")
+        item_cols = ("Producto", "Envase", "Cantidad", "Precio c/IVA", "Subtotal", "IVA")
         items_tree = ttk.Treeview(items_frame, columns=item_cols, show="headings",
                                    height=6, style="Custom.Treeview")
-        for col, w in zip(item_cols, [240, 100, 90, 110, 110, 80, 120]):
+        for col, w in zip(item_cols, [240, 100, 90, 110, 110, 80]):
             items_tree.column(col, width=w, anchor="center")
             items_tree.heading(col, text=col, anchor="center")
 
@@ -976,13 +980,13 @@ class CustomersView:
             for row in data_rows:
                 (sale_id, date, sale_total, status, paid, balance,
                  item_id, product_name, pack, quantity, price, subtotal,
-                 iva_amount, observations, is_fractional, fraction_unit, cost_price) = row
+                 iva_amount, observations, is_fractional, fraction_unit, invoiced) = row
                 if sale_id not in sales_by_id:
                     sales_by_id[sale_id] = {"date": date, "total": sale_total, "status": status,
-                                            "paid": paid, "items": []}
+                                            "paid": paid, "items": [], "invoiced": invoiced}
                 sales_by_id[sale_id]["items"].append((
                     product_name, pack, quantity, price, subtotal,
-                    iva_amount, observations, is_fractional, fraction_unit, cost_price
+                    iva_amount, observations, is_fractional, fraction_unit, invoiced
                 ))
             _sales_data = sales_by_id
 
@@ -1019,6 +1023,7 @@ class CustomersView:
                                       f"${format_currency(str(balance_d))}",
                                       status_label.get(info["status"], info["status"]),
                                       len(info["items"]),
+                                      "✅" if info["invoiced"] else "⬜"
                                   ))
 
             summary_lbl.configure(
@@ -1037,7 +1042,7 @@ class CustomersView:
             for ch in items_tree.get_children():
                 items_tree.delete(ch)
             for (p_name, pack, qty, price, subtotal,
-                 iva_amount, obs, is_frac, frac_unit, cost_price) in info["items"]:
+                 iva_amount, obs, is_frac, frac_unit, _) in info["items"]:
                 if p_name.strip() == "HONORARIOS":
                     display_name = f"{p_name} — {obs}" if obs else p_name
                     display_qty  = qty
@@ -1055,7 +1060,6 @@ class CustomersView:
                     f"${format_currency(price)}",
                     f"${format_currency(subtotal)}",
                     f"${format_currency(iva_amount)}",
-                    f"${format_currency(cost_price)}" if cost_price else "—",
                 ))
 
         sales_tree.bind("<<TreeviewSelect>>", _on_sale_select)

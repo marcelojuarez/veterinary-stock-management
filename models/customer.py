@@ -507,7 +507,7 @@ class CustomerModel:
                 si.observations,
                 si.is_fractional,
                 COALESCE(si.fraction_unit, '')                                AS fraction_unit,
-                COALESCE(si.cost_price,    '')                                AS cost_price
+                s.invoiced
             FROM sales s
             JOIN sale_items si ON si.sale_id = s.id
             JOIN stock st      ON st.id = si.product_id
