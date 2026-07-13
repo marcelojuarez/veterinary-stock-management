@@ -2,9 +2,9 @@ import logging
 import customtkinter as ctk
 from tkinter import ttk, messagebox
 from utils.utils import format_currency
-from utils.view_helpers import center_window, add_treeview_tooltip
+from utils.view_helpers import center_window, add_treeview_tooltip, show_error
 from decimal import Decimal
-from models.customer import CustomerModel
+from tkinter.messagebox import askyesno
 
 logger = logging.getLogger(__name__)
 ctk.set_appearance_mode("light")
@@ -911,10 +911,6 @@ class CustomersView:
                           self.controller.load_sales_history_rows(cliente_id)
                       )).pack(side="left", padx=8)
 
-        ctk.CTkButton(main_bar, text="Marcar Compra como Facturada ✅", width=200, height=30,
-                      fg_color="#555", hover_color="#333", 
-                      command=None).pack(side="right", padx=8)
-
         # ── Sales treeview ───────────────────────────────────────────────
         sales_frame = ctk.CTkFrame(win, fg_color="white")
         sales_frame.pack(fill="x", padx=10, pady=(8, 0))
@@ -922,19 +918,19 @@ class CustomersView:
                      font=ctk.CTkFont(size=12, weight="bold")).pack(anchor="w", padx=10, pady=(6, 2))
 
         sale_cols = ("N° Venta", "Fecha", "Total", "Pagado", "Saldo", "Estado", "Ítems", "Facturada")
-        sales_tree = ttk.Treeview(sales_frame, columns=sale_cols, show="headings",
+        self.sales_tree = ttk.Treeview(sales_frame, columns=sale_cols, show="headings",
                                    height=8, style="Custom.Treeview")
         for col, w in zip(sale_cols, [80, 130, 110, 110, 110, 120, 55, 80]):
-            sales_tree.column(col, width=w, anchor="center")
-            sales_tree.heading(col, text=col, anchor="center")
-        sales_tree.tag_configure("paid",    background="#E8F5E9")
-        sales_tree.tag_configure("partial", background="#FFF9C4")
-        sales_tree.tag_configure("pending", background="#FFEBEE")
+            self.sales_tree.column(col, width=w, anchor="center")
+            self.sales_tree.heading(col, text=col, anchor="center")
+        self.sales_tree.tag_configure("paid",    background="#E8F5E9")
+        self.sales_tree.tag_configure("partial", background="#FFF9C4")
+        self.sales_tree.tag_configure("pending", background="#FFEBEE")
 
-        sy1 = ttk.Scrollbar(sales_frame, orient="vertical", command=sales_tree.yview)
-        sales_tree.configure(yscrollcommand=sy1.set)
+        sy1 = ttk.Scrollbar(sales_frame, orient="vertical", command=self.sales_tree.yview)
+        self.sales_tree.configure(yscrollcommand=sy1.set)
         sy1.pack(side="right", fill="y", padx=(0, 10))
-        sales_tree.pack(fill="x", padx=10, pady=(0, 8))
+        self.sales_tree.pack(fill="x", padx=10, pady=(0, 8))
 
         # ── Items treeview ───────────────────────────────────────────────
         items_frame = ctk.CTkFrame(win, fg_color="white")
@@ -969,32 +965,17 @@ class CustomersView:
 
         status_label = {"paid": "Pagada", "partial": "Pago parcial", "pending": "Pendiente"}
 
-        def _populate(data_rows):
-            nonlocal _sales_data
-            _sales_data = {}
-            for tree in (sales_tree, items_tree):
-                for ch in tree.get_children():
-                    tree.delete(ch)
-
-            sales_by_id = {}
-            for row in data_rows:
-                (sale_id, date, sale_total, status, paid, balance,
-                 item_id, product_name, pack, quantity, price, subtotal,
-                 iva_amount, observations, is_fractional, fraction_unit, invoiced) = row
-                if sale_id not in sales_by_id:
-                    sales_by_id[sale_id] = {"date": date, "total": sale_total, "status": status,
-                                            "paid": paid, "items": [], "invoiced": invoiced}
-                sales_by_id[sale_id]["items"].append((
-                    product_name, pack, quantity, price, subtotal,
-                    iva_amount, observations, is_fractional, fraction_unit, invoiced
-                ))
-            _sales_data = sales_by_id
+        def render():
+            """Carga sales_tree con los datos actuales de _sales_data """
+            # limpiar sales_tree
+            for ch in self.sales_tree.get_children():
+                self.sales_tree.delete(ch)
 
             total_purchased = Decimal("0")
             total_paid      = Decimal("0")
             total_pending   = Decimal("0")
 
-            for sale_id, info in sales_by_id.items():
+            for sale_id, info in _sales_data.items():
                 display_date = info["date"].split()[0] if info["date"] else ""
                 try:
                     display_date = _dt.strptime(display_date, "%Y-%m-%d").strftime("%d/%m/%Y")
@@ -1014,10 +995,10 @@ class CustomersView:
                 if info["status"] in ("pending", "partial"):
                     total_pending += balance_d
 
-                sales_tree.insert("", "end", iid=str(sale_id),
+                self.sales_tree.insert("", "end", iid=str(sale_id),
                                   tags=(info["status"],),
                                   values=(
-                                      f"#{sale_id}", display_date,
+                                      sale_id, display_date,
                                       f"${format_currency(str(sale_total_d))}",
                                       f"${format_currency(str(paid_d))}",
                                       f"${format_currency(str(balance_d))}",
@@ -1032,13 +1013,53 @@ class CustomersView:
                       f"Saldo pendiente: ${format_currency(str(total_pending))}")
             )
 
+        def _populate(data_rows):
+            """Recibe los datos de la DB, parsea y arma _sales_data. El cual se utiliza para
+            cargar la tabla con informacion de cada venta """
+            nonlocal _sales_data
+            _sales_data = {}
+            
+            for ch in items_tree.get_children():
+                items_tree.delete(ch)
+
+            sales_by_id = {}
+            for row in data_rows:
+                (sale_id, date, sale_total, status, paid, balance,
+                 item_id, product_name, pack, quantity, price, subtotal,
+                 iva_amount, observations, is_fractional, fraction_unit, invoiced) = row
+                if sale_id not in sales_by_id:
+                    sales_by_id[sale_id] = {"date": date, "total": sale_total, "status": status,
+                                            "paid": paid, "items": [], "invoiced": invoiced}
+                sales_by_id[sale_id]["items"].append((
+                    product_name, pack, quantity, price, subtotal,
+                    iva_amount, observations, is_fractional, fraction_unit, invoiced
+                ))
+            _sales_data = sales_by_id
+            render()
+
         def _on_sale_select(event):
-            sel = sales_tree.selection()
+            """
+            Al seleccionar una venta en el sales_tree:
+                Carga el detalle de productos de esa venta en el items_tree
+                y actualiza el texto del boton segun el estado de facturacion
+            """
+            sel = self.sales_tree.selection()
             if not sel:
                 return
+            
             info = _sales_data.get(int(sel[0]))
+            
             if not info:
                 return
+            
+            # Texto dinamico para boton invoiced
+            ## Si la compra figura como facturada
+            if info ['invoiced']:
+                invoiced_btn.configure(text="Desmarcar Compra como Facturada ⬜")
+
+            else:
+                invoiced_btn.configure(text="Marcar Compra como Facturada ✅")
+
             for ch in items_tree.get_children():
                 items_tree.delete(ch)
             for (p_name, pack, qty, price, subtotal,
@@ -1062,7 +1083,51 @@ class CustomersView:
                     f"${format_currency(iva_amount)}",
                 ))
 
-        sales_tree.bind("<<TreeviewSelect>>", _on_sale_select)
+        def manage_purchase_marked_as_invoiced():
+            """Alterna el estado de facturación de la venta seleccionada"""
+            sel = self.sales_tree.selection()
+
+            if not sel:
+                self.show_error('Por favor seleccione una Compra')
+                return
+            
+            iid = sel[0]
+            values = self.sales_tree.item(iid, "values") 
+            sale_id = values[0] # sale_id
+
+            sale_id_int = int(sale_id)
+
+            if _sales_data[sale_id_int]["invoiced"]:
+                title = "Desmarcar Compra como Facturada"
+                msg = f"¿Desea Desmarcar la compra #{sale_id} como Facturada?"
+            else:
+                title = "Marcar Compra como Facturada" 
+                msg = f"¿Desea Marcar la compra #{sale_id} como Facturada?"
+            
+            if askyesno(title,msg):
+                result = self.controller.toggle_invoiced(sale_id)
+                if result:
+        
+                    _sales_data[sale_id_int]["invoiced"] = not _sales_data[sale_id_int]["invoiced"]
+                    render()
+
+                    if _sales_data[sale_id_int]["invoiced"]:
+                        invoiced_btn.configure(text="Desmarcar Compra como Facturada ⬜")
+                    else:
+                        invoiced_btn.configure(text="Marcar Compra como Facturada ✅")
+
+                    self.show_success('Estado de facturacion actualizado con exito!')
+                
+                else:
+                    show_error("Ocurrio un error al actualizar el estado de facturacion de la compra")
+
+        invoiced_btn = ctk.CTkButton(main_bar, text="Marcar Compra como Facturada ✅", width=200, height=30,
+                fg_color="#555", hover_color="#333", 
+                command=manage_purchase_marked_as_invoiced)
+        
+        invoiced_btn.pack(side="right", padx=8)
+        
+        self.sales_tree.bind("<<TreeviewSelect>>", _on_sale_select)
         _populate(rows)
 
     def open_account_history_window(self, cliente_id, cliente_nombre, movements, summary):

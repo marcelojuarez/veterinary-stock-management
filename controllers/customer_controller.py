@@ -1065,6 +1065,10 @@ class CustomerController:
             import traceback
             traceback.print_exc()
 
-
     def get_customer_with_debts(self):
         return self.model.get_customers_with_debt()
+
+    def toggle_invoiced(self, sale_id):
+        """Permite Marcar/Desmarcar una compra como facturada"""
+
+        return self.model.toggle_invoiced(sale_id)

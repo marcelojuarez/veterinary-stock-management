@@ -2,7 +2,6 @@ import logging
 import sqlite3
 from datetime import datetime
 from decimal import Decimal
-from tkinter import messagebox
 from db.database import db
 from utils.utils import norm_to_2_dec, iso_to_traditional
 
@@ -450,8 +449,6 @@ class CustomerModel:
             'sales_balance': f"{sales_paid}/{total_sales} pagadas"
         }
 
-        print(f'summary: {summary}')
-
         return movements, summary
     
     ## -- count total sales and sales paid -- ##
@@ -519,6 +516,7 @@ class CustomerModel:
         return self.db.fetch_all(query, tuple(params))
 
     def get_customers_with_debt(self):
+        """Obtiene los clientes con deuda pendiente"""
         query = """
             SELECT DISTINCT c.id, c.name, c.cuit, c.home, c.phone,
                 c.iva_condition, c.cv, c.cuig, c.renspa, c.establishment
@@ -527,4 +525,21 @@ class CustomerModel:
             WHERE s.estado IN ('pending', 'partial')
         """
         return self.db.fetch_all(query)
+
+    def toggle_invoiced(self, sale_id):
+        """Marca/Desmarca una compra como facturada"""
+        try:
+            query = """
+            UPDATE sales
+            SET
+                invoiced = CASE WHEN invoiced = 1 THEN 0 ELSE 1 END
+            WHERE id = ?
+            """   
+            
+            self.db.execute_query(query, (sale_id, ))
+            return True
+
+        except Exception as e:
+            logger.error(f"Error al actualizar el estado de facturacion:  {e}")
+            return None
 
