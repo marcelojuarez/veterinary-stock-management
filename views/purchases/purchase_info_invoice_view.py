@@ -6,6 +6,8 @@ from services.purchase_detail import PurchaseDetail
 from utils.utils import iso_to_traditional, format_currency, format_currency_flex
 from utils.invoice_utils import pay_period_control, calculate_exp_date
 from utils.view_helpers import center_window, close_win, ask_confirmation, show_success, show_warning, show_error
+from utils.printing import send_to_printer
+from tkinter.messagebox import askyesno
 
 logger = logging.getLogger(__name__)
 
@@ -82,7 +84,7 @@ class PurchaseInfoInvoiceView():
             table_frame = ctk.CTkFrame(main_frame, corner_radius=10)
             table_frame.pack(fill="both", expand=True, padx=10)
 
-            headers = ["Id", "Nombre", "Envase", "Cantidad", "Bonif.", "% Dto x Bonif.", "Precio Lista", "Dto %", 
+            headers = ["Id", "Nombre", "Envase", "Cantidad", "Bonif.", "Dto % x Bonif.", "Precio Lista", "Dto %", 
                        'Precio Costo', "Iva %", "Monto Descuento", "Subtotal", "Monto Total Iva", "Total"]
 
             self.sheet = Sheet(
@@ -519,13 +521,19 @@ class PurchaseInfoInvoiceView():
         ]
 
         self.sheet.set_sheet_data(data)
-        self.sheet.set_column_widths([60, 260, 120, 80, 70, 70, 120, 100, 120, 100, 120, 120, 120, 120])
+        self.sheet.set_column_widths([60, 260, 120, 80, 70, 90, 120, 100, 120, 100, 120, 120, 120, 120])
 
     ## -- Generar purchase detail como pdf -- ##
     def gen_purchase_detail_pdf(self):
         try:
-            self.purchase_detail.generate_purchase_detail(self.purchase_id)
-            show_success(f'Detalle de compra generado con exito')
+            path = self.purchase_detail.generate_purchase_detail(self.purchase_id)
+            show_success(f'Detalle de compra generado con exito: {path}')
+
+            if askyesno("Imprimir Detalle de Compra", f"¿Desea imprimir el Detalle de Compra?"):
+                success = send_to_printer(path)
+                if not success:
+                    show_error("No se pudo realizar la impresion")
+            
         except ValueError as e:
             logger.error("Error en vista de factura: %s", e)
 
