@@ -239,7 +239,14 @@ class SupplierView():
             font=ctk.CTkFont(size=18, weight="bold"),
             text_color="black"
         )
-        title_label.pack(pady=20)
+        title_label.pack(pady=(20, 2))
+
+        ctk.CTkLabel(
+            card_frame,
+            text="Solo el nombre es obligatorio. El resto de los campos son opcionales.",
+            font=ctk.CTkFont(size=11),
+            text_color="#666666"
+        ).pack(pady=(0, 12))
 
         # contenedor del formulario
         form_frame = ctk.CTkFrame(card_frame, fg_color="white")
@@ -259,7 +266,7 @@ class SupplierView():
             return widget
 
         
-        name_entry = add_field(0, "Nombre Completo: ", 
+        name_entry = add_field(0, "Nombre Completo: *",
                   ctk.CTkEntry(form_frame, textvariable=self.name_var, width=200))
         
         name_entry.focus()
