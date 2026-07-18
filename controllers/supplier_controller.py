@@ -99,16 +99,18 @@ class SupplierController():
             logger.error("Error abriendo info de proveedor: %s", e)
     
     def __validates_supplier_data(self, form_data):
-        required_files =  ['name', 'cuit', 'address', 'city', 'province', 'country', 'phone', 'email', 'iva_condition']
+        # Solo el nombre es obligatorio; el resto de los campos son opcionales.
+        if not form_data['name'] or not form_data['name'].strip():
+            show_warning("El nombre del proveedor es obligatorio.")
+            return False
 
-        for field in required_files:
-            if not form_data[field]:
-                show_warning("Por favor complete todos los campos.")
-                return False
-        
         return True
     
     def validate_existing_address(self, supplier_id, address, city):
+        # Domicilio opcional: si no se cargó, no hay nada que verificar.
+        if not address or not address.strip():
+            return True
+
         existing = self.model.core.find_supplier_by_address(
             address.strip().upper(), city.strip().upper()
         )
@@ -128,7 +130,7 @@ class SupplierController():
     def __validate_supplier_email(self, email_field):
         pattern = r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b'
 
-        if email_field.strip() == '-':
+        if not email_field or email_field.strip() in ('', '-'):
             return True
         
         if not re.fullmatch(pattern, email_field):
@@ -138,6 +140,9 @@ class SupplierController():
         return True
     
     def __validate_supplier_cuit(self, cuit_field):
+        if not cuit_field or cuit_field.strip() in ('', '-'):
+            return True
+
         pattern = r'^\d{2}-\d{8}-\d$'
 
         if not re.fullmatch(pattern, cuit_field):
@@ -148,8 +153,8 @@ class SupplierController():
     
     def __validate_supplier_phone(self, phone_field):
         pattern = r'^\+?\d{7,15}$'
-        
-        if phone_field.strip() == '-':
+
+        if not phone_field or phone_field.strip() in ('', '-'):
             return True
 
         if not re.fullmatch(pattern, phone_field):
@@ -166,7 +171,7 @@ class SupplierController():
         return True
     
     def __validate_supplier_address(self, address_field):
-        if address_field.strip() == '-':
+        if not address_field or address_field.strip() in ('', '-'):
             return True
 
         if len(address_field) < 5 or len(address_field) > 150:
