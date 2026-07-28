@@ -549,7 +549,7 @@ class PaymentWindow():
         # # Filtrar la lista de proveedores
         filtered = [
             s for s in self.suppliers
-            if query in s[1] or query in s[2].lower()
+            if (s[1] is not None and query in s[1]) or (s[2] is not None and query in s[2].lower())
         ]
         
         # Insertar solo los resultados filtrados
