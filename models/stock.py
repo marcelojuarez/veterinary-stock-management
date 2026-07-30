@@ -49,15 +49,16 @@ class StockModel:
     def update_product_price(self, product_id, product_data, conn=None, commit=True):
         """Actualizar un producto existente"""
         query = """
-            UPDATE stock 
-            SET profit = ?, cost_price = ?, price = ?, 
-                price_with_iva = ?, last_price_update = CURRENT_DATE
+            UPDATE stock
+            SET profit = ?, cost_price = ?, price = ?,
+                iva = ?, price_with_iva = ?, last_price_update = CURRENT_DATE
             WHERE id = ?
         """
         params = (
             product_data['Profit'],
             product_data['CostPrice'],
             product_data['SalePrice'],
+            product_data['Iva'],
             product_data['PriceWIva'],
             product_id
         )
