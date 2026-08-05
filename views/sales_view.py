@@ -1425,7 +1425,7 @@ class SalesView:
 
             # Cliente normal
             self.radio_credit.configure(state="normal")
-
+            self.payment_type_var.set("CREDIT")
             client_data = self.customer_model.get_client_by_name(selected_name)
 
             if client_data:

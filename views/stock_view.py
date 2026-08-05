@@ -198,7 +198,6 @@ class StockView():
         )
         stock_information_btn.grid(row=0, column=4, padx=15, pady=15)
 
-
     def open_stock_information(self):
         """Ventana con información detallada del stock"""
         window = ctk.CTkToplevel(self.frame)
@@ -409,7 +408,7 @@ class StockView():
             window.title(f"Actualizar Precio - {name}")
             window.transient(parent)
             window.grab_set()
-            center_window(window, 550, 480)
+            center_window(window, 550, 530)
 
             # Información básica
             info_label = ctk.CTkLabel(
@@ -441,6 +440,7 @@ class StockView():
 
             cost_var = tk.StringVar(value=cost_price)
             profit_var = tk.StringVar(value=profit)
+            iva_var = tk.StringVar(value=str(norm_to_2_dec(iva)))
 
             # Precio Costo
             cost_label = ctk.CTkLabel(input_frame, text="Precio de Costo:")
@@ -452,9 +452,19 @@ class StockView():
             # Rentabilidad
             profit_label = ctk.CTkLabel(input_frame, text="Rentabilidad (%):")
             profit_label.grid(row=1, column=0, padx=10, pady=10, sticky="w")
-            
+
             profit_entry = ctk.CTkEntry(input_frame, textvariable=profit_var, width=150)
             profit_entry.grid(row=1, column=1, padx=10, pady=10)
+
+            # IVA (independiente del método; siempre editable)
+            iva_label = ctk.CTkLabel(input_frame, text="IVA (%):")
+            iva_label.grid(row=2, column=0, padx=10, pady=10, sticky="w")
+
+            iva_combo = ctk.CTkComboBox(
+                input_frame, values=["21.00", "10.50", "0.00"],
+                variable=iva_var, width=150, state="readonly"
+            )
+            iva_combo.grid(row=2, column=1, padx=10, pady=10)
 
             result_var = tk.StringVar()
             result_label = ctk.CTkLabel(main_frame, text="Resultado:", font=ctk.CTkFont(size=12, weight="bold"))
@@ -481,12 +491,10 @@ class StockView():
                         profit_amount = self.new_cost * profit_rate
                         self.new_sale_price = self.new_cost + profit_amount
 
-                        if Decimal(iva) == Decimal('21.00'):
-                            self.price_with_iva = self.new_sale_price * Decimal('1.21')
-                        elif Decimal(iva) == Decimal('10.5'):
-                            self.price_with_iva = self.new_sale_price * Decimal('1.105')
-                        else:
-                            self.price_with_iva = self.new_sale_price
+                        self.new_iva = string_to_flex_dec(iva_var.get())
+                        if self.new_iva is None:
+                            raise ValueError
+                        self.price_with_iva = self.new_sale_price * (Decimal('1') + self.new_iva / Decimal('100'))
 
                         # Normalizacion
                         self.new_sale_price = flex_dec(self.new_sale_price)
@@ -496,7 +504,7 @@ class StockView():
                             f"Precio De Costo: ${self.new_cost} | "\
                             f"Rentabilidad: {self.profit}% \n"\
                             f"Precio De Venta: ${self.new_sale_price} | "\
-                            f"Con IVA: ${self.price_with_iva}")
+                            f"Con IVA ({self.new_iva}%): ${self.price_with_iva}")
                         
                     except ValueError:
                         result_var.set("Valor inválido - Ingrese un número")
@@ -518,12 +526,10 @@ class StockView():
                         profit_amount = self.cost * profit_rate
                         self.new_sale_price = self.cost + profit_amount
                         
-                        if Decimal(iva) == Decimal('21.00'):
-                            self.price_with_iva = self.new_sale_price * Decimal('1.21')
-                        elif Decimal(iva) == Decimal('10.5'):
-                            self.price_with_iva = self.new_sale_price * Decimal('1.105')
-                        else:
-                            self.price_with_iva = self.new_sale_price
+                        self.new_iva = string_to_flex_dec(iva_var.get())
+                        if self.new_iva is None:
+                            raise ValueError
+                        self.price_with_iva = self.new_sale_price * (Decimal('1') + self.new_iva / Decimal('100'))
                             
                         # Normalizacion
                         self.new_sale_price = flex_dec(self.new_sale_price)
@@ -533,7 +539,7 @@ class StockView():
                             f"Precio De Costo: ${self.cost} | "\
                             f"Rentabilidad: {self.new_profit}% \n"\
                             f"Precio De Venta: ${self.new_sale_price} | "\
-                            f"Con IVA: ${self.price_with_iva}")
+                            f"Con IVA ({self.new_iva}%): ${self.price_with_iva}")
                         
                     except ValueError:
                         result_var.set("Valor inválido - Ingrese un número")
@@ -541,6 +547,7 @@ class StockView():
             method_var.trace('w', lambda *args: update_interface())
             cost_var.trace('w', lambda *args: update_interface() if method_var.get() == "cost_price" else None)
             profit_var.trace('w', lambda *args: update_interface() if method_var.get() == "profit" else None)
+            iva_var.trace('w', lambda *args: update_interface())
 
             update_interface()
 
@@ -580,6 +587,7 @@ class StockView():
                         "CostPrice": str(final_cost),
                         "SalePrice": str(self.new_sale_price),
                         "PriceWIva": str(self.price_with_iva),
+                        "Iva": str(self.new_iva),
                     }
 
                     result = self.stock_model.update_p_price_and_related_sales_amount(
@@ -1243,7 +1251,7 @@ class StockView():
             parent                    = self.frame,
             product                   = product,
             fraction_model            = self.fraction_model,
-            on_save                   = lambda: self.refresh_stock_table(self.stock_model.get_all_products()),
+            on_save                   = lambda: self.controller.refresh_stock_table(),
             on_fraction_price_change  = self.stock_model.recalculate_pending_sales_for_product,
         )
 

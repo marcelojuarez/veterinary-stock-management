@@ -23,9 +23,13 @@ class StockController:
     def set_view(self, view):
         self.view = view        
 
-    def load_products(self):
-        """Carga inicial (una sola vez)"""
+    def reload_products(self):
+        """Carga todos los productos desde la DB, en memoria"""
         self.all_products = self.stock_model.get_all_products()
+        
+    def load_products(self):
+        """Carga inicial de productos"""
+        self.reload_products()
         self.view.refresh_stock_table(self.all_products)
 
     def delete_product(self):
@@ -52,6 +56,7 @@ class StockController:
             self.view.show_error(f"Error al eliminar producto: {str(e)}")
 
     def find_product_live(self, search_text):
+        """Muestra la lista de productos que corresponde a la busqueda"""
         search_text = search_text.strip().lower()
 
         if not search_text:
@@ -95,21 +100,25 @@ class StockController:
         """Agregar un producto nuevo directamente al stock."""
         try:
             self.stock_model.add_product(data)
-            self.event_bus.publish('stock_changed', None)
+            self.event_bus.publish('stock_change', None)
             self.view.show_success("Producto agregado correctamente")
         except Exception as e:
             logger.error("Error al agregar producto: %s", e)
             self.view.show_error(f"Error al agregar producto: {str(e)}")
 
-    def show_all_products(self):
-        self.refresh_stock_table()
-        self.view.show_success("Mostrando todos los artículos del inventario")
-
     def refresh_stock_table(self):
-        """Refrescar tabla de stock"""
+        """Refresca tabla de stock"""
         try:
-            products = self.stock_model.get_all_products()
-            self.all_products = products
-            self.view.refresh_stock_table(products)
+            self.reload_products()
+            self._apply_current_search()
         except Exception as e:
             self.view.show_error(f"Error al refrescar tabla: {str(e)}")
+
+    def _apply_current_search(self):
+        """Aplica el filtro activo o muestra todo si no hay busqueda"""
+        search_text = self.view.find_entry.get().strip()
+
+        if search_text:
+            self.find_product_live(search_text)
+        else:
+            self.view.refresh_stock_table(self.all_products)

@@ -543,7 +543,10 @@ class PurchaseWindow():
             for row in supplier_tree.get_children():
                 supplier_tree.delete(row)
 
-            filtered = [s for s in self.suppliers if query in s[1] or query in s[2].lower()]
+            filtered = [
+                s for s in self.suppliers 
+                if (s[1] is not None and query in s[1]) or (s[2] is not None and query in s[2].lower())
+            ]
 
             for s in filtered:
                 supplier_tree.insert('', 'end', iid=s[0], values=(s[1], s[2]), tag="orow")
