@@ -198,7 +198,6 @@ class StockView():
         )
         stock_information_btn.grid(row=0, column=4, padx=15, pady=15)
 
-
     def open_stock_information(self):
         """Ventana con información detallada del stock"""
         window = ctk.CTkToplevel(self.frame)
@@ -1252,7 +1251,7 @@ class StockView():
             parent                    = self.frame,
             product                   = product,
             fraction_model            = self.fraction_model,
-            on_save                   = lambda: self.refresh_stock_table(self.stock_model.get_all_products()),
+            on_save                   = lambda: self.controller.refresh_stock_table(),
             on_fraction_price_change  = self.stock_model.recalculate_pending_sales_for_product,
         )
 
