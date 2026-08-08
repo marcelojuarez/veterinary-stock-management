@@ -379,6 +379,7 @@ class StockView():
         # Bind para Enter y Escape
         self.stock_tree.bind('<Return>', self.save_edit)
         self.stock_tree.bind('<Escape>', self.cancel_edit)
+        self.stock_tree.bind('<space>', self._clear_selection)
 
         # Tags para colores de filas
         self.stock_tree.tag_configure('orow',         background="#FFFFFF")
@@ -1410,3 +1411,47 @@ class StockView():
         ).grid(row=0, column=1, padx=15)
 
         window.bind("<Return>", lambda _e: save())
+
+    ## Almacena el estado de la vista (tabla stock)
+    def save_state(self):
+        selected = self.get_selected_product()
+        return {
+            'search_text': self.find_entry.get().strip(),
+            'selected_id': selected,
+            'scroll_position': self.stock_tree.yview()
+        }
+
+    ## Restaura el estado de la vista (tabla stock)
+    def restore_state(self, state):
+        if not state:
+            return
+
+        # Restaura busqueda 
+        search = state.get('search_text', '')
+
+        if search:
+            self.controller.find_product_live(search)
+
+        # Restaura seleccion
+        selected = state.get('selected_id')
+        if selected:
+            for item in self.stock_tree.get_children():
+                if str(self.stock_tree.item(item)['values'][0]) == str(selected):
+                    self.stock_tree.selection_set(item)
+                    self.stock_tree.see(item)
+                    self.stock_tree.focus(item) 
+                    self.stock_tree.focus_set() 
+                    break
+            return 
+        
+        # Restaura scroll
+        scroll = state.get('scroll_position')
+        if scroll:
+            self.stock_tree.yview_moveto(scroll[0])
+
+        self.stock_tree.focus_set()
+
+    ## Permite deseleccionar un producto en la tabla stock
+    def _clear_selection(self, event=None):
+        self.stock_tree.selection_remove(self.stock_tree.selection())
+        self.stock_tree.focus_set()  # mantener foco en el treeview

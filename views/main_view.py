@@ -81,6 +81,9 @@ class App():
         self.setup_variables()
 
         self.login_window()
+
+        self.previous_tab = None
+        self.stock_state = None
         
     def setup_window(self):
         view_config = settings['VIEW_CONFIG']
@@ -341,6 +344,14 @@ class App():
     def on_tab_change(self, event):
         selected_tab = event.widget.tab(event.widget.select(), "text")
 
+        # Guardar estado al salir de inventario
+        if self.previous_tab == "Inventario" and selected_tab != "Inventario":
+            self.stock_state = self.stock_view.save_state()
+
+        # Restaurar estado al volver a inventario
+        if self.previous_tab != "Inventario" and selected_tab == "Inventario":
+            self.root.after(50, lambda: self.stock_view.restore_state(self.stock_state))
+
         if selected_tab == "Reportes":
             self.reports_view.load_reports()
 
@@ -349,6 +360,8 @@ class App():
 
         if selected_tab == "Cheques":
             self.checks_controller.load_checks(self.checks_view.filter_var.get())
+
+        self.previous_tab = selected_tab
 
     def load_initial_data(self):
         try:
