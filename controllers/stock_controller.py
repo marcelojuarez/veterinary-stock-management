@@ -43,15 +43,23 @@ class StockController:
             
             if not self.view.ask_confirmation("¿Eliminar el producto seleccionado?"):
                 return
-            
-            # Eliminar de base de datos
-            self.stock_model.delete_product(selected_product)
-            
+
+            # Eliminar de base de datos (soft delete si tiene historial asociado)
+            result = self.stock_model.delete_product(selected_product)
+
             # Refrescar tablas de stock
             self.event_bus.publish('stock_change', None)
-            
-            self.view.show_success("Producto eliminado correctamente")
-            
+
+            if result == "deactivated":
+                self.view.show_info(
+                    "El producto tiene ventas, compras o movimientos asociados, así que "
+                    "no se puede borrar sin perder ese historial.\n\n"
+                    "Se marcó como DESCONTINUADO: ya no aparece en ventas, compras ni "
+                    "inventario, pero su historial queda intacto."
+                )
+            else:
+                self.view.show_success("Producto eliminado correctamente")
+
         except Exception as e:
             self.view.show_error(f"Error al eliminar producto: {str(e)}")
 
