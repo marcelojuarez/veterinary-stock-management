@@ -95,9 +95,15 @@ class Database:
                 quantity INTEGER NOT NULL,
                 created_at TEXT DEFAULT CURRENT_DATE,
                 last_price_update TEXT DEFAULT CURRENT_DATE,
-                UNIQUE (name, pack)           
+                UNIQUE (name, pack)
                 );
             ''')
+
+            # Migración: soft delete de productos (active = 1 activo, 0 descontinuado)
+            try:
+                cursor.execute("ALTER TABLE stock ADD COLUMN active INTEGER NOT NULL DEFAULT 1")
+            except Exception:
+                pass
 
             # Tabla de clientes
             cursor.execute('''

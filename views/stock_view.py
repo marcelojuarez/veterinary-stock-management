@@ -14,6 +14,7 @@ from utils.utils import iso_to_traditional, format_currency, string_to_2_dec, st
 from views.stock_movement_view import StockMovementView
 from models.stock_movement import StockMovementModel
 from views.fraction_config_dialog import FractionConfigDialog
+from views.stock_tracker_view import StockTrackerView
 
 # Configurar tema y colores
 ctk.set_appearance_mode("light")  # "light" o "dark"
@@ -26,6 +27,7 @@ class StockView():
         self.stock_model = stock_model
         self.fraction_model = fraction_model
         self.movement_view = StockMovementView(StockMovementModel(), event_bus, stock_model=self.stock_model, controller=self.controller)
+        self.tracker_view = StockTrackerView(self.stock_model)
         self._stat_total    = tk.StringVar(value="—")
         self._stat_low      = tk.StringVar(value="—")
         self._stat_no_stock = tk.StringVar(value="—")
@@ -140,8 +142,10 @@ class StockView():
         self.find_var = tk.StringVar()
         btn_color = "#009688"
         btn_hover = "#00796B"
-        W = 150
+        W = 140
         H = 35
+        btn_font = ctk.CTkFont(size=11, weight="bold")
+        BP = 6  # padding entre botones
 
         find_frame = ctk.CTkFrame(self.frame)
         find_frame.grid(row=0, column=0, sticky='w', padx=10, pady=10)
@@ -151,17 +155,17 @@ class StockView():
             text='🔍 Buscar Producto:',
             font=ctk.CTkFont(size=14, weight="bold")
         )
-        search_label.grid(row=0, column=0, padx=15, pady=15)
+        search_label.grid(row=0, column=0, padx=(12, 8), pady=15)
 
         self.find_entry = ctk.CTkEntry(
             find_frame,
-            width=600,
+            width=460,
             height=35,
             font=ctk.CTkFont(size=12, weight="bold"),
             placeholder_text="Digite nombre, código o envase del producto",
         )
-        
-        self.find_entry.grid(row=0, column=1, padx=10, pady=15)
+
+        self.find_entry.grid(row=0, column=1, padx=(0, 10), pady=15)
         def _on_search(event=None):
             if self._search_after_id:
                 self.find_entry.after_cancel(self._search_after_id)
@@ -172,31 +176,50 @@ class StockView():
             find_frame,
             text="📋 Historial global",
             width=W, height=H,
-            font=ctk.CTkFont(size=12, weight="bold"),
+            font=btn_font,
             fg_color=btn_color, hover_color=btn_hover,
             command=lambda: self.movement_view.open(self.frame)
         )
-        history_btn.grid(row=0, column=2, padx=15, pady=15)
+        history_btn.grid(row=0, column=2, padx=BP, pady=15)
 
         history_product_btn = ctk.CTkButton(
             find_frame,
             text="📋 Historial producto",
             width=W, height=H,
-            font=ctk.CTkFont(size=12, weight="bold"),
+            font=btn_font,
             fg_color=btn_color, hover_color=btn_hover,
             command=self._open_product_history
         )
-        history_product_btn.grid(row=0, column=3, padx=15, pady=15)
+        history_product_btn.grid(row=0, column=3, padx=BP, pady=15)
 
         stock_information_btn = ctk.CTkButton(
             find_frame,
             text="📊 Información stock",
             width=W, height=H,
-            font=ctk.CTkFont(size=12, weight="bold"),
+            font=btn_font,
             fg_color=btn_color, hover_color=btn_hover,
             command=self.open_stock_information
         )
-        stock_information_btn.grid(row=0, column=4, padx=15, pady=15)
+        stock_information_btn.grid(row=0, column=4, padx=BP, pady=15)
+
+        tracker_btn = ctk.CTkButton(
+            find_frame,
+            text="🔎 Rastrear producto",
+            width=W, height=H,
+            font=btn_font,
+            fg_color=btn_color, hover_color=btn_hover,
+            command=self._open_product_tracker
+        )
+        tracker_btn.grid(row=0, column=5, padx=BP, pady=15)
+
+    def _open_product_tracker(self):
+        product_id = self.get_selected_product()
+        if not product_id:
+            self.show_warning("Seleccione un producto para rastrear")
+            return
+        product = self.stock_model.get_product_by_id(product_id)
+        name = product[1] if product else product_id
+        self.tracker_view.open(self.frame, product_id, name)
 
     def open_stock_information(self):
         """Ventana con información detallada del stock"""
@@ -993,6 +1016,10 @@ class StockView():
     def show_success(self, message):
         """Mostrar mensaje de éxito"""
         messagebox.showinfo("Éxito", message)
+
+    def show_info(self, message):
+        """Mostrar mensaje informativo (neutro)"""
+        messagebox.showinfo("Aviso", message)
 
     def show_error(self, message):
         """Mostrar mensaje de error"""

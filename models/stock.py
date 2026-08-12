@@ -23,10 +23,10 @@ class StockModel:
     def get_all_products(self):
         """Obtener todos los productos del stock"""
         query = """
-            SELECT id, name, pack, list_price, discount, cost_price, profit, price, iva, 
+            SELECT id, name, pack, list_price, discount, cost_price, profit, price, iva,
                    price_with_iva, created_at, last_price_update, quantity
-            FROM stock 
-            WHERE name != "HONORARIOS"
+            FROM stock
+            WHERE name != "HONORARIOS" AND active = 1
             ORDER BY name
         """
         return db.fetch_all(query)
@@ -277,10 +277,105 @@ class StockModel:
         )
         return db.execute_query(query, params)
 
+    # Tablas que referencian stock(id) SIN ON DELETE CASCADE: si el producto
+    # aparece en alguna, no se puede borrar físicamente (rompería la integridad).
+    _REF_TABLES = ("sale_items", "invoice_items", "purchase_item",
+                   "delivery_note_items", "stock_movement")
+
+    def has_references(self, product_id):
+        """True si el producto está referenciado en documentos o historial."""
+        for table in self._REF_TABLES:
+            if db.fetch_one(f"SELECT 1 FROM {table} WHERE product_id = ? LIMIT 1", (product_id,)):
+                return True
+        return False
+
     def delete_product(self, product_id):
-        """Eliminar un producto"""
-        query = "DELETE FROM stock WHERE id = ?"
-        return db.execute_query(query, (product_id,))
+        """Elimina un producto.
+
+        Si tiene ventas, compras, facturas, remitos o movimientos asociados NO se
+        puede borrar físicamente (perdería el historial / rompería la integridad
+        referencial): se marca como inactivo (soft delete) y deja de aparecer en
+        los listados de venta, compra e inventario, conservando el historial.
+
+        Devuelve 'deleted' (borrado físico) o 'deactivated' (descontinuado).
+        """
+        if self.has_references(product_id):
+            db.execute_query("UPDATE stock SET active = 0 WHERE id = ?", (product_id,))
+            return "deactivated"
+        db.execute_query("DELETE FROM stock WHERE id = ?", (product_id,))
+        return "deleted"
+
+    # ── Rastreo: dónde aparece un producto (todo solo lectura) ───────────
+    def get_product_sales(self, product_id):
+        """Ventas donde aparece el producto."""
+        query = """
+            SELECT s.id, s.date, COALESCE(cu.name, '—'), si.quantity, si.price,
+                   si.subtotal, s.estado, si.is_fractional, si.fraction_unit
+            FROM sale_items si
+            JOIN sales s ON s.id = si.sale_id
+            LEFT JOIN customer cu ON cu.id = s.cliente_id
+            WHERE si.product_id = ?
+            ORDER BY s.date DESC, s.id DESC
+        """
+        return db.fetch_all(query, (product_id,))
+
+    def get_product_purchases(self, product_id):
+        """Compras a proveedor donde aparece el producto."""
+        query = """
+            SELECT p.id, p.date, COALESCE(sup.name, '—'), pi.quantity, pi.cost_price,
+                   pi.total, p.state, pi.bonus_qty
+            FROM purchase_item pi
+            JOIN purchase p ON p.id = pi.purchase_id
+            LEFT JOIN supplier sup ON sup.id = p.supplier_id
+            WHERE pi.product_id = ?
+            ORDER BY p.date DESC, p.id DESC
+        """
+        return db.fetch_all(query, (product_id,))
+
+    def get_product_sale_invoices(self, product_id):
+        """Facturas de venta (al cliente) donde aparece el producto."""
+        query = """
+            SELECT inv.number, inv.date, COALESCE(cu.name, '—'), ii.quantity,
+                   ii.price, ii.subtotal, inv.estado
+            FROM invoice_items ii
+            JOIN invoice inv ON inv.id = ii.invoice_id
+            LEFT JOIN customer cu ON cu.id = inv.customer_id
+            WHERE ii.product_id = ?
+            ORDER BY inv.date DESC, inv.id DESC
+        """
+        return db.fetch_all(query, (product_id,))
+
+    def get_product_delivery_notes(self, product_id):
+        """Remitos donde aparece el producto."""
+        query = """
+            SELECT dn.number, dn.date, COALESCE(cu.name, '—'), di.quantity, dn.status
+            FROM delivery_note_items di
+            JOIN delivery_note dn ON dn.id = di.delivery_note_id
+            LEFT JOIN customer cu ON cu.id = dn.customer_id
+            WHERE di.product_id = ?
+            ORDER BY dn.date DESC, dn.id DESC
+        """
+        return db.fetch_all(query, (product_id,))
+
+    def get_product_movements(self, product_id):
+        """Movimientos de stock del producto (compras, ventas, cambios de precio…)."""
+        query = """
+            SELECT date, event_type, detail, qty_before, qty_after, cost_after, price_after
+            FROM stock_movement
+            WHERE product_id = ?
+            ORDER BY date DESC, id DESC
+        """
+        return db.fetch_all(query, (product_id,))
+
+    def get_product_references(self, product_id):
+        """Devuelve todos los documentos/registros donde aparece un producto."""
+        return {
+            "sales":     self.get_product_sales(product_id),
+            "purchases": self.get_product_purchases(product_id),
+            "invoices":  self.get_product_sale_invoices(product_id),
+            "remitos":   self.get_product_delivery_notes(product_id),
+            "movements": self.get_product_movements(product_id),
+        }
 
     def update_quantity(self, product_id, quantity, conn=None, commit=True):
         """Actualizar solo la cantidad de un producto"""
@@ -290,10 +385,10 @@ class StockModel:
     def search_products(self, search_term):
         """Buscar productos por nombre, ID o envase"""
         query = """
-            SELECT id, name, pack, profit, cost_price, price, iva, 
+            SELECT id, name, pack, profit, cost_price, price, iva,
                    price_with_iva, created_at, last_price_update, quantity
-            FROM stock 
-            WHERE name LIKE ? OR id LIKE ? OR pack LIKE ?
+            FROM stock
+            WHERE active = 1 AND (name LIKE ? OR id LIKE ? OR pack LIKE ?)
             ORDER BY name
         """
         search_pattern = f"%{search_term}%"
@@ -301,7 +396,7 @@ class StockModel:
     
     def get_low_stock_products(self, threshold):
         return self.db.fetch_all(
-            "SELECT id, name, pack, quantity FROM stock WHERE quantity < ? ORDER BY quantity",
+            "SELECT id, name, pack, quantity FROM stock WHERE quantity < ? AND active = 1 ORDER BY quantity",
             (threshold,)
         )
     
